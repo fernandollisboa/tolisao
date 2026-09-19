@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Splitwise Lite</title>
-<meta name="description" content="Split expenses with friends. Shared group link, no account, no app.">
+<title>Racha</title>
+<meta name="description" content="Divida gastos com amigos. Link compartilhado, sem conta, sem app.">
 <style>
   :root{
     --bg:#f6f7f9;--card:#fff;--text:#1c1f24;--muted:#6b7280;--line:#e5e7eb;
@@ -65,64 +65,64 @@
 <div id="overlay" class="hidden"><div class="box" id="overlayBox"></div></div>
 
 <header>
-  <h1>Splitwise Lite <small id="groupLabel"></small></h1>
+  <h1>Racha <small id="groupLabel"></small></h1>
   <div class="row">
     <span id="status" class="status"></span>
-    <button id="shareBtn" class="primary">Copy group link</button>
-    <button id="whoBtn" class="ghost" title="Change who you are">I am…</button>
+    <button id="shareBtn" class="primary">Copiar link do grupo</button>
+    <button id="whoBtn" class="ghost" title="Trocar quem é você">Eu sou…</button>
   </div>
 </header>
 <main>
   <section>
-    <h2>Add expense</h2>
+    <h2>Adicionar gasto</h2>
     <form id="expenseForm">
-      <input id="desc" class="grow" placeholder="Description" required maxlength="60">
-      <input id="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required>
+      <input id="desc" class="grow" placeholder="Descrição" required maxlength="60">
+      <input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required>
       <select id="payer" required></select>
       <div class="chips" id="splitChips"></div>
       <div class="row" style="width:100%;justify-content:space-between">
         <span class="muted" id="splitHint"></span>
-        <button class="primary">Add expense</button>
+        <button class="primary">Adicionar</button>
       </div>
     </form>
   </section>
 
   <section>
-    <h2>Balances</h2>
+    <h2>Saldos</h2>
     <ul id="balances"></ul>
   </section>
 
   <section>
-    <h2>Settle up</h2>
+    <h2>Acerto de contas</h2>
     <ul id="settle"></ul>
   </section>
 
   <section>
-    <h2>Expenses</h2>
+    <h2>Gastos</h2>
     <ul id="expenses"></ul>
   </section>
 
   <section>
-    <h2>People</h2>
+    <h2>Pessoas</h2>
     <form id="personForm">
-      <input id="personName" class="grow" placeholder="Name" required maxlength="30">
-      <button>Add person</button>
+      <input id="personName" class="grow" placeholder="Nome" required maxlength="30">
+      <button>Adicionar pessoa</button>
     </form>
     <ul id="people"></ul>
   </section>
 
   <section>
-    <h2>Group</h2>
+    <h2>Grupo</h2>
     <form id="groupForm">
-      <input id="groupName" class="grow" placeholder="Group name" maxlength="40">
+      <input id="groupName" class="grow" placeholder="Nome do grupo" maxlength="40">
       <select id="currency"><option>R$</option><option>$</option><option>€</option><option>£</option></select>
-      <button>Save</button>
+      <button>Salvar</button>
     </form>
     <div class="row" style="margin-top:12px">
-      <button id="exportBtn">Export JSON</button>
-      <button id="newGroupBtn" class="ghost">New group</button>
+      <button id="exportBtn">Exportar JSON</button>
+      <button id="newGroupBtn" class="ghost">Novo grupo</button>
     </div>
-    <p class="muted" style="margin:10px 0 0">Anyone with the link can view and add expenses. Data is synced through a shared store and refreshes every few seconds; keep an export as backup.</p>
+    <p class="muted" style="margin:10px 0 0">Quem tiver o link vê e adiciona gastos. Os dados ficam num armazenamento compartilhado e atualizam a cada poucos segundos. Exporte de vez em quando como backup.</p>
   </section>
 </main>
 <div id="toast" class="toast"></div>
@@ -130,8 +130,12 @@
 <script>
 (() => {
   // ---------- config ----------
-  const API = 'https://jsonblob.com/api/jsonBlob';   // free, no-account JSON store (one blob per group)
+  const API = 'https://jsonblob.com/api/jsonBlob';   // armazenamento JSON gratuito, sem conta (um documento por grupo)
   const POLL_MS = 6000;
+  // Código de acesso. Para trocar: node -e "console.log(require('crypto').createHash('sha256').update('NOVOCODIGO').digest('hex'))"
+  const GATE_HASH = 'b776136f38ff1b54e2d44a0377d4e88eb91d584a03670cdc77f2fd2c122af068';
+  const GATE_KEY = 'racha:unlocked';
+
   const $ = s => document.querySelector(s);
   const uid = () => Math.random().toString(36).slice(2, 10);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -139,12 +143,12 @@
   let groupId = null, state = null, me = null, pollTimer = null, saving = false;
 
   const fresh = (name, currency) => ({ v:1, name, currency, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
-  const lsKey = () => `splitwise-lite:${groupId}`;
+  const lsKey = () => `racha:${groupId}`;
   const cacheSave = () => { try { localStorage.setItem(lsKey(), JSON.stringify(state)); } catch {} };
   const cacheLoad = () => { try { return JSON.parse(localStorage.getItem(lsKey())); } catch { return null; } };
-  const meKey = () => `splitwise-lite:${groupId}:me`;
+  const meKey = () => `racha:${groupId}:me`;
 
-  // ---------- merge (union by id, tombstones win) ----------
+  // ---------- merge (união por id; exclusões vencem) ----------
   function merge(a, b){
     if (!a) return b; if (!b) return a;
     const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b;
@@ -158,11 +162,11 @@
       deleted:[...deleted].slice(-500) };
   }
 
-  // ---------- remote ----------
+  // ---------- remoto ----------
   const setStatus = (msg, err) => { const el = $('#status'); el.textContent = msg; el.classList.toggle('err', !!err); };
   async function remoteGet(){
     const r = await fetch(`${API}/${groupId}`, { cache:'no-store' });
-    if (r.status === 404) throw Object.assign(new Error('Group not found'), { notFound:true });
+    if (r.status === 404) throw Object.assign(new Error('Grupo não encontrado'), { notFound:true });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   }
@@ -175,11 +179,11 @@
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const loc = r.headers.get('Location') || r.headers.get('X-jsonblob') || '';
     const id = loc.split('/').pop();
-    if (!id) throw new Error('No blob id returned');
+    if (!id) throw new Error('Servidor não devolveu o id');
     return id;
   }
 
-  async function sync(){            // pull, merge, push if we have something new
+  async function sync(){            // baixa, mescla e sobe se houver novidade
     if (!groupId || saving) return;
     saving = true;
     try {
@@ -188,7 +192,7 @@
       const changed = JSON.stringify(merged) !== JSON.stringify(remote);
       state = merged; cacheSave(); render();
       if (changed) await remotePut(state);
-      setStatus('Synced ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+      setStatus('Sincronizado ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}));
     } catch (e) {
       if (e.notFound) return showLost();
       setStatus('Offline · ' + e.message, true);
@@ -198,7 +202,7 @@
   function startPolling(){ clearInterval(pollTimer); pollTimer = setInterval(() => { if (!document.hidden) sync(); }, POLL_MS); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
 
-  // ---------- math ----------
+  // ---------- contas ----------
   function shares(cents, ids){ const base = Math.floor(cents/ids.length), rem = cents - base*ids.length; const o={}; ids.forEach((id,i)=>o[id]=base+(i<rem?1:0)); return o; }
   function balances(){
     const b = {}; state.people.forEach(p => b[p.id] = 0);
@@ -218,19 +222,20 @@
   // ---------- render ----------
   const money = n => `${state.currency} ${Math.abs(n).toFixed(2).replace('.', ',')}`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
+  const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   function render(){
     if (!state) return;
     $('#groupLabel').textContent = state.name ? `· ${state.name}` : '';
-    document.title = state.name ? `${state.name} · Splitwise Lite` : 'Splitwise Lite';
+    document.title = state.name ? `${state.name} · Racha` : 'Racha';
     if (document.activeElement !== $('#groupName')) $('#groupName').value = state.name;
     $('#currency').value = state.currency;
-    $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `I am ${nameOf(me)}` : 'I am…';
+    $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `Eu sou ${nameOf(me)}` : 'Eu sou…';
 
     const b = balances();
-    $('#people').innerHTML = state.people.map(p => `<li><span>${esc(p.name)}${p.id===me?' <span class="muted">(you)</span>':''}</span><button class="danger" data-del-person="${p.id}" title="Remove">✕</button></li>`).join('') || '<li class="empty">No people yet.</li>';
+    $('#people').innerHTML = state.people.map(p => `<li><span>${esc(p.name)}${p.id===me?' <span class="muted">(você)</span>':''}</span><button class="danger" data-del-person="${p.id}" title="Remover">✕</button></li>`).join('') || '<li class="empty">Ninguém ainda.</li>';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
-    payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} paid</option>`).join('');
+    payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some(p => p.id === prevPayer)) payerSel.value = prevPayer;
 
     const prev = [...document.querySelectorAll('#splitChips input')];
@@ -240,49 +245,61 @@
     updateHint();
 
     $('#balances').innerHTML = state.people.map(p => { const c=b[p.id], cls=c>0?'pos':c<0?'neg':'muted';
-      const txt = c>0?`gets back ${money(c/100)}`:c<0?`owes ${money(c/100)}`:'settled up';
-      return `<li><span>${esc(p.name)}</span><span class="${cls}">${txt}</span></li>`; }).join('') || '<li class="empty">Add people first.</li>';
+      const txt = c>0?`recebe ${money(c/100)}`:c<0?`deve ${money(c/100)}`:'quites';
+      return `<li><span>${esc(p.name)}</span><span class="${cls}">${txt}</span></li>`; }).join('') || '<li class="empty">Adicione pessoas primeiro.</li>';
 
-    $('#settle').innerHTML = settlements(b).map(t => `<li><span>${esc(nameOf(t.from))} → ${esc(nameOf(t.to))}</span><b>${money(t.cents/100)}</b></li>`).join('') || '<li class="empty">Everyone is settled up.</li>';
+    $('#settle').innerHTML = settlements(b).map(t => `<li><span>${esc(nameOf(t.from))} paga ${esc(nameOf(t.to))}</span><b>${money(t.cents/100)}</b></li>`).join('') || '<li class="empty">Todo mundo quites.</li>';
 
     $('#expenses').innerHTML = [...state.expenses].reverse().map(e => {
       const loan = !e.among.includes(e.payer);
-      const how = loan ? `owed by ${e.among.map(nameOf).map(esc).join(', ')}` : `split ${e.among.length} way${e.among.length===1?'':'s'}`;
-      return `<li><div><div>${esc(e.desc)}</div><div class="meta">${esc(nameOf(e.payer))} paid ${money(e.amount)} · ${how} · ${new Date(e.at).toLocaleDateString()}${e.by?` · added by ${esc(e.by)}`:''}</div></div>
-        <button class="danger" data-del-expense="${e.id}" title="Delete">✕</button></li>`; }).join('') || '<li class="empty">No expenses yet.</li>';
+      const how = loan ? `${listNames(e.among)} deve${e.among.length===1?'':'m'} tudo` : `dividido por ${e.among.length}`;
+      return `<li><div><div>${esc(e.desc)}</div><div class="meta">${esc(nameOf(e.payer))} pagou ${money(e.amount)} · ${how} · ${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · lançado por ${esc(e.by)}`:''}</div></div>
+        <button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></li>`; }).join('') || '<li class="empty">Nenhum gasto ainda.</li>';
   }
   function updateHint(){
     const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value);
     const payer = $('#payer').value; const h = $('#splitHint');
-    if (!among.length) h.textContent = 'Select who shares this expense.';
-    else if (!among.includes(payer)) h.textContent = `Loan: ${among.map(nameOf).join(', ')} owe${among.length===1?'s':''} the full amount to ${nameOf(payer)}.`;
-    else h.textContent = `Split equally among ${among.length} ${among.length===1?'person':'people'}.`;
+    if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
+    else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
+    else h.textContent = `Dividido igualmente entre ${among.length} pessoa${among.length===1?'':'s'}.`;
   }
 
-  // ---------- overlays ----------
+  // ---------- telas ----------
   const overlay = (html) => { $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
   const closeOverlay = () => $('#overlay').classList.add('hidden');
 
+  function showGate(next){
+    overlay(`<h2>Racha</h2><p class="muted" style="margin:0">Página privada. Digite o código de acesso.</p>
+      <form id="gateForm" autocomplete="off"><input id="gateCode" type="password" placeholder="Código" required autofocus>
+      <p id="gateErr" class="status err" style="margin:0"></p><button class="primary">Entrar</button></form>`);
+    $('#gateForm').onsubmit = async ev => {
+      ev.preventDefault();
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode($('#gateCode').value.trim()));
+      const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+      if (hex === GATE_HASH) { try { localStorage.setItem(GATE_KEY, GATE_HASH); } catch {} closeOverlay(); next(); }
+      else { $('#gateErr').textContent = 'Código errado'; $('#gateCode').select(); }
+    };
+  }
   function showCreate(){
-    overlay(`<h2>Splitwise Lite</h2><p class="muted" style="margin:0">Create a group, then send the link to your friends. No account needed.</p>
-      <form id="createForm"><input id="cName" placeholder="Group name (e.g. Trip to Recife)" required maxlength="40" autofocus>
+    overlay(`<h2>Novo grupo</h2><p class="muted" style="margin:0">Crie o grupo e mande o link pros amigos. Sem cadastro.</p>
+      <form id="createForm"><input id="cName" placeholder="Nome do grupo (ex.: Viagem a Recife)" required maxlength="40" autofocus>
       <select id="cCur"><option>R$</option><option>$</option><option>€</option><option>£</option></select>
-      <input id="cMe" placeholder="Your name" required maxlength="30"><button class="primary">Create group</button></form>
+      <input id="cMe" placeholder="Seu nome" required maxlength="30"><button class="primary">Criar grupo</button></form>
       <p id="cErr" class="status err"></p>`);
     $('#createForm').onsubmit = async ev => {
-      ev.preventDefault(); const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Creating…';
+      ev.preventDefault(); const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Criando…';
       const s = fresh($('#cName').value.trim(), $('#cCur').value);
       const p = { id: uid(), name: $('#cMe').value.trim(), at: Date.now() }; s.people.push(p);
       try { groupId = await remoteCreate(s); state = s; me = p.id; localStorage.setItem(meKey(), me); cacheSave();
-        history.replaceState(null, '', `${location.pathname}#g=${groupId}`); closeOverlay(); render(); startPolling(); setStatus('Group created'); }
-      catch (e) { $('#cErr').textContent = 'Could not create group: ' + e.message; btn.disabled = false; btn.textContent = 'Create group'; }
+        history.replaceState(null, '', `${location.pathname}#g=${groupId}`); closeOverlay(); render(); startPolling(); setStatus('Grupo criado'); }
+      catch (e) { $('#cErr').textContent = 'Não consegui criar o grupo: ' + e.message; btn.disabled = false; btn.textContent = 'Criar grupo'; }
     };
   }
   function showWho(){
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
-    overlay(`<h2>Who are you?</h2><p class="muted" style="margin:0">Used as the default payer and shown on expenses you add.</p>
-      <form id="whoForm"><select id="whoSel"><option value="">— pick your name —</option>${opts}<option value="__new">Someone else (add me)</option></select>
-      <input id="whoNew" class="hidden" placeholder="Your name" maxlength="30"><button class="primary">Continue</button></form>`);
+    overlay(`<h2>Quem é você?</h2><p class="muted" style="margin:0">Vira o pagador padrão e aparece nos gastos que você lançar.</p>
+      <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
+      <input id="whoNew" class="hidden" placeholder="Seu nome" maxlength="30"><button class="primary">Continuar</button></form>`);
     $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
       if (v === '__new') { const n = $('#whoNew').value.trim(); if (!n) return; const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); v = p.id; commit(); }
@@ -291,53 +308,55 @@
   function showLost(){
     clearInterval(pollTimer);
     const cached = cacheLoad();
-    overlay(`<h2>Group not found</h2><p class="muted" style="margin:0">This group no longer exists in the shared store (the store deletes groups that nobody opened for 30 days).</p>
-      ${cached ? `<button id="restoreBtn" class="primary">Restore from my copy as a new group</button>` : ''}<button id="lostNew" class="ghost">Start a new group</button>`);
-    if (cached) $('#restoreBtn').onclick = async () => { try { const id = await remoteCreate(cached); location.hash = `g=${id}`; location.reload(); } catch (e) { toast('Failed: ' + e.message); } };
+    overlay(`<h2>Grupo não encontrado</h2><p class="muted" style="margin:0">Esse grupo não existe mais no armazenamento (grupos que ninguém abre por 30 dias são apagados).</p>
+      ${cached ? `<button id="restoreBtn" class="primary">Restaurar da minha cópia como novo grupo</button>` : ''}<button id="lostNew" class="ghost">Começar um novo grupo</button>`);
+    if (cached) $('#restoreBtn').onclick = async () => { try { const id = await remoteCreate(cached); location.hash = `g=${id}`; location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
     $('#lostNew').onclick = () => { location.hash = ''; location.reload(); };
   }
 
-  // ---------- events ----------
-  $('#groupForm').onsubmit = ev => { ev.preventDefault(); state.name = $('#groupName').value.trim(); state.currency = $('#currency').value; commit(); toast('Saved'); };
+  // ---------- eventos ----------
+  $('#groupForm').onsubmit = ev => { ev.preventDefault(); state.name = $('#groupName').value.trim(); state.currency = $('#currency').value; commit(); toast('Salvo'); };
   $('#personForm').onsubmit = ev => { ev.preventDefault(); const name = $('#personName').value.trim(); if (!name) return;
-    if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Name already exists');
+    if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); $('#personName').value = ''; commit(); };
   $('#expenseForm').onsubmit = ev => { ev.preventDefault();
     const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value); const amount = parseFloat($('#amount').value);
-    if (!state.people.length) return toast('Add people first'); if (!among.length) return toast('Select who shares this expense'); if (!(amount > 0)) return toast('Invalid amount');
+    if (!state.people.length) return toast('Adicione pessoas primeiro'); if (!among.length) return toast('Marque quem divide esse gasto'); if (!(amount > 0)) return toast('Valor inválido');
     state.expenses.push({ id: uid(), desc: $('#desc').value.trim(), amount: Math.round(amount*100)/100, payer: $('#payer').value, among, at: Date.now(), by: me ? nameOf(me) : undefined });
-    $('#desc').value = ''; $('#amount').value = ''; commit(); toast('Expense added'); };
+    $('#desc').value = ''; $('#amount').value = ''; commit(); toast('Gasto adicionado'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
     const dp = ev.target.closest('[data-del-person]');
-    if (dp) { const id = dp.dataset.delPerson; if (state.expenses.some(e => e.payer === id || e.among.includes(id))) return toast('Person has expenses; delete those first');
-      if (!confirm(`Remove ${nameOf(id)}?`)) return; state.people = state.people.filter(p => p.id !== id); state.deleted.push(id); commit(); }
+    if (dp) { const id = dp.dataset.delPerson; if (state.expenses.some(e => e.payer === id || e.among.includes(id))) return toast('Essa pessoa tem gastos; exclua-os primeiro');
+      if (!confirm(`Remover ${nameOf(id)}?`)) return; state.people = state.people.filter(p => p.id !== id); state.deleted.push(id); commit(); }
     const de = ev.target.closest('[data-del-expense]');
-    if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(`Delete "${e.desc}"?`)) return;
+    if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(`Excluir "${e.desc}"?`)) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
   });
   $('#shareBtn').onclick = async () => { const url = `${location.origin}${location.pathname}#g=${groupId}`;
-    try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { prompt('Copy this link:', url); } };
+    try { await navigator.clipboard.writeText(url); toast('Link copiado'); } catch { prompt('Copie este link:', url); } };
   $('#whoBtn').onclick = showWho;
-  $('#newGroupBtn').onclick = () => { if (confirm('Start a new group? The current one stays available through its link.')) { location.hash = ''; location.reload(); } };
+  $('#newGroupBtn').onclick = () => { if (confirm('Começar um novo grupo? O atual continua acessível pelo link dele.')) { location.hash = ''; location.reload(); } };
   $('#exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));
-    a.download = `${(state.name || 'splitwise-lite').replace(/\W+/g,'-')}.json`; a.click(); URL.revokeObjectURL(a.href); };
+    a.download = `${(state.name || 'racha').replace(/\W+/g,'-')}.json`; a.click(); URL.revokeObjectURL(a.href); };
   window.addEventListener('hashchange', () => location.reload());
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800); }
 
-  // ---------- boot ----------
-  (async () => {
+  // ---------- início ----------
+  async function boot(){
     const m = location.hash.match(/#g=([\w-]+)/);
     if (!m) return showCreate();
     groupId = m[1]; try { me = localStorage.getItem(meKey()); } catch {}
     state = cacheLoad(); if (state) render();
-    setStatus('Loading…');
-    try { const remote = await remoteGet(); state = merge(state, remote); cacheSave(); render(); setStatus('Synced'); }
-    catch (e) { if (e.notFound && !state) return showLost(); if (e.notFound) return showLost(); if (!state) { setStatus('Offline · ' + e.message, true); state = fresh('', 'R$'); render(); } else setStatus('Offline · ' + e.message, true); }
+    setStatus('Carregando…');
+    try { const remote = await remoteGet(); state = merge(state, remote); cacheSave(); render(); setStatus('Sincronizado'); }
+    catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh('', 'R$'); render(); } setStatus('Offline · ' + e.message, true); }
     if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync();
-  })();
+  }
+  let unlocked = false; try { unlocked = localStorage.getItem(GATE_KEY) === GATE_HASH; } catch {}
+  unlocked ? boot() : showGate(boot);
 })();
 </script>
 </body>

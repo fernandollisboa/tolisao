@@ -1,32 +1,33 @@
-# Splitwise Lite
+# Racha
 
-Minimal Splitwise-style expense splitter. One HTML file, no backend to run, no account, no app.
+Divisor de gastos estilo Splitwise, mínimo. Um único HTML, sem backend pra manter, sem conta, sem app.
 
-**Live:** https://fernandollisboa.github.io/splitwise-lite/
+**Site:** https://fernandollisboa.github.io/splitwise-lite/ (código de acesso combinado no grupo)
 
-## How it works
+## Como funciona
 
-1. Open the page, create a group and type your name.
-2. Press **Copy group link** and send it to your friends.
-3. Everyone with the link sees the same expenses and can add their own. Changes sync every few seconds.
+1. Abra a página, digite o código, crie um grupo e seu nome.
+2. Toque em **Copiar link do grupo** e mande pros amigos.
+3. Quem tiver o link vê os mesmos gastos e adiciona os seus. Sincroniza a cada poucos segundos.
 
-### Expense types
+### Tipos de gasto
 
-- **Split equally**: leave the payer checked among the participants (e.g. dinner for 3 → each owes a third).
-- **Loan / one person owes**: uncheck the payer and keep only the debtor(s) checked (e.g. "Lia owes me R$ 12").
+- **Dividido igualmente**: deixe o pagador marcado entre os participantes (ex.: jantar pra 3 → cada um deve um terço).
+- **Empréstimo / uma pessoa deve**: desmarque o pagador e deixe só quem deve (ex.: "Lia me deve R$ 12").
 
-**Settle up** shows the minimal set of transfers to zero everyone out.
+**Acerto de contas** mostra o mínimo de transferências pra zerar todo mundo.
 
-## Storage
+## Onde ficam os dados
 
-Each group is a JSON document on [jsonblob.com](https://jsonblob.com) (free, no account, one random id per group; the link is the secret).
-Clients merge by id, so concurrent edits from different phones don't overwrite each other.
+Cada grupo é um documento JSON no [jsonblob.com](https://jsonblob.com) (grátis, sem conta, id aleatório por grupo; o link é o segredo).
+Os clientes mesclam por id, então edições simultâneas de celulares diferentes não se sobrescrevem.
 
-Caveats:
+Limitações:
 
-- jsonblob deletes documents nobody has opened for 30 days. The page detects this and offers to restore from the local copy.
-- Use **Export JSON** for a backup.
+- O jsonblob apaga documentos que ninguém abre por 30 dias. A página detecta isso e oferece restaurar da cópia local.
+- Use **Exportar JSON** como backup.
 
 ## Deploy
 
-GitHub Pages deploys `main` automatically via `.github/workflows/pages.yml`.
+GitHub Pages publica a branch `main` via `.github/workflows/pages.yml`.
+Na primeira vez: Settings → Pages → Source: **GitHub Actions**, depois rode o workflow de novo.

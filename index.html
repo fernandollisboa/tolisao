@@ -345,6 +345,17 @@
 
   // ---------- início ----------
   async function boot(){
+    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
+    if (seed) {                  // link "semente": cria um grupo já preenchido no primeiro acesso
+      setStatus('Criando grupo…');
+      try {
+        const s = { ...fresh('', 'R$'), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), updatedAt: Date.now() };
+        groupId = await remoteCreate(s); state = s; cacheSave();
+        history.replaceState(null, '', `${location.pathname}#g=${groupId}`);
+        render(); showWho(); startPolling(); setStatus('Grupo criado'); toast('Grupo criado. Use "Copiar link do grupo" para compartilhar.');
+      } catch (e) { setStatus('Não consegui criar o grupo · ' + e.message, true); showCreate(); }
+      return;
+    }
     const m = location.hash.match(/#g=([\w-]+)/);
     if (!m) return showCreate();
     groupId = m[1]; try { me = localStorage.getItem(meKey()); } catch {}

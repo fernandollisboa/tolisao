@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Splitwise Lite</title>
+<meta name="description" content="Split expenses with friends. Shared group link, no account, no app.">
+<style>
+  :root{
+    --bg:#f6f7f9;--card:#fff;--text:#1c1f24;--muted:#6b7280;--line:#e5e7eb;
+    --accent:#1cc29f;--accent-ink:#0b3d33;--pos:#0f9d58;--neg:#d93025;--danger:#b91c1c;--warn:#b45309;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1115;--card:#171a21;--text:#e6e8ee;--muted:#9aa3b2;--line:#2a2f3a;
+      --accent:#1cc29f;--accent-ink:#04211b;--pos:#34d399;--neg:#f87171;--danger:#f87171;--warn:#fbbf24;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1115;--card:#171a21;--text:#e6e8ee;--muted:#9aa3b2;--line:#2a2f3a;
+    --accent:#1cc29f;--accent-ink:#04211b;--pos:#34d399;--neg:#f87171;--danger:#f87171;--warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{padding:20px 16px 8px;max-width:760px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  h1{margin:0;font-size:22px}
+  h1 small{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px}
+  main{max-width:760px;margin:0 auto;padding:0 16px 48px;display:grid;gap:16px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  h2{margin:0 0 12px;font-size:16px}
+  form{display:flex;gap:8px;flex-wrap:wrap}
+  input,select,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:8px 10px;background:var(--card);color:var(--text)}
+  input[type=number]{width:120px}
+  input.grow,select.grow{flex:1;min-width:140px}
+  button{cursor:pointer}
+  button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+  button.ghost{background:transparent}
+  button.danger{color:var(--danger);border-color:transparent;background:transparent;padding:4px 6px}
+  ul{list-style:none;margin:0;padding:0}
+  li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+  li:first-child{border-top:0}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0;width:100%}
+  .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:14px;cursor:pointer;user-select:none}
+  .chip input{margin:0}
+  .chip.on{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 18%,transparent)}
+  .pos{color:var(--pos);font-weight:600}
+  .neg{color:var(--neg);font-weight:600}
+  .muted{color:var(--muted);font-size:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .meta{font-size:13px;color:var(--muted)}
+  .empty{color:var(--muted);font-size:14px;padding:4px 0}
+  .status{font-size:13px;color:var(--muted)}
+  .status.err{color:var(--warn)}
+  .hidden{display:none !important}
+  #overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+  #overlay .box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px}
+  #overlay form{flex-direction:column}
+  #overlay input,#overlay select,#overlay button{width:100%}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="overlay" class="hidden"><div class="box" id="overlayBox"></div></div>
+
+<header>
+  <h1>Splitwise Lite <small id="groupLabel"></small></h1>
+  <div class="row">
+    <span id="status" class="status"></span>
+    <button id="shareBtn" class="primary">Copy group link</button>
+    <button id="whoBtn" class="ghost" title="Change who you are">I am…</button>
+  </div>
+</header>
+<main>
+  <section>
+    <h2>Add expense</h2>
+    <form id="expenseForm">
+      <input id="desc" class="grow" placeholder="Description" required maxlength="60">
+      <input id="amount" type="number" step="0.01" min="0.01" placeholder="0.00" required>
+      <select id="payer" required></select>
+      <div class="chips" id="splitChips"></div>
+      <div class="row" style="width:100%;justify-content:space-between">
+        <span class="muted" id="splitHint"></span>
+        <button class="primary">Add expense</button>
+      </div>
+    </form>
+  </section>
+
+  <section>
+    <h2>Balances</h2>
+    <ul id="balances"></ul>
+  </section>
+
+  <section>
+    <h2>Settle up</h2>
+    <ul id="settle"></ul>
+  </section>
+
+  <section>
+    <h2>Expenses</h2>
+    <ul id="expenses"></ul>
+  </section>
+
+  <section>
+    <h2>People</h2>
+    <form id="personForm">
+      <input id="personName" class="grow" placeholder="Name" required maxlength="30">
+      <button>Add person</button>
+    </form>
+    <ul id="people"></ul>
+  </section>
+
+  <section>
+    <h2>Group</h2>
+    <form id="groupForm">
+      <input id="groupName" class="grow" placeholder="Group name" maxlength="40">
+      <select id="currency"><option>R$</option><option>$</option><option>€</option><option>£</option></select>
+      <button>Save</button>
+    </form>
+    <div class="row" style="margin-top:12px">
+      <button id="exportBtn">Export JSON</button>
+      <button id="newGroupBtn" class="ghost">New group</button>
+    </div>
+    <p class="muted" style="margin:10px 0 0">Anyone with the link can view and add expenses. Data is synced through a shared store and refreshes every few seconds; keep an export as backup.</p>
+  </section>
+</main>
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  // ---------- config ----------
+  const API = 'https://jsonblob.com/api/jsonBlob';   // free, no-account JSON store (one blob per group)
+  const POLL_MS = 6000;
+  const $ = s => document.querySelector(s);
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  let groupId = null, state = null, me = null, pollTimer = null, saving = false;
+
+  const fresh = (name, currency) => ({ v:1, name, currency, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
+  const lsKey = () => `splitwise-lite:${groupId}`;
+  const cacheSave = () => { try { localStorage.setItem(lsKey(), JSON.stringify(state)); } catch {} };
+  const cacheLoad = () => { try { return JSON.parse(localStorage.getItem(lsKey())); } catch { return null; } };
+  const meKey = () => `splitwise-lite:${groupId}:me`;
+
+  // ---------- merge (union by id, tombstones win) ----------
+  function merge(a, b){
+    if (!a) return b; if (!b) return a;
+    const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b;
+    const deleted = new Set([...(a.deleted||[]), ...(b.deleted||[])]);
+    const byId = list => { const m = new Map(); for (const x of list||[]) if (!deleted.has(x.id)) m.set(x.id, x); return m; };
+    const people = new Map([...byId(a.people), ...byId(b.people)]);
+    const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
+    return { v:1, name: newer.name, currency: newer.currency, updatedAt: Math.max(a.updatedAt||0, b.updatedAt||0),
+      people:[...people.values()].sort((x,y)=>(x.at||0)-(y.at||0)),
+      expenses:[...expenses.values()].sort((x,y)=>x.at-y.at),
+      deleted:[...deleted].slice(-500) };
+  }
+
+  // ---------- remote ----------
+  const setStatus = (msg, err) => { const el = $('#status'); el.textContent = msg; el.classList.toggle('err', !!err); };
+  async function remoteGet(){
+    const r = await fetch(`${API}/${groupId}`, { cache:'no-store' });
+    if (r.status === 404) throw Object.assign(new Error('Group not found'), { notFound:true });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+  async function remotePut(s){
+    const r = await fetch(`${API}/${groupId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(s) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  }
+  async function remoteCreate(s){
+    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(s) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const loc = r.headers.get('Location') || r.headers.get('X-jsonblob') || '';
+    const id = loc.split('/').pop();
+    if (!id) throw new Error('No blob id returned');
+    return id;
+  }
+
+  async function sync(){            // pull, merge, push if we have something new
+    if (!groupId || saving) return;
+    saving = true;
+    try {
+      const remote = await remoteGet();
+      const merged = merge(state, remote);
+      const changed = JSON.stringify(merged) !== JSON.stringify(remote);
+      state = merged; cacheSave(); render();
+      if (changed) await remotePut(state);
+      setStatus('Synced ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+    } catch (e) {
+      if (e.notFound) return showLost();
+      setStatus('Offline · ' + e.message, true);
+    } finally { saving = false; }
+  }
+  function commit(){ state.updatedAt = Date.now(); cacheSave(); render(); sync(); }
+  function startPolling(){ clearInterval(pollTimer); pollTimer = setInterval(() => { if (!document.hidden) sync(); }, POLL_MS); }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+
+  // ---------- math ----------
+  function shares(cents, ids){ const base = Math.floor(cents/ids.length), rem = cents - base*ids.length; const o={}; ids.forEach((id,i)=>o[id]=base+(i<rem?1:0)); return o; }
+  function balances(){
+    const b = {}; state.people.forEach(p => b[p.id] = 0);
+    for (const e of state.expenses) {
+      const ids = e.among.filter(id => id in b); if (!ids.length || !(e.payer in b)) continue;
+      const cents = Math.round(e.amount*100); b[e.payer] += cents; const sh = shares(cents, ids); for (const id of ids) b[id] -= sh[id];
+    }
+    return b;
+  }
+  function settlements(b){
+    const d=[], c=[]; for (const [id,v] of Object.entries(b)) { if (v<0) d.push({id,c:-v}); else if (v>0) c.push({id,c:v}); }
+    d.sort((x,y)=>y.c-x.c); c.sort((x,y)=>y.c-x.c); const out=[]; let i=0,j=0;
+    while (i<d.length && j<c.length) { const a=Math.min(d[i].c,c[j].c); out.push({from:d[i].id,to:c[j].id,cents:a}); d[i].c-=a; c[j].c-=a; if(!d[i].c)i++; if(!c[j].c)j++; }
+    return out;
+  }
+
+  // ---------- render ----------
+  const money = n => `${state.currency} ${Math.abs(n).toFixed(2).replace('.', ',')}`;
+  const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
+  function render(){
+    if (!state) return;
+    $('#groupLabel').textContent = state.name ? `· ${state.name}` : '';
+    document.title = state.name ? `${state.name} · Splitwise Lite` : 'Splitwise Lite';
+    if (document.activeElement !== $('#groupName')) $('#groupName').value = state.name;
+    $('#currency').value = state.currency;
+    $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `I am ${nameOf(me)}` : 'I am…';
+
+    const b = balances();
+    $('#people').innerHTML = state.people.map(p => `<li><span>${esc(p.name)}${p.id===me?' <span class="muted">(you)</span>':''}</span><button class="danger" data-del-person="${p.id}" title="Remove">✕</button></li>`).join('') || '<li class="empty">No people yet.</li>';
+
+    const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
+    payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} paid</option>`).join('');
+    if (state.people.some(p => p.id === prevPayer)) payerSel.value = prevPayer;
+
+    const prev = [...document.querySelectorAll('#splitChips input')];
+    const known = new Set(prev.map(i => i.value)), checked = new Set(prev.filter(i => i.checked).map(i => i.value));
+    $('#splitChips').innerHTML = state.people.map(p => { const on = !known.has(p.id) || checked.has(p.id);
+      return `<label class="chip ${on?'on':''}"><input type="checkbox" value="${p.id}" ${on?'checked':''}>${esc(p.name)}</label>`; }).join('');
+    updateHint();
+
+    $('#balances').innerHTML = state.people.map(p => { const c=b[p.id], cls=c>0?'pos':c<0?'neg':'muted';
+      const txt = c>0?`gets back ${money(c/100)}`:c<0?`owes ${money(c/100)}`:'settled up';
+      return `<li><span>${esc(p.name)}</span><span class="${cls}">${txt}</span></li>`; }).join('') || '<li class="empty">Add people first.</li>';
+
+    $('#settle').innerHTML = settlements(b).map(t => `<li><span>${esc(nameOf(t.from))} → ${esc(nameOf(t.to))}</span><b>${money(t.cents/100)}</b></li>`).join('') || '<li class="empty">Everyone is settled up.</li>';
+
+    $('#expenses').innerHTML = [...state.expenses].reverse().map(e => {
+      const loan = !e.among.includes(e.payer);
+      const how = loan ? `owed by ${e.among.map(nameOf).map(esc).join(', ')}` : `split ${e.among.length} way${e.among.length===1?'':'s'}`;
+      return `<li><div><div>${esc(e.desc)}</div><div class="meta">${esc(nameOf(e.payer))} paid ${money(e.amount)} · ${how} · ${new Date(e.at).toLocaleDateString()}${e.by?` · added by ${esc(e.by)}`:''}</div></div>
+        <button class="danger" data-del-expense="${e.id}" title="Delete">✕</button></li>`; }).join('') || '<li class="empty">No expenses yet.</li>';
+  }
+  function updateHint(){
+    const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value);
+    const payer = $('#payer').value; const h = $('#splitHint');
+    if (!among.length) h.textContent = 'Select who shares this expense.';
+    else if (!among.includes(payer)) h.textContent = `Loan: ${among.map(nameOf).join(', ')} owe${among.length===1?'s':''} the full amount to ${nameOf(payer)}.`;
+    else h.textContent = `Split equally among ${among.length} ${among.length===1?'person':'people'}.`;
+  }
+
+  // ---------- overlays ----------
+  const overlay = (html) => { $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
+  const closeOverlay = () => $('#overlay').classList.add('hidden');
+
+  function showCreate(){
+    overlay(`<h2>Splitwise Lite</h2><p class="muted" style="margin:0">Create a group, then send the link to your friends. No account needed.</p>
+      <form id="createForm"><input id="cName" placeholder="Group name (e.g. Trip to Recife)" required maxlength="40" autofocus>
+      <select id="cCur"><option>R$</option><option>$</option><option>€</option><option>£</option></select>
+      <input id="cMe" placeholder="Your name" required maxlength="30"><button class="primary">Create group</button></form>
+      <p id="cErr" class="status err"></p>`);
+    $('#createForm').onsubmit = async ev => {
+      ev.preventDefault(); const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Creating…';
+      const s = fresh($('#cName').value.trim(), $('#cCur').value);
+      const p = { id: uid(), name: $('#cMe').value.trim(), at: Date.now() }; s.people.push(p);
+      try { groupId = await remoteCreate(s); state = s; me = p.id; localStorage.setItem(meKey(), me); cacheSave();
+        history.replaceState(null, '', `${location.pathname}#g=${groupId}`); closeOverlay(); render(); startPolling(); setStatus('Group created'); }
+      catch (e) { $('#cErr').textContent = 'Could not create group: ' + e.message; btn.disabled = false; btn.textContent = 'Create group'; }
+    };
+  }
+  function showWho(){
+    const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
+    overlay(`<h2>Who are you?</h2><p class="muted" style="margin:0">Used as the default payer and shown on expenses you add.</p>
+      <form id="whoForm"><select id="whoSel"><option value="">— pick your name —</option>${opts}<option value="__new">Someone else (add me)</option></select>
+      <input id="whoNew" class="hidden" placeholder="Your name" maxlength="30"><button class="primary">Continue</button></form>`);
+    $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
+    $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
+      if (v === '__new') { const n = $('#whoNew').value.trim(); if (!n) return; const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); v = p.id; commit(); }
+      if (!v) return; me = v; try { localStorage.setItem(meKey(), me); } catch {} closeOverlay(); render(); $('#payer').value = me; updateHint(); };
+  }
+  function showLost(){
+    clearInterval(pollTimer);
+    const cached = cacheLoad();
+    overlay(`<h2>Group not found</h2><p class="muted" style="margin:0">This group no longer exists in the shared store (the store deletes groups that nobody opened for 30 days).</p>
+      ${cached ? `<button id="restoreBtn" class="primary">Restore from my copy as a new group</button>` : ''}<button id="lostNew" class="ghost">Start a new group</button>`);
+    if (cached) $('#restoreBtn').onclick = async () => { try { const id = await remoteCreate(cached); location.hash = `g=${id}`; location.reload(); } catch (e) { toast('Failed: ' + e.message); } };
+    $('#lostNew').onclick = () => { location.hash = ''; location.reload(); };
+  }
+
+  // ---------- events ----------
+  $('#groupForm').onsubmit = ev => { ev.preventDefault(); state.name = $('#groupName').value.trim(); state.currency = $('#currency').value; commit(); toast('Saved'); };
+  $('#personForm').onsubmit = ev => { ev.preventDefault(); const name = $('#personName').value.trim(); if (!name) return;
+    if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Name already exists');
+    state.people.push({ id: uid(), name, at: Date.now() }); $('#personName').value = ''; commit(); };
+  $('#expenseForm').onsubmit = ev => { ev.preventDefault();
+    const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value); const amount = parseFloat($('#amount').value);
+    if (!state.people.length) return toast('Add people first'); if (!among.length) return toast('Select who shares this expense'); if (!(amount > 0)) return toast('Invalid amount');
+    state.expenses.push({ id: uid(), desc: $('#desc').value.trim(), amount: Math.round(amount*100)/100, payer: $('#payer').value, among, at: Date.now(), by: me ? nameOf(me) : undefined });
+    $('#desc').value = ''; $('#amount').value = ''; commit(); toast('Expense added'); };
+  $('#payer').onchange = updateHint;
+  document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
+  document.addEventListener('click', ev => {
+    const dp = ev.target.closest('[data-del-person]');
+    if (dp) { const id = dp.dataset.delPerson; if (state.expenses.some(e => e.payer === id || e.among.includes(id))) return toast('Person has expenses; delete those first');
+      if (!confirm(`Remove ${nameOf(id)}?`)) return; state.people = state.people.filter(p => p.id !== id); state.deleted.push(id); commit(); }
+    const de = ev.target.closest('[data-del-expense]');
+    if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(`Delete "${e.desc}"?`)) return;
+      state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
+  });
+  $('#shareBtn').onclick = async () => { const url = `${location.origin}${location.pathname}#g=${groupId}`;
+    try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { prompt('Copy this link:', url); } };
+  $('#whoBtn').onclick = showWho;
+  $('#newGroupBtn').onclick = () => { if (confirm('Start a new group? The current one stays available through its link.')) { location.hash = ''; location.reload(); } };
+  $('#exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));
+    a.download = `${(state.name || 'splitwise-lite').replace(/\W+/g,'-')}.json`; a.click(); URL.revokeObjectURL(a.href); };
+  window.addEventListener('hashchange', () => location.reload());
+  let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800); }
+
+  // ---------- boot ----------
+  (async () => {
+    const m = location.hash.match(/#g=([\w-]+)/);
+    if (!m) return showCreate();
+    groupId = m[1]; try { me = localStorage.getItem(meKey()); } catch {}
+    state = cacheLoad(); if (state) render();
+    setStatus('Loading…');
+    try { const remote = await remoteGet(); state = merge(state, remote); cacheSave(); render(); setStatus('Synced'); }
+    catch (e) { if (e.notFound && !state) return showLost(); if (e.notFound) return showLost(); if (!state) { setStatus('Offline · ' + e.message, true); state = fresh('', 'R$'); render(); } else setStatus('Offline · ' + e.message, true); }
+    if (!me || !state.people.some(p => p.id === me)) showWho();
+    startPolling(); sync();
+  })();
+})();
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Racha</title>
-<meta name="description" content="Divida gastos com amigos. Link compartilhado, sem conta, sem app.">
+<meta name="description" content="Divida gastos com amigos. Um código, um grupo. Sem conta, sem app.">
 <style>
   :root{
     --bg:#f6f7f9;--card:#fff;--text:#1c1f24;--muted:#6b7280;--line:#e5e7eb;
@@ -57,6 +57,7 @@
   #overlay .box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px}
   #overlay form{flex-direction:column}
   #overlay input,#overlay select,#overlay button{width:100%}
+  code.box{display:block;padding:8px;border:1px dashed var(--line);border-radius:8px;word-break:break-all;font-size:14px;user-select:all}
   .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
   .toast.show{opacity:1}
 </style>
@@ -65,11 +66,11 @@
 <div id="overlay" class="hidden"><div class="box" id="overlayBox"></div></div>
 
 <header>
-  <h1>Racha <small id="groupLabel"></small></h1>
+  <h1>Racha <small id="roomLabel"></small></h1>
   <div class="row">
     <span id="status" class="status"></span>
-    <button id="shareBtn" class="primary">Copiar link do grupo</button>
     <button id="whoBtn" class="ghost" title="Trocar quem é você">Eu sou…</button>
+    <button id="leaveBtn" class="ghost" title="Esquecer o código neste aparelho">Sair</button>
   </div>
 </header>
 <main>
@@ -112,17 +113,10 @@
   </section>
 
   <section>
-    <h2>Grupo</h2>
-    <form id="groupForm">
-      <input id="groupName" class="grow" placeholder="Nome do grupo" maxlength="40">
-      <select id="currency"><option>R$</option><option>$</option><option>€</option><option>£</option></select>
-      <button>Salvar</button>
-    </form>
-    <div class="row" style="margin-top:12px">
-      <button id="exportBtn">Exportar JSON</button>
-      <button id="newGroupBtn" class="ghost">Novo grupo</button>
+    <div class="row" style="justify-content:space-between">
+      <span class="muted">Pra convidar alguém: manda o link do site e o código.</span>
+      <div class="row"><button id="shareBtn">Copiar link</button><button id="exportBtn" class="ghost">Exportar JSON</button></div>
     </div>
-    <p class="muted" style="margin:10px 0 0">Quem tiver o link vê e adiciona gastos. Os dados ficam num armazenamento compartilhado e atualizam a cada poucos segundos. Exporte de vez em quando como backup.</p>
   </section>
 </main>
 <div id="toast" class="toast"></div>
@@ -130,33 +124,34 @@
 <script>
 (() => {
   // ---------- config ----------
-  const API = 'https://jsonblob.com/api/jsonBlob';   // armazenamento JSON gratuito, sem conta (um documento por grupo)
+  const API = 'https://jsonblob.com/api/jsonBlob';   // armazenamento JSON gratuito, sem conta
+  // Índice compartilhado: mapeia hash(código) → id do grupo. Vazio = primeira configuração (a página cria e mostra o id).
+  const ROOT_ID = '';
   const POLL_MS = 6000;
-  // Código de acesso. Para trocar: node -e "console.log(require('crypto').createHash('sha256').update('NOVOCODIGO').digest('hex'))"
-  const GATE_HASH = 'b776136f38ff1b54e2d44a0377d4e88eb91d584a03670cdc77f2fd2c122af068';
-  const GATE_KEY = 'racha:unlocked';
+  const CURRENCY = 'R$';
 
   const $ = s => document.querySelector(s);
   const uid = () => Math.random().toString(36).slice(2, 10);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+  const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: k => { try { localStorage.removeItem(k); } catch {} } };
 
-  let groupId = null, state = null, me = null, pollTimer = null, saving = false;
+  let rootId = ROOT_ID, groupId = null, roomName = '', state = null, me = null, pollTimer = null, saving = false;
 
-  const fresh = (name, currency) => ({ v:1, name, currency, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
-  const lsKey = () => `racha:${groupId}`;
-  const cacheSave = () => { try { localStorage.setItem(lsKey(), JSON.stringify(state)); } catch {} };
-  const cacheLoad = () => { try { return JSON.parse(localStorage.getItem(lsKey())); } catch { return null; } };
+  const fresh = () => ({ v:2, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
+  const cacheKey = () => `racha:${groupId}`;
+  const cacheSave = () => ls.set(cacheKey(), JSON.stringify(state));
+  const cacheLoad = () => { try { return JSON.parse(ls.get(cacheKey())); } catch { return null; } };
   const meKey = () => `racha:${groupId}:me`;
 
   // ---------- merge (união por id; exclusões vencem) ----------
   function merge(a, b){
     if (!a) return b; if (!b) return a;
-    const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b;
     const deleted = new Set([...(a.deleted||[]), ...(b.deleted||[])]);
     const byId = list => { const m = new Map(); for (const x of list||[]) if (!deleted.has(x.id)) m.set(x.id, x); return m; };
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
-    return { v:1, name: newer.name, currency: newer.currency, updatedAt: Math.max(a.updatedAt||0, b.updatedAt||0),
+    return { v:2, updatedAt: Math.max(a.updatedAt||0, b.updatedAt||0),
       people:[...people.values()].sort((x,y)=>(x.at||0)-(y.at||0)),
       expenses:[...expenses.values()].sort((x,y)=>x.at-y.at),
       deleted:[...deleted].slice(-500) };
@@ -164,22 +159,22 @@
 
   // ---------- remoto ----------
   const setStatus = (msg, err) => { const el = $('#status'); el.textContent = msg; el.classList.toggle('err', !!err); };
-  async function remoteGet(){
-    const r = await fetch(`${API}/${groupId}`, { cache:'no-store' });
-    if (r.status === 404) throw Object.assign(new Error('Grupo não encontrado'), { notFound:true });
+  async function apiGet(id){
+    const r = await fetch(`${API}/${id}`, { cache:'no-store' });
+    if (r.status === 404) throw Object.assign(new Error('não encontrado'), { notFound:true });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   }
-  async function remotePut(s){
-    const r = await fetch(`${API}/${groupId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(s) });
+  async function apiPut(id, data){
+    const r = await fetch(`${API}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
   }
-  async function remoteCreate(s){
-    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(s) });
+  async function apiCreate(data){
+    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(data) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const loc = r.headers.get('Location') || r.headers.get('X-jsonblob') || '';
     const id = loc.split('/').pop();
-    if (!id) throw new Error('Servidor não devolveu o id');
+    if (!id) throw new Error('servidor não devolveu o id');
     return id;
   }
 
@@ -187,11 +182,11 @@
     if (!groupId || saving) return;
     saving = true;
     try {
-      const remote = await remoteGet();
+      const remote = await apiGet(groupId);
       const merged = merge(state, remote);
       const changed = JSON.stringify(merged) !== JSON.stringify(remote);
       state = merged; cacheSave(); render();
-      if (changed) await remotePut(state);
+      if (changed) await apiPut(groupId, state);
       setStatus('Sincronizado ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}));
     } catch (e) {
       if (e.notFound) return showLost();
@@ -220,15 +215,13 @@
   }
 
   // ---------- render ----------
-  const money = n => `${state.currency} ${Math.abs(n).toFixed(2).replace('.', ',')}`;
+  const money = n => `${CURRENCY} ${Math.abs(n).toFixed(2).replace('.', ',')}`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   function render(){
     if (!state) return;
-    $('#groupLabel').textContent = state.name ? `· ${state.name}` : '';
-    document.title = state.name ? `${state.name} · Racha` : 'Racha';
-    if (document.activeElement !== $('#groupName')) $('#groupName').value = state.name;
-    $('#currency').value = state.currency;
+    $('#roomLabel').textContent = roomName ? `· ${roomName}` : '';
+    document.title = roomName ? `${roomName} · Racha` : 'Racha';
     $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `Eu sou ${nameOf(me)}` : 'Eu sou…';
 
     const b = balances();
@@ -268,31 +261,15 @@
   const overlay = (html) => { $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
   const closeOverlay = () => $('#overlay').classList.add('hidden');
 
-  function showGate(next){
-    overlay(`<h2>Racha</h2><p class="muted" style="margin:0">Página privada. Digite o código de acesso.</p>
-      <form id="gateForm" autocomplete="off"><input id="gateCode" type="password" placeholder="Código" required autofocus>
+  function showGate(msg){
+    overlay(`<h2>Racha</h2><p class="muted" style="margin:0">${msg || 'Digite o código do grupo.'}</p>
+      <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="Código" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="primary">Entrar</button></form>`);
     $('#gateForm').onsubmit = async ev => {
       ev.preventDefault();
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode($('#gateCode').value.trim()));
-      const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-      if (hex === GATE_HASH) { try { localStorage.setItem(GATE_KEY, GATE_HASH); } catch {} closeOverlay(); next(); }
-      else { $('#gateErr').textContent = 'Código errado'; $('#gateCode').select(); }
-    };
-  }
-  function showCreate(){
-    overlay(`<h2>Novo grupo</h2><p class="muted" style="margin:0">Crie o grupo e mande o link pros amigos. Sem cadastro.</p>
-      <form id="createForm"><input id="cName" placeholder="Nome do grupo (ex.: Viagem a Recife)" required maxlength="40" autofocus>
-      <select id="cCur"><option>R$</option><option>$</option><option>€</option><option>£</option></select>
-      <input id="cMe" placeholder="Seu nome" required maxlength="30"><button class="primary">Criar grupo</button></form>
-      <p id="cErr" class="status err"></p>`);
-    $('#createForm').onsubmit = async ev => {
-      ev.preventDefault(); const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Criando…';
-      const s = fresh($('#cName').value.trim(), $('#cCur').value);
-      const p = { id: uid(), name: $('#cMe').value.trim(), at: Date.now() }; s.people.push(p);
-      try { groupId = await remoteCreate(s); state = s; me = p.id; localStorage.setItem(meKey(), me); cacheSave();
-        history.replaceState(null, '', `${location.pathname}#g=${groupId}`); closeOverlay(); render(); startPolling(); setStatus('Grupo criado'); }
-      catch (e) { $('#cErr').textContent = 'Não consegui criar o grupo: ' + e.message; btn.disabled = false; btn.textContent = 'Criar grupo'; }
+      const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Abrindo…';
+      try { await enterRoom($('#gateCode').value.trim().toLowerCase()); }
+      catch (e) { $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Entrar'; }
     };
   }
   function showWho(){
@@ -303,19 +280,57 @@
     $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
       if (v === '__new') { const n = $('#whoNew').value.trim(); if (!n) return; const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); v = p.id; commit(); }
-      if (!v) return; me = v; try { localStorage.setItem(meKey(), me); } catch {} closeOverlay(); render(); $('#payer').value = me; updateHint(); };
+      if (!v) return; me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint(); };
   }
   function showLost(){
     clearInterval(pollTimer);
     const cached = cacheLoad();
-    overlay(`<h2>Grupo não encontrado</h2><p class="muted" style="margin:0">Esse grupo não existe mais no armazenamento (grupos que ninguém abre por 30 dias são apagados).</p>
-      ${cached ? `<button id="restoreBtn" class="primary">Restaurar da minha cópia como novo grupo</button>` : ''}<button id="lostNew" class="ghost">Começar um novo grupo</button>`);
-    if (cached) $('#restoreBtn').onclick = async () => { try { const id = await remoteCreate(cached); location.hash = `g=${id}`; location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
-    $('#lostNew').onclick = () => { location.hash = ''; location.reload(); };
+    overlay(`<h2>Grupo não encontrado</h2><p class="muted" style="margin:0">Esse grupo sumiu do armazenamento (grupos que ninguém abre por 30 dias são apagados).</p>
+      ${cached ? `<button id="restoreBtn" class="primary">Restaurar da minha cópia</button>` : ''}<button id="lostBack" class="ghost">Voltar</button>`);
+    if (cached) $('#restoreBtn').onclick = async () => { try { const id = await apiCreate(cached); await bindRoom(roomName, id); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
+    $('#lostBack').onclick = leave;
   }
 
+  // ---------- salas (código → grupo) ----------
+  async function loadRoot(){ if (!rootId) return { v:1, rooms:{} }; return apiGet(rootId); }
+  async function bindRoom(code, id){
+    const key = await sha(code);
+    if (!rootId) { rootId = await apiCreate({ v:1, rooms: { [key]: id } }); return; }
+    const root = await loadRoot(); root.rooms = root.rooms || {}; root.rooms[key] = id; await apiPut(rootId, root);
+  }
+  async function enterRoom(code){
+    if (!code) throw new Error('Digite um código.');
+    const key = await sha(code);
+    let root; try { root = await loadRoot(); } catch (e) { throw new Error('Sem conexão com o armazenamento: ' + e.message); }
+    let id = (root.rooms || {})[key];
+    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
+    if (!id) {
+      if (!seed && !confirm(`Não existe grupo com o código "${code}". Criar um grupo novo com esse código?`)) throw new Error('Confira o código.');
+      let data = fresh();
+      if (seed) { try { data = { ...fresh(), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))) , updatedAt: Date.now() }; } catch {} }
+      id = await apiCreate(data);
+      await bindRoom(code, id);
+      history.replaceState(null, '', location.pathname);
+    }
+    ls.set('racha:room', JSON.stringify({ code, id }));
+    await openGroup(code, id, !ROOT_ID);
+  }
+  async function openGroup(code, id, firstSetup){
+    roomName = code; groupId = id; me = ls.get(meKey());
+    state = cacheLoad(); if (state) render();
+    closeOverlay(); setStatus('Carregando…');
+    try { const remote = await apiGet(groupId); state = merge(state, remote); cacheSave(); render(); setStatus('Sincronizado'); }
+    catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(); render(); } setStatus('Offline · ' + e.message, true); }
+    if (firstSetup) {
+      overlay(`<h2>Configuração inicial feita</h2><p class="muted" style="margin:0">O índice de grupos foi criado. Cole este id na constante <b>ROOT_ID</b> do index.html (ou mande pro Claude) pra todo mundo cair no mesmo grupo:</p>
+        <code class="box">${esc(rootId)}</code><button id="setupOk" class="primary">Ok, copiei</button>`);
+      $('#setupOk').onclick = () => { closeOverlay(); if (!me || !state.people.some(p => p.id === me)) showWho(); };
+    } else if (!me || !state.people.some(p => p.id === me)) showWho();
+    startPolling(); sync();
+  }
+  function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
+
   // ---------- eventos ----------
-  $('#groupForm').onsubmit = ev => { ev.preventDefault(); state.name = $('#groupName').value.trim(); state.currency = $('#currency').value; commit(); toast('Salvo'); };
   $('#personForm').onsubmit = ev => { ev.preventDefault(); const name = $('#personName').value.trim(); if (!name) return;
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); $('#personName').value = ''; commit(); };
@@ -334,40 +349,23 @@
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(`Excluir "${e.desc}"?`)) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
   });
-  $('#shareBtn').onclick = async () => { const url = `${location.origin}${location.pathname}#g=${groupId}`;
-    try { await navigator.clipboard.writeText(url); toast('Link copiado'); } catch { prompt('Copie este link:', url); } };
+  $('#shareBtn').onclick = async () => { const url = `${location.origin}${location.pathname}`;
+    try { await navigator.clipboard.writeText(url); toast('Link copiado. Manda junto o código!'); } catch { prompt('Copie este link:', url); } };
   $('#whoBtn').onclick = showWho;
-  $('#newGroupBtn').onclick = () => { if (confirm('Começar um novo grupo? O atual continua acessível pelo link dele.')) { location.hash = ''; location.reload(); } };
+  $('#leaveBtn').onclick = () => { if (confirm('Sair do grupo neste aparelho? Você pode voltar digitando o código.')) leave(); };
   $('#exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));
-    a.download = `${(state.name || 'racha').replace(/\W+/g,'-')}.json`; a.click(); URL.revokeObjectURL(a.href); };
-  window.addEventListener('hashchange', () => location.reload());
-  let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800); }
+    a.download = `racha-${roomName || 'grupo'}.json`; a.click(); URL.revokeObjectURL(a.href); };
+  let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- início ----------
-  async function boot(){
-    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    if (seed) {                  // link "semente": cria um grupo já preenchido no primeiro acesso
-      setStatus('Criando grupo…');
-      try {
-        const s = { ...fresh('', 'R$'), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), updatedAt: Date.now() };
-        groupId = await remoteCreate(s); state = s; cacheSave();
-        history.replaceState(null, '', `${location.pathname}#g=${groupId}`);
-        render(); showWho(); startPolling(); setStatus('Grupo criado'); toast('Grupo criado. Use "Copiar link do grupo" para compartilhar.');
-      } catch (e) { setStatus('Não consegui criar o grupo · ' + e.message, true); showCreate(); }
-      return;
-    }
-    const m = location.hash.match(/#g=([\w-]+)/);
-    if (!m) return showCreate();
-    groupId = m[1]; try { me = localStorage.getItem(meKey()); } catch {}
-    state = cacheLoad(); if (state) render();
-    setStatus('Carregando…');
-    try { const remote = await remoteGet(); state = merge(state, remote); cacheSave(); render(); setStatus('Sincronizado'); }
-    catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh('', 'R$'); render(); } setStatus('Offline · ' + e.message, true); }
-    if (!me || !state.people.some(p => p.id === me)) showWho();
-    startPolling(); sync();
-  }
-  let unlocked = false; try { unlocked = localStorage.getItem(GATE_KEY) === GATE_HASH; } catch {}
-  unlocked ? boot() : showGate(boot);
+  (async () => {
+    // link antigo com #g=<id>: continua funcionando
+    const g = location.hash.match(/#g=([\w-]+)/);
+    if (g) { history.replaceState(null, '', location.pathname); return openGroup('', g[1], false); }
+    let saved = null; try { saved = JSON.parse(ls.get('racha:room')); } catch {}
+    if (saved && saved.id && ROOT_ID) return openGroup(saved.code, saved.id, false);
+    showGate();
+  })();
 })();
 </script>
 </body>

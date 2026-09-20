@@ -20,121 +20,106 @@
 <meta property="og:image:alt" content="Colagem de figurinhas com o texto: me pague que eu tô lisa">
 <meta name="twitter:card" content="summary_large_image">
 <style>
-  :root{
-    --bg:#f6f7f9;--card:#fff;--text:#1c1f24;--muted:#6b7280;--line:#e5e7eb;
-    --accent:#1cc29f;--accent-ink:#0b3d33;--pos:#0f9d58;--neg:#d93025;--danger:#b91c1c;--warn:#b45309;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --bg:#0f1115;--card:#171a21;--text:#e6e8ee;--muted:#9aa3b2;--line:#2a2f3a;
-      --accent:#1cc29f;--accent-ink:#04211b;--pos:#34d399;--neg:#f87171;--danger:#f87171;--warn:#fbbf24;
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#0f1115;--card:#171a21;--text:#e6e8ee;--muted:#9aa3b2;--line:#2a2f3a;
-    --accent:#1cc29f;--accent-ink:#04211b;--pos:#34d399;--neg:#f87171;--danger:#f87171;--warn:#fbbf24;
-  }
+  @font-face{font-family:'Courier Prime';font-weight:400;src:url(fonts/courier-prime-400.woff2) format('woff2')}
+  @font-face{font-family:'Courier Prime';font-weight:700;src:url(fonts/courier-prime-700.woff2) format('woff2')}
+  @font-face{font-family:'Special Elite';src:url(fonts/special-elite.woff2) format('woff2')}
+  @font-face{font-family:'Permanent Marker';src:url(fonts/permanent-marker.woff2) format('woff2')}
+  :root{--wood:#6b4a2b;--paper:#f6efdc;--ink:#222;--ink2:#5a4a30;--rule:#7a6a4a;--red:#c8102e;--green:#1b7a3a;--muted:#7a6a4a}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  header{padding:20px 16px 8px;max-width:760px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-  h1{margin:0;font-size:22px}
-  h1 small{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px}
-  main{max-width:760px;margin:0 auto;padding:0 16px 48px;display:grid;gap:16px}
-  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-  h2{margin:0 0 12px;font-size:16px}
-  form{display:flex;gap:8px;flex-wrap:wrap}
-  input,select,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:8px 10px;background:var(--card);color:var(--text)}
-  input[type=number]{width:120px}
-  input.grow,select.grow{flex:1;min-width:140px}
-  button{cursor:pointer}
-  button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-  button.ghost{background:transparent}
-  button.danger{color:var(--danger);border-color:transparent;background:transparent;padding:4px 6px}
-  ul{list-style:none;margin:0;padding:0}
-  li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
-  li:first-child{border-top:0}
-  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0;width:100%}
-  .chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:14px;cursor:pointer;user-select:none}
-  .chip input{margin:0}
-  .chip.on{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 18%,transparent)}
-  .pos{color:var(--pos);font-weight:600}
-  .neg{color:var(--neg);font-weight:600}
-  .muted{color:var(--muted);font-size:14px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .meta{font-size:13px;color:var(--muted)}
-  .empty{color:var(--muted);font-size:14px;padding:4px 0}
-  .status{font-size:13px;color:var(--muted)}
-  .status.err{color:var(--warn)}
+  html{background:var(--wood)}
+  body{margin:0;min-height:100vh;color:var(--ink);font:15px/1.5 'Courier Prime',ui-monospace,monospace;padding:18px 12px 120px;
+    background:var(--wood) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%236b4a2b"/><path d="M0 0h200v200H0z" fill="none" stroke="%235a3d22" stroke-width="2" stroke-dasharray="1 7"/></svg>')}
+  .paper{position:relative;background:var(--paper);margin:0 auto;max-width:460px;padding:22px 18px 30px;box-shadow:0 14px 30px rgba(0,0,0,.35);
+    background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.025) 0 1px,transparent 1px 3px)}
+  .paper:before,.paper:after{content:"";position:absolute;left:0;right:0;height:14px;background:linear-gradient(135deg,transparent 7px,var(--paper) 7px) 0 0/14px 14px,linear-gradient(-135deg,transparent 7px,var(--paper) 7px) 7px 0/14px 14px;background-repeat:repeat-x}
+  .paper:before{top:-13px}.paper:after{bottom:-13px;transform:scaleY(-1)}
+  .stain{position:absolute;right:-30px;top:120px;width:150px;height:150px;border-radius:50%;border:14px solid rgba(190,120,30,.16);box-shadow:inset 0 0 0 3px rgba(190,120,30,.10);transform:rotate(20deg);pointer-events:none}
+  h1{font-family:'Special Elite',serif;font-size:30px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400}
+  h2{font-family:'Special Elite',serif;font-size:15px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
+  .c{text-align:center;font-size:13px;line-height:1.5;text-transform:uppercase}
+  .hr{border-top:2px dashed var(--rule);margin:12px 0}
+  .row{display:flex;align-items:baseline;line-height:1.9;position:relative}
+  .row .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+  .row .d{flex:1;border-bottom:2px dotted var(--rule);margin:0 6px 5px;min-width:14px}
+  .row .v{white-space:nowrap;font-weight:700}
+  .small{font-size:12px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .stamp{position:absolute;right:54px;top:-4px;font-family:'Permanent Marker',cursive;color:var(--red);border:4px solid var(--red);border-radius:6px;padding:0 8px;font-size:20px;line-height:1.3;transform:rotate(-14deg);opacity:.85;letter-spacing:2px;pointer-events:none}
+  .paid .l,.paid .v{color:#8a7a5a;text-decoration:line-through}
+  .nm{font-weight:700}
+  .neg{color:var(--red)}.pos{color:var(--green)}
+  .total{font-size:20px;font-weight:700;display:flex;justify-content:space-between;margin-top:6px}
+  .bars{margin:18px auto 0;height:40px;width:220px;background:repeating-linear-gradient(90deg,#222 0 2px,transparent 2px 4px,#222 4px 7px,transparent 7px 9px,#222 9px 10px,transparent 10px 14px)}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:4px 0}
+  button,input,select{font:inherit;color:var(--ink)}
+  button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:6px 12px;cursor:pointer;text-transform:uppercase;font-size:13px;letter-spacing:.5px}
+  button.big{font-family:'Special Elite',serif;font-size:16px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);width:100%;text-align:center}
+  button.small{padding:2px 8px;font-size:12px}
+  button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}
+  button.ghost{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 4px}
+  a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
+  input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}
+  input::placeholder{color:#9a8a6a;text-transform:uppercase}
+  form{display:grid;gap:10px}
+  .two{display:grid;grid-template-columns:1fr 120px;gap:10px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);padding:4px 10px;font-size:13px;cursor:pointer;user-select:none;text-transform:uppercase;background:transparent}
+  .chip input{width:auto;margin:0;accent-color:var(--ink)}
+  .chip.on{background:var(--ink);color:var(--paper)}
+  .muted{color:var(--muted);font-size:13px}
+  .status{font-size:12px;color:var(--muted);text-transform:uppercase;text-align:center}
+  .status.err{color:var(--red)}
   .hidden{display:none !important}
-  #overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
-  #overlay .box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:12px}
-  #overlay form{flex-direction:column}
-  #overlay input,#overlay select,#overlay button{width:100%}
-  code.box{display:block;padding:8px;border:1px dashed var(--line);border-radius:8px;word-break:break-all;font-size:14px;user-select:all}
-  section.hl{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,var(--card));box-shadow:0 6px 24px color-mix(in oklab,var(--accent) 25%,transparent)}
-  section.hl h2{color:var(--accent-ink)}
-  section.hl li b{color:var(--accent-ink);font-size:18px;white-space:nowrap}
-  section.hl li{border-top-color:color-mix(in oklab,var(--accent) 30%,transparent)}
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) section.hl h2, :root:not([data-theme="light"]) section.hl li b{color:var(--accent)} }
-  :root[data-theme="dark"] section.hl h2, :root[data-theme="dark"] section.hl li b{color:var(--accent)}
-  .sub{font-size:14px;color:var(--muted);margin:14px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-  .nm{font-weight:600}
-  button.small{padding:4px 10px;font-size:13px;border-radius:999px}
-  .fab{position:fixed;right:16px;bottom:16px;z-index:8;padding:14px 20px;border-radius:999px;font-weight:700;font-size:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-  #sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9}
-  #sheet .box{width:100%;max-width:760px;background:var(--card);border-radius:16px 16px 0 0;padding:16px 16px 28px;max-height:90vh;overflow:auto}
-  footer{max-width:760px;margin:0 auto;padding:0 16px 96px;color:var(--muted);font-size:14px;display:grid;gap:10px}
-  footer .row{justify-content:space-between}
-  a.link{color:var(--muted);cursor:pointer;text-decoration:underline}
-  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  .fab{position:fixed;left:50%;transform:translateX(-50%) rotate(-1.5deg);bottom:22px;z-index:8;background:var(--paper);border:3px solid var(--ink);padding:14px 22px;font-family:'Special Elite',serif;font-size:17px;letter-spacing:1px;box-shadow:6px 6px 0 var(--ink);border-radius:0;text-transform:uppercase}
+  #overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+  #sheet{align-items:flex-end;padding:0}
+  #overlay .paper{max-width:380px;width:100%;padding:24px 20px}
+  #sheet .paper{max-width:760px;width:100%;border-radius:0;padding:20px 18px 32px;max-height:90vh;overflow:auto}
+  code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:13px;user-select:all}
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;text-transform:uppercase}
   .toast.show{opacity:1}
 </style>
 </head>
 <body>
-<div id="overlay" class="hidden"><div class="box" id="overlayBox"></div></div>
+<div id="overlay" class="hidden"><div class="paper" id="overlayBox"></div></div>
 
-<header>
-  <div><h1>Tô lisa</h1><div class="muted" id="roomLabel"></div></div>
-  <div class="row">
-    <span id="status" class="status"></span>
-    <button id="whoBtn" class="ghost" title="Trocar quem é você">Eu sou…</button>
-  </div>
-</header>
-<main>
-  <section class="hl">
-    <div class="row" style="justify-content:space-between;margin-bottom:12px">
-      <h2 style="margin:0">Acerto de contas</h2>
-      <button id="waBtn" class="primary">Enviar pelo WhatsApp</button>
-    </div>
-    <ul id="settle"></ul>
-    <div class="sub">Saldos</div>
-    <ul id="balances"></ul>
-  </section>
+<div class="paper" id="app">
+  <div class="stain"></div>
+  <h1>Tô lisa</h1>
+  <div class="c">Bar &amp; Conveniência da Lisa<br>Comanda · Mesa: <span id="roomLabel">—</span><br><span id="dateLine"></span> · Atend.: <a class="link" id="whoBtn">—</a></div>
+  <div class="status" id="status" style="margin-top:6px"></div>
+  <div class="hr"></div>
 
-  <section>
-    <div class="row" style="justify-content:space-between;margin-bottom:12px">
-      <h2 style="margin:0">Gastos</h2>
-      <a class="link hidden" id="toggleAll"></a>
-    </div>
-    <ul id="expenses"></ul>
-  </section>
-</main>
-<footer>
-  <div><span id="peopleLine"></span> · <a class="link" id="addPerson">adicionar pessoa</a></div>
-  <div class="row"><span>Pra convidar alguém, manda o link: o código já vai nele.</span><span><a class="link" id="shareBtn">Copiar link</a> · <a class="link" id="exportBtn">Exportar JSON</a></span></div>
-</footer>
-<button id="fab" class="primary fab">+ Gasto</button>
-<div id="sheet" class="hidden"><div class="box">
-  <div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Adicionar gasto</h2><button id="sheetClose" class="ghost">Fechar</button></div>
+  <h2>*** Acerto ***</h2>
+  <div id="settle"></div>
+  <div style="margin:12px 0 4px"><button id="waBtn" class="big">Enviar comanda pelo zap</button></div>
+  <div class="hr"></div>
+
+  <h2>Saldo da mesa</h2>
+  <div id="balances"></div>
+  <div class="hr"></div>
+
+  <h2>Itens</h2>
+  <div id="expenses"></div>
+  <div class="c" style="margin-top:6px"><a class="link hidden" id="toggleAll"></a></div>
+  <div class="hr"></div>
+  <div class="total"><span>Total da mesa</span><span id="total">R$ 0,00</span></div>
+  <div class="hr"></div>
+
+  <div class="c" style="text-transform:none">Na mesa: <span id="peopleLine"></span> · <a class="link" id="addPerson">+ pessoa</a></div>
+  <div class="c" style="margin-top:14px">Obrigado, volte sempre<br>Não aceitamos fiado (só de vocês)<br>* * *</div>
+  <div class="bars"></div>
+  <div class="c" style="margin-top:14px;text-transform:none;font-size:12px"><a class="link" id="shareBtn">Copiar link da comanda</a> · <a class="link" id="exportBtn">Exportar JSON</a><br><span class="muted">Quem abrir o link já cai nesta mesa.</span></div>
+</div>
+
+<button id="fab" class="fab">✎ Anotar na comanda</button>
+<div id="sheet" class="hidden"><div class="paper">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0">Anotar na comanda</h2><button id="sheetClose" class="ghost">fechar</button></div>
   <form id="expenseForm">
-    <input id="desc" class="grow" placeholder="Descrição" required maxlength="60">
-    <input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required inputmode="decimal">
-    <select id="payer" class="grow" required></select>
+    <div class="two"><input id="desc" placeholder="O quê?" required maxlength="60"><input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required inputmode="decimal"></div>
+    <select id="payer" required></select>
     <div class="chips" id="splitChips"></div>
-    <div class="row" style="width:100%;justify-content:space-between">
-      <span class="muted" id="splitHint"></span>
-      <button class="primary">Adicionar</button>
-    </div>
+    <div class="muted" id="splitHint"></div>
+    <button class="big">Anotar</button>
   </form>
 </div></div>
 <div id="toast" class="toast"></div>
@@ -235,12 +220,11 @@
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   function render(){
     if (!state) return;
-    $('#roomLabel').textContent = roomName ? `grupo: ${roomName}` : '';
-    document.title = roomName ? `${roomName} · Me pague que eu tô lisa` : 'Me pague que eu tô lisa';
-    $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `Eu sou ${nameOf(me)}` : 'Eu sou…';
-
-    const b = balances();
-    $('#peopleLine').innerHTML = state.people.map(p => `${nm(p.id)}${p.id===me?' <span class="muted">(você)</span>':''}`).join(', ') || 'Ninguém ainda';
+    $('#roomLabel').textContent = roomName || '—';
+    document.title = roomName ? `${roomName} · Tô lisa` : 'Tô lisa';
+    $('#dateLine').textContent = new Date().toLocaleDateString('pt-BR');
+    $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? nameOf(me).toUpperCase() : 'quem é você?';
+    $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
@@ -252,21 +236,29 @@
       return `<label class="chip ${on?'on':''}"><input type="checkbox" value="${p.id}" ${on?'checked':''}>${esc(p.name)}</label>`; }).join('');
     updateHint();
 
-    $('#balances').innerHTML = state.people.map(p => { const c=b[p.id], cls=c>0?'pos':c<0?'neg':'muted';
-      const txt = c>0?`recebe ${money(c/100)}`:c<0?`deve ${money(c/100)}`:'quites';
-      return `<li><span>${nm(p.id)}</span><span class="${cls}">${txt}</span></li>`; }).join('') || '<li class="empty">Adicione pessoas no rodapé.</li>';
+    const b = balances();
+    const line = (l, v, cls='', extra='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span>${extra}</div>`;
+    const num = c => `${Math.abs(c/100).toFixed(2).replace('.', ',')}`;
 
-    $('#settle').innerHTML = settlements(b).map(t => `<li><span>${nm(t.from)} paga ${nm(t.to)}</span>
-      <span class="row"><b>${money(t.cents/100)}</b><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">Quitei</button></span></li>`).join('') || '<li class="empty">Todo mundo quites. 🎉</li>';
+    const s = settlements(b);
+    const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
+    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents)) +
+        `<div class="small"><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>`).join('') || '<div class="empty">mesa zerada 🎉</div>')
+      + pays.map(e => line(`${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
+        `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
 
-    const all = [...state.expenses].reverse(); const list = showAll ? all : all.slice(0, 5);
+    $('#balances').innerHTML = state.people.map(p => { const c=b[p.id];
+      return line(nm(p.id), c>0?`+${num(c)}`:c<0?`-${num(c)}`:num(0), c>0?'pos':c<0?'neg':''); }).join('') || '<div class="empty">adicione pessoas ali embaixo</div>';
+
+    const items = state.expenses.filter(e => e.kind !== 'payment');
+    const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 5);
     $('#expenses').innerHTML = list.map(e => {
-      if (e.kind === 'payment') return `<li><div><div>💸 ${nm(e.payer)} pagou ${money(e.amount)} pra ${nm(e.among[0])}</div><div class="meta">quitação · ${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · lançado por ${esc(e.by)}`:''}</div></div><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></li>`;
       const loan = !e.among.includes(e.payer);
-      const how = loan ? `${listNames(e.among)} deve${e.among.length===1?'':'m'} tudo` : `dividido por ${e.among.length}`;
-      return `<li><div><div>${esc(e.desc)}</div><div class="meta">${nm(e.payer)} pagou ${money(e.amount)} · ${how} · ${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · lançado por ${esc(e.by)}`:''}</div></div>
-        <button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></li>`; }).join('') || '<li class="empty">Nenhum gasto ainda. Toque em “+ Gasto”.</li>';
-    const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 5); tg.textContent = showAll ? 'ver menos' : `ver todos (${all.length})`;
+      const how = loan ? `${listNames(e.among)} deve${e.among.length===1?'':'m'} tudo` : `÷${e.among.length}`;
+      return line(esc(e.desc), num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${esc(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
+      || '<div class="empty">nada anotado ainda</div>';
+    const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 5); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
+    $('#total').textContent = money(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   function updateHint(){
     const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value);
@@ -288,15 +280,15 @@
       ev.preventDefault();
       const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Abrindo…';
       try { await enterRoom($('#gateCode').value.trim().toLowerCase()); }
-      catch (e) { $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Entrar'; }
+      catch (e) { $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Abrir comanda'; }
     };
   }
   function showWho(){
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
-    overlay(`<h2>Quem é você?</h2><p class="muted" style="margin:0">Vira o pagador padrão e aparece nos gastos que você lançar.</p>
+    overlay(`<h2 style="margin-top:0">Quem é você?</h2><p class="muted" style="margin:0 0 8px">Vira o pagador padrão e assina o que você anotar.</p>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
-      <input id="whoNew" class="hidden" placeholder="Seu nome" maxlength="30"><button class="primary">Continuar</button></form>
-      <button id="leaveBtn" class="ghost">Sair do grupo neste aparelho</button>`);
+      <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30"><button class="big">Continuar</button></form>
+      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair desta mesa neste aparelho</button></div>`);
     $('#leaveBtn').onclick = () => { if (confirm('Sair do grupo neste aparelho? Você pode voltar pelo link.')) leave(); };
     $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
@@ -306,8 +298,8 @@
   function showLost(){
     clearInterval(pollTimer);
     const cached = cacheLoad();
-    overlay(`<h2>Grupo não encontrado</h2><p class="muted" style="margin:0">Esse grupo não está mais no banco.</p>
-      ${cached ? `<button id="restoreBtn" class="primary">Restaurar da minha cópia</button>` : ''}<button id="lostBack" class="ghost">Voltar</button>`);
+    overlay(`<h2 style="margin-top:0">Comanda não encontrada</h2><p class="muted" style="margin:0 0 8px">Essa mesa não está mais no banco.</p>
+      ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`);
     if (cached) $('#restoreBtn').onclick = async () => { try { await apiPut(groupId, cached); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
     $('#lostBack').onclick = leave;
   }
@@ -342,20 +334,20 @@
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 
   // ---------- eventos ----------
-  $('#addPerson').onclick = () => { const name = (prompt('Nome da pessoa:') || '').trim(); if (!name) return;
+  $('#addPerson').onclick = () => { const name = (prompt('Nome de quem senta na mesa:') || '').trim(); if (!name) return;
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#desc').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
-  $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas no rodapé primeiro'); openSheet(); };
+  $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas na mesa primeiro'); openSheet(); };
   $('#sheetClose').onclick = closeSheet;
   $('#sheet').addEventListener('click', ev => { if (ev.target.id === 'sheet') closeSheet(); });
   $('#expenseForm').onsubmit = ev => { ev.preventDefault();
     const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value); const amount = parseFloat($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro'); if (!among.length) return toast('Marque quem divide esse gasto'); if (!(amount > 0)) return toast('Valor inválido');
     state.expenses.push({ id: uid(), desc: $('#desc').value.trim(), amount: Math.round(amount*100)/100, payer: $('#payer').value, among, at: Date.now(), by: me ? nameOf(me) : undefined });
-    $('#desc').value = ''; $('#amount').value = ''; closeSheet(); commit(); toast('Gasto adicionado'); };
+    $('#desc').value = ''; $('#amount').value = ''; closeSheet(); commit(); toast('Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
@@ -369,7 +361,7 @@
   });
   const shareUrl = () => `${location.origin}${location.pathname}#c=${encodeURIComponent(roomName)}`;
   $('#shareBtn').onclick = async () => { const url = shareUrl();
-    try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir já entra no grupo.'); } catch { prompt('Copie este link:', url); } };
+    try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai nesta mesa.'); } catch { prompt('Copie este link:', url); } };
   function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
   function summaryText(){
     const b = balances(); const s = settlements(b); const L = [];

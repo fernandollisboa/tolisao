@@ -96,7 +96,7 @@
   <section>
     <div class="row" style="justify-content:space-between;margin-bottom:12px">
       <h2 style="margin:0">Acerto de contas</h2>
-      <div class="row"><button id="zapBtn">Resumo pro zap</button><button id="waBtn" class="ghost" title="Abrir no WhatsApp">WhatsApp</button></div>
+      <button id="waBtn" class="primary">Enviar pelo WhatsApp</button>
     </div>
     <ul id="settle"></ul>
   </section>
@@ -356,7 +356,6 @@
     L.push('', 'Qualquer coisa é só falar 🙏');
     return L.join('\n');
   }
-  $('#zapBtn').onclick = async () => { const t = summaryText(); try { await navigator.clipboard.writeText(t); toast('Resumo copiado. Cola no zap!'); } catch { prompt('Copie o resumo:', t); } };
   $('#waBtn').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(summaryText()), '_blank', 'noopener');
   $('#whoBtn').onclick = showWho;
   $('#leaveBtn').onclick = () => { if (confirm('Sair do grupo neste aparelho? Você pode voltar digitando o código.')) leave(); };

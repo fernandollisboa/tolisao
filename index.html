@@ -71,6 +71,14 @@
   #overlay form{flex-direction:column}
   #overlay input,#overlay select,#overlay button{width:100%}
   code.box{display:block;padding:8px;border:1px dashed var(--line);border-radius:8px;word-break:break-all;font-size:14px;user-select:all}
+  section.hl{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,var(--card));box-shadow:0 6px 24px color-mix(in oklab,var(--accent) 25%,transparent)}
+  section.hl h2{color:var(--accent-ink)}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) section.hl h2{color:var(--accent)} }
+  :root[data-theme="dark"] section.hl h2{color:var(--accent)}
+  section.hl li b{color:var(--accent-ink);font-size:18px}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) section.hl li b{color:var(--accent)} }
+  :root[data-theme="dark"] section.hl li b{color:var(--accent)}
+  section.hl li{border-top-color:color-mix(in oklab,var(--accent) 30%,transparent)}
   .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
   .toast.show{opacity:1}
 </style>
@@ -87,6 +95,13 @@
   </div>
 </header>
 <main>
+  <section class="hl">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0">Acerto de contas</h2>
+      <button id="waBtn" class="primary">Enviar pelo WhatsApp</button>
+    </div>
+    <ul id="settle"></ul>
+  </section>
   <section>
     <h2>Adicionar gasto</h2>
     <form id="expenseForm">
@@ -106,13 +121,6 @@
     <ul id="balances"></ul>
   </section>
 
-  <section>
-    <div class="row" style="justify-content:space-between;margin-bottom:12px">
-      <h2 style="margin:0">Acerto de contas</h2>
-      <button id="waBtn" class="primary">Enviar pelo WhatsApp</button>
-    </div>
-    <ul id="settle"></ul>
-  </section>
 
   <section>
     <h2>Gastos</h2>
@@ -234,7 +242,7 @@
     $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `Eu sou ${nameOf(me)}` : 'Eu sou…';
 
     const b = balances();
-    $('#people').innerHTML = state.people.map(p => `<li><span>${esc(p.name)}${p.id===me?' <span class="muted">(você)</span>':''}</span><button class="danger" data-del-person="${p.id}" title="Remover">✕</button></li>`).join('') || '<li class="empty">Ninguém ainda.</li>';
+    $('#people').innerHTML = state.people.map(p => `<li><span>${esc(p.name)}${p.id===me?' <span class="muted">(você)</span>':''}</span></li>`).join('') || '<li class="empty">Ninguém ainda.</li>';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
@@ -341,9 +349,6 @@
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
-    const dp = ev.target.closest('[data-del-person]');
-    if (dp) { const id = dp.dataset.delPerson; if (state.expenses.some(e => e.payer === id || e.among.includes(id))) return toast('Essa pessoa tem gastos; exclua-os primeiro');
-      if (!confirm(`Remover ${nameOf(id)}?`)) return; state.people = state.people.filter(p => p.id !== id); state.deleted.push(id); commit(); }
     const de = ev.target.closest('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(`Excluir "${e.desc}"?`)) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }

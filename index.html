@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Racha</title>
+<title>Me paga que eu tô liso</title>
 <meta name="description" content="Divida gastos com amigos. Um código, um grupo. Sem conta, sem app.">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="theme-color" content="#1cc29f">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Racha">
-<meta property="og:title" content="Oxe, quem pagou?">
-<meta property="og:description" content="Divide a conta com os cabra sem briga. Sem app, sem cadastro.">
+<meta property="og:site_name" content="Me paga que eu tô liso">
+<meta property="og:title" content="Me paga que eu tô liso">
+<meta property="og:description" content="Divide a conta com os cabra e cobra sem vergonha. Sem app, sem cadastro.">
 <meta property="og:url" content="https://fernandollisboa.github.io/splitwise-lite/">
 <meta property="og:image" content="https://fernandollisboa.github.io/splitwise-lite/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Porquinho de óculos escuros recebendo uma moeda">
+<meta property="og:image:alt" content="Figurinha da emoji loira com sacola de compras e cartão de crédito">
 <meta name="twitter:card" content="summary_large_image">
 <style>
   :root{
@@ -79,7 +79,7 @@
 <div id="overlay" class="hidden"><div class="box" id="overlayBox"></div></div>
 
 <header>
-  <h1>Racha <small id="roomLabel"></small></h1>
+  <h1>Me paga que eu tô liso <small id="roomLabel"></small></h1>
   <div class="row">
     <span id="status" class="status"></span>
     <button id="whoBtn" class="ghost" title="Trocar quem é você">Eu sou…</button>
@@ -230,7 +230,7 @@
   function render(){
     if (!state) return;
     $('#roomLabel').textContent = roomName ? `· ${roomName}` : '';
-    document.title = roomName ? `${roomName} · Racha` : 'Racha';
+    document.title = roomName ? `${roomName} · Me paga que eu tô liso` : 'Me paga que eu tô liso';
     $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `Eu sou ${nameOf(me)}` : 'Eu sou…';
 
     const b = balances();
@@ -271,7 +271,7 @@
   const closeOverlay = () => $('#overlay').classList.add('hidden');
 
   function showGate(msg){
-    overlay(`<h2>Racha</h2><p class="muted" style="margin:0">${msg || 'Digite o código do grupo.'}</p>
+    overlay(`<h2>Me paga que eu tô liso</h2><p class="muted" style="margin:0">${msg || 'Digite o código do grupo.'}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="Código" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="primary">Entrar</button></form>`);
     $('#gateForm').onsubmit = async ev => {

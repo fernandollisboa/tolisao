@@ -78,8 +78,7 @@
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) section.hl h2, :root:not([data-theme="light"]) section.hl li b{color:var(--accent)} }
   :root[data-theme="dark"] section.hl h2, :root[data-theme="dark"] section.hl li b{color:var(--accent)}
   .sub{font-size:14px;color:var(--muted);margin:14px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--c,#999)}
-  .chip{border-left:6px solid var(--c,var(--line))}
+  .nm{font-weight:600}
   button.small{padding:4px 10px;font-size:13px;border-radius:999px}
   .fab{position:fixed;right:16px;bottom:16px;z-index:8;padding:14px 20px;border-radius:999px;font-weight:700;font-size:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
   #sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:9}
@@ -229,7 +228,7 @@
   // ---------- render ----------
   const PALETTE = ['#e15759','#4e79a7','#f28e2b','#59a14f','#b07aa1','#edc948','#76b7b2','#ff9da7','#9c755f','#bab0ac'];
   const colorOf = id => PALETTE[Math.max(0, state.people.findIndex(p => p.id === id)) % PALETTE.length];
-  const dot = id => `<span class="dot" style="--c:${colorOf(id)}"></span>`;
+  const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   let showAll = false;
   const money = n => `${CURRENCY} ${Math.abs(n).toFixed(2).replace('.', ',')}`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
@@ -241,7 +240,7 @@
     $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? `Eu sou ${nameOf(me)}` : 'Eu sou…';
 
     const b = balances();
-    $('#peopleLine').innerHTML = state.people.map(p => `${dot(p.id)}${esc(p.name)}${p.id===me?' <span class="muted">(você)</span>':''}`).join(', ') || 'Ninguém ainda';
+    $('#peopleLine').innerHTML = state.people.map(p => `${nm(p.id)}${p.id===me?' <span class="muted">(você)</span>':''}`).join(', ') || 'Ninguém ainda';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
@@ -250,22 +249,22 @@
     const prev = [...document.querySelectorAll('#splitChips input')];
     const known = new Set(prev.map(i => i.value)), checked = new Set(prev.filter(i => i.checked).map(i => i.value));
     $('#splitChips').innerHTML = state.people.map(p => { const on = !known.has(p.id) || checked.has(p.id);
-      return `<label class="chip ${on?'on':''}" style="--c:${colorOf(p.id)}"><input type="checkbox" value="${p.id}" ${on?'checked':''}>${esc(p.name)}</label>`; }).join('');
+      return `<label class="chip ${on?'on':''}"><input type="checkbox" value="${p.id}" ${on?'checked':''}>${esc(p.name)}</label>`; }).join('');
     updateHint();
 
     $('#balances').innerHTML = state.people.map(p => { const c=b[p.id], cls=c>0?'pos':c<0?'neg':'muted';
       const txt = c>0?`recebe ${money(c/100)}`:c<0?`deve ${money(c/100)}`:'quites';
-      return `<li><span>${dot(p.id)}${esc(p.name)}</span><span class="${cls}">${txt}</span></li>`; }).join('') || '<li class="empty">Adicione pessoas no rodapé.</li>';
+      return `<li><span>${nm(p.id)}</span><span class="${cls}">${txt}</span></li>`; }).join('') || '<li class="empty">Adicione pessoas no rodapé.</li>';
 
-    $('#settle').innerHTML = settlements(b).map(t => `<li><span>${dot(t.from)}${esc(nameOf(t.from))} paga ${dot(t.to)}${esc(nameOf(t.to))}</span>
+    $('#settle').innerHTML = settlements(b).map(t => `<li><span>${nm(t.from)} paga ${nm(t.to)}</span>
       <span class="row"><b>${money(t.cents/100)}</b><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">Quitei</button></span></li>`).join('') || '<li class="empty">Todo mundo quites. 🎉</li>';
 
     const all = [...state.expenses].reverse(); const list = showAll ? all : all.slice(0, 5);
     $('#expenses').innerHTML = list.map(e => {
-      if (e.kind === 'payment') return `<li><div><div>💸 ${esc(nameOf(e.payer))} pagou ${money(e.amount)} pra ${esc(nameOf(e.among[0]))}</div><div class="meta">quitação · ${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · lançado por ${esc(e.by)}`:''}</div></div><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></li>`;
+      if (e.kind === 'payment') return `<li><div><div>💸 ${nm(e.payer)} pagou ${money(e.amount)} pra ${nm(e.among[0])}</div><div class="meta">quitação · ${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · lançado por ${esc(e.by)}`:''}</div></div><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></li>`;
       const loan = !e.among.includes(e.payer);
       const how = loan ? `${listNames(e.among)} deve${e.among.length===1?'':'m'} tudo` : `dividido por ${e.among.length}`;
-      return `<li><div><div>${esc(e.desc)}</div><div class="meta">${dot(e.payer)}${esc(nameOf(e.payer))} pagou ${money(e.amount)} · ${how} · ${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · lançado por ${esc(e.by)}`:''}</div></div>
+      return `<li><div><div>${esc(e.desc)}</div><div class="meta">${nm(e.payer)} pagou ${money(e.amount)} · ${how} · ${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · lançado por ${esc(e.by)}`:''}</div></div>
         <button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></li>`; }).join('') || '<li class="empty">Nenhum gasto ainda. Toque em “+ Gasto”.</li>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 5); tg.textContent = showAll ? 'ver menos' : `ver todos (${all.length})`;
   }

@@ -127,9 +127,8 @@
 <script>
 (() => {
   // ---------- config ----------
-  const API = 'https://jsonblob.com/api/jsonBlob';   // armazenamento JSON gratuito, sem conta
-  // Índice compartilhado: mapeia hash(código) → id do grupo. Vazio = primeira configuração (a página cria e mostra o id).
-  const ROOT_ID = '';
+  // Firebase Realtime Database (REST). Ex.: 'https://racha-xxxxx-default-rtdb.firebaseio.com'
+  const DB = '';
   const POLL_MS = 6000;
   const CURRENCY = 'R$';
 
@@ -139,7 +138,7 @@
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: k => { try { localStorage.removeItem(k); } catch {} } };
 
-  let rootId = ROOT_ID, groupId = null, roomName = '', state = null, me = null, pollTimer = null, saving = false;
+  let groupId = null, roomName = '', state = null, me = null, pollTimer = null, saving = false;
 
   const fresh = () => ({ v:2, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
   const cacheKey = () => `racha:${groupId}`;
@@ -162,23 +161,17 @@
 
   // ---------- remoto ----------
   const setStatus = (msg, err) => { const el = $('#status'); el.textContent = msg; el.classList.toggle('err', !!err); };
+  const roomUrl = id => `${DB}/rooms/${id}.json`;
   async function apiGet(id){
-    const r = await fetch(`${API}/${id}`, { cache:'no-store' });
-    if (r.status === 404) throw Object.assign(new Error('não encontrado'), { notFound:true });
+    const r = await fetch(roomUrl(id), { cache:'no-store' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
+    const data = await r.json();
+    if (data === null) throw Object.assign(new Error('não encontrado'), { notFound:true });
+    return data;
   }
   async function apiPut(id, data){
-    const r = await fetch(`${API}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const r = await fetch(roomUrl(id), { method:'PUT', body: JSON.stringify(data) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  }
-  async function apiCreate(data){
-    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(data) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const loc = r.headers.get('Location') || r.headers.get('X-jsonblob') || '';
-    const id = loc.split('/').pop();
-    if (!id) throw new Error('servidor não devolveu o id');
-    return id;
   }
 
   async function sync(){            // baixa, mescla e sobe se houver novidade
@@ -288,47 +281,37 @@
   function showLost(){
     clearInterval(pollTimer);
     const cached = cacheLoad();
-    overlay(`<h2>Grupo não encontrado</h2><p class="muted" style="margin:0">Esse grupo sumiu do armazenamento (grupos que ninguém abre por 30 dias são apagados).</p>
+    overlay(`<h2>Grupo não encontrado</h2><p class="muted" style="margin:0">Esse grupo não está mais no banco.</p>
       ${cached ? `<button id="restoreBtn" class="primary">Restaurar da minha cópia</button>` : ''}<button id="lostBack" class="ghost">Voltar</button>`);
-    if (cached) $('#restoreBtn').onclick = async () => { try { const id = await apiCreate(cached); await bindRoom(roomName, id); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
+    if (cached) $('#restoreBtn').onclick = async () => { try { await apiPut(groupId, cached); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
     $('#lostBack').onclick = leave;
   }
 
   // ---------- salas (código → grupo) ----------
-  async function loadRoot(){ if (!rootId) return { v:1, rooms:{} }; return apiGet(rootId); }
-  async function bindRoom(code, id){
-    const key = await sha(code);
-    if (!rootId) { rootId = await apiCreate({ v:1, rooms: { [key]: id } }); return; }
-    const root = await loadRoot(); root.rooms = root.rooms || {}; root.rooms[key] = id; await apiPut(rootId, root);
-  }
   async function enterRoom(code){
     if (!code) throw new Error('Digite um código.');
-    const key = await sha(code);
-    let root; try { root = await loadRoot(); } catch (e) { throw new Error('Sem conexão com o armazenamento: ' + e.message); }
-    let id = (root.rooms || {})[key];
+    if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
+    const id = await sha(code);
+    let existing = null;
+    try { existing = await apiGet(id); } catch (e) { if (!e.notFound) throw new Error('Sem conexão com o banco: ' + e.message); }
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    if (!id) {
+    if (!existing) {
       if (!seed && !confirm(`Não existe grupo com o código "${code}". Criar um grupo novo com esse código?`)) throw new Error('Confira o código.');
       let data = fresh();
-      if (seed) { try { data = { ...fresh(), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))) , updatedAt: Date.now() }; } catch {} }
-      id = await apiCreate(data);
-      await bindRoom(code, id);
+      if (seed) { try { data = { ...fresh(), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), updatedAt: Date.now() }; } catch {} }
+      await apiPut(id, data);
       history.replaceState(null, '', location.pathname);
     }
     ls.set('racha:room', JSON.stringify({ code, id }));
-    await openGroup(code, id, !ROOT_ID);
+    await openGroup(code, id);
   }
-  async function openGroup(code, id, firstSetup){
+  async function openGroup(code, id){
     roomName = code; groupId = id; me = ls.get(meKey());
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
     try { const remote = await apiGet(groupId); state = merge(state, remote); cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(); render(); } setStatus('Offline · ' + e.message, true); }
-    if (firstSetup) {
-      overlay(`<h2>Configuração inicial feita</h2><p class="muted" style="margin:0">O índice de grupos foi criado. Cole este id na constante <b>ROOT_ID</b> do index.html (ou mande pro Claude) pra todo mundo cair no mesmo grupo:</p>
-        <code class="box">${esc(rootId)}</code><button id="setupOk" class="primary">Ok, copiei</button>`);
-      $('#setupOk').onclick = () => { closeOverlay(); if (!me || !state.people.some(p => p.id === me)) showWho(); };
-    } else if (!me || !state.people.some(p => p.id === me)) showWho();
+    if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync();
   }
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
@@ -383,11 +366,8 @@
 
   // ---------- início ----------
   (async () => {
-    // link antigo com #g=<id>: continua funcionando
-    const g = location.hash.match(/#g=([\w-]+)/);
-    if (g) { history.replaceState(null, '', location.pathname); return openGroup('', g[1], false); }
     let saved = null; try { saved = JSON.parse(ls.get('racha:room')); } catch {}
-    if (saved && saved.id && ROOT_ID) return openGroup(saved.code, saved.id, false);
+    if (saved && saved.id && DB && !location.hash.includes('seed=')) return openGroup(saved.code, saved.id);
     showGate();
   })();
 })();

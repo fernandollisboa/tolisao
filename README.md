@@ -15,16 +15,17 @@ Pra convidar alguém: manda o link do site e o código. Um código que ainda nã
 
 ## Onde ficam os dados
 
-Cada grupo é um documento JSON no [jsonblob.com](https://jsonblob.com), grátis e sem conta. Um índice compartilhado
-(`ROOT_ID` no `index.html`) mapeia o hash do código para o documento do grupo. Os clientes mesclam por id e atualizam a cada 6s,
-então edições simultâneas de celulares diferentes não se sobrescrevem.
+Num **Firebase Realtime Database** (plano gratuito), acessado direto do navegador pela API REST.
+Cada grupo fica em `rooms/<sha256(código)>`. A URL do banco está na constante `DB` do `index.html`.
+Os clientes mesclam por id e atualizam a cada 6s, então edições simultâneas de celulares diferentes não se sobrescrevem.
 
-Limitações: o jsonblob apaga documentos que ninguém abre por 30 dias (a página detecta e oferece restaurar da cópia local).
-Use **Exportar JSON** como backup.
+Regras do banco (Realtime Database → Regras):
 
-## Primeira configuração
+```json
+{ "rules": { "rooms": { "$room": { ".read": true, ".write": true } } } }
+```
 
-Com `ROOT_ID` vazio, a primeira pessoa a digitar um código cria o índice e a página mostra o id. Cole-o em `ROOT_ID` e faça push.
+Quem tem o código lê e escreve no grupo. Não guarde nada sensível.
 
 ## Deploy
 

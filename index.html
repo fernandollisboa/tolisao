@@ -94,7 +94,10 @@
   </section>
 
   <section>
-    <h2>Acerto de contas</h2>
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0">Acerto de contas</h2>
+      <div class="row"><button id="zapBtn">Resumo pro zap</button><button id="waBtn" class="ghost" title="Abrir no WhatsApp">WhatsApp</button></div>
+    </div>
     <ul id="settle"></ul>
   </section>
 
@@ -351,6 +354,27 @@
   });
   $('#shareBtn').onclick = async () => { const url = `${location.origin}${location.pathname}`;
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Manda junto o código!'); } catch { prompt('Copie este link:', url); } };
+  function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
+  function summaryText(){
+    const b = balances(); const L = [];
+    L.push(`🧾 *Acerto${roomName ? ' – ' + roomName : ''}*`, '', '*Gastos:*');
+    if (!state.expenses.length) L.push('(nenhum)');
+    for (const e of state.expenses) {
+      const loan = !e.among.includes(e.payer);
+      const who = loan ? `${joinNames(e.among.map(nameOf))} deve${e.among.length===1?'':'m'} tudo` : joinNames(e.among.map(nameOf));
+      L.push(`• ${e.desc} – ${money(e.amount)} (${nameOf(e.payer)} pagou) → ${who}`);
+    }
+    L.push('', '*Saldo:*');
+    const rows = state.people.map(p => [p, b[p.id]]).sort((x,y)=>y[1]-x[1]);
+    for (const [p, c] of rows) L.push(c > 0 ? `✅ ${p.name} recebe ${money(c/100)}` : c < 0 ? `❌ ${p.name} deve ${money(c/100)}` : `➖ ${p.name} quites`);
+    const s = settlements(b);
+    L.push('', s.length ? `*Pra zerar tudo (${s.length} pix):*` : '*Todo mundo quites!* 🎉');
+    for (const t of s) L.push(`💸 ${nameOf(t.from)} → ${nameOf(t.to)}: ${money(t.cents/100)}`);
+    L.push('', 'Qualquer coisa é só falar 🙏');
+    return L.join('\n');
+  }
+  $('#zapBtn').onclick = async () => { const t = summaryText(); try { await navigator.clipboard.writeText(t); toast('Resumo copiado. Cola no zap!'); } catch { prompt('Copie o resumo:', t); } };
+  $('#waBtn').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(summaryText()), '_blank', 'noopener');
   $('#whoBtn').onclick = showWho;
   $('#leaveBtn').onclick = () => { if (confirm('Sair do grupo neste aparelho? Você pode voltar digitando o código.')) leave(); };
   $('#exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));

@@ -130,7 +130,7 @@
 
   <section>
     <div class="row" style="justify-content:space-between">
-      <span class="muted">Pra convidar alguém: manda o link do site e o código.</span>
+      <span class="muted">Pra convidar alguém: manda o link. O código já vai nele.</span>
       <div class="row"><button id="shareBtn">Copiar link</button><button id="exportBtn" class="ghost">Exportar JSON</button></div>
     </div>
   </section>
@@ -313,7 +313,7 @@
       let data = fresh();
       if (seed) { try { data = { ...fresh(), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), updatedAt: Date.now() }; } catch {} }
       await apiPut(id, data);
-      history.replaceState(null, '', location.pathname);
+      if (seed) history.replaceState(null, '', location.pathname);
     }
     ls.set('racha:room', JSON.stringify({ code, id }));
     await openGroup(code, id);
@@ -348,8 +348,9 @@
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(`Excluir "${e.desc}"?`)) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
   });
-  $('#shareBtn').onclick = async () => { const url = `${location.origin}${location.pathname}`;
-    try { await navigator.clipboard.writeText(url); toast('Link copiado. Manda junto o código!'); } catch { prompt('Copie este link:', url); } };
+  const shareUrl = () => `${location.origin}${location.pathname}#c=${encodeURIComponent(roomName)}`;
+  $('#shareBtn').onclick = async () => { const url = shareUrl();
+    try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir já entra no grupo.'); } catch { prompt('Copie este link:', url); } };
   function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
   function summaryText(){
     const b = balances(); const s = settlements(b); const L = [];
@@ -366,7 +367,7 @@
       const who = loan ? `${joinNames(e.among.map(nameOf))} deve${e.among.length===1?'':'m'} tudo` : joinNames(e.among.map(nameOf));
       L.push(`• ${e.desc} – ${money(e.amount)} (${nameOf(e.payer)} pagou) → ${who}`);
     }
-    L.push('', 'Qualquer coisa é só falar 🙏');
+    L.push('', `Confere e lança os teus aqui: ${shareUrl()}`);
     return L.join('\n');
   }
   $('#waBtn').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(summaryText()), '_blank', 'noopener');
@@ -374,10 +375,13 @@
   $('#leaveBtn').onclick = () => { if (confirm('Sair do grupo neste aparelho? Você pode voltar digitando o código.')) leave(); };
   $('#exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));
     a.download = `racha-${roomName || 'grupo'}.json`; a.click(); URL.revokeObjectURL(a.href); };
+  window.addEventListener('hashchange', () => location.reload());
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- início ----------
   (async () => {
+    const c = location.hash.match(/#c=([^&]+)/);
+    if (c) { const code = decodeURIComponent(c[1]).trim().toLowerCase(); try { return await enterRoom(code); } catch (e) { return showGate(e.message); } }
     let saved = null; try { saved = JSON.parse(ls.get('racha:room')); } catch {}
     if (saved && /^[0-9a-f]{64}$/.test(saved.id || '') && DB && !location.hash.includes('seed=')) return openGroup(saved.code, saved.id);
     ls.del('racha:room');   // resto de versão antiga

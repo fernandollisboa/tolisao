@@ -367,7 +367,8 @@
   // ---------- início ----------
   (async () => {
     let saved = null; try { saved = JSON.parse(ls.get('racha:room')); } catch {}
-    if (saved && saved.id && DB && !location.hash.includes('seed=')) return openGroup(saved.code, saved.id);
+    if (saved && /^[0-9a-f]{64}$/.test(saved.id || '') && DB && !location.hash.includes('seed=')) return openGroup(saved.code, saved.id);
+    ls.del('racha:room');   // resto de versão antiga
     showGate();
   })();
 })();

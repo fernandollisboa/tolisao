@@ -311,7 +311,7 @@
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
       const pixB = t => !pixReady ? `<span class="spin" style="width:11px;height:11px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block" title="carregando"></span>` : pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : '';
-      const okB = t => `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei">✔</button>`;
+      const okB = t => `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`;
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px;margin-left:2px">${okB(t)}${pixB(t)}</span>`, `R$ ${fmt(t.cents/100)}`, 'sub')) : [];
       const hdr = who.length ? `<div class="row hdr"><span class="l">quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', `R$ ${fmt(Math.abs(bal)/100)}`, bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
@@ -339,7 +339,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents), t.from === me ? 'mine' : '') +
-        (t.from === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start">${!pixReady ? '<span class="spin"></span>' : ''}${pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button>` : ''}${pixReady && pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}</div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+        (t.from === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start">${!pixReady ? '<span class="spin"></span>' : ''}${pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitar</button>` : ''}${pixReady && pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}</div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''}</div>`).join('');
 
@@ -559,16 +559,8 @@
     x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('quem me deve?', W/2, y); y += LH;
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 
-    // acerto: QUEM | PRA QUEM | VALOR
-    const VW = 10, TW = Math.floor((COLS - VW - 2) / 2), FW = COLS - VW - 2 - TW;
-    if (!st.length && !pays.length) center('TUDO QUITADO');
-    for (const t of st) { const a = fit(nameOf(t.from), FW), b = fit(nameOf(t.to), TW);
-      mark(0, a.length, markOf(t.from)); mark(FW + 1, b.length, markOf(t.to));
-      line(a.padEnd(FW) + ' ' + b.padEnd(TW) + ' ' + num(t.cents).padStart(VW));
-      if (pixKeys[t.to]) line('  ' + fit(`PIX: ${pixKeys[t.to]}`, COLS - 2), INK2); }
-    for (const e of pays) { const t = fit(nameOf(e.payer), FW).padEnd(FW) + ' ' + fit(nameOf(e.among[0]), TW).padEnd(TW) + ' ' + num(Math.round(e.amount*100)).padStart(VW);
-      const yy = y; line(t, INK2); x.strokeStyle = INK2; x.lineWidth = 2; x.beginPath(); x.moveTo(L, yy - FS*0.32); x.lineTo(L + x.measureText(t).width, yy - FS*0.32); x.stroke();
-    }
+    // legenda de cores
+    for (const p of state.people) { const pn = fit(nameOf(p.id), COLS - 2); mark(2, pn.length, markOf(p.id)); line('  ' + pn, INK2); }
     blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo

@@ -123,7 +123,7 @@
   <div style="margin:12px 0 4px"><button id="waBtn" class="big"><svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Enviar</button></div>
   <div class="hr"></div>
 
-  <div class="c" style="text-transform:none"><span id="peopleLine"></span> · <a class="link" id="addPerson">+ pessoa</a></div>
+  <div class="c" style="text-transform:none"><span id="peopleLine"></span> · <a class="link" id="addPerson" style="white-space:nowrap">+ pessoa</a></div>
   <div class="c" style="margin-top:14px">Obrigado, volte sempre!<br>* * *</div>
   <div class="bars"></div>
   <div class="status" id="status"></div>
@@ -267,7 +267,7 @@
   }
   async function savePix(){
     if (!me) return showWho();
-    const k = prompt('Sua chave Pix. Só chave aleatória ou e-mail (CPF e telefone não):', pixKeys[me] || '');
+    const k = await askText('Chave Pix', 'só chave aleatória ou e-mail. CPF e telefone não.', 'chave aleatória ou e-mail', pixKeys[me] || '', 'salvar');
     if (k === null) return;
     const key = validPixKey(k); if (!key) return toast('Só chave aleatória ou e-mail');
     let tok = ls.get(pixTokKey(me)); if (!tok) { tok = uid() + uid() + uid() + uid(); ls.set(pixTokKey(me), tok); }
@@ -370,6 +370,22 @@
   const overlay = (html) => { $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
   const closeOverlay = () => $('#overlay').classList.add('hidden');
 
+  function ask(title, desc, okLabel = 'confirmar'){
+    return new Promise(res => {
+      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
+      $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#cancelBtn').onclick = () => { closeOverlay(); res(false); }; $('#okBtn').focus();
+    });
+  }
+  function askText(title, desc, placeholder, value = '', okLabel = 'confirmar'){
+    return new Promise(res => {
+      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
+      $('#askForm').onsubmit = ev => { ev.preventDefault(); const v = $('#askInput').value; closeOverlay(); res(v); }; $('#cancelBtn').onclick = () => { closeOverlay(); res(null); }; $('#askInput').focus();
+    });
+  }
+  function showCopy(title, text){
+    overlay(`<h2 style="margin-top:0">${title}</h2><p class="muted" style="margin:0 0 12px;text-align:center">toque e segure pra copiar</p><code class="box">${esc(text)}</code><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">fechar</button></div>`);
+    $('#cancelBtn').onclick = closeOverlay;
+  }
   function showGate(msg){
     overlay(`<h1>Tô lisa</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código do evento'}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código" required autofocus autocapitalize="none">
@@ -387,7 +403,7 @@
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30"><button class="big">Continuar</button></form>
       <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair deste evento neste aparelho</button></div>`);
-    $('#leaveBtn').onclick = () => { if (confirm('Sair do grupo neste aparelho? Você pode voltar pelo link.')) leave(); };
+    $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta pelo link ou pelo código.', 'sair')) leave(); };
     $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
       if (v === '__new') { const n = $('#whoNew').value.trim(); if (!n) return; const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); v = p.id; commit(); }
@@ -411,7 +427,7 @@
     try { existing = await apiGet(id); } catch (e) { if (!e.notFound) throw new Error('Sem conexão com o banco: ' + e.message); }
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
     if (!existing) {
-      if (!seed && !confirm(`Não existe grupo com o código "${code}". Criar um grupo novo com esse código?`)) throw new Error('Confira o código.');
+      if (!seed && !(await ask('Evento novo?', `não existe evento com o código "${esc(code)}". criar um agora?`, 'criar evento'))) throw new Error('confira o código');
       let data = fresh(code);
       if (seed) { try { data = { ...fresh(code), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), name: code, updatedAt: Date.now() }; } catch {} }
       await apiPut(id, data);
@@ -446,7 +462,7 @@
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 
   // ---------- eventos ----------
-  $('#addPerson').onclick = () => { const name = (prompt('Nome da pessoa:') || '').trim(); if (!name) return;
+  $('#addPerson').onclick = async () => { const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim(); if (!name) return;
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
@@ -466,7 +482,7 @@
     $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; closeSheet(); commit(); toast('Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
-  document.addEventListener('click', ev => {
+  document.addEventListener('click', async ev => {
     if (!ev.target.closest('a,button,input,label')) { const it = ev.target.closest('.item'); if (it) { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); } }
     const am = ev.target.closest('[data-among]');
     if (am) { const it = am.closest('.item'); const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); return; }
@@ -474,19 +490,20 @@
     if (evl) { const code = evl.dataset.ev; if (code === roomName) return closeOverlay(); $('#evList').textContent = 'abrindo…'; enterRoom(code).catch(e => toast(e.message)); return; }
     const px = ev.target.closest('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
-      navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => prompt('Copie o código Pix:', code)); }
+      navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }
     const st = ev.target.closest('[data-settle]');
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
-      if (!confirm(`Confirmar que ${nameOf(from)} pagou ${money(amount)} pra ${nameOf(to)}?`)) return;
+      if (!(await ask('Quitar?', `${esc(nameOf(from))} pagou ${money(amount)} pra ${esc(nameOf(to))}`, 'quitei'))) return;
       state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); toast('Quitado!');
       window.open('https://wa.me/?text=' + encodeURIComponent('```' + `✔ ${nameOf(from).toUpperCase()} → ${nameOf(to).toUpperCase()} ${fmt(amount)}` + '```' + `\npaguei 👍\n${shareUrl()}`), '_blank', 'noopener'); }
     const de = ev.target.closest('[data-del-expense]');
-    if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(e.kind === 'payment' ? 'Desfazer essa quitação?' : `Excluir "${e.desc}"?`)) return;
+    if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!e) return;
+      if (!(await ask(e.kind === 'payment' ? 'Desfazer quitação?' : 'Excluir item?', e.kind === 'payment' ? `${esc(nameOf(e.payer))} → ${esc(nameOf(e.among[0]))} ${fmt(e.amount)}` : `${esc(e.desc)} · ${money(e.amount)}`, e.kind === 'payment' ? 'desfazer' : 'excluir'))) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
   });
   const shareUrl = () => `${location.origin}${location.pathname}#c=${encodeURIComponent(roomName)}`;
   $('#shareBtn').onclick = async () => { const url = shareUrl();
-    try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { prompt('Copie este link:', url); } };
+    try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { showCopy('Link do evento', url); } };
   function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
   function summaryText(){
     const st = settlements(balances()); const COLS = 30;

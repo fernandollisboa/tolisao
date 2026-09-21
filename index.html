@@ -94,6 +94,7 @@
   <h2>*** Acerto ***</h2>
   <div id="settle"></div>
   <div style="margin:12px 0 4px"><button id="waBtn" class="big"><svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Enviar</button></div>
+  <div class="c" style="margin-top:-2px;text-transform:none"><a class="link" id="waTextBtn">enviar só o texto</a></div>
   <div class="hr"></div>
 
   <h2>Itens</h2>
@@ -377,7 +378,84 @@
     L.push('', `Confere e lança os teus aqui: ${shareUrl()}`);
     return L.join('\n');
   }
-  $('#waBtn').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(summaryText()), '_blank', 'noopener');
+  // ---------- imagem da comanda (canvas) ----------
+  async function renderReceipt(){
+    await Promise.all(["400 16px 'Courier Prime'", "700 16px 'Courier Prime'", "28px 'Special Elite'", "28px 'Permanent Marker'"].map(f => document.fonts.load(f)));
+    const b = balances(), st = settlements(b);
+    const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
+    const items = [...state.expenses.filter(e => e.kind !== 'payment')].reverse();
+    const totalCents = items.reduce((a, e) => a + Math.round(e.amount*100), 0);
+    const W = 720, M = 18, P = 40, S = 2, ROW = 36, SUB = 24, HR = 34, SEC = 46;
+    const HMAX = 400 + (st.length + pays.length + items.length + 2) * (ROW + SUB) + 400;
+    // conteúdo num canvas transparente; o papel é desenhado depois, na altura exata
+    const cc = document.createElement('canvas'); cc.width = W*S; cc.height = HMAX*S; const x = cc.getContext('2d'); x.scale(S, S);
+    const INK = '#222', INK2 = '#5a4a30', RULE = '#7a6a4a', PAPER = '#f6efdc', RED = '#9b1c1c';
+    const L = M + P, R = W - M - P; let y = M + 12 + 48;
+    const font = (f) => { x.font = f; };
+    const center = (t, f, col = INK) => { font(f); x.fillStyle = col; x.textAlign = 'center'; x.fillText(t, W/2, y); };
+    const hr = () => { y += 10; x.strokeStyle = RULE; x.lineWidth = 2; x.setLineDash([10, 8]); x.beginPath(); x.moveTo(L, y); x.lineTo(R, y); x.stroke(); x.setLineDash([]); y += HR - 10; };
+    const sec = (t) => { center(t, "18px 'Special Elite'"); y += SEC - 14; };
+    const up = t => String(t).toUpperCase();
+    // linha com pontilhado: left = [[texto, cor], ...]
+    const row = (left, value, opts = {}) => {
+      x.textAlign = 'left'; font("700 17px 'Courier Prime'"); const vw = x.measureText(value).width;
+      let cx = L; font("700 17px 'Courier Prime'"); const maxLeft = R - vw - 30;
+      for (const [t, col] of left) { let tt = t; while (cx + x.measureText(tt).width > maxLeft && tt.length > 2) tt = tt.slice(0, -2) + '…'; x.fillStyle = opts.paid ? '#8a7a5a' : col; x.fillText(tt, cx, y); cx += x.measureText(tt).width; if (tt !== t) break; }
+      x.setLineDash([2, 4]); x.strokeStyle = RULE; x.lineWidth = 2; x.beginPath(); x.moveTo(cx + 8, y - 2); x.lineTo(R - vw - 8, y - 2); x.stroke(); x.setLineDash([]);
+      x.textAlign = 'right'; x.fillStyle = opts.paid ? '#8a7a5a' : INK; x.fillText(value, R, y);
+      if (opts.paid) { x.strokeStyle = '#8a7a5a'; x.lineWidth = 2; x.beginPath(); x.moveTo(L, y - 6); x.lineTo(cx, y - 6); x.moveTo(R - vw, y - 6); x.lineTo(R, y - 6); x.stroke();
+        x.save(); x.translate(R - vw - 120, y - 8); x.rotate(-14 * Math.PI/180); font("24px 'Permanent Marker'"); x.fillStyle = RED; x.strokeStyle = RED; x.lineWidth = 3; x.globalAlpha = .85;
+        x.textAlign = 'center'; x.fillText('PAGO', 0, 0); x.strokeRect(-46, -24, 92, 34); x.restore(); }
+      y += ROW; x.textAlign = 'left';
+    };
+    const sub = (t) => { font("13px 'Courier Prime'"); x.fillStyle = INK2; x.textAlign = 'left'; x.fillText(t, L, y - 12); y += SUB; };
+    const num = cents => Math.abs(cents/100).toFixed(2).replace('.', ',');
+    // cabeçalho
+    center('TÔ LISA', "34px 'Special Elite'"); y += 40;
+    center(`MESA: ${up(roomName)}`, "14px 'Courier Prime'"); y += 26;
+    center(`${new Date().toLocaleDateString('pt-BR')} · ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}${me && state.people.some(p => p.id === me) ? ' · ATEND.: ' + up(nameOf(me)) : ''}`, "14px 'Courier Prime'"); y += 12;
+    hr(); sec('*** ACERTO ***');
+    if (!st.length && !pays.length) { center('MESA ZERADA', "15px 'Courier Prime'", INK2); y += ROW + SUB; }
+    for (const t of st) { row([[up(nameOf(t.from)), colorOf(t.from)], [' → ', INK], [up(nameOf(t.to)), colorOf(t.to)]], num(t.cents)); sub('a pagar'); }
+    for (const e of pays) { row([[up(nameOf(e.payer)), colorOf(e.payer)], [' → ', INK], [up(nameOf(e.among[0])), colorOf(e.among[0])]], num(Math.round(e.amount*100)), { paid: true }); sub(`pago em ${new Date(e.at).toLocaleDateString('pt-BR')}`); }
+    hr(); sec('ITENS');
+    if (!items.length) { center('NADA ANOTADO', "15px 'Courier Prime'", INK2); y += ROW + SUB; }
+    for (const e of items) { const loan = !e.among.includes(e.payer);
+      row([[up(e.desc), INK]], num(Math.round(e.amount*100)));
+      sub(`${nameOf(e.payer)} pagou · ${loan ? `${e.among.map(nameOf).join(', ')} deve${e.among.length===1?'':'m'} tudo` : '÷' + e.among.length}`); }
+    hr();
+    font("700 22px 'Courier Prime'"); x.fillStyle = INK; x.textAlign = 'left'; x.fillText('TOTAL DA MESA', L, y + 8); x.textAlign = 'right'; x.fillText(money(totalCents/100), R, y + 8); y += 48;
+    hr();
+    center('OBRIGADO, VOLTE SEMPRE', "14px 'Courier Prime'"); y += 24; center('* * *', "14px 'Courier Prime'"); y += 24;
+    // código de barras
+    x.fillStyle = INK; let bx = W/2 - 110; const pat = [2,2,3,2,1,4,2,3,1,2,4,1,2,2,3,1,2,4,1,3];
+    for (let i = 0; bx < W/2 + 110; i++) { const w = pat[i % pat.length]; if (i % 2 === 0) x.fillRect(bx, y, w, 40); bx += w; }
+    y += 40 + 36;
+    const H = y + M + 12;
+    const c = document.createElement('canvas'); c.width = W*S; c.height = H*S; const g = c.getContext('2d'); g.scale(S, S);
+    g.fillStyle = '#6b4a2b'; g.fillRect(0, 0, W, H);
+    g.fillStyle = PAPER; g.fillRect(M, M + 12, W - 2*M, H - 2*M - 24);
+    for (let i = 0; i < (W - 2*M) / 14; i++) { g.beginPath(); g.moveTo(M + i*14, M + 12); g.lineTo(M + i*14 + 7, M); g.lineTo(M + i*14 + 14, M + 12); g.fill();
+      g.beginPath(); g.moveTo(M + i*14, H - M - 12); g.lineTo(M + i*14 + 7, H - M); g.lineTo(M + i*14 + 14, H - M - 12); g.fill(); }
+    g.fillStyle = 'rgba(0,0,0,.025)'; for (let yy = M; yy < H - M; yy += 3) g.fillRect(M, yy, W - 2*M, 1);
+    g.save(); g.translate(W - 110, 150); g.rotate(.35); g.lineWidth = 12; g.strokeStyle = 'rgba(190,120,30,.16)'; g.beginPath(); g.ellipse(0, 0, 58, 54, 0, 0, Math.PI*2); g.stroke(); g.restore();
+    g.drawImage(cc, 0, 0, W*S, H*S, 0, 0, W, H);
+    return new Promise(res => c.toBlob(res, 'image/png'));
+  }
+  const waText = () => window.open('https://wa.me/?text=' + encodeURIComponent(summaryText()), '_blank', 'noopener');
+  $('#waTextBtn').onclick = waText;
+  $('#waBtn').onclick = async () => {
+    const btn = $('#waBtn'); btn.disabled = true; toast('Gerando a imagem…');
+    try {
+      const blob = await renderReceipt(); const file = new File([blob], `mesa-${roomName || 'grupo'}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], text: summaryText() }); return; } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      toast('Imagem baixada. Abrindo o WhatsApp com o texto…'); waText();
+    } catch (e) { toast('Não consegui gerar a imagem: ' + e.message); waText(); }
+    finally { btn.disabled = false; }
+  };
   $('#whoBtn').onclick = showWho;
   window.addEventListener('hashchange', () => location.reload());
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }

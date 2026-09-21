@@ -302,6 +302,7 @@
     $('#cancelBtn').onclick = closeOverlay;
   }
   function showGate(msg){
+    $('#app').classList.add('loading', 'nospin');
     const intro = msg ? '' : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:2px 0 6px">tipo Splitwise, só que sem app e sem cadastro</div>
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
         <div>1. anote quem pagou o quê e com quem dividiu</div>
@@ -337,7 +338,7 @@
       if (key) putPix(me, key); };
   }
   function showLost(){
-    clearInterval(pollTimer);
+    clearInterval(pollTimer); $('#app').classList.add('loading', 'nospin');
     const cached = cacheLoad();
     overlay(`<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 12px;text-align:center">esse evento não está mais no banco</p>
       ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`, true);
@@ -365,11 +366,13 @@
   }
   async function openGroup(code, id){
     roomName = code; groupId = id; me = ls.get(meKey()); lastSeen = +ls.get(seenKey()) || 0; showAll = false;
+    $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
     pixKeys = {}; pixReady = false;
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
+    $('#app').classList.remove('loading');
     if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync(); loadPixKeys();
   }

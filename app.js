@@ -182,11 +182,11 @@
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   // frases de boteco: sorteadas uma vez por abertura, escolhidas pelo estado da conta
   const SIGNOFF = {
-    owe: ['Paga logo, pai', 'Fiado só amanhã', 'Não aceitamos cheque', 'A conta não se paga sozinha', 'Bebeu, pagou'],
-    owed: ['Cobra sem dó', 'Quem deve, deve', 'Juros só na amizade', 'Fiado é confiança'],
-    even: ['Tudo certo, volte sempre!', 'Casa limpa', 'Valeu, pai!', 'Freguês bom é freguês quite'],
-    all: ['Casa fechada, todo mundo quite', 'Ninguém deve nada, milagre', 'Zerou, bora abrir outra?'],
-    none: ['Valeu, pai!', 'Volte sempre!', 'Gorjeta não incluída', 'Aberto até o último pagar'],
+    owe: ['Paga logo, pai.', 'Fiado só amanhã.', 'Não aceitamos cheque.', 'A conta não se paga sozinha.', 'Bebeu, pagou.'],
+    owed: ['Cobra sem dó.', 'Quem deve, deve.', 'Juros só na amizade.', 'Fiado é confiança.'],
+    even: ['Tudo certo, volte sempre!', 'Casa limpa.', 'Valeu, pai!', 'Freguês bom é freguês quite.'],
+    all: ['Casa fechada, todo mundo quite.', 'Ninguém deve nada. Milagre.', 'Zerou. Bora abrir outra?'],
+    none: ['Valeu, pai!', 'Volte sempre!', 'Gorjeta não incluída.', 'Aberto até o último pagar.'],
   };
   const luck = Math.random();
   const pick = list => list[Math.floor(luck * list.length)];

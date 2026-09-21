@@ -314,7 +314,7 @@
       const okB = t => pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei">✔</button>` : '';
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span>${pixB(t)}`, `${okB(t)}${fmt(t.cents/100)}`, 'sub')) : [];
       const hdr = who.length ? `<div class="row hdr"><span class="l">quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
-      $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
+      $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     $('#pixLine').innerHTML = !hasMe ? '' : !pixKeys[me] ? `<a class="link go" id="pixBtn">cadastrar chave pix</a>`
@@ -339,7 +339,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents), t.from === me ? 'mine' : '') +
-        (t.from === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start">${!pixReady ? '<span class="spin"></span>' : ''}${pixReady && pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}${pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button>` : ''}</div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+        (t.from === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start">${!pixReady ? '<span class="spin"></span>' : ''}${pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button>` : ''}${pixReady && pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}</div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''}</div>`).join('');
 

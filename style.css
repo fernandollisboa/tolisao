@@ -51,9 +51,9 @@ form{display:grid;gap:10px}
 .status.err{color:var(--red)}
 .hidden{display:none !important}
 .fab{position:fixed;right:18px;bottom:22px;z-index:8;width:58px;height:58px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--paper);border:3px solid var(--ink);font-size:28px;box-shadow:4px 4px 0 var(--ink);transform:rotate(-6deg)}
-#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
-#overlay .paper{max-width:420px;width:100%;padding:24px 20px;max-height:92vh;overflow:auto}
-#sheet .paper{max-width:420px;width:100%;padding:24px 20px;max-height:92vh;overflow:auto}
+#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto}
+#overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
+#sheet .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
 #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} #mineRows .row.ok .l,#mineRows .row.ok .v{color:var(--green)} #mineRows .row.ok .d{border-color:var(--green)} 
 #mineRows .row.sub{font-size:17px;color:var(--ink2);line-height:1.5} #mineRows .row.sub .v{font-size:17px}
@@ -76,3 +76,4 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .shares input{width:110px;text-align:right;padding:4px}
 .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;text-transform:uppercase}
 .toast.show{opacity:1}
+@media (min-width:900px) and (min-height:600px){html{zoom:1.5}}

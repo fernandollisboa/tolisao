@@ -79,6 +79,9 @@
   code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
   .row.mine{background:rgba(0,0,0,.055);margin:0 -8px;padding:0 8px;border-radius:3px}
   .pixi svg{vertical-align:-2px}
+  .item .by{display:none}
+  .item:hover .by,.item.open .by{display:inline}
+  .item{cursor:default}
   .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
   .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
   #amount{font-size:30px;letter-spacing:1px}
@@ -233,7 +236,7 @@
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
-  let showAll = false; const expanded = new Set();
+  let showAll = false; const expanded = new Set(), openItems = new Set();
   let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
   const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };
   window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
@@ -322,7 +325,8 @@
       const how = howText(e, id => nm(id), true);
       const isNew = lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me));
       let head = ''; if (days.size > 1) { const d = dayOf(e); if (d !== lastDay) { head = `<div class="day">${esc(d)}</div>`; lastDay = d; } }
-      return head + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${nmByName(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
+      const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
+      return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${by}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     $('#total').textContent = money(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
@@ -451,6 +455,7 @@
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
+    if (!ev.target.closest('a,button,input,label')) { const it = ev.target.closest('.item'); if (it) { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); } }
     const am = ev.target.closest('[data-among]');
     if (am) { const id = am.dataset.among; expanded.has(id) ? expanded.delete(id) : expanded.add(id); render(); return; }
     const evl = ev.target.closest('[data-ev]');
@@ -515,7 +520,7 @@
       if (pixKeys[t.to]) line('  ' + fit(`PIX: ${pixKeys[t.to]}`, COLS - 2), INK2); }
     for (const e of pays) { const t = fit(nameOf(e.payer), FW).padEnd(FW) + ' ' + fit(nameOf(e.among[0]), TW).padEnd(TW) + ' ' + num(Math.round(e.amount*100)).padStart(VW);
       const yy = y; line(t, INK2); x.strokeStyle = INK2; x.lineWidth = 2; x.beginPath(); x.moveTo(L, yy - FS*0.32); x.lineTo(L + x.measureText(t).width, yy - FS*0.32); x.stroke();
-      line(`  PAGO EM ${new Date(e.at).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'})}`, INK2); }
+    }
     blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo

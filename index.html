@@ -119,10 +119,11 @@
   </div>
 
   <div id="itemsSec">
-  <h2>*** Itens ***</h2>
+  <div class="row total" id="itemsHead" style="margin-top:0;cursor:pointer" title="ver itens"><span class="l"><span id="itemsCaret">▸</span> <span id="itemsCount">0 itens</span></span><span class="d"></span><span class="v" id="total">0,00</span></div>
+  <div id="itemsBody" class="hidden" style="margin-top:8px">
   <div id="expenses"></div>
   <div class="c" style="margin-top:6px"><a class="link hidden" id="toggleAll"></a></div>
-  <div class="row total"><span class="l">Total</span><span class="d"></span><span class="v" id="total">0,00</span></div>
+  </div>
   <div class="hr"></div>
   </div>
 
@@ -253,7 +254,7 @@
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
-  let showAll = false; const openItems = new Set();
+  let showAll = false, itemsOpen = false; const openItems = new Set();
   let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
   const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };
   window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
@@ -364,6 +365,7 @@
       return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${by}</span>${me && (e.by ? e.by === nameOf(me) : e.payer === me) ? `<button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : ''}</div></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
+    $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').textContent = itemsOpen ? '▾' : '▸'; $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').textContent = money(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
@@ -497,6 +499,7 @@
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
+  $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; render(); };
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
   $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); };
@@ -510,7 +513,7 @@
       if (sum !== total) return toast(sum < total ? `Faltam ${money((total-sum)/100)} nas partes` : `Sobram ${money((sum-total)/100)} nas partes`);
       exp.shares = {}; for (const id of among) exp.shares[id] = sh[id] || 0; }
     state.expenses.push(exp);
-    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; closeSheet(); commit(); toast('Anotado!'); };
+    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', async ev => {

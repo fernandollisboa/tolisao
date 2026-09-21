@@ -302,7 +302,7 @@
       $('#mine').classList.remove('hidden');
       $('#mineRows').innerHTML = ln('+ paguei', fmt(paid/100)) + ln('− minha parte', fmt(part/100)) + ln(bal > 0 ? '= me devem' : bal < 0 ? '= devo' : '= quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : ''); }
     else $('#mine').classList.add('hidden');
-    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `<span class="pixi">${PIX_SVG}</span> minha chave pix ✔ · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn"><span class="pixi">${PIX_SVG}</span> cadastrar minha chave pix</a>`) : '';
+    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `minha chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">minha chave pix 🔑 <span class="pixi">${PIX_SVG}</span></a>`) : '';
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 

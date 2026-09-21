@@ -24,16 +24,16 @@
   @font-face{font-family:'Courier Prime';font-weight:700;src:url(fonts/courier-prime-700.woff2) format('woff2')}
   @font-face{font-family:'Special Elite';src:url(fonts/special-elite.woff2) format('woff2')}
   @font-face{font-family:'Permanent Marker';src:url(fonts/permanent-marker.woff2) format('woff2')}
-  :root{--wood:#6b4a2b;--paper:#f6efdc;--ink:#222;--ink2:#5a4a30;--rule:#7a6a4a;--red:#c8102e;--green:#1b7a3a;--muted:#7a6a4a}
+  :root{--wood:#6b4a2b;--paper:#f6efdc;--ink:#222;--ink2:#5a4a30;--rule:#7a6a4a;--red:#9b1c1c;--green:#15703a;--muted:#7a6a4a}
   *{box-sizing:border-box}
-  html{background:var(--wood)}
-  body{margin:0;min-height:100vh;color:var(--ink);font:15px/1.5 'Courier Prime',ui-monospace,monospace;padding:18px 12px 120px;
+  html{background:var(--wood);overflow-x:hidden}
+  body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink);font:15px/1.5 'Courier Prime',ui-monospace,monospace;padding:18px 12px 120px;
     background:var(--wood) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%236b4a2b"/><path d="M0 0h200v200H0z" fill="none" stroke="%235a3d22" stroke-width="2" stroke-dasharray="1 7"/></svg>')}
   .paper{position:relative;background:var(--paper);margin:0 auto;max-width:460px;padding:22px 18px 30px;box-shadow:0 14px 30px rgba(0,0,0,.35);
     background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.025) 0 1px,transparent 1px 3px)}
   .paper:before,.paper:after{content:"";position:absolute;left:0;right:0;height:14px;background:linear-gradient(135deg,transparent 7px,var(--paper) 7px) 0 0/14px 14px,linear-gradient(-135deg,transparent 7px,var(--paper) 7px) 7px 0/14px 14px;background-repeat:repeat-x}
   .paper:before{top:-13px}.paper:after{bottom:-13px;transform:scaleY(-1)}
-  .stain{position:absolute;right:-30px;top:120px;width:150px;height:150px;border-radius:50%;border:14px solid rgba(190,120,30,.16);box-shadow:inset 0 0 0 3px rgba(190,120,30,.10);transform:rotate(20deg);pointer-events:none}
+  .stain{position:absolute;right:6px;top:60px;width:120px;height:120px;border-radius:50%;border:14px solid rgba(190,120,30,.16);box-shadow:inset 0 0 0 3px rgba(190,120,30,.10);transform:rotate(20deg);pointer-events:none}
   h1{font-family:'Special Elite',serif;font-size:30px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400}
   h2{font-family:'Special Elite',serif;font-size:15px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
   .c{text-align:center;font-size:13px;line-height:1.5;text-transform:uppercase}
@@ -86,17 +86,13 @@
 <div class="paper" id="app">
   <div class="stain"></div>
   <h1>Tô lisa</h1>
-  <div class="c">Bar &amp; Conveniência da Lisa<br>Comanda · Mesa: <span id="roomLabel">—</span><br><span id="dateLine"></span> · Atend.: <a class="link" id="whoBtn">—</a></div>
+  <div class="c">Comanda · Mesa: <span id="roomLabel">—</span><br><span id="dateLine"></span> · Atend.: <a class="link" id="whoBtn">—</a></div>
   <div class="status" id="status" style="margin-top:6px"></div>
   <div class="hr"></div>
 
   <h2>*** Acerto ***</h2>
   <div id="settle"></div>
   <div style="margin:12px 0 4px"><button id="waBtn" class="big">Enviar comanda pelo zap</button></div>
-  <div class="hr"></div>
-
-  <h2>Saldo da mesa</h2>
-  <div id="balances"></div>
   <div class="hr"></div>
 
   <h2>Itens</h2>
@@ -107,9 +103,9 @@
   <div class="hr"></div>
 
   <div class="c" style="text-transform:none">Na mesa: <span id="peopleLine"></span> · <a class="link" id="addPerson">+ pessoa</a></div>
-  <div class="c" style="margin-top:14px">Obrigado, volte sempre<br>Não aceitamos fiado (só de vocês)<br>* * *</div>
+  <div class="c" style="margin-top:14px">Obrigado, volte sempre<br>* * *</div>
   <div class="bars"></div>
-  <div class="c" style="margin-top:14px;text-transform:none;font-size:12px"><a class="link" id="shareBtn">Copiar link da comanda</a> · <a class="link" id="exportBtn">Exportar JSON</a><br><span class="muted">Quem abrir o link já cai nesta mesa.</span></div>
+  <div class="c" style="margin-top:14px;text-transform:none;font-size:12px"><a class="link" id="shareBtn">Copiar link da comanda</a><br><span class="muted">Quem abrir o link já cai nesta mesa.</span></div>
 </div>
 
 <button id="fab" class="fab">✎ Anotar na comanda</button>
@@ -212,7 +208,7 @@
   }
 
   // ---------- render ----------
-  const PALETTE = ['#e15759','#4e79a7','#f28e2b','#59a14f','#b07aa1','#edc948','#76b7b2','#ff9da7','#9c755f','#bab0ac'];
+  const PALETTE = ['#8b1a1a','#1f4e9c','#a3510a','#15703a','#5b21b6','#0f6b6b','#8a1a6b','#5a4a1a','#374151','#7a2d0c'];
   const colorOf = id => PALETTE[Math.max(0, state.people.findIndex(p => p.id === id)) % PALETTE.length];
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   let showAll = false;
@@ -247,9 +243,6 @@
         `<div class="small"><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>`).join('') || '<div class="empty">mesa zerada 🎉</div>')
       + pays.map(e => line(`${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
-
-    $('#balances').innerHTML = state.people.map(p => { const c=b[p.id];
-      return line(nm(p.id), c>0?`+${num(c)}`:c<0?`-${num(c)}`:num(0), c>0?'pos':c<0?'neg':''); }).join('') || '<div class="empty">adicione pessoas ali embaixo</div>';
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
     const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 5);
@@ -385,8 +378,6 @@
   }
   $('#waBtn').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(summaryText()), '_blank', 'noopener');
   $('#whoBtn').onclick = showWho;
-  $('#exportBtn').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], {type:'application/json'}));
-    a.download = `racha-${roomName || 'grupo'}.json`; a.click(); URL.revokeObjectURL(a.href); };
   window.addEventListener('hashchange', () => location.reload());
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 

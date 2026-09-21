@@ -540,6 +540,7 @@
     const center = (t, hl) => { x.textAlign = 'center'; if (hl) { const w = x.measureText(t).width + 16; x.fillStyle = HL; x.fillRect(W/2 - w/2, y - FS*0.75, w, FS*0.95); } x.fillStyle = INK; x.fillText(t, W/2, y); y += LH; };
     const dash = () => line('-'.repeat(COLS), INK2);
     const blank = () => { y += LH*0.6; };
+    const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
     center(`*** TÔ LISA ***`, true);
@@ -563,10 +564,12 @@
     for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
       const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markOf(e.payer));
-      line('  ' + fit(`${pn} pagou · ${howText(e)}`, COLS - 2), INK2); }
+      const how = e.shares || !e.among.includes(e.payer) ? howText(e) : `÷${e.among.length}: ${e.among.map(nameOf).join(', ')}`;
+      wrap(`${pn} pagou · ${how}`, INK2); }
     blank();
     line(leader('TOTAL', numBig(totalCents)), INK2);
     dash();
+    blank(); center('VALEU, PAI!');
     y += 4;
 
     // papel na altura exata

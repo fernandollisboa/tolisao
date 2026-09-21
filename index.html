@@ -402,16 +402,14 @@
       line(`  PAGO EM ${new Date(e.at).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'})}`, INK2); }
     blank(); dash();
 
-    // itens: QTD. | ITEM | UNIT. | VALOR
-    const QW = 4, UW = 9, IW = COLS - QW - UW - VW - 3;
-    line('QTD.'.padEnd(QW) + ' ' + 'ITEM'.padEnd(IW) + ' ' + 'UNIT.'.padStart(UW) + ' ' + 'VALOR'.padStart(VW)); dash();
+    // itens: descrição ...... valor, com quem pagou embaixo
+    const leader = (l, v) => { l = fit(l, COLS - VW - 2); const dots = '.'.repeat(Math.max(1, COLS - l.length - v.length - 2)); return `${l} ${dots} ${v}`; };
     if (!items.length) line('NADA ANOTADO');
-    for (const e of items) { const n = e.among.length, cents = Math.round(e.amount*100);
-      line(`${n}`.padEnd(QW) + ' ' + fit(e.desc, IW).padEnd(IW) + ' ' + num(Math.round(cents / n)).padStart(UW) + ' ' + num(cents).padStart(VW));
-      line(('  ' + fit(`${nameOf(e.payer)} pagou`, COLS - 2)), INK2); }
+    for (const e of items) { const n = e.among.length, cents = Math.round(e.amount*100); const loan = !e.among.includes(e.payer);
+      line(leader(e.desc, num(cents)));
+      line('  ' + fit(`${nameOf(e.payer)} pagou · ${loan ? `${e.among.map(nameOf).join(', ')} deve${n===1?'':'m'} tudo` : '÷' + n}`, COLS - 2), INK2); }
     blank();
-    { const t = 'TOTAL:'; const v = numBig(totalCents); x.fillStyle = INK; x.textAlign = 'left'; x.fillText(t, L, y);
-      const w = x.measureText(v).width + 16; x.fillStyle = HL; x.fillRect(L + COLS*cw - w + 8, y - FS*0.75, w, FS*0.95); x.fillStyle = INK; x.textAlign = 'right'; x.fillText(v, L + COLS*cw, y); y += LH; }
+    line(leader('TOTAL', numBig(totalCents)), INK2);
     dash();
     y += 4;
 

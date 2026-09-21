@@ -564,6 +564,7 @@
     blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo
+    const VW = 10;
     const leader = (l, v) => { l = fit(l, COLS - VW - 2); const dots = '.'.repeat(Math.max(1, COLS - l.length - v.length - 2)); return `${l} ${dots} ${v}`; };
     if (!items.length) line('NADA ANOTADO');
     for (const e of items) { const cents = Math.round(e.amount*100);

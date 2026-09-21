@@ -19,7 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Versiona os assets pra furar o cache do navegador
-        run: sed -i "s/__V__/${GITHUB_SHA::8}/g" index.html
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          sed -i "s/__V__/${SHA:0:8}/g" index.html
+          if grep -q "__V__" index.html; then echo "placeholder __V__ não foi substituído"; exit 1; fi
+          grep -o '\(app.js\|style.css\)?v=[^"]*' index.html
       - uses: actions/configure-pages@v5
         with:
           enablement: true

@@ -9,6 +9,7 @@
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
+  const MINE_QUITAR = false; // ✔ quitar nas linhas de Minha conta; a ação fica só no acerto
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -206,7 +207,7 @@
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
       const pixB = t => !pixReady ? `<span class="spin" style="width:11px;height:11px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block" title="carregando"></span>` : pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : '';
-      const okB = t => `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`;
+      const okB = t => MINE_QUITAR ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>` : '';
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), money(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px;margin-left:2px">${okB(t)}${pixB(t)}</span>`, `R$&nbsp;<a class="link" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', money(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }

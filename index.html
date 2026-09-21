@@ -313,8 +313,8 @@
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     const myBal = hasMe ? (balances()[me] || 0) : 0;
-    $('#pixLine').innerHTML = !hasMe ? '' : myBal > 0 ? (pixKeys[me] ? `chave pix ✔ <span class="pixi">${KEY_SVG}${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">cadastrar chave pix <span class="pixi">${KEY_SVG}${PIX_SVG}</span></a>`)
-      : `<a class="link dim" id="pixBtn">${pixKeys[me] ? 'chave pix ✔' : 'chave pix'} <span class="pixi">${KEY_SVG}${PIX_SVG}</span></a>`;
+    $('#pixLine').innerHTML = !hasMe ? '' : myBal > 0 ? (pixKeys[me] ? `<span class="pixi">${PIX_SVG}${KEY_SVG}</span> ✔ · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">cadastrar chave pix <span class="pixi">${PIX_SVG}${KEY_SVG}</span></a>`)
+      : `<a class="link dim" id="pixBtn">${pixKeys[me] ? `<span class="pixi">${PIX_SVG}${KEY_SVG}</span> ✔` : `chave pix <span class="pixi">${PIX_SVG}${KEY_SVG}</span>`}</a>`;
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 

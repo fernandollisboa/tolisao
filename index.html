@@ -310,7 +310,8 @@
       const hdr = who.length ? `<div class="row hdr"><span class="l">quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
-    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">cadastrar chave pix <span class="pixi">${PIX_SVG}</span></a>`) : '';
+    const myBal = hasMe ? (balances()[me] || 0) : 0;
+    $('#pixLine').innerHTML = hasMe && myBal > 0 ? (pixKeys[me] ? `chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">cadastrar chave pix <span class="pixi">${PIX_SVG}</span></a>`) : '';
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 
@@ -540,6 +541,8 @@
     const center = (t, hl) => { x.textAlign = 'center'; if (hl) { const w = x.measureText(t).width + 16; x.fillStyle = HL; x.fillRect(W/2 - w/2, y - FS*0.75, w, FS*0.95); } x.fillStyle = INK; x.fillText(t, W/2, y); y += LH; };
     const dash = () => line('-'.repeat(COLS), INK2);
     const blank = () => { y += LH*0.6; };
+    const norm = t => up(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const initial = id => { const n = norm(nameOf(id)); let k = 1; while (k < n.length && state.people.some(p => p.id !== id && norm(nameOf(p.id)).slice(0, k) === n.slice(0, k))) k++; return n.slice(0, k); };
     const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
@@ -564,8 +567,12 @@
     for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
       const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markOf(e.payer));
-      const how = e.shares || !e.among.includes(e.payer) ? howText(e) : `÷${e.among.length}: ${e.among.map(nameOf).join(', ')}`;
-      wrap(`${pn} pagou · ${how}`, INK2); }
+      if (e.shares || !e.among.includes(e.payer)) { wrap(`${pn} pagou · ${howText(e)}`, INK2); continue; }
+      const all = state.people.every(p => e.among.includes(p.id));
+      if (all) { line('  ' + fit(`${pn} pagou · ÷${e.among.length} todos`, COLS - 2), INK2); continue; }
+      const head = `  ${pn} PAGOU · ÷${e.among.length} `; let col = head.length, t = head;
+      for (const id of e.among) { const ini = initial(id); if (col + ini.length > COLS) break; mark(col, ini.length, markOf(id)); t += ini + ' '; col += ini.length + 1; }
+      line(t.trimEnd(), INK2); }
     blank();
     line(leader('TOTAL', numBig(totalCents)), INK2);
     dash();

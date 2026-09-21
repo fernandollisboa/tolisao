@@ -80,8 +80,8 @@
   #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} #mineRows .row:last-child{border-top:2px dashed var(--rule);margin-top:4px;padding-top:4px}
   .row.mine{background:rgba(0,0,0,.055);margin:0 -8px;padding:0 8px;border-radius:3px}
   .pixi svg{vertical-align:-2px}
-  .item .by{display:none}
-  .item:hover .by,.item.open .by{display:inline}
+  .item .by,.item .who{display:none}
+  .item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}
   .item{cursor:default}
   .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
   .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
@@ -127,7 +127,7 @@
   <div class="c" style="margin-top:14px">Obrigado, volte sempre!<br>* * *</div>
   <div class="bars"></div>
   <div class="status" id="status"></div>
-  <div class="c" style="margin-top:14px;text-transform:none;font-size:12px"><a class="link" id="shareBtn">Copiar link</a><br><span class="muted">Quem abrir o link já cai neste evento.</span></div>
+  <div class="c" style="margin-top:14px;text-transform:none"><a class="link" id="shareBtn" style="font-size:22px;display:inline-flex;align-items:center;gap:8px">Copiar link <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v10.5l-2.6-2.4a1.6 1.6 0 0 0-2.3 2.2l5.2 6.2c.5.6 1.3 1 2.1 1H17a3 3 0 0 0 3-3v-4.3a2 2 0 0 0-1.7-2l-6.3-1V4a1.5 1.5 0 0 0-3 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4.5 3.5l1.2 1.2M15 3.5l-1.2 1.2M9.75 1.5v1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></div>
 </div>
 
 <button id="fab" class="fab">✎ Anotar</button>
@@ -222,7 +222,7 @@
     if (e.shares) return e.among.map(id => `${name(id)} ${fmt((e.shares[id]||0)/100)}`).join(', ');
     if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length===1?'':'m'} tudo`;
     if (!html) return `÷${e.among.length}`;
-    return expanded.has(e.id) ? `<a class="link" data-among="${e.id}">÷${e.among.length}</a> (${e.among.map(name).join(', ')})` : `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a>`; };
+    return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`; };
   function balances(){
     const b = {}; state.people.forEach(p => b[p.id] = 0);
     for (const e of state.expenses) {
@@ -244,7 +244,7 @@
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
-  let showAll = false; const expanded = new Set(), openItems = new Set();
+  let showAll = false; const openItems = new Set();
   let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
   const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };
   window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
@@ -467,7 +467,7 @@
   document.addEventListener('click', ev => {
     if (!ev.target.closest('a,button,input,label')) { const it = ev.target.closest('.item'); if (it) { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); } }
     const am = ev.target.closest('[data-among]');
-    if (am) { const id = am.dataset.among; expanded.has(id) ? expanded.delete(id) : expanded.add(id); render(); return; }
+    if (am) { const it = am.closest('.item'); const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); return; }
     const evl = ev.target.closest('[data-ev]');
     if (evl) { const code = evl.dataset.ev; if (code === roomName) return closeOverlay(); $('#evList').textContent = 'abrindo…'; enterRoom(code).catch(e => toast(e.message)); return; }
     const px = ev.target.closest('[data-pix]');

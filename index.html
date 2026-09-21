@@ -281,12 +281,15 @@
     const k = await askText('Chave Pix', 'só chave aleatória ou e-mail. CPF e telefone não.', 'chave aleatória ou e-mail', pixKeys[me] || '', 'salvar');
     if (k === null) return;
     const key = validPixKey(k); if (!key) return toast('Só chave aleatória ou e-mail');
-    let tok = ls.get(pixTokKey(me)); if (!tok) { tok = uid() + uid() + uid() + uid(); ls.set(pixTokKey(me), tok); }
+    await putPix(me, key);
+  }
+  async function putPix(pid, key){
+    let tok = ls.get(pixTokKey(pid)); if (!tok) { tok = uid() + uid() + uid() + uid(); ls.set(pixTokKey(pid), tok); }
     try {
-      const r = await fetch(pixUrl(me), { method:'PUT', body: JSON.stringify({ key, tok }) });
+      const r = await fetch(pixUrl(pid), { method:'PUT', body: JSON.stringify({ key, tok }) });
       if (r.status === 401 || r.status === 403) return toast('Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)');
       if (!r.ok) return toast('Erro ao salvar: HTTP ' + r.status);
-      pixKeys[me] = key; render(); toast('Chave Pix salva');
+      pixKeys[pid] = key; render(); toast('Chave Pix salva');
     } catch (e) { toast('Erro ao salvar: ' + e.message); }
   }
   // Pix copia e cola (BR Code EMV) com valor
@@ -320,8 +323,7 @@
     else $('#mine').classList.add('hidden');
     $('#itemsSec').classList.toggle('hidden', hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment'));
     const myBal = hasMe ? (balances()[me] || 0) : 0;
-    $('#pixLine').innerHTML = !hasMe || myBal <= 0 ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : !pixKeys[me] ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`
-      : `<button class="ico okl" id="pixBtn" title="alterar chave pix">${PIX_SVG}${KEY_SVG} ✔</button>`;
+    $('#pixLine').innerHTML = !hasMe || myBal <= 0 || pixKeys[me] ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 
@@ -420,13 +422,19 @@
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2><p class="muted" style="margin:0 0 12px;text-align:center">vira o pagador padrão e assina o que você anotar</p>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
-      <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30"><button class="big">Continuar</button></form>
+      <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30">
+      <input id="whoPix" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
+      <div class="muted" style="text-transform:none;font-size:15px;margin-top:-6px">só chave aleatória ou e-mail. CPF e telefone não.</div>
+      <button class="big">Continuar</button></form>
       <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !(me && state.people.some(p => p.id === me)));
     $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta pelo link ou pelo código.', 'sair')) leave(); };
-    $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
+    $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new'); $('#whoPix').value = pixKeys[v] || ''; };
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
+      const k = $('#whoPix').value.trim(); let key = null;
+      if (k && k !== (pixKeys[v] || '')) { key = validPixKey(k); if (!key) return toast('Só chave aleatória ou e-mail'); }
       if (v === '__new') { const n = $('#whoNew').value.trim(); if (!n) return; const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); v = p.id; commit(); }
-      if (!v) return; me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint(); };
+      if (!v) return; me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint();
+      if (key) putPix(me, key); };
   }
   function showLost(){
     clearInterval(pollTimer);

@@ -384,10 +384,8 @@
     const center = (t, hl) => { x.textAlign = 'center'; if (hl) { const w = x.measureText(t).width + 16; x.fillStyle = HL; x.fillRect(W/2 - w/2, y - FS*0.75, w, FS*0.95); } x.fillStyle = INK; x.fillText(t, W/2, y); y += LH; };
     const dash = () => line('-'.repeat(COLS), INK2);
     const blank = () => { y += LH*0.6; };
-    const spaced = t => up(t).split('').join(' ');
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
-    center(spaced('conferência de evento')); dash();
     center(`*** TÔ LISA ***`, true); blank();
     line(fit(`EVENTO: ${roomName}`, COLS));
     line(fit(`MOV.: ${d2} - IMP.: ${d2} - ${hm}`, COLS));
@@ -414,12 +412,8 @@
     blank();
     { const t = 'TOTAL:'; const v = numBig(totalCents); x.fillStyle = INK; x.textAlign = 'left'; x.fillText(t, L, y);
       const w = x.measureText(v).width + 16; x.fillStyle = HL; x.fillRect(L + COLS*cw - w + 8, y - FS*0.75, w, FS*0.95); x.fillStyle = INK; x.textAlign = 'right'; x.fillText(v, L + COLS*cw, y); y += LH; }
-    dash(); blank(); blank();
-    center('PAGUE LOGO QUE A LISA'); center('TÁ PRECISANDO.'); dash();
-    center('SE BEBER, NÃO DIRIJA.'); dash();
-    center(`*** TÔ LISA ***`, true); blank();
-    center('***** TÔ LISA - VERSÃO 2.0 *****', false);
-    y += 10;
+    dash();
+    y += 4;
 
     // papel na altura exata
     const H = y + M + 12;

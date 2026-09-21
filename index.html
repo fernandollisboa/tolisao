@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Me pague que eu tô lisa</title>
-<meta name="description" content="Divida gastos com amigos. Um código, um grupo. Sem conta, sem app.">
+<title>Tô Lisa · quem me deve?</title>
+<meta name="description" content="Tô Lisa · quem me deve? Divide a conta com os amigos, sem app, sem cadastro.">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="theme-color" content="#1cc29f">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Me pague que eu tô lisa">
+<meta property="og:site_name" content="Tô Lisa">
 <meta property="og:title" content="Me pague que eu tô lisa">
-<meta property="og:description" content="Divide a conta com os amigos. Sem app, sem cadastro.">
+<meta property="og:description" content="Tô Lisa · quem me deve? Divide a conta com os amigos, sem app, sem cadastro.">
 <meta property="og:url" content="https://fernandollisboa.github.io/splitwise-lite/">
 <meta property="og:image" content="https://fernandollisboa.github.io/splitwise-lite/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Colagem de figurinhas com o texto: me pague que eu tô lisa">
+<meta property="og:image:alt" content="Nota de bar com o texto: me pague que eu tô lisa">
 <meta name="twitter:card" content="summary_large_image">
 <style>
   @font-face{font-family:'VT323';src:url(fonts/vt323.woff2) format('woff2')}
@@ -98,6 +98,7 @@
 <div class="paper" id="app">
   <div class="stain"></div>
   <h1>Tô lisa</h1>
+  <div class="c muted" style="margin:-2px 0 6px;text-transform:none">quem me deve?</div>
   <div class="c">Evento: <a class="link" id="roomLabel">—</a><br><span id="whoLine"></span></div>
   <div class="c muted" id="meLine" style="text-transform:none;font-size:16px;margin-top:4px"></div>
   <div class="hr"></div>
@@ -284,7 +285,7 @@
   function render(){
     if (!state) return;
     $('#roomLabel').textContent = roomName || '—';
-    document.title = roomName ? `${roomName} · Tô lisa` : 'Tô lisa';
+    document.title = roomName ? `${roomName} · Tô Lisa` : 'Tô Lisa · quem me deve?';
     $('#roomLabel').onclick = showEvents;
     $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn">${esc(nameOf(me))}</a>` : `<a class="link" id="whoBtn">Quem é você?</a>`;
     $('#whoBtn').onclick = showWho;
@@ -359,7 +360,7 @@
   const closeOverlay = () => $('#overlay').classList.add('hidden');
 
   function showGate(msg){
-    overlay(`<h1>Tô lisa</h1><div class="hr"></div><p class="muted" style="margin:0 0 8px">${msg || 'Qual o evento? (código)'}</p>
+    overlay(`<h1>Tô lisa</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><p class="muted" style="margin:0 0 8px">${msg || 'Qual o evento? (código)'}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`);
     $('#gateForm').onsubmit = async ev => {
@@ -467,7 +468,7 @@
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
       if (!confirm(`Confirmar que ${nameOf(from)} pagou ${money(amount)} pra ${nameOf(to)}?`)) return;
       state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); toast('Quitado!');
-      window.open('https://wa.me/?text=' + encodeURIComponent(`✅ Paguei ${money(amount)} pra ${nameOf(to)} 👍\n${shareUrl()}`), '_blank', 'noopener'); }
+      window.open('https://wa.me/?text=' + encodeURIComponent('```' + `✔ ${nameOf(from).toUpperCase()} → ${nameOf(to).toUpperCase()} ${fmt(amount)}` + '```' + `\npaguei 👍\n${shareUrl()}`), '_blank', 'noopener'); }
     const de = ev.target.closest('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(e.kind === 'payment' ? 'Desfazer essa quitação?' : `Excluir "${e.desc}"?`)) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
@@ -477,10 +478,13 @@
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { prompt('Copie este link:', url); } };
   function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
   function summaryText(){
-    const st = settlements(balances());
-    const L = [`🧾 *${roomName || 'acerto'}*`];
-    if (!st.length) L.push('tudo quitado 🎉'); else for (const t of st) L.push(`${nameOf(t.from)} → ${nameOf(t.to)}: ${money(t.cents/100)}`);
-    L.push('', shareUrl());
+    const st = settlements(balances()); const COLS = 30;
+    const up = t => String(t).toUpperCase();
+    const fit = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
+    const leader = (l, v) => { l = fit(l, COLS - v.length - 2); return `${l} ${'.'.repeat(Math.max(1, COLS - l.length - v.length - 2))} ${v}`; };
+    const L = ['*me pague que eu tô lisa* 🧾', '```', '*** TÔ LISA ***', up(roomName || 'acerto'), ''];
+    if (!st.length) L.push('TUDO QUITADO'); else for (const t of st) L.push(leader(`${up(nameOf(t.from))} → ${up(nameOf(t.to))}`, fmt(t.cents/100)));
+    L.push('```', shareUrl());
     return L.join('\n');
   }
   // ---------- imagem da comanda (canvas) ----------
@@ -495,6 +499,9 @@
     x.font = `${FS}px 'VT323'`; x.textBaseline = 'alphabetic';
     const cw = x.measureText('M').width, COLS = Math.floor((W - 2*M - 2*P) / cw);
     const INK = '#2a2a2a', INK2 = '#5a5a5a', PAPER = '#efe9d8', HL = '#f7f23a';
+    const MARK = ['#fff176','#b9f6a5','#ffb3d9','#a8d8ff','#ffcc80','#d9b3ff','#a7f3e6','#ffd6a5','#e0e0e0','#f4c7ab'];
+    const markOf = id => MARK[Math.max(0, state.people.findIndex(p => p.id === id)) % MARK.length];
+    const mark = (col, len, color) => { x.fillStyle = color; x.fillRect(L + col*cw - 3, y - FS*0.72, len*cw + 6, FS*0.9); };
     const L = M + P; let y = M + 12 + 50;
     const up = t => String(t).toUpperCase();
     const fit = (t, n) => { t = up(t); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + '…' : t; };
@@ -506,17 +513,15 @@
     const blank = () => { y += LH*0.6; };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
-    center(`*** TÔ LISA ***`, true); blank();
-    line(fit(`EVENTO: ${roomName}`, COLS));
-    line(fit(`IMP.: ${d2} - ${hm}`, COLS));
-    if (me && state.people.some(p => p.id === me)) line(fit(`OPER.: ${nameOf(me)}`, COLS));
-    blank(); dash(); dash();
+    center(`*** TÔ LISA ***`, true);
+    center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 
     // acerto: QUEM | PRA QUEM | VALOR
     const VW = 10, TW = Math.floor((COLS - VW - 2) / 2), FW = COLS - VW - 2 - TW;
-    line('QUEM'.padEnd(FW) + ' ' + 'PRA QUEM'.padEnd(TW) + ' ' + 'VALOR'.padStart(VW)); dash();
-    if (!st.length && !pays.length) line('TUDO QUITADO'.padStart(Math.floor((COLS + 12)/2)));
-    for (const t of st) { line(fit(nameOf(t.from), FW).padEnd(FW) + ' ' + fit(nameOf(t.to), TW).padEnd(TW) + ' ' + num(t.cents).padStart(VW));
+    if (!st.length && !pays.length) center('TUDO QUITADO');
+    for (const t of st) { const a = fit(nameOf(t.from), FW), b = fit(nameOf(t.to), TW);
+      mark(0, a.length, markOf(t.from)); mark(FW + 1, b.length, markOf(t.to));
+      line(a.padEnd(FW) + ' ' + b.padEnd(TW) + ' ' + num(t.cents).padStart(VW));
       if (pixKeys[t.to]) line('  ' + fit(`PIX: ${pixKeys[t.to]}`, COLS - 2), INK2); }
     for (const e of pays) { const t = fit(nameOf(e.payer), FW).padEnd(FW) + ' ' + fit(nameOf(e.among[0]), TW).padEnd(TW) + ' ' + num(Math.round(e.amount*100)).padStart(VW);
       const yy = y; line(t, INK2); x.strokeStyle = INK2; x.lineWidth = 2; x.beginPath(); x.moveTo(L, yy - FS*0.32); x.lineTo(L + x.measureText(t).width, yy - FS*0.32); x.stroke();
@@ -528,7 +533,8 @@
     if (!items.length) line('NADA ANOTADO');
     for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
-      line('  ' + fit(`${nameOf(e.payer)} pagou · ${howText(e)}`, COLS - 2), INK2); }
+      const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markOf(e.payer));
+      line('  ' + fit(`${pn} pagou · ${howText(e)}`, COLS - 2), INK2); }
     blank();
     line(leader('TOTAL', numBig(totalCents)), INK2);
     dash();

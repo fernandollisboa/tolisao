@@ -11,13 +11,13 @@
 <meta name="theme-color" content="#1cc29f">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Tô Lisa">
-<meta property="og:title" content="Me pague que eu tô lisa">
+<meta property="og:title" content="Tô Lisa · quem me deve?">
 <meta property="og:description" content="Tô Lisa · quem me deve? Divide a conta com os amigos, sem app, sem cadastro.">
 <meta property="og:url" content="https://fernandollisboa.github.io/splitwise-lite/">
 <meta property="og:image" content="https://fernandollisboa.github.io/splitwise-lite/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Nota de bar com o texto: me pague que eu tô lisa">
+<meta property="og:image:alt" content="Nota de bar com o texto: tô lisa, quem me deve?">
 <meta name="twitter:card" content="summary_large_image">
 <style>
   @font-face{font-family:'VT323';src:url(fonts/vt323.woff2) format('woff2')}
@@ -77,6 +77,7 @@
   #overlay .paper{max-width:380px;width:100%;padding:24px 20px}
   #sheet .paper{max-width:760px;width:100%;border-radius:0;padding:20px 18px 32px;max-height:90vh;overflow:auto}
   code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
+  #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} #mineRows .row:last-child{border-top:2px dashed var(--rule);margin-top:4px;padding-top:4px}
   .row.mine{background:rgba(0,0,0,.055);margin:0 -8px;padding:0 8px;border-radius:3px}
   .pixi svg{vertical-align:-2px}
   .item .by{display:none}
@@ -100,8 +101,14 @@
   <h1>Tô lisa</h1>
   <div class="c muted" style="margin:-2px 0 6px;text-transform:none">quem me deve?</div>
   <div class="c">Evento: <a class="link" id="roomLabel">—</a><br><span id="whoLine"></span></div>
-  <div class="c muted" id="meLine" style="text-transform:none;font-size:16px;margin-top:4px"></div>
+
   <div class="hr"></div>
+
+  <div id="mine" class="hidden">
+    <h2>*** Minha conta ***</h2>
+    <div id="mineRows"></div>
+    <div class="hr"></div>
+  </div>
 
   <h2>*** Acerto ***</h2>
   <div class="c muted" id="pixLine" style="text-transform:none;font-size:15px;margin:-4px 0 10px"></div>
@@ -291,8 +298,10 @@
     $('#whoBtn').onclick = showWho;
     const hasMe = me && state.people.some(p => p.id === me);
     if (hasMe) { let paid = 0, part = 0; for (const e of state.expenses) { if (e.kind === 'payment') continue; const c = Math.round(e.amount*100); if (e.payer === me) paid += c; const ids = e.among.filter(id => state.people.some(p => p.id === id)); if (ids.includes(me)) part += shareOf(e, ids)[me] || 0; }
-      const bal = balances()[me] || 0; $('#meLine').innerHTML = `Você pagou ${money(paid/100)} · sua parte foi ${money(part/100)}<br>${bal > 0 ? 'recebe ' + money(bal/100) : bal < 0 ? 'deve ' + money(-bal/100) : 'quites'}`; }
-    else $('#meLine').textContent = '';
+      const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
+      $('#mine').classList.remove('hidden');
+      $('#mineRows').innerHTML = ln('+ paguei', fmt(paid/100)) + ln('− minha parte', fmt(part/100)) + ln(bal > 0 ? '= me devem' : bal < 0 ? '= devo' : '= quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : ''); }
+    else $('#mine').classList.add('hidden');
     $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `<span class="pixi">${PIX_SVG}</span> minha chave pix ✔ · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn"><span class="pixi">${PIX_SVG}</span> cadastrar minha chave pix</a>`) : '';
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
@@ -482,7 +491,7 @@
     const up = t => String(t).toUpperCase();
     const fit = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
     const leader = (l, v) => { l = fit(l, COLS - v.length - 2); return `${l} ${'.'.repeat(Math.max(1, COLS - l.length - v.length - 2))} ${v}`; };
-    const L = ['*me pague que eu tô lisa* 🧾', '```', '*** TÔ LISA ***', up(roomName || 'acerto'), ''];
+    const L = ['*tô lisa · quem me deve?* 🧾', '```', '*** TÔ LISA ***', up(roomName || 'acerto'), ''];
     if (!st.length) L.push('TUDO QUITADO'); else for (const t of st) L.push(leader(`${up(nameOf(t.from))} → ${up(nameOf(t.to))}`, fmt(t.cents/100)));
     L.push('```', shareUrl());
     return L.join('\n');

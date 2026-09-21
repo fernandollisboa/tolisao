@@ -79,7 +79,7 @@
   #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} 
   #mineRows .row.sub{font-size:17px;color:var(--ink2);line-height:1.5} #mineRows .row.sub .v{font-size:17px}
   #mineRows .row.sub .l{white-space:normal;overflow:visible;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;max-width:72%} #mineRows .row.sub .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-  .acts{display:inline-flex;gap:6px;align-items:center} button.ico{padding:0 6px;height:26px;display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:1;letter-spacing:0;color:var(--ink)} button.ico svg{display:block} button.ico.ok{color:var(--green);border-color:var(--green)}
+  .acts{display:inline-flex;gap:8px;align-items:center} button.ico{padding:0 6px;height:26px;display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:1;letter-spacing:0;color:var(--ink)} button.ico svg{display:block} button.ico.ok{color:var(--green);border-color:var(--green)}
   #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
   .row.mine .l,.row.mine .v{background:linear-gradient(transparent 18%,#fff176 18%,#fff176 82%,transparent 82%);padding:0 4px;margin:0 -4px}
   .pixi svg{vertical-align:-2px}
@@ -331,7 +331,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents), t.from === me ? 'mine' : '') +
-        (t.from === me && pixReady ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+        (t.from === me && pixReady ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start">${pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''}</div>`).join('');
 

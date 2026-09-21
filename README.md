@@ -1,23 +1,27 @@
-# Racha
+# Tô Lisa(o) · quem me deve?
 
-Divisor de gastos estilo Splitwise, mínimo. Um único HTML, sem backend pra manter, sem conta, sem app.
+Tipo Splitwise, só que sem app e sem cadastro 👍
 
-**Site:** https://fernandollisboa.github.io/splitwise-lite/
+**Site:** https://fernandollisboa.github.io/splitwise-lite/ · **curto:** tinyurl.com/tolisao
 
-## Como funciona
+Um HTML só, sem backend pra manter. Os dados ficam num Firebase Realtime Database (plano gratuito) acessado direto do navegador.
 
-1. Abra o site e digite o **código do grupo** (ex.: o combinado no zap). Pronto, você está dentro.
-2. Escolha seu nome em "Quem é você?".
-3. Lance gastos: dividido igualmente (deixe o pagador marcado) ou empréstimo (desmarque o pagador e deixe só quem deve).
-4. **Acerto de contas** mostra o mínimo de pix pra zerar todo mundo.
+## Como usa
 
-Pra convidar alguém: manda o link do site e o código. Um código que ainda não existe cria um grupo novo (a página pergunta antes).
+1. Abra o site e digite o **código do evento** combinado no zap. Código novo cria um evento (a página pergunta antes).
+2. Diga quem você é em "Quem é você?". Ali também dá pra cadastrar sua **chave Pix** (aleatória ou e-mail).
+3. Anote os gastos pelo ✎: valor, o quê, quem pagou e quem divide. Dá pra dividir em partes diferentes ou marcar como empréstimo (desmarque o pagador).
+4. **Minha conta** mostra quanto você deve ou tem a receber. **Acerto** mostra o mínimo de transferências pra zerar todo mundo, com botão de copiar o Pix já com o valor e o botão de quitar.
+5. **Enviar** gera a imagem da comanda e abre o WhatsApp com o resumo de quem paga quem.
 
-## Onde ficam os dados
+Pra convidar alguém: "copiar link do evento" e manda.
 
-Num **Firebase Realtime Database** (plano gratuito), acessado direto do navegador pela API REST.
-Cada grupo fica em `rooms/<sha256(código)>`. A URL do banco está na constante `DB` do `index.html`.
-Os clientes mesclam por id e atualizam a cada 6s, então edições simultâneas de celulares diferentes não se sobrescrevem.
+## Dados e segurança
+
+- Cada evento fica em `rooms/<sha256(código)>`. Quem tem o código (ou o link) lê e escreve. A lista de eventos é pública por design: não guarde nada sensível.
+- A chave Pix fica em `pix/<evento>/<pessoa>/key`, legível por todos, mas só o aparelho que cadastrou consegue trocar (um segredo `tok` fica no navegador dele e nas regras). Se perder o aparelho, apague o nó no console do Firebase.
+- Qualquer pessoa pode cadastrar uma chave em nome de quem ainda não cadastrou. A proteção é a de sempre: **confira o nome do recebedor na tela do banco antes de confirmar o Pix.**
+- Tudo que vem do banco é tratado como hostil (ids filtrados, textos escapados).
 
 Regras do banco (Realtime Database → Regras):
 
@@ -38,17 +42,17 @@ Regras do banco (Realtime Database → Regras):
 }
 ```
 
-Quem tem o código lê e escreve no grupo. A leitura em `rooms` permite listar os eventos (o nome de cada sala fica em `rooms/<sala>/name`). Não guarde nada sensível.
+## Desenvolver
 
-### Chave Pix
+Não tem build. Sirva a pasta com qualquer servidor estático (`python3 -m http.server`) e abra `index.html`. A URL do banco é a constante `DB` no topo do script.
 
-Cada pessoa pode cadastrar uma chave Pix (só chave aleatória ou e-mail; CPF e telefone são recusados).
-A chave fica em `pix/<sala>/<pessoa>/key` (legível por todos) junto de um segredo `tok` gerado pelo navegador de quem cadastrou
-e guardado só nesse aparelho. A regra acima só aceita alterar a chave se o `tok` enviado bater com o gravado, e ninguém consegue ler o `tok`.
-Resultado: todo mundo vê a chave, só o aparelho que cadastrou consegue trocar. Se a pessoa perder o aparelho, apague o nó dela no console do Firebase.
+Testes (Playwright, sem framework):
 
-Quem deve vê um botão **copiar pix** na sua linha do acerto: copia um "Pix copia e cola" (BR Code) já com o valor, pra colar no app do banco.
+```sh
+npm i -D playwright && npx playwright install chromium
+node tests/run-all.cjs
+```
 
-## Deploy
+Cada script sobe um servidor local, simula o Firebase e imprime o que checou. Screenshots vão pra pasta temporária do sistema.
 
-GitHub Pages publica a branch `main` via `.github/workflows/pages.yml`.
+Deploy: push na `main` publica via GitHub Pages (`.github/workflows/pages.yml`).

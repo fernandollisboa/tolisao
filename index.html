@@ -174,11 +174,27 @@
   const fresh = (name = '') => ({ v:2, name, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
   const cacheKey = () => `racha:${groupId}`;
   const cacheSave = () => ls.set(cacheKey(), JSON.stringify(state));
-  const cacheLoad = () => { try { return JSON.parse(ls.get(cacheKey())); } catch { return null; } };
+  const cacheLoad = () => { try { return clean(JSON.parse(ls.get(cacheKey()))); } catch { return null; } };
   const meKey = () => `racha:${groupId}:me`;
 
   // ---------- merge (união por id; exclusões vencem) ----------
+  // dados do banco/cache são de terceiros: só ids [a-z0-9] entram em atributos HTML, tudo o mais vira string curta ou número
+  const okId = id => typeof id === 'string' && /^[a-z0-9]{1,32}$/.test(id);
+  const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+  function clean(d){
+    if (!d || typeof d !== 'object') return null;
+    const people = (Array.isArray(d.people) ? d.people : []).filter(p => p && okId(p.id) && str(p.name, 30).trim()).map(p => ({ id: p.id, name: str(p.name, 30), at: +p.at || 0 }));
+    const expenses = (Array.isArray(d.expenses) ? d.expenses : []).filter(e => e && okId(e.id) && okId(e.payer) && Array.isArray(e.among) && e.among.length && e.among.every(okId) && Number.isFinite(+e.amount)).map(e => {
+      const o = { id: e.id, desc: str(e.desc, 60), amount: Math.round(+e.amount*100)/100, payer: e.payer, among: e.among.slice(0, 50), at: +e.at || 0 };
+      if (e.kind === 'payment') o.kind = 'payment'; if (typeof e.by === 'string') o.by = e.by.slice(0, 30);
+      if (e.shares && typeof e.shares === 'object') { o.shares = {}; for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0)); }
+      return o; });
+    return { v:2, name: str(d.name, 40), updatedAt: +d.updatedAt || 0, people, expenses, deleted: (Array.isArray(d.deleted) ? d.deleted : []).filter(okId) };
+  }
+  // Firebase devolve chaves em ordem alfabética; compara sem depender da ordem
+  const canon = o => JSON.stringify(o, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(x => [x, v[x]])) : v);
   function merge(a, b){
+    a = clean(a); b = clean(b);
     if (!a) return b; if (!b) return a;
     const deleted = new Set([...(a.deleted||[]), ...(b.deleted||[])]);
     const byId = list => { const m = new Map(); for (const x of list||[]) if (!deleted.has(x.id)) m.set(x.id, x); return m; };
@@ -211,7 +227,7 @@
     try {
       const remote = await apiGet(groupId);
       const merged = merge(state, remote);
-      const changed = JSON.stringify(merged) !== JSON.stringify(remote);
+      const changed = canon(merged) !== canon(remote);
       state = merged; cacheSave(); render();
       if (changed) await apiPut(groupId, state);
       setStatus('Sincronizado ' + new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}));
@@ -269,7 +285,7 @@
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
     const out = {};
-    await Promise.all(state.people.map(async p => { try { const r = await fetch(pixUrl(p.id, '/key'), { cache:'no-store' }); if (r.ok) { const v = await r.json(); if (typeof v === 'string' && v) out[p.id] = v; } } catch {} }));
+    await Promise.all(state.people.map(async p => { try { const r = await fetch(pixUrl(p.id, '/key'), { cache:'no-store' }); if (r.ok) { const v = await r.json(); const k = typeof v === 'string' ? validPixKey(v) : null; if (k) out[p.id] = k; } } catch {} }));
     const changed = JSON.stringify(out) !== JSON.stringify(pixKeys) || !pixReady; pixKeys = out; pixReady = true; if (changed) render();
   }
   function validPixKey(k){

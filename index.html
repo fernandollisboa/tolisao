@@ -104,7 +104,7 @@
 
 <div class="paper" id="app">
   <div class="stain"></div>
-  <h1>Tô lisa</h1>
+  <h1>Tô lisa(o)</h1>
   <div class="c muted" style="margin:-2px 0 6px;text-transform:none">quem me deve?</div>
   <div class="c">Evento <a class="link" id="roomLabel">—</a><br><span id="whoLine"></span></div>
 
@@ -132,6 +132,7 @@
   <div class="c" style="text-transform:none"><span id="peopleLine"></span> <a class="link" id="addPerson" title="adicionar pessoa">+</a></div>
   <div class="c" style="margin-top:14px">Valeu, pai!<br>* * *</div>
   <div class="bars"></div>
+  <div class="c" style="font-size:14px;letter-spacing:.35em;color:var(--ink2);margin-top:2px">420 420 420</div>
   <div class="status" id="status"></div>
 </div>
 
@@ -401,7 +402,7 @@
     $('#cancelBtn').onclick = closeOverlay;
   }
   function showGate(msg){
-    overlay(`<h1>Tô lisa</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código do evento'}</p>
+    overlay(`<h1>Tô lisa(o)</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código do evento'}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`);
     $('#gateForm').onsubmit = async ev => {
@@ -553,7 +554,7 @@
     const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
-    center(`*** TÔ LISA ***`, true);
+    center(`*** TÔ LISA(O) ***`, true);
     x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('quem me deve?', W/2, y); y += LH;
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 

@@ -199,8 +199,8 @@
     $('#whoBtn').onclick = showWho;
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
-      $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'não devo a ninguém';
-      $('#signoff').textContent = pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
+      if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'não devo a ninguém';
+      if ($('#signoff')) $('#signoff').textContent = pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
     if (hasMe) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());

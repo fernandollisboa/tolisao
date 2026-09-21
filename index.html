@@ -73,11 +73,11 @@
   .hidden{display:none !important}
   .fab{position:fixed;left:50%;transform:translateX(-50%) rotate(-1.5deg);bottom:22px;z-index:8;background:var(--paper);border:3px solid var(--ink);padding:12px 22px;font-size:22px;letter-spacing:1px;box-shadow:6px 6px 0 var(--ink);border-radius:0;text-transform:uppercase}
   #overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
-  #sheet{align-items:flex-end;padding:0}
-  #overlay .paper{max-width:380px;width:100%;padding:24px 20px}
-  #sheet .paper{max-width:760px;width:100%;border-radius:0;padding:20px 18px 32px;max-height:90vh;overflow:auto}
+  #overlay .paper{max-width:420px;width:100%;padding:24px 20px;max-height:92vh;overflow:auto}
+  #sheet .paper{max-width:420px;width:100%;padding:24px 20px;max-height:92vh;overflow:auto}
   code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
-  #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} #mineRows .row:last-child{border-top:2px dashed var(--rule);margin-top:4px;padding-top:4px}
+  #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} #mineRows .row.pos,#mineRows .row.neg{border-top:2px dashed var(--rule);margin-top:4px;padding-top:4px}
+  #mineRows .row.sub{font-size:17px;color:var(--ink2);line-height:1.5} #mineRows .row.sub .v{font-size:17px}
   .row.mine{background:rgba(0,0,0,.055);margin:0 -8px;padding:0 8px;border-radius:3px}
   .pixi svg{vertical-align:-2px}
   .item .by,.item .who{display:none}
@@ -106,21 +106,21 @@
 
   <div id="mine" class="hidden">
     <h2>*** Minha conta ***</h2>
+    <div class="c muted" id="pixLine" style="text-transform:none;font-size:15px;margin:-4px 0 10px"></div>
     <div id="mineRows"></div>
     <div class="hr"></div>
   </div>
 
-  <h2>*** Acerto ***</h2>
-  <div class="c muted" id="pixLine" style="text-transform:none;font-size:15px;margin:-4px 0 10px"></div>
-  <div id="settle"></div>
-  <div style="margin:12px 0 4px"><button id="waBtn" class="big"><svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Enviar</button></div>
-  <div class="hr"></div>
-
-  <h2>Itens</h2>
+  <h2>*** Itens ***</h2>
   <div id="expenses"></div>
   <div class="c" style="margin-top:6px"><a class="link hidden" id="toggleAll"></a></div>
   <div class="hr"></div>
   <div class="total"><span>Total</span><span id="total">R$ 0,00</span></div>
+  <div class="hr"></div>
+
+  <h2>*** Acerto ***</h2>
+  <div id="settle"></div>
+  <div style="margin:12px 0 4px"><button id="waBtn" class="big"><svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Enviar</button></div>
   <div class="hr"></div>
 
   <div class="c" style="text-transform:none">Quem tá no evento: <span id="peopleLine"></span> · <a class="link" id="addPerson">+ pessoa</a></div>
@@ -132,7 +132,7 @@
 
 <button id="fab" class="fab">✎ Anotar</button>
 <div id="sheet" class="hidden"><div class="paper">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0">Anotar</h2><button id="sheetClose" class="ghost">fechar</button></div>
+  <h2 style="margin-top:0">Anotar</h2><p class="muted" style="margin:0 0 12px;text-align:center">quanto foi, o que foi e quem divide</p>
   <form id="expenseForm">
     <div class="two"><input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required inputmode="decimal"><input id="desc" placeholder="O quê?" required maxlength="60"></div>
     <select id="payer" required></select>
@@ -142,6 +142,7 @@
     <div class="muted" style="text-transform:none"><a class="link" id="modeToggle">dividir em partes diferentes</a></div>
     <button class="big">Anotar</button>
   </form>
+  <div class="c" style="margin-top:12px"><button id="sheetClose" class="ghost">voltar</button></div>
 </div></div>
 <div id="toast" class="toast"></div>
 
@@ -300,9 +301,10 @@
     if (hasMe) { let paid = 0, part = 0; for (const e of state.expenses) { if (e.kind === 'payment') continue; const c = Math.round(e.amount*100); if (e.payer === me) paid += c; const ids = e.among.filter(id => state.people.some(p => p.id === id)); if (ids.includes(me)) part += shareOf(e, ids)[me] || 0; }
       const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
-      $('#mineRows').innerHTML = ln('+ paguei', fmt(paid/100)) + ln('− minha parte', fmt(part/100)) + ln(bal > 0 ? '= me devem' : bal < 0 ? '= devo' : '= quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : ''); }
+      const stMe = settlements(balances()); const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(`&nbsp;&nbsp;${nm(t.from)}`, fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`&nbsp;&nbsp;→ ${nm(t.to)}`, fmt(t.cents/100), 'sub')) : [];
+      $('#mineRows').innerHTML = ln('+ paguei', fmt(paid/100)) + ln('− minha parte', fmt(part/100)) + ln(bal > 0 ? '= me devem' : bal < 0 ? '= devo' : '= quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + who.join(''); }
     else $('#mine').classList.add('hidden');
-    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `minha chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">minha chave pix <span class="pixi">${PIX_SVG}</span></a>`) : '';
+    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">cadastrar chave pix <span class="pixi">${PIX_SVG}</span></a>`) : '';
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 
@@ -369,7 +371,7 @@
   const closeOverlay = () => $('#overlay').classList.add('hidden');
 
   function showGate(msg){
-    overlay(`<h1>Tô lisa</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><p class="muted" style="margin:0 0 8px">${msg || 'Qual o evento? (código)'}</p>
+    overlay(`<h1>Tô lisa</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código do evento'}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`);
     $('#gateForm').onsubmit = async ev => {
@@ -381,7 +383,7 @@
   }
   function showWho(){
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
-    overlay(`<h2 style="margin-top:0">Quem é você?</h2><p class="muted" style="margin:0 0 8px">Vira o pagador padrão e assina o que você anotar.</p>
+    overlay(`<h2 style="margin-top:0">Quem é você?</h2><p class="muted" style="margin:0 0 12px;text-align:center">vira o pagador padrão e assina o que você anotar</p>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30"><button class="big">Continuar</button></form>
       <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair deste evento neste aparelho</button></div>`);
@@ -394,7 +396,7 @@
   function showLost(){
     clearInterval(pollTimer);
     const cached = cacheLoad();
-    overlay(`<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 8px">Esse evento não está mais no banco.</p>
+    overlay(`<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 12px;text-align:center">esse evento não está mais no banco</p>
       ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`);
     if (cached) $('#restoreBtn').onclick = async () => { try { await apiPut(groupId, cached); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
     $('#lostBack').onclick = leave;
@@ -435,7 +437,7 @@
     return ids.map((id, i) => ({ id, name: names[i] })).filter(e => typeof e.name === 'string' && e.name).sort((a, b) => a.name.localeCompare(b.name));
   }
   function showEvents(){
-    overlay(`<h2 style="margin-top:0">Eventos</h2><div id="evList" class="c" style="text-transform:none;line-height:2">carregando…</div>
+    overlay(`<h2 style="margin-top:0">Eventos</h2><p class="muted" style="margin:0 0 12px;text-align:center">toque num evento pra abrir</p><div id="evList" class="c" style="text-transform:none;line-height:2">carregando…</div>
       <div class="c" style="margin-top:14px"><button id="evNew" class="ghost">+ novo evento</button> · <button id="evBack" class="ghost">voltar</button></div>`);
     $('#evNew').onclick = () => showGate('Código do novo evento:'); $('#evBack').onclick = closeOverlay;
     listEvents().then(list => { $('#evList').innerHTML = list.map(e => `<div><a class="link" data-ev="${esc(e.name)}">${esc(e.name)}</a>${e.id === groupId ? ' <span class="muted">(atual)</span>' : ''}</div>`).join('') || 'nenhum evento ainda'; })
@@ -448,7 +450,7 @@
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
-  const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#desc').focus(); };
+  const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
   $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); };
   $('#sheetClose').onclick = closeSheet;

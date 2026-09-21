@@ -43,7 +43,7 @@
   .small{font-size:16px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
   .small>span{flex:1}
   .stamp{position:absolute;right:-2px;top:-4px;font-family:'Permanent Marker',cursive;color:var(--red);border:3px solid var(--red);border-radius:5px;padding:0 5px;font-size:13px;line-height:1.3;transform:rotate(-12deg);opacity:.85;letter-spacing:1px;pointer-events:none}
-  .paid .l,.paid .v{color:#8a7a5a;text-decoration:line-through}
+  .paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #8a7a5a;pointer-events:none}
   .nm{font-weight:400}
   .neg{color:var(--red)}.pos{color:var(--green)}
   .row.total{font-size:24px;margin-top:10px} .row.total .v{font-size:24px}
@@ -608,21 +608,13 @@
     dash();
 
     // saldo por pessoa
-    const GREEN = '#15703a', RED = '#9b1c1c', SALDO_MODE = window.__saldo || 'a';
+    const GREEN = '#15703a', RED = '#9b1c1c';
     const ppl = state.people.map(p => ({ id: p.id, v: b[p.id] || 0 })).sort((p, q) => q.v - p.v);
     const signed = v => (v > 0 ? '+' : '-') + 'R$ ' + num(Math.abs(v));
     blank(); center('*** SALDO ***'); blank();
-    if (SALDO_MODE === 'a' || SALDO_MODE === 'c') {
-      for (const p of ppl) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markOf(p.id));
-        line(leader(n, p.v === 0 ? 'QUITE' : signed(p.v)), p.v === 0 ? GREEN : p.v > 0 ? INK : RED); }
-    }
-    if (SALDO_MODE === 'b') {
-      const grp = (title, list) => { if (!list.length) return; line(title, INK2);
-        for (const p of list) { const n = fit(nameOf(p.id), 14); mark(2, n.length, markOf(p.id)); line(leader('  ' + n, signed(p.v))); } };
-      grp('TEM A RECEBER', ppl.filter(p => p.v > 0)); grp('TÁ DEVENDO', ppl.filter(p => p.v < 0));
-      const q = ppl.filter(p => p.v === 0); if (q.length) { line('QUITES', GREEN); flow([{ t: '  ' }, ...q.flatMap((p, i) => [{ t: fit(nameOf(p.id), 14), id: p.id }, { t: i < q.length - 1 ? '  ' : '' }])]); }
-    }
-    if (SALDO_MODE === 'c' && st.length) { blank(); line('QUEM PAGA QUEM', INK2);
+    for (const p of ppl) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markOf(p.id));
+      line(leader(n, p.v === 0 ? 'QUITE' : signed(p.v)), p.v === 0 ? GREEN : p.v > 0 ? INK : RED); }
+    if (st.length) { blank(); line('QUEM PAGA QUEM', INK2);
       for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(2, a.length, markOf(t.from)); mark(2 + a.length + 6, c.length, markOf(t.to)); line(leader(`  ${a} PAGA ${c}`, 'R$ ' + num(t.cents))); } }
     dash();
     blank(); center('* * *');

@@ -186,7 +186,8 @@
     } finally { saving = false; }
   }
   function commit(){ state.updatedAt = Date.now(); cacheSave(); render(); sync(); }
-  function startPolling(){ clearInterval(pollTimer); pollTimer = setInterval(() => { if (!document.hidden) sync(); }, POLL_MS); }
+  let tick = 0;
+  function startPolling(){ clearInterval(pollTimer); pollTimer = setInterval(() => { if (!document.hidden) { sync(); if (++tick % 5 === 0) loadPixKeys(); } }, POLL_MS); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
 
   // ---------- contas ----------
@@ -211,6 +212,42 @@
   const colorOf = id => PALETTE[Math.max(0, state.people.findIndex(p => p.id === id)) % PALETTE.length];
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   let showAll = false;
+  // ---------- pix ----------
+  let pixKeys = {};                 // personId -> chave (lida do banco)
+  const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
+  const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
+  async function loadPixKeys(){
+    const out = {};
+    await Promise.all(state.people.map(async p => { try { const r = await fetch(pixUrl(p.id, '/key'), { cache:'no-store' }); if (r.ok) { const v = await r.json(); if (typeof v === 'string' && v) out[p.id] = v; } } catch {} }));
+    if (JSON.stringify(out) !== JSON.stringify(pixKeys)) { pixKeys = out; render(); }
+  }
+  function validPixKey(k){
+    k = k.trim();
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k)) return k.toLowerCase();
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(k) && /^[\x20-\x7e]+$/.test(k)) return k.toLowerCase();
+    return null;
+  }
+  async function savePix(){
+    if (!me) return showWho();
+    const k = prompt('Sua chave Pix. Só chave aleatória ou e-mail (CPF e telefone não):', pixKeys[me] || '');
+    if (k === null) return;
+    const key = validPixKey(k); if (!key) return toast('Só chave aleatória ou e-mail');
+    let tok = ls.get(pixTokKey(me)); if (!tok) { tok = uid() + uid() + uid() + uid(); ls.set(pixTokKey(me), tok); }
+    try {
+      const r = await fetch(pixUrl(me), { method:'PUT', body: JSON.stringify({ key, tok }) });
+      if (r.status === 401 || r.status === 403) return toast('Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)');
+      if (!r.ok) return toast('Erro ao salvar: HTTP ' + r.status);
+      pixKeys[me] = key; render(); toast('Chave Pix salva');
+    } catch (e) { toast('Erro ao salvar: ' + e.message); }
+  }
+  // Pix copia e cola (BR Code EMV) com valor
+  function crc16(str){ let crc = 0xFFFF; for (let i = 0; i < str.length; i++) { crc ^= str.charCodeAt(i) << 8; for (let j = 0; j < 8; j++) { crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1); crc &= 0xFFFF; } } return crc.toString(16).toUpperCase().padStart(4, '0'); }
+  const tlv = (id, v) => id + String(v.length).padStart(2, '0') + v;
+  function pixCode(key, name, cents){
+    const nm = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 ]/g, '').trim().toUpperCase().slice(0, 25) || 'RECEBEDOR';
+    const p = tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('01', key)) + tlv('52', '0000') + tlv('53', '986') + tlv('54', (cents/100).toFixed(2)) + tlv('58', 'BR') + tlv('59', nm) + tlv('60', 'BRASIL') + tlv('62', tlv('05', '***')) + '6304';
+    return p + crc16(p);
+  }
   const money = n => `${CURRENCY} ${Math.abs(n).toFixed(2).replace('.', ',')}`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
@@ -219,8 +256,10 @@
     $('#roomLabel').textContent = roomName || '—';
     document.title = roomName ? `${roomName} · Tô lisa` : 'Tô lisa';
     $('#dateLine').textContent = new Date().toLocaleDateString('pt-BR');
-    $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn">${esc(nameOf(me))}</a>` : `<a class="link" id="whoBtn">Quem é você?</a>`;
-    $('#whoBtn').onclick = showWho;
+    $('#whoLine').innerHTML = me && state.people.some(p => p.id === me)
+      ? `Sou <a class="link" id="whoBtn">${esc(nameOf(me))}</a> · <a class="link" id="pixBtn">${pixKeys[me] ? 'pix ✔' : 'cadastrar pix'}</a>`
+      : `<a class="link" id="whoBtn">Quem é você?</a>`;
+    $('#whoBtn').onclick = showWho; if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
@@ -240,7 +279,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents)) +
-        (t.from === me ? `<div class="small"><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+        (t.from === me ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}">copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
 
@@ -323,7 +362,7 @@
     try { const remote = await apiGet(groupId); state = merge(state, remote); cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(); render(); } setStatus('Offline · ' + e.message, true); }
     if (!me || !state.people.some(p => p.id === me)) showWho();
-    startPolling(); sync();
+    startPolling(); sync(); loadPixKeys();
   }
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 
@@ -345,10 +384,14 @@
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
+    const px = ev.target.closest('[data-pix]');
+    if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
+      navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => prompt('Copie o código Pix:', code)); }
     const st = ev.target.closest('[data-settle]');
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
       if (!confirm(`Confirmar que ${nameOf(from)} pagou ${money(amount)} pra ${nameOf(to)}?`)) return;
-      state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); toast('Quitado!'); }
+      state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); toast('Quitado!');
+      window.open('https://wa.me/?text=' + encodeURIComponent(`✅ Paguei ${money(amount)} pra ${nameOf(to)} 👍\n${shareUrl()}`), '_blank', 'noopener'); }
     const de = ev.target.closest('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!confirm(e.kind === 'payment' ? 'Desfazer essa quitação?' : `Excluir "${e.desc}"?`)) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }

@@ -22,10 +22,32 @@ Os clientes mesclam por id e atualizam a cada 6s, então edições simultâneas 
 Regras do banco (Realtime Database → Regras):
 
 ```json
-{ "rules": { "rooms": { "$room": { ".read": true, ".write": true } } } }
+{
+  "rules": {
+    "rooms": { "$room": { ".read": true, ".write": true } },
+    "pix": {
+      "$room": {
+        "$person": {
+          ".write": "!data.exists() || data.child('tok').val() === newData.child('tok').val()",
+          ".validate": "newData.hasChildren(['key','tok']) && newData.child('key').isString() && newData.child('key').val().length <= 80 && newData.child('tok').isString()",
+          "key": { ".read": true }
+        }
+      }
+    }
+  }
+}
 ```
 
 Quem tem o código lê e escreve no grupo. Não guarde nada sensível.
+
+### Chave Pix
+
+Cada pessoa pode cadastrar uma chave Pix (só chave aleatória ou e-mail; CPF e telefone são recusados).
+A chave fica em `pix/<sala>/<pessoa>/key` (legível por todos) junto de um segredo `tok` gerado pelo navegador de quem cadastrou
+e guardado só nesse aparelho. A regra acima só aceita alterar a chave se o `tok` enviado bater com o gravado, e ninguém consegue ler o `tok`.
+Resultado: todo mundo vê a chave, só o aparelho que cadastrou consegue trocar. Se a pessoa perder o aparelho, apague o nó dela no console do Firebase.
+
+Quem deve vê um botão **copiar pix** na sua linha do acerto: copia um "Pix copia e cola" (BR Code) já com o valor, pra colar no app do banco.
 
 ## Deploy
 

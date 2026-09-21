@@ -1,7 +1,6 @@
 // dados hostis vindos do banco não podem virar HTML: ids fora de [a-z0-9] são descartados, textos escapados
 const { chromium } = require('./_pw.cjs'); const path = require('path'), http = require('http'), fs = require('fs');
-const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8').replace(/const DB = '[^']*';/, "const DB = 'https://fake-db.firebaseio.com';");
-const srv = http.createServer((q, r) => { r.setHeader('Content-Type', 'text/html'); r.end(html); }).listen(4187);
+const srv = require('./_serve.cjs')(4187);
 const evil = { name: 'bailedamada', updatedAt: 1, people: [
     { id: 'fernando', name: 'Fernando', at: 1 }, { id: 'lia', name: '<img src=x onerror="window.__xss=1">Lia', at: 2 },
     { id: 'x" onmouseover="window.__xss=2" data-y="', name: 'Hacker', at: 3 } ],

@@ -1,8 +1,7 @@
 const { chromium } = require('./_pw.cjs'); const path = require('path'), os = require('os'); const ROOT = path.join(__dirname, '..'), OUT = os.tmpdir();
 const http = require('http'), fs = require('fs');
-const html = fs.readFileSync(path.join(ROOT, 'index.html'),'utf8').replace(/const DB = '[^']*';/, "const DB = 'https://fake-db.firebaseio.com';");
 const seed = fs.readFileSync(path.join(__dirname, 'seed.b64'),'utf8');
-const srv = http.createServer((q, r) => { if (q.url.startsWith('/fonts/')) { try { r.setHeader('Content-Type','font/woff2'); return r.end(fs.readFileSync(path.join(ROOT, q.url.split('?')[0]))); } catch { r.statusCode = 404; return r.end(); } } r.setHeader('Content-Type','text/html'); r.end(html); }).listen(4179);
+const srv = require('./_serve.cjs')(4179);
 const store = {};
 async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', route => { const rq = route.request(), m = rq.method(), path = new URL(rq.url()).pathname;
   if (m === 'PUT') { store[path] = rq.postData(); return route.fulfill({ status: 200, contentType:'application/json', body: store[path] }); }

@@ -4,7 +4,7 @@ Tipo Splitwise, só que sem app e sem cadastro 👍
 
 **Site:** https://fernandollisboa.github.io/splitwise-lite/ · **curto:** tinyurl.com/tolisao
 
-Um HTML só, sem backend pra manter. Os dados ficam num Firebase Realtime Database (plano gratuito) acessado direto do navegador.
+Três arquivos estáticos (HTML, CSS e JS), sem build e sem backend pra manter. Os dados ficam num Firebase Realtime Database (plano gratuito) acessado direto do navegador.
 
 ## Como usa
 
@@ -44,7 +44,7 @@ Regras do banco (Realtime Database → Regras):
 
 ## Desenvolver
 
-Não tem build. Sirva a pasta com qualquer servidor estático (`python3 -m http.server`) e abra `index.html`. A URL do banco é a constante `DB` no topo do script.
+Não tem build. Sirva a pasta com qualquer servidor estático (`python3 -m http.server`) e abra `index.html`. A lógica fica em `app.js` (com `// @ts-check` e tipos em JSDoc; `npx -p typescript tsc -p jsconfig.json` checa), estilos em `style.css`. A URL do banco é a constante `DB` no topo do `app.js`.
 
 Testes (Playwright, sem framework):
 

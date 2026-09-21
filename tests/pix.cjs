@@ -1,8 +1,7 @@
 const { chromium } = require('./_pw.cjs'); const path = require('path'), os = require('os'); const ROOT = path.join(__dirname, '..'), OUT = os.tmpdir();
 const http = require('http'), fs = require('fs');
-const html = fs.readFileSync(path.join(ROOT, 'index.html'),'utf8').replace(/const DB = '[^']*';/, "const DB = 'https://fake-db.firebaseio.com';");
 const seed = fs.readFileSync(path.join(__dirname, 'seed.b64'),'utf8'); const store = {};
-const srv = http.createServer((q, r) => { if (q.url.startsWith('/fonts/')) { r.setHeader('Content-Type','font/woff2'); return r.end(fs.readFileSync(path.join(ROOT, q.url))); } r.setHeader('Content-Type','text/html'); r.end(html); }).listen(4182);
+const srv = require('./_serve.cjs')(4182);
 // mock com as regras do pix: escrita só se não existe ou tok bate; leitura só de /key
 async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', route => { const rq = route.request(), m = rq.method(), path = new URL(rq.url()).pathname;
   if (path.startsWith('/pix/')) {

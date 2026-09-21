@@ -249,7 +249,7 @@
   }
 
   // ---------- render ----------
-  const PALETTE = ['#8b1a1a','#1f4e9c','#a3510a','#15703a','#5b21b6','#0f6b6b','#8a1a6b','#5a4a1a','#374151','#7a2d0c'];
+  const PALETTE = ['#1f4e9c','#a3510a','#5b21b6','#0f6b6b','#8a1a6b','#7a2d0c','#374151','#0e7490','#9d174d','#5a4a1a']; // sem vermelho/verde, que são os tons de deve/recebe
   const colorOf = id => PALETTE[Math.max(0, state.people.findIndex(p => p.id === id)) % PALETTE.length];
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
@@ -558,7 +558,7 @@
     x.font = `${FS}px 'VT323'`; x.textBaseline = 'alphabetic';
     const cw = x.measureText('M').width, COLS = Math.floor((W - 2*M - 2*P) / cw);
     const INK = '#2a2a2a', INK2 = '#5a5a5a', PAPER = '#efe9d8', HL = '#f7f23a';
-    const MARK = ['#f5a9a9','#a9c4f5','#f7b877','#a3dfae','#cdb4f7','#9fdcdc','#f2a9d6','#c5d6a0','#cfd3d8','#f0b89a']; // mesma ordem de tons da PALETTE do site
+    const MARK = ['#a9c4f5','#f7b877','#cdb4f7','#9fdcdc','#f2a9d6','#f0b89a','#cfd3d8','#a5dbe8','#f5b3cf','#d6cdb0']; // mesma ordem de tons da PALETTE do site
     const markOf = id => MARK[Math.max(0, state.people.findIndex(p => p.id === id)) % MARK.length];
     const mark = (col, len, color) => { x.fillStyle = color; x.fillRect(L + col*cw - 3, y - FS*0.72, len*cw + 6, FS*0.9); };
     const L = M + P; let y = M + 12 + 50;

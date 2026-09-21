@@ -565,6 +565,8 @@
     const blank = () => { y += LH*0.6; };
     const norm = t => up(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const initial = id => { const n = norm(nameOf(id)); let k = 1; while (k < n.length && state.people.some(p => p.id !== id && norm(nameOf(p.id)).slice(0, k) === n.slice(0, k))) k++; return n.slice(0, k); };
+    const flow = segs => { let col = 0, t = ''; for (const g of segs) { if (!g.t) continue; if (col > 2 && col + (g.w || g.t.length) > COLS) { line(t.trimEnd(), INK2); t = '  '; col = 2; }
+      if (g.id) mark(col, g.t.length, markOf(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };
     const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
@@ -586,7 +588,10 @@
     for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
       const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markOf(e.payer));
-      if (e.shares || !e.among.includes(e.payer)) { wrap(`${pn} pagou · ${howText(e)}`, INK2); continue; }
+      if (e.shares) { const segs = [{ t:'  ' }, { t: pn, id: e.payer }, { t: ' PAGOU · ' }];
+        e.among.forEach((id, i) => { const n = fit(nameOf(id), 14), v = ' ' + num(e.shares[id] || 0); segs.push({ t: n, id, w: n.length + v.length }, { t: v + (i < e.among.length - 1 ? ', ' : '') }); }); flow(segs); continue; }
+      if (!e.among.includes(e.payer)) { const segs = [{ t:'  ' }, { t: pn, id: e.payer }, { t: ' PAGOU · ' }];
+        e.among.forEach((id, i) => segs.push({ t: fit(nameOf(id), 14), id }, { t: i < e.among.length - 1 ? ', ' : '' })); segs.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` }); flow(segs); continue; }
       const all = state.people.every(p => e.among.includes(p.id));
       if (all) { line('  ' + fit(`${pn} pagou · ÷${e.among.length} todos`, COLS - 2), INK2); continue; }
       const head = `  ${pn} PAGOU · ÷${e.among.length} `; let col = head.length, t = head;
@@ -595,8 +600,9 @@
     blank();
     line(leader('TOTAL', numBig(totalCents)), INK2);
     dash();
-    blank(); center('VALEU, PAI!');
-    y += 4;
+    blank(); center('VALEU, PAI!'); center('* * *', false);
+    { const widths = code128Widths('420420420420'); const units = [...widths].reduce((a, c) => a + +c, 0); const BW = 240, BH = 40, k = BW / units; let bx = W/2 - BW/2;
+      x.fillStyle = INK; for (let i = 0; i < widths.length; i++) { const w = +widths[i] * k; if (i % 2 === 0) x.fillRect(bx, y - 8, w, BH); bx += w; } y += BH + 4; }
 
     // papel na altura exata
     const H = y + M + 12;
@@ -626,11 +632,14 @@
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- código de barras (Code 128 C) ----------
-  (function barcode(){
+  function code128Widths(digits){
     const P = '212222 222122 222221 121223 121322 131222 122213 122312 132212 221213 221312 231212 112232 122132 122231 113222 123122 123221 223211 221132 221231 213212 223112 312131 311222 321122 321221 312212 322112 322211 212123 212321 232121 111323 131123 131321 112313 132113 132311 211313 231113 231311 112133 112331 132131 113123 113321 133121 313121 211331 231131 213113 213311 213131 311123 311321 331121 312113 312311 332111 314111 221411 431111 111224 111422 121124 121421 141122 141221 112214 112412 122114 122411 142112 142211 241211 221114 413111 241112 134111 111242 121142 121241 114212 124112 124211 411212 421112 421211 212141 214121 412121 111143 111341 131141 114113 114311 411113 411311 113141 114131 311141 411131 211412 211214 211232'.split(' ');
-    const digits = '420420420420', codes = [105]; for (let i = 0; i < digits.length; i += 2) codes.push(+digits.slice(i, i + 2));
+    const codes = [105]; for (let i = 0; i < digits.length; i += 2) codes.push(+digits.slice(i, i + 2));
     codes.push(codes.reduce((a, c, i) => a + c * (i || 1), 0) % 103);
-    const widths = codes.map(c => P[c]).join('') + '2331112'; let x = 0, rects = '';
+    return codes.map(c => P[c]).join('') + '2331112';
+  }
+  (function barcode(){
+    const widths = code128Widths('420420420420'); let x = 0, rects = '';
     for (let i = 0; i < widths.length; i++) { const w = +widths[i]; if (i % 2 === 0) rects += `<rect x="${x}" y="0" width="${w}" height="40"/>`; x += w; }
     $('#bars').innerHTML = `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none" fill="#222" aria-hidden="true">${rects}</svg>`;
   })();

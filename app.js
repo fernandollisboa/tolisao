@@ -182,9 +182,9 @@
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   // frases de boteco: sorteadas uma vez por abertura, escolhidas pelo estado da conta
   const SIGNOFF = {
-    owe: ['Paga logo, meu bem.', 'Fiado só amanhã, meu amor.', 'Não aceito cheque, viu?', 'A conta não se paga sozinha, meu rei.', 'Bebeu, pagou, minha flor.'],
+    owe: ['Paga logo, meu bem.', 'Fiado só amanhã, meu amor.', 'Não aceito cheque, viu?', 'A conta não se paga sozinha, meu anjo.', 'Bebeu, pagou, minha flor.'],
     owed: ['Cobra sem dó, meu bem.', 'Quem deve, deve, meu anjo.', 'Juros só na amizade, viu?', 'Fiado é confiança, meu amor.'],
-    even: ['Tudo certo, volte sempre, meu bem!', 'Casa limpa, meu amor.', 'Valeu, meu bem!', 'Deus te pague, meu rei.'],
+    even: ['Tudo certo, volte sempre, meu bem!', 'Casa limpa, meu amor.', 'Valeu, meu bem!', 'Deus te pague, minha flor.'],
     all: ['Casa fechada, todo mundo quite. Benção!', 'Ninguém deve nada. Milagre, meu anjo.', 'Zerou. Bora abrir outra, meu bem?'],
     none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
   };

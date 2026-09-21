@@ -81,7 +81,7 @@
   #mineRows .row.sub .l{white-space:normal;overflow:visible;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;max-width:72%} #mineRows .row.sub .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .acts{display:inline-flex;gap:6px;align-items:center} button.ico{padding:0 6px;height:26px;display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:1;letter-spacing:0;color:var(--ink)} button.ico svg{display:block} button.ico.ok{color:var(--green);border-color:var(--green)}
   #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
-  .row.mine{background:rgba(0,0,0,.055);margin:0 -8px;padding:0 8px;border-radius:3px}
+  .row.mine .l,.row.mine .v{background:linear-gradient(transparent 18%,#fff176 18%,#fff176 82%,transparent 82%);padding:0 4px;margin:0 -4px}
   .pixi svg{vertical-align:-2px}
   .item .by,.item .who{display:none}
   .item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}
@@ -255,13 +255,13 @@
   // ---------- pix ----------
   const COPY_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
   const PIX_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>';
-  let pixKeys = {};                 // personId -> chave (lida do banco)
+  let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
     const out = {};
     await Promise.all(state.people.map(async p => { try { const r = await fetch(pixUrl(p.id, '/key'), { cache:'no-store' }); if (r.ok) { const v = await r.json(); if (typeof v === 'string' && v) out[p.id] = v; } } catch {} }));
-    if (JSON.stringify(out) !== JSON.stringify(pixKeys)) { pixKeys = out; render(); }
+    const changed = JSON.stringify(out) !== JSON.stringify(pixKeys) || !pixReady; pixKeys = out; pixReady = true; if (changed) render();
   }
   function validPixKey(k){
     k = k.trim();
@@ -305,7 +305,7 @@
     if (hasMe) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
-      const acts = t => `<span class="acts">${pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : ''}<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei">✔</button></span>`;
+      const acts = t => !pixReady ? '' : `<span class="acts">${pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : ''}<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei">✔</button></span>`;
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span>${acts(t)}`, fmt(t.cents/100), 'sub')) : [];
       const hdr = who.length ? `<div class="row hdr"><span class="l">quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
@@ -330,8 +330,8 @@
 
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
-    $('#settle').innerHTML = (s.map(t => line(`${t.from === me ? '▶ ' : ''}${nm(t.from)} → ${nm(t.to)}`, num(t.cents), t.from === me ? 'mine' : '') +
-        (t.from === me ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents), t.from === me ? 'mine' : '') +
+        (t.from === me && pixReady ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''}</div>`).join('');
 
@@ -446,7 +446,7 @@
     roomName = code; groupId = id; me = ls.get(meKey()); lastSeen = +ls.get(seenKey()) || 0; showAll = false;
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
-    pixKeys = {};
+    pixKeys = {}; pixReady = false;
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     if (!me || !state.people.some(p => p.id === me)) showWho();

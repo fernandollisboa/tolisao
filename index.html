@@ -381,19 +381,21 @@
     $('#splitHint').textContent = `Partes somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`; } });
 
   // ---------- telas ----------
-  const overlay = (html) => { $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
+  let overlayCancel = null, overlaySticky = false;
+  const overlay = (html, sticky = false) => { overlayCancel = null; overlaySticky = sticky; $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
   const closeOverlay = () => $('#overlay').classList.add('hidden');
+  $('#overlay').addEventListener('click', ev => { if (ev.target.id !== 'overlay' || overlaySticky) return; const c = overlayCancel; overlayCancel = null; closeOverlay(); if (c) c(); });
 
   function ask(title, desc, okLabel = 'confirmar'){
     return new Promise(res => {
       overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
-      $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#cancelBtn').onclick = () => { closeOverlay(); res(false); }; $('#okBtn').focus();
+      overlayCancel = () => res(false); $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#cancelBtn').onclick = () => { closeOverlay(); res(false); }; $('#okBtn').focus();
     });
   }
   function askText(title, desc, placeholder, value = '', okLabel = 'confirmar'){
     return new Promise(res => {
       overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
-      $('#askForm').onsubmit = ev => { ev.preventDefault(); const v = $('#askInput').value; closeOverlay(); res(v); }; $('#cancelBtn').onclick = () => { closeOverlay(); res(null); }; $('#askInput').focus();
+      overlayCancel = () => res(null); $('#askForm').onsubmit = ev => { ev.preventDefault(); const v = $('#askInput').value; closeOverlay(); res(v); }; $('#cancelBtn').onclick = () => { closeOverlay(); res(null); }; $('#askInput').focus();
     });
   }
   function showCopy(title, text){
@@ -403,7 +405,7 @@
   function showGate(msg){
     overlay(`<h1>Tô lisa(o)</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código do evento'}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código" required autofocus autocapitalize="none">
-      <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`);
+      <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`, true);
     $('#gateForm').onsubmit = async ev => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Abrindo…';
@@ -416,7 +418,7 @@
     overlay(`<h2 style="margin-top:0">Quem é você?</h2><p class="muted" style="margin:0 0 12px;text-align:center">vira o pagador padrão e assina o que você anotar</p>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30"><button class="big">Continuar</button></form>
-      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair deste evento neste aparelho</button></div>`);
+      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !(me && state.people.some(p => p.id === me)));
     $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta pelo link ou pelo código.', 'sair')) leave(); };
     $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
@@ -427,7 +429,7 @@
     clearInterval(pollTimer);
     const cached = cacheLoad();
     overlay(`<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 12px;text-align:center">esse evento não está mais no banco</p>
-      ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`);
+      ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`, true);
     if (cached) $('#restoreBtn').onclick = async () => { try { await apiPut(groupId, cached); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
     $('#lostBack').onclick = leave;
   }

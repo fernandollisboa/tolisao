@@ -11,6 +11,7 @@ Site: https://fernandollisboa.github.io/splitwise-lite/ (link curto: tinyurl.com
 - `index.html`: marcação. Seções na ordem: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Acerto → membros/copiar link → rodapé. Overlays em `#overlay` (cartões de papel), formulário de anotar em `#sheet`.
 - `app.js`: toda a lógica, num IIFE, com `// @ts-check` e tipos em JSDoc no topo (`Person`, `Expense`, `Room`, `Transfer`). `jsconfig.json` define as opções (não estrito). Zero erros é o esperado.
 - `style.css`: estilos (tema papel/madeira, fonte VT323).
+- `manifest.json` + `sw.js`: PWA mínima. O service worker é rede-primeiro com cache de reserva (só GET da própria origem); ao mudar a estratégia, troque o nome `CACHE`.
 - `fonts/`: VT323 e Permanent Marker (woff2). `icon.png`, `og.png`/`og2.png`: ícone e preview do WhatsApp (o `og:image` aponta pra `og2.png` pra furar cache).
 - `tests/`: scripts Playwright (`node tests/run-all.cjs`). Sem framework: cada script sobe um servidor local, intercepta o Firebase e imprime o que checou.
 - `.github/workflows/pages.yml`: deploy da `main`. Pushes seguidos cancelam o deploy anterior; espere o último terminar antes de conferir o site.
@@ -33,6 +34,6 @@ Site: https://fernandollisboa.github.io/splitwise-lite/ (link curto: tinyurl.com
 - Tudo que vem do banco é hostil: ids só passam se casarem `/^[a-z0-9]{1,32}$/` (entram em atributos HTML sem escape), textos passam por `esc()` antes de `innerHTML`.
 - Cores dos nomes: `PALETTE` por índice na lista de pessoas, sem vermelho/verde (reservados a deve/recebe). O recibo em canvas usa `MARK` na mesma ordem de tons; nada de amarelo lá.
 - Cifrão (`money()`) em Minha conta, Acerto e total; itens sem.
-- Texto do zap (`summaryText`) leva o acerto e o link do evento; a imagem (`renderReceipt`) leva membros, itens, saldo e quem paga quem.
+- Botões do acerto: quem deve vê `quitar` e `copiar pix`; quem recebe vê `cobrar` (abre o zap com valor, pix e link). Texto do zap (`summaryText`) leva o acerto e o link do evento; a imagem (`renderReceipt`) leva membros, itens, saldo e quem paga quem.
 - Preferir edições pequenas em `app.js`/`style.css`; sem dependências novas; sem framework; sem build.
 - Antes de subir: `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs`. Ao mexer em layout, tirar screenshot com Playwright em 390px de largura.

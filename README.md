@@ -11,10 +11,10 @@ Três arquivos estáticos (HTML, CSS e JS), sem build e sem backend pra manter. 
 1. Abra o site e digite o **código do evento** combinado no zap. Código novo cria um evento (a página pergunta antes).
 2. Diga quem você é em "Quem é você?". Ali também dá pra cadastrar sua **chave Pix** (aleatória ou e-mail).
 3. Anote os gastos pelo ✎: valor, o quê, quem pagou e quem divide. Dá pra dividir em partes diferentes ou marcar como empréstimo (desmarque o pagador).
-4. **Minha conta** mostra quanto você deve ou tem a receber. **Acerto** mostra o mínimo de transferências pra zerar todo mundo, com botão de copiar o Pix já com o valor e o botão de quitar.
+4. **Minha conta** mostra quanto você deve ou tem a receber. **Acerto** mostra o mínimo de transferências pra zerar todo mundo: quem deve tem os botões de copiar o Pix já com o valor e de quitar; quem tem a receber tem o **cobrar**, que abre o WhatsApp com a cobrança pronta.
 5. **Enviar** gera a imagem da comanda e abre o WhatsApp com o resumo de quem paga quem.
 
-Pra convidar alguém: "copiar link do evento" e manda.
+Pra convidar alguém: "copiar link do evento" e manda. No celular dá pra "adicionar à tela inicial": o site é instalável (PWA) e abre offline com a última versão vista.
 
 ## Dados e segurança
 

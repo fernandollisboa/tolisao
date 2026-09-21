@@ -223,6 +223,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, money(t.cents/100), t.from === me ? 'mine' : '') +
+        (t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '') +
         (t.from === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start">${!pixReady ? '<span class="spin"></span>' : ''}${pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitar</button>` : ''}${pixReady && pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}</div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, money(e.amount), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''}</div>`).join('');
@@ -401,6 +402,9 @@
     const px = near('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }
+    const cb = near('[data-cobrar]');
+    if (cb) { const [from, cents] = cb.dataset.cobrar.split('|'); const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
+      window.open('https://wa.me/?text=' + encodeURIComponent(`👀 ${nameOf(from)}, tá faltando ${money(+cents/100)} do *${roomName}*${pix}\n${shareUrl()}`), '_blank', 'noopener'); return; }
     const st = near('[data-settle]');
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
       if (!(await ask('Quitar?', `${nm(from)} pagou <b style="color:var(--green)">${money(amount)}</b> pra ${nm(to)}`, 'quitei'))) return;
@@ -527,6 +531,7 @@
     finally { btn.disabled = false; }
   };
   window.addEventListener('hashchange', () => location.reload());
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- código de barras (Code 128 C) ----------

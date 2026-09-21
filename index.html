@@ -85,7 +85,7 @@
 <div class="paper" id="app">
   <div class="stain"></div>
   <h1>Tô lisa</h1>
-  <div class="c">Evento: <span id="roomLabel">—</span><br><span id="dateLine"></span> · Atend.: <a class="link" id="whoBtn">—</a></div>
+  <div class="c">Evento: <span id="roomLabel">—</span><br><span id="dateLine"></span><br><span id="whoLine"></span></div>
   <div class="status" id="status" style="margin-top:6px"></div>
   <div class="hr"></div>
 
@@ -219,8 +219,9 @@
     $('#roomLabel').textContent = roomName || '—';
     document.title = roomName ? `${roomName} · Tô lisa` : 'Tô lisa';
     $('#dateLine').textContent = new Date().toLocaleDateString('pt-BR');
-    $('#whoBtn').textContent = me && state.people.some(p => p.id === me) ? nameOf(me).toUpperCase() : 'quem é você?';
-    $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
+    $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn">${esc(nameOf(me))}</a>` : `<a class="link" id="whoBtn">Quem é você?</a>`;
+    $('#whoBtn').onclick = showWho;
+      $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
@@ -437,7 +438,6 @@
     } catch (e) { toast('Não consegui gerar a imagem: ' + e.message); waText(); }
     finally { btn.disabled = false; }
   };
-  $('#whoBtn').onclick = showWho;
   window.addEventListener('hashchange', () => location.reload());
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 

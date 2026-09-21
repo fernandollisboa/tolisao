@@ -521,7 +521,7 @@
   function summaryText(){
     const st = settlements(balances()); const ev = roomName || 'acerto';
     if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl()}`;
-    return [`🧾 acerto do *${ev}*`, '', ...st.map(t => `💸 ${nameOf(t.from)} paga ${money(t.cents/100)} pra ${nameOf(t.to)}`), '', `tudo aqui 👉 ${shareUrl()}`].join('\n');
+    return [`🧾 acerto do *${ev}*`, '', ...st.map(t => `💸 ${nameOf(t.from)} paga ${money(t.cents/100)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`), '', `tudo aqui 👉 ${shareUrl()}`].join('\n');
   }
   // ---------- imagem da comanda (canvas) ----------
   async function renderReceipt(){

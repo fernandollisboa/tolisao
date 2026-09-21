@@ -87,7 +87,7 @@
 <div class="paper" id="app">
   <div class="stain"></div>
   <h1>Tô lisa</h1>
-  <div class="c">Mesa: <span id="roomLabel">—</span><br><span id="dateLine"></span> · Atend.: <a class="link" id="whoBtn">—</a></div>
+  <div class="c">Evento: <span id="roomLabel">—</span><br><span id="dateLine"></span> · Atend.: <a class="link" id="whoBtn">—</a></div>
   <div class="status" id="status" style="margin-top:6px"></div>
   <div class="hr"></div>
 
@@ -101,13 +101,13 @@
   <div id="expenses"></div>
   <div class="c" style="margin-top:6px"><a class="link hidden" id="toggleAll"></a></div>
   <div class="hr"></div>
-  <div class="total"><span>Total da mesa</span><span id="total">R$ 0,00</span></div>
+  <div class="total"><span>Total</span><span id="total">R$ 0,00</span></div>
   <div class="hr"></div>
 
-  <div class="c" style="text-transform:none">Na mesa: <span id="peopleLine"></span> · <a class="link" id="addPerson">+ pessoa</a></div>
-  <div class="c" style="margin-top:14px">Obrigado, volte sempre<br>* * *</div>
+  <div class="c" style="text-transform:none">Quem tá no evento: <span id="peopleLine"></span> · <a class="link" id="addPerson">+ pessoa</a></div>
+  <div class="c" style="margin-top:14px">Obrigado, volte sempre!<br>* * *</div>
   <div class="bars"></div>
-  <div class="c" style="margin-top:14px;text-transform:none;font-size:12px"><a class="link" id="shareBtn">Copiar link</a><br><span class="muted">Quem abrir o link já cai nesta mesa.</span></div>
+  <div class="c" style="margin-top:14px;text-transform:none;font-size:12px"><a class="link" id="shareBtn">Copiar link</a><br><span class="muted">Quem abrir o link já cai neste evento.</span></div>
 </div>
 
 <button id="fab" class="fab">✎ Anotar</button>
@@ -242,18 +242,18 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents)) +
-        `<div class="small"><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>`).join('') || '<div class="empty">mesa zerada 🎉</div>')
+        `<div class="small"><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>`).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
-    const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 5);
+    const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 10);
     $('#expenses').innerHTML = list.map(e => {
       const loan = !e.among.includes(e.payer);
       const how = loan ? `${listNames(e.among)} deve${e.among.length===1?'':'m'} tudo` : `÷${e.among.length}`;
       return line(esc(e.desc), num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${esc(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
-    const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 5); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
+    const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     $('#total').textContent = money(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   function updateHint(){
@@ -269,7 +269,7 @@
   const closeOverlay = () => $('#overlay').classList.add('hidden');
 
   function showGate(msg){
-    overlay(`<h1>Tô lisa</h1><div class="hr"></div><p class="muted" style="margin:0 0 8px">${msg || 'Qual a mesa? (código do grupo)'}</p>
+    overlay(`<h1>Tô lisa</h1><div class="hr"></div><p class="muted" style="margin:0 0 8px">${msg || 'Qual o evento? (código)'}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`);
     $('#gateForm').onsubmit = async ev => {
@@ -284,7 +284,7 @@
     overlay(`<h2 style="margin-top:0">Quem é você?</h2><p class="muted" style="margin:0 0 8px">Vira o pagador padrão e assina o que você anotar.</p>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30"><button class="big">Continuar</button></form>
-      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair desta mesa neste aparelho</button></div>`);
+      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair deste evento neste aparelho</button></div>`);
     $('#leaveBtn').onclick = () => { if (confirm('Sair do grupo neste aparelho? Você pode voltar pelo link.')) leave(); };
     $('#whoSel').onchange = () => $('#whoNew').classList.toggle('hidden', $('#whoSel').value !== '__new');
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
@@ -294,7 +294,7 @@
   function showLost(){
     clearInterval(pollTimer);
     const cached = cacheLoad();
-    overlay(`<h2 style="margin-top:0">Mesa não encontrada</h2><p class="muted" style="margin:0 0 8px">Essa mesa não está mais no banco.</p>
+    overlay(`<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 8px">Esse evento não está mais no banco.</p>
       ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`);
     if (cached) $('#restoreBtn').onclick = async () => { try { await apiPut(groupId, cached); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
     $('#lostBack').onclick = leave;
@@ -330,13 +330,13 @@
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 
   // ---------- eventos ----------
-  $('#addPerson').onclick = () => { const name = (prompt('Nome de quem senta na mesa:') || '').trim(); if (!name) return;
+  $('#addPerson').onclick = () => { const name = (prompt('Nome da pessoa:') || '').trim(); if (!name) return;
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#desc').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
-  $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas na mesa primeiro'); openSheet(); };
+  $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); };
   $('#sheetClose').onclick = closeSheet;
   $('#sheet').addEventListener('click', ev => { if (ev.target.id === 'sheet') closeSheet(); });
   $('#expenseForm').onsubmit = ev => { ev.preventDefault();
@@ -357,7 +357,7 @@
   });
   const shareUrl = () => `${location.origin}${location.pathname}#c=${encodeURIComponent(roomName)}`;
   $('#shareBtn').onclick = async () => { const url = shareUrl();
-    try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai nesta mesa.'); } catch { prompt('Copie este link:', url); } };
+    try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { prompt('Copie este link:', url); } };
   function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
   function summaryText(){
     const b = balances(); const s = settlements(b); const L = [];
@@ -412,10 +412,10 @@
     const num = cents => Math.abs(cents/100).toFixed(2).replace('.', ',');
     // cabeçalho
     center('TÔ LISA', "34px 'Special Elite'"); y += 40;
-    center(`MESA: ${up(roomName)}`, "14px 'Courier Prime'"); y += 26;
+    center(`EVENTO: ${up(roomName)}`, "14px 'Courier Prime'"); y += 26;
     center(`${new Date().toLocaleDateString('pt-BR')} · ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}${me && state.people.some(p => p.id === me) ? ' · ATEND.: ' + up(nameOf(me)) : ''}`, "14px 'Courier Prime'"); y += 12;
     hr(); sec('*** ACERTO ***');
-    if (!st.length && !pays.length) { center('MESA ZERADA', "15px 'Courier Prime'", INK2); y += ROW + SUB; }
+    if (!st.length && !pays.length) { center('TUDO QUITADO', "15px 'Courier Prime'", INK2); y += ROW + SUB; }
     for (const t of st) { row([[up(nameOf(t.from)), colorOf(t.from)], [' → ', INK], [up(nameOf(t.to)), colorOf(t.to)]], num(t.cents)); sub('a pagar'); }
     for (const e of pays) { row([[up(nameOf(e.payer)), colorOf(e.payer)], [' → ', INK], [up(nameOf(e.among[0])), colorOf(e.among[0])]], num(Math.round(e.amount*100)), { paid: true }); sub(`pago em ${new Date(e.at).toLocaleDateString('pt-BR')}`); }
     hr(); sec('ITENS');
@@ -424,9 +424,9 @@
       row([[up(e.desc), INK]], num(Math.round(e.amount*100)));
       sub(`${nameOf(e.payer)} pagou · ${loan ? `${e.among.map(nameOf).join(', ')} deve${e.among.length===1?'':'m'} tudo` : '÷' + e.among.length}`); }
     hr();
-    font("700 22px 'Courier Prime'"); x.fillStyle = INK; x.textAlign = 'left'; x.fillText('TOTAL DA MESA', L, y + 8); x.textAlign = 'right'; x.fillText(money(totalCents/100), R, y + 8); y += 48;
+    font("700 22px 'Courier Prime'"); x.fillStyle = INK; x.textAlign = 'left'; x.fillText('TOTAL', L, y + 8); x.textAlign = 'right'; x.fillText(money(totalCents/100), R, y + 8); y += 48;
     hr();
-    center('OBRIGADO, VOLTE SEMPRE', "14px 'Courier Prime'"); y += 24; center('* * *', "14px 'Courier Prime'"); y += 24;
+    center('OBRIGADO, VOLTE SEMPRE!', "14px 'Courier Prime'"); y += 24; center('* * *', "14px 'Courier Prime'"); y += 24;
     // código de barras
     x.fillStyle = INK; let bx = W/2 - 110; const pat = [2,2,3,2,1,4,2,3,1,2,4,1,2,2,3,1,2,4,1,3];
     for (let i = 0; bx < W/2 + 110; i++) { const w = pat[i % pat.length]; if (i % 2 === 0) x.fillRect(bx, y, w, 40); bx += w; }
@@ -447,7 +447,7 @@
   $('#waBtn').onclick = async () => {
     const btn = $('#waBtn'); btn.disabled = true; toast('Gerando a imagem…');
     try {
-      const blob = await renderReceipt(); const file = new File([blob], `mesa-${roomName || 'grupo'}.png`, { type: 'image/png' });
+      const blob = await renderReceipt(); const file = new File([blob], `evento-${roomName || 'grupo'}.png`, { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try { await navigator.share({ files: [file], text: summaryText() }); return; } catch (e) { if (e.name === 'AbortError') return; }
       }

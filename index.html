@@ -575,6 +575,7 @@
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 
     // legenda de cores
+    center('*** QUEM TÁ ***'); blank();
     { let col = 2, t = '  '; for (const p of state.people) { const pn = fit(nameOf(p.id), COLS - 2);
         if (col + pn.length > COLS) { line(t.trimEnd(), INK2); col = 2; t = '  '; }
         mark(col, pn.length, markOf(p.id)); t += pn + '  '; col += pn.length + 2; }
@@ -582,6 +583,7 @@
     blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo
+    blank(); center('*** ITENS ***'); blank();
     const VW = 10;
     const leader = (l, v) => { l = fit(l, COLS - VW - 2); const dots = '.'.repeat(Math.max(1, COLS - l.length - v.length - 2)); return `${l} ${dots} ${v}`; };
     if (!items.length) line('NADA ANOTADO');

@@ -575,15 +575,15 @@
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
     center(`*** TÔ LISA(O) ***`);
-    x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('quem me deve?', W/2, y); y += LH;
+    x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisao', W/2, y); y += LH;
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 
     // legenda de cores
-    center('*** QUEM TÁ ***'); blank();
-    { let col = 2, t = '  '; for (const p of state.people) { const pn = fit(nameOf(p.id), COLS - 2);
-        if (col + pn.length > COLS) { line(t.trimEnd(), INK2); col = 2; t = '  '; }
-        mark(col, pn.length, markOf(p.id)); t += pn + '  '; col += pn.length + 2; }
-      if (t.trim()) line(t.trimEnd(), INK2); }
+    center('*** MEMBROS ***'); blank();
+    { const rows = [[]]; let len = 0; for (const p of state.people) { const pn = fit(nameOf(p.id), COLS);
+        if (len && len + 2 + pn.length > COLS) { rows.push([]); len = 0; } rows[rows.length - 1].push({ t: pn, id: p.id }); len += (len ? 2 : 0) + pn.length; }
+      for (const row of rows) { const w = row.reduce((a, g) => a + g.t.length, 0) + 2 * (row.length - 1); let col = Math.floor((COLS - w) / 2), t = ' '.repeat(col);
+        for (const g of row) { mark(col, g.t.length, markOf(g.id)); t += g.t + '  '; col += g.t.length + 2; } line(t.trimEnd(), INK2); } }
     blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo
@@ -606,10 +606,10 @@
     blank();
     line(leader('TOTAL', 'R$ ' + numBig(totalCents)), INK2);
     dash();
-    blank(); center('VALEU, PAI!'); center('* * *', false);
+    blank(); center('* * *');
     { const widths = code128Widths('420420420420'); const units = [...widths].reduce((a, c) => a + +c, 0); const BW = 240, BH = 40, k = BW / units; let bx = W/2 - BW/2;
       x.fillStyle = INK; for (let i = 0; i < widths.length; i++) { const w = +widths[i] * k; if (i % 2 === 0) x.fillRect(bx, y - 8, w, BH); bx += w; } y += BH + 4; }
-    x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisao', W/2, y + 16); y += LH + 6;
+    y += 10;
 
     // papel na altura exata
     const H = y + M + 12;

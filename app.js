@@ -302,8 +302,14 @@
     $('#cancelBtn').onclick = closeOverlay;
   }
   function showGate(msg){
-    overlay(`<h1>Tô lisa(o)</h1><div class="c muted" style="text-transform:none">quem me deve?</div><div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código do evento'}</p>
-      <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código" required autofocus autocapitalize="none">
+    const intro = msg ? '' : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:2px 0 6px">tipo Splitwise, só que sem app e sem cadastro.</div>
+      <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
+        <div>1. anote quem pagou o quê e com quem dividiu</div>
+        <div>2. ela diz quem paga quem, com pix pronto</div>
+        <div>3. o código do evento é a senha</div>
+      </div>`;
+    overlay(`<h1>Tô lisa(o)</h1><div class="c muted" style="text-transform:none">quem me deve?</div>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código pra entrar. não existe ainda? a página cria na hora.'}</p>
+      <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`, true);
     $('#gateForm').onsubmit = async ev => {
       ev.preventDefault();

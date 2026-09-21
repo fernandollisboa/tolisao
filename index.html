@@ -78,7 +78,8 @@
   code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
   #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} 
   #mineRows .row.sub{font-size:17px;color:var(--ink2);line-height:1.5} #mineRows .row.sub .v{font-size:17px}
-  #mineRows .acts{justify-content:flex-start;padding-left:22px;margin:0 0 6px} #mineRows .acts button.small{gap:4px}
+  #mineRows .row.sub .l{white-space:normal;overflow:visible;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;max-width:72%} #mineRows .row.sub .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .acts{display:inline-flex;gap:6px;align-items:center} button.ico{padding:0 6px;height:26px;display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:1;letter-spacing:0;color:var(--ink)} button.ico svg{display:block}
   #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
   .row.mine{background:rgba(0,0,0,.055);margin:0 -8px;padding:0 8px;border-radius:3px}
   .pixi svg{vertical-align:-2px}
@@ -303,8 +304,10 @@
     const hasMe = me && state.people.some(p => p.id === me);
     if (hasMe) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
-      const stMe = settlements(balances()); const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(`&nbsp;&nbsp;${nm(t.from)}`, fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`&nbsp;&nbsp;${nm(t.to)}`, fmt(t.cents/100), 'sub') + `<div class="small acts">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>`) : [];
-      const hdr = who.length ? `<div class="row hdr"><span class="l">&nbsp;&nbsp;quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
+      const stMe = settlements(balances());
+      const acts = t => `<span class="acts">${pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : ''}<button class="ico" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei">✔</button></span>`;
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span>${acts(t)}`, fmt(t.cents/100), 'sub')) : [];
+      const hdr = who.length ? `<div class="row hdr"><span class="l">quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">cadastrar chave pix <span class="pixi">${PIX_SVG}</span></a>`) : '';

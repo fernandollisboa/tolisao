@@ -318,7 +318,7 @@
     else $('#mine').classList.add('hidden');
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     $('#pixLine').innerHTML = !hasMe ? '' : !pixKeys[me] ? `<a class="link go" id="pixBtn">cadastrar chave pix</a>`
-      : `<a class="link dim" id="pixBtn" title="alterar chave pix" style="text-decoration:none"><span class="pixi">${PIX_SVG}${KEY_SVG}${OK_SVG}</span></a>`;
+      : `<button class="ico ok" id="pixBtn" title="alterar chave pix" style="height:24px">${PIX_SVG}${KEY_SVG} ✔</button>`;
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 

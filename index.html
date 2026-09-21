@@ -61,7 +61,7 @@
   input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}
   input::placeholder{color:#9a8a6a;text-transform:uppercase}
   form{display:grid;gap:10px}
-  .two{display:grid;grid-template-columns:1fr 120px;gap:10px}
+  .two{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:end}
   .chips{display:flex;gap:8px;flex-wrap:wrap}
   .chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);padding:2px 10px;font-size:17px;cursor:pointer;user-select:none;text-transform:uppercase;background:transparent}
   .chip input{width:auto;margin:0;accent-color:var(--ink)}
@@ -77,6 +77,14 @@
   #overlay .paper{max-width:380px;width:100%;padding:24px 20px}
   #sheet .paper{max-width:760px;width:100%;border-radius:0;padding:20px 18px 32px;max-height:90vh;overflow:auto}
   code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
+  .row.mine{background:rgba(0,0,0,.055);margin:0 -8px;padding:0 8px;border-radius:3px}
+  .pixi svg{vertical-align:-2px}
+  .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
+  .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
+  #amount{font-size:30px;letter-spacing:1px}
+  .shares{display:grid;gap:6px}
+  .shares .row{font-size:18px;line-height:1.4;align-items:center}
+  .shares input{width:110px;text-align:right;padding:4px}
   .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;text-transform:uppercase}
   .toast.show{opacity:1}
 </style>
@@ -88,7 +96,7 @@
   <div class="stain"></div>
   <h1>Tô lisa</h1>
   <div class="c">Evento: <a class="link" id="roomLabel">—</a><br><span id="whoLine"></span></div>
-  <div class="status" id="status"></div>
+  <div class="c muted" id="meLine" style="text-transform:none;font-size:16px;margin-top:4px"></div>
   <div class="hr"></div>
 
   <h2>*** Acerto ***</h2>
@@ -107,6 +115,7 @@
   <div class="c" style="text-transform:none">Quem tá no evento: <span id="peopleLine"></span> · <a class="link" id="addPerson">+ pessoa</a></div>
   <div class="c" style="margin-top:14px">Obrigado, volte sempre!<br>* * *</div>
   <div class="bars"></div>
+  <div class="status" id="status"></div>
   <div class="c" style="margin-top:14px;text-transform:none;font-size:12px"><a class="link" id="shareBtn">Copiar link</a><br><span class="muted">Quem abrir o link já cai neste evento.</span></div>
 </div>
 
@@ -114,10 +123,12 @@
 <div id="sheet" class="hidden"><div class="paper">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0">Anotar</h2><button id="sheetClose" class="ghost">fechar</button></div>
   <form id="expenseForm">
-    <div class="two"><input id="desc" placeholder="O quê?" required maxlength="60"><input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required inputmode="decimal"></div>
+    <div class="two"><input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required inputmode="decimal"><input id="desc" placeholder="O quê?" required maxlength="60"></div>
     <select id="payer" required></select>
     <div class="chips" id="splitChips"></div>
+    <div id="sharesBox" class="shares hidden"></div>
     <div class="muted" id="splitHint"></div>
+    <div class="muted" style="text-transform:none"><a class="link" id="modeToggle">dividir em partes diferentes</a></div>
     <button class="big">Anotar</button>
   </form>
 </div></div>
@@ -195,11 +206,15 @@
 
   // ---------- contas ----------
   function shares(cents, ids){ const base = Math.floor(cents/ids.length), rem = cents - base*ids.length; const o={}; ids.forEach((id,i)=>o[id]=base+(i<rem?1:0)); return o; }
+  const shareOf = (e, ids) => { if (e.shares) { const o = {}; for (const id of ids) o[id] = e.shares[id] || 0; return o; } return shares(Math.round(e.amount*100), ids); };
+  const howText = (e, name = nameOf) => { const loan = !e.among.includes(e.payer);
+    if (e.shares) return e.among.map(id => `${name(id)} ${fmt((e.shares[id]||0)/100)}`).join(', ');
+    return loan ? `${e.among.map(name).join(', ')} deve${e.among.length===1?'':'m'} tudo` : `÷${e.among.length}`; };
   function balances(){
     const b = {}; state.people.forEach(p => b[p.id] = 0);
     for (const e of state.expenses) {
       const ids = e.among.filter(id => id in b); if (!ids.length || !(e.payer in b)) continue;
-      const cents = Math.round(e.amount*100); b[e.payer] += cents; const sh = shares(cents, ids); for (const id of ids) b[id] -= sh[id];
+      const cents = Math.round(e.amount*100); b[e.payer] += cents; const sh = shareOf(e, ids); for (const id of ids) b[id] -= sh[id];
     }
     return b;
   }
@@ -217,7 +232,11 @@
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
   let showAll = false;
+  let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
+  const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };
+  window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
   // ---------- pix ----------
+  const PIX_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>';
   let pixKeys = {};                 // personId -> chave (lida do banco)
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
@@ -253,7 +272,8 @@
     const p = tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('01', key)) + tlv('52', '0000') + tlv('53', '986') + tlv('54', (cents/100).toFixed(2)) + tlv('58', 'BR') + tlv('59', nm) + tlv('60', 'BRASIL') + tlv('62', tlv('05', '***')) + '6304';
     return p + crc16(p);
   }
-  const money = n => `${CURRENCY} ${Math.abs(n).toFixed(2).replace('.', ',')}`;
+  const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
+  const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   function render(){
@@ -264,7 +284,10 @@
     $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn">${esc(nameOf(me))}</a>` : `<a class="link" id="whoBtn">Quem é você?</a>`;
     $('#whoBtn').onclick = showWho;
     const hasMe = me && state.people.some(p => p.id === me);
-    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `minha chave pix ✔ · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">cadastrar minha chave pix</a>`) : '';
+    if (hasMe) { let paid = 0, part = 0; for (const e of state.expenses) { if (e.kind === 'payment') continue; const c = Math.round(e.amount*100); if (e.payer === me) paid += c; const ids = e.among.filter(id => state.people.some(p => p.id === id)); if (ids.includes(me)) part += shareOf(e, ids)[me] || 0; }
+      const bal = balances()[me] || 0; $('#meLine').innerHTML = `Você pagou ${money(paid/100)} · sua parte foi ${money(part/100)}<br>${bal > 0 ? 'recebe ' + money(bal/100) : bal < 0 ? 'deve ' + money(-bal/100) : 'quites'}`; }
+    else $('#meLine').textContent = '';
+    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `<span class="pixi">${PIX_SVG}</span> minha chave pix ✔ · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn"><span class="pixi">${PIX_SVG}</span> cadastrar minha chave pix</a>`) : '';
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 
@@ -280,32 +303,50 @@
 
     const b = balances();
     const line = (l, v, cls='', extra='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span>${extra}</div>`;
-    const num = c => `${Math.abs(c/100).toFixed(2).replace('.', ',')}`;
+    const num = c => fmt(c/100);
 
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
-    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents)) +
-        (t.from === me ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
-      + pays.map(e => line(`${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
+    $('#settle').innerHTML = (s.map(t => line(`${t.from === me ? '▶ ' : ''}${nm(t.from)} → ${nm(t.to)}`, num(t.cents), t.from === me ? 'mine' : '') +
+        (t.from === me ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+      + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
     const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 10);
+    const dayOf = e => new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+    const days = new Set(all.map(dayOf)); let lastDay = null;
     $('#expenses').innerHTML = list.map(e => {
-      const loan = !e.among.includes(e.payer);
-      const how = loan ? `${nmList(e.among)} deve${e.among.length===1?'':'m'} tudo` : `÷${e.among.length}`;
-      return line(esc(e.desc), num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${nmByName(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
+      const how = howText(e, id => nm(id));
+      const isNew = lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me));
+      let head = ''; if (days.size > 1) { const d = dayOf(e); if (d !== lastDay) { head = `<div class="day">${esc(d)}</div>`; lastDay = d; } }
+      return head + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${nmByName(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     $('#total').textContent = money(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
+  let splitMode = 'equal';
+  const customShares = () => { const o = {}; for (const i of document.querySelectorAll('#sharesBox input')) o[i.dataset.share] = Math.round((parseFloat(i.value) || 0) * 100); return o; };
   function updateHint(){
     const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value);
-    const payer = $('#payer').value; const h = $('#splitHint');
+    const payer = $('#payer').value; const h = $('#splitHint'); const total = Math.round((parseFloat($('#amount').value) || 0) * 100);
+    $('#modeToggle').textContent = splitMode === 'equal' ? 'dividir em partes diferentes' : 'voltar pra partes iguais';
+    $('#sharesBox').classList.toggle('hidden', splitMode !== 'custom');
+    if (splitMode === 'custom') {
+      const prev = customShares();
+      $('#sharesBox').innerHTML = among.map(id => `<div class="row"><span class="l">${nm(id)}</span><span class="d"></span><input type="number" step="0.01" min="0" inputmode="decimal" placeholder="0,00" data-share="${id}" value="${prev[id] ? (prev[id]/100).toFixed(2) : ''}"></div>`).join('');
+      const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
+      h.textContent = !among.length ? 'Marque quem divide esse gasto.' : `Partes somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`;
+      return;
+    }
     if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
     else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
     else h.textContent = `Dividido igualmente entre ${among.length} pessoa${among.length===1?'':'s'}.`;
   }
+  $('#modeToggle').onclick = () => { splitMode = splitMode === 'equal' ? 'custom' : 'equal'; updateHint(); };
+  $('#amount').addEventListener('input', () => { if (splitMode === 'custom') updateHint(); });
+  document.addEventListener('input', ev => { if (ev.target.matches('#sharesBox input')) { const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value); const total = Math.round((parseFloat($('#amount').value) || 0) * 100); const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
+    $('#splitHint').textContent = `Partes somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`; } });
 
   // ---------- telas ----------
   const overlay = (html) => { $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
@@ -362,7 +403,7 @@
     await openGroup(code, id);
   }
   async function openGroup(code, id){
-    roomName = code; groupId = id; me = ls.get(meKey());
+    roomName = code; groupId = id; me = ls.get(meKey()); lastSeen = +ls.get(seenKey()) || 0; showAll = false;
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
     pixKeys = {};
@@ -399,8 +440,12 @@
   $('#expenseForm').onsubmit = ev => { ev.preventDefault();
     const among = [...document.querySelectorAll('#splitChips input:checked')].map(i => i.value); const amount = parseFloat($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro'); if (!among.length) return toast('Marque quem divide esse gasto'); if (!(amount > 0)) return toast('Valor inválido');
-    state.expenses.push({ id: uid(), desc: $('#desc').value.trim(), amount: Math.round(amount*100)/100, payer: $('#payer').value, among, at: Date.now(), by: me ? nameOf(me) : undefined });
-    $('#desc').value = ''; $('#amount').value = ''; closeSheet(); commit(); toast('Anotado!'); };
+    const exp = { id: uid(), desc: $('#desc').value.trim(), amount: Math.round(amount*100)/100, payer: $('#payer').value, among, at: Date.now(), by: me ? nameOf(me) : undefined };
+    if (splitMode === 'custom') { const sh = customShares(); const total = Math.round(amount*100); const sum = among.reduce((a, id) => a + (sh[id] || 0), 0);
+      if (sum !== total) return toast(sum < total ? `Faltam ${money((total-sum)/100)} nas partes` : `Sobram ${money((sum-total)/100)} nas partes`);
+      exp.shares = {}; for (const id of among) exp.shares[id] = sh[id] || 0; }
+    state.expenses.push(exp);
+    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; closeSheet(); commit(); toast('Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
@@ -444,7 +489,7 @@
     const L = M + P; let y = M + 12 + 50;
     const up = t => String(t).toUpperCase();
     const fit = (t, n) => { t = up(t); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + '…' : t; };
-    const num = cents => Math.abs(cents/100).toFixed(2).replace('.', ',');
+    const num = cents => fmt(cents/100);
     const numBig = cents => { const [i, d] = (Math.abs(cents)/100).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
     const line = (t, col = INK) => { x.fillStyle = col; x.textAlign = 'left'; x.fillText(t, L, y); y += LH; };
     const center = (t, hl) => { x.textAlign = 'center'; if (hl) { const w = x.measureText(t).width + 16; x.fillStyle = HL; x.fillRect(W/2 - w/2, y - FS*0.75, w, FS*0.95); } x.fillStyle = INK; x.fillText(t, W/2, y); y += LH; };
@@ -462,7 +507,8 @@
     const VW = 10, TW = Math.floor((COLS - VW - 2) / 2), FW = COLS - VW - 2 - TW;
     line('QUEM'.padEnd(FW) + ' ' + 'PRA QUEM'.padEnd(TW) + ' ' + 'VALOR'.padStart(VW)); dash();
     if (!st.length && !pays.length) line('TUDO QUITADO'.padStart(Math.floor((COLS + 12)/2)));
-    for (const t of st) line(fit(nameOf(t.from), FW).padEnd(FW) + ' ' + fit(nameOf(t.to), TW).padEnd(TW) + ' ' + num(t.cents).padStart(VW));
+    for (const t of st) { line(fit(nameOf(t.from), FW).padEnd(FW) + ' ' + fit(nameOf(t.to), TW).padEnd(TW) + ' ' + num(t.cents).padStart(VW));
+      if (pixKeys[t.to]) line('  ' + fit(`PIX: ${pixKeys[t.to]}`, COLS - 2), INK2); }
     for (const e of pays) { const t = fit(nameOf(e.payer), FW).padEnd(FW) + ' ' + fit(nameOf(e.among[0]), TW).padEnd(TW) + ' ' + num(Math.round(e.amount*100)).padStart(VW);
       const yy = y; line(t, INK2); x.strokeStyle = INK2; x.lineWidth = 2; x.beginPath(); x.moveTo(L, yy - FS*0.32); x.lineTo(L + x.measureText(t).width, yy - FS*0.32); x.stroke();
       line(`  PAGO EM ${new Date(e.at).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'})}`, INK2); }
@@ -471,9 +517,9 @@
     // itens: descrição ...... valor, com quem pagou embaixo
     const leader = (l, v) => { l = fit(l, COLS - VW - 2); const dots = '.'.repeat(Math.max(1, COLS - l.length - v.length - 2)); return `${l} ${dots} ${v}`; };
     if (!items.length) line('NADA ANOTADO');
-    for (const e of items) { const n = e.among.length, cents = Math.round(e.amount*100); const loan = !e.among.includes(e.payer);
+    for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
-      line('  ' + fit(`${nameOf(e.payer)} pagou · ${loan ? `${e.among.map(nameOf).join(', ')} deve${n===1?'':'m'} tudo` : '÷' + n}`, COLS - 2), INK2); }
+      line('  ' + fit(`${nameOf(e.payer)} pagou · ${howText(e)}`, COLS - 2), INK2); }
     blank();
     line(leader('TOTAL', numBig(totalCents)), INK2);
     dash();

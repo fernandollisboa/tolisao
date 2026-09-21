@@ -80,7 +80,7 @@
   #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} 
   #mineRows .row.sub{font-size:17px;color:var(--ink2);line-height:1.5} #mineRows .row.sub .v{font-size:17px}
   #mineRows .row.sub .l{white-space:normal;overflow:visible;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;max-width:72%} #mineRows .row.sub .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-  .acts{display:inline-flex;gap:8px;align-items:center;min-height:26px} .spin{width:14px;height:14px;border:2px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block} @keyframes spin{to{transform:rotate(360deg)}} button.ico{padding:0 6px;height:26px;display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:1;letter-spacing:0;color:var(--ink)} button.ico svg{display:block} button.ico.ok{color:var(--green);border-color:var(--green)}
+  .acts{display:inline-flex;gap:8px;align-items:center;min-height:26px} .spin{width:14px;height:14px;border:2px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block} @keyframes spin{to{transform:rotate(360deg)}} button.ico{padding:0 6px;height:26px;display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:1;letter-spacing:0;color:var(--ink)} button.ico svg{display:block} button.ico.ok{color:var(--green);border-color:var(--green)} button.ico.amb{color:#9a5b00;border-color:#9a5b00}
   .link.dim{opacity:.5;font-size:13px} .link.dim svg{width:12px;height:12px} .link.go{color:var(--green);font-size:17px}
   #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:8px}
   #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
@@ -317,7 +317,7 @@
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     const myBal = hasMe ? (balances()[me] || 0) : 0;
-    $('#pixLine').innerHTML = !hasMe ? '' : !pixKeys[me] ? `<a class="link go" id="pixBtn">cadastrar chave pix</a>`
+    $('#pixLine').innerHTML = !hasMe ? '' : !pixKeys[me] ? `<button class="ico amb" id="pixBtn" style="height:24px">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`
       : `<button class="ico ok" id="pixBtn" title="alterar chave pix" style="height:24px">${PIX_SVG}${KEY_SVG} ✔</button>`;
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';

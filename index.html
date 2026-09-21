@@ -66,7 +66,8 @@
   .chip input{width:auto;margin:0;accent-color:var(--ink)}
   .chip.on{background:var(--ink);color:var(--paper)}
   .muted{color:var(--muted);font-size:17px}
-  .status{font-size:15px;color:var(--muted);text-transform:uppercase;text-align:center}
+  .status{font-size:15px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:6px}
+  .status:empty{display:none}
   .status.err{color:var(--red)}
   .hidden{display:none !important}
   .fab{position:fixed;left:50%;transform:translateX(-50%) rotate(-1.5deg);bottom:22px;z-index:8;background:var(--paper);border:3px solid var(--ink);padding:12px 22px;font-size:22px;letter-spacing:1px;box-shadow:6px 6px 0 var(--ink);border-radius:0;text-transform:uppercase}
@@ -85,8 +86,8 @@
 <div class="paper" id="app">
   <div class="stain"></div>
   <h1>Tô lisa</h1>
-  <div class="c">Evento: <span id="roomLabel">—</span><br><span id="dateLine"></span><br><span id="whoLine"></span></div>
-  <div class="status" id="status" style="margin-top:6px"></div>
+  <div class="c">Evento: <a class="link" id="roomLabel">—</a><br><span id="whoLine"></span></div>
+  <div class="status" id="status"></div>
   <div class="hr"></div>
 
   <h2>*** Acerto ***</h2>
@@ -136,7 +137,7 @@
 
   let groupId = null, roomName = '', state = null, me = null, pollTimer = null, saving = false;
 
-  const fresh = () => ({ v:2, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
+  const fresh = (name = '') => ({ v:2, name, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
   const cacheKey = () => `racha:${groupId}`;
   const cacheSave = () => ls.set(cacheKey(), JSON.stringify(state));
   const cacheLoad = () => { try { return JSON.parse(ls.get(cacheKey())); } catch { return null; } };
@@ -149,14 +150,14 @@
     const byId = list => { const m = new Map(); for (const x of list||[]) if (!deleted.has(x.id)) m.set(x.id, x); return m; };
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
-    return { v:2, updatedAt: Math.max(a.updatedAt||0, b.updatedAt||0),
+    return { v:2, name: a.name || b.name || '', updatedAt: Math.max(a.updatedAt||0, b.updatedAt||0),
       people:[...people.values()].sort((x,y)=>(x.at||0)-(y.at||0)),
       expenses:[...expenses.values()].sort((x,y)=>x.at-y.at),
       deleted:[...deleted].slice(-500) };
   }
 
   // ---------- remoto ----------
-  const setStatus = (msg, err) => { const el = $('#status'); el.textContent = msg; el.classList.toggle('err', !!err); };
+  const setStatus = (msg, err) => { const el = $('#status'); el.textContent = err ? msg : ''; el.classList.toggle('err', !!err); };
   const roomUrl = id => `${DB}/rooms/${id}.json`;
   async function apiGet(id){
     const r = await fetch(roomUrl(id), { cache:'no-store' });
@@ -211,6 +212,8 @@
   const PALETTE = ['#8b1a1a','#1f4e9c','#a3510a','#15703a','#5b21b6','#0f6b6b','#8a1a6b','#5a4a1a','#374151','#7a2d0c'];
   const colorOf = id => PALETTE[Math.max(0, state.people.findIndex(p => p.id === id)) % PALETTE.length];
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
+  const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
+  const nmList = ids => ids.map(nm).join(', ');
   let showAll = false;
   // ---------- pix ----------
   let pixKeys = {};                 // personId -> chave (lida do banco)
@@ -255,7 +258,7 @@
     if (!state) return;
     $('#roomLabel').textContent = roomName || '—';
     document.title = roomName ? `${roomName} · Tô lisa` : 'Tô lisa';
-    $('#dateLine').textContent = new Date().toLocaleDateString('pt-BR');
+    $('#roomLabel').onclick = showEvents;
     $('#whoLine').innerHTML = me && state.people.some(p => p.id === me)
       ? `Sou <a class="link" id="whoBtn">${esc(nameOf(me))}</a> · <a class="link" id="pixBtn">${pixKeys[me] ? 'pix ✔' : 'cadastrar pix'}</a>`
       : `<a class="link" id="whoBtn">Quem é você?</a>`;
@@ -279,7 +282,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents)) +
-        (t.from === me ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}">copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+        (t.from === me ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
 
@@ -287,8 +290,8 @@
     const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 10);
     $('#expenses').innerHTML = list.map(e => {
       const loan = !e.among.includes(e.payer);
-      const how = loan ? `${listNames(e.among)} deve${e.among.length===1?'':'m'} tudo` : `÷${e.among.length}`;
-      return line(esc(e.desc), num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${esc(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
+      const how = loan ? `${nmList(e.among)} deve${e.among.length===1?'':'m'} tudo` : `÷${e.among.length}`;
+      return line(esc(e.desc), num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${nmByName(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     $('#total').textContent = money(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
@@ -347,8 +350,8 @@
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
     if (!existing) {
       if (!seed && !confirm(`Não existe grupo com o código "${code}". Criar um grupo novo com esse código?`)) throw new Error('Confira o código.');
-      let data = fresh();
-      if (seed) { try { data = { ...fresh(), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), updatedAt: Date.now() }; } catch {} }
+      let data = fresh(code);
+      if (seed) { try { data = { ...fresh(code), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), name: code, updatedAt: Date.now() }; } catch {} }
       await apiPut(id, data);
       if (seed) history.replaceState(null, '', location.pathname);
     }
@@ -359,10 +362,24 @@
     roomName = code; groupId = id; me = ls.get(meKey());
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
-    try { const remote = await apiGet(groupId); state = merge(state, remote); cacheSave(); render(); setStatus('Sincronizado'); }
-    catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(); render(); } setStatus('Offline · ' + e.message, true); }
+    pixKeys = {};
+    try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
+    catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync(); loadPixKeys();
+  }
+  async function listEvents(){
+    const r = await fetch(`${DB}/rooms.json?shallow=true`, { cache:'no-store' }); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const ids = Object.keys((await r.json()) || {});
+    const names = await Promise.all(ids.map(async id => { try { const rr = await fetch(`${DB}/rooms/${id}/name.json`, { cache:'no-store' }); return rr.ok ? await rr.json() : null; } catch { return null; } }));
+    return ids.map((id, i) => ({ id, name: names[i] })).filter(e => typeof e.name === 'string' && e.name).sort((a, b) => a.name.localeCompare(b.name));
+  }
+  function showEvents(){
+    overlay(`<h2 style="margin-top:0">Eventos</h2><div id="evList" class="c" style="text-transform:none;line-height:2">carregando…</div>
+      <div class="c" style="margin-top:14px"><button id="evNew" class="ghost">+ novo evento</button> · <button id="evBack" class="ghost">voltar</button></div>`);
+    $('#evNew').onclick = () => showGate('Código do novo evento:'); $('#evBack').onclick = closeOverlay;
+    listEvents().then(list => { $('#evList').innerHTML = list.map(e => `<div><a class="link" data-ev="${esc(e.name)}">${esc(e.name)}</a>${e.id === groupId ? ' <span class="muted">(atual)</span>' : ''}</div>`).join('') || 'nenhum evento ainda'; })
+      .catch(e => { $('#evList').textContent = 'Não consegui listar: ' + e.message + '. Regras do banco atualizadas?'; });
   }
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 
@@ -384,6 +401,8 @@
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
+    const evl = ev.target.closest('[data-ev]');
+    if (evl) { const code = evl.dataset.ev; if (code === roomName) return closeOverlay(); $('#evList').textContent = 'abrindo…'; enterRoom(code).catch(e => toast(e.message)); return; }
     const px = ev.target.closest('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => prompt('Copie o código Pix:', code)); }

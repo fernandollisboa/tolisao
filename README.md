@@ -24,7 +24,7 @@ Regras do banco (Realtime Database → Regras):
 ```json
 {
   "rules": {
-    "rooms": { "$room": { ".read": true, ".write": true } },
+    "rooms": { ".read": true, "$room": { ".write": true } },
     "pix": {
       "$room": {
         "$person": {
@@ -38,7 +38,7 @@ Regras do banco (Realtime Database → Regras):
 }
 ```
 
-Quem tem o código lê e escreve no grupo. Não guarde nada sensível.
+Quem tem o código lê e escreve no grupo. A leitura em `rooms` permite listar os eventos (o nome de cada sala fica em `rooms/<sala>/name`). Não guarde nada sensível.
 
 ### Chave Pix
 

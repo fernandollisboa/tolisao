@@ -496,7 +496,7 @@
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
       if (!(await ask('Quitar?', `${esc(nameOf(from))} pagou ${money(amount)} pra ${esc(nameOf(to))}`, 'quitei'))) return;
       state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); toast('Quitado!');
-      window.open('https://wa.me/?text=' + encodeURIComponent('```' + `✔ ${nameOf(from).toUpperCase()} → ${nameOf(to).toUpperCase()} ${fmt(amount)}` + '```' + `\npaguei 👍\n${shareUrl()}`), '_blank', 'noopener'); }
+      window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${roomName}* 👍\n${shareUrl()}`), '_blank', 'noopener'); }
     const de = ev.target.closest('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!e) return;
       if (!(await ask('Excluir item?', `${esc(e.desc)} · ${money(e.amount)}`, 'excluir'))) return;
@@ -507,14 +507,9 @@
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { showCopy('Link do evento', url); } };
   function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
   function summaryText(){
-    const st = settlements(balances()); const COLS = 30;
-    const up = t => String(t).toUpperCase();
-    const fit = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
-    const leader = (l, v) => { l = fit(l, COLS - v.length - 2); return `${l} ${'.'.repeat(Math.max(1, COLS - l.length - v.length - 2))} ${v}`; };
-    const L = ['*tô lisa · quem me deve?* 🧾', '```', '*** TÔ LISA ***', up(roomName || 'acerto'), ''];
-    if (!st.length) L.push('TUDO QUITADO'); else for (const t of st) L.push(leader(`${up(nameOf(t.from))} → ${up(nameOf(t.to))}`, fmt(t.cents/100)));
-    L.push('```', shareUrl());
-    return L.join('\n');
+    const st = settlements(balances()); const ev = roomName || 'acerto';
+    if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl()}`;
+    return [`🧾 acerto do *${ev}*`, '', ...st.map(t => `💸 ${nameOf(t.from)} paga ${money(t.cents/100)} pra ${nameOf(t.to)}`), '', `tudo aqui 👉 ${shareUrl()}`].join('\n');
   }
   // ---------- imagem da comanda (canvas) ----------
   async function renderReceipt(){

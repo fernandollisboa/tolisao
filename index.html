@@ -326,7 +326,7 @@
     $('#settle').innerHTML = (s.map(t => line(`${t.from === me ? '▶ ' : ''}${nm(t.from)} → ${nm(t.to)}`, num(t.cents), t.from === me ? 'mine' : '') +
         (t.from === me ? `<div class="small"><span style="display:flex;gap:8px;flex-wrap:wrap">${pixKeys[t.to] ? `<button class="small" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}<button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></span></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
-        `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
+        `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''}</div>`).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
     const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 10);
@@ -497,7 +497,7 @@
       window.open('https://wa.me/?text=' + encodeURIComponent('```' + `✔ ${nameOf(from).toUpperCase()} → ${nameOf(to).toUpperCase()} ${fmt(amount)}` + '```' + `\npaguei 👍\n${shareUrl()}`), '_blank', 'noopener'); }
     const de = ev.target.closest('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!e) return;
-      if (!(await ask(e.kind === 'payment' ? 'Desfazer quitação?' : 'Excluir item?', e.kind === 'payment' ? `${esc(nameOf(e.payer))} → ${esc(nameOf(e.among[0]))} ${fmt(e.amount)}` : `${esc(e.desc)} · ${money(e.amount)}`, e.kind === 'payment' ? 'desfazer' : 'excluir'))) return;
+      if (!(await ask('Excluir item?', `${esc(e.desc)} · ${money(e.amount)}`, 'excluir'))) return;
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
   });
   const shareUrl = () => `${location.origin}${location.pathname}#c=${encodeURIComponent(roomName)}`;

@@ -81,7 +81,8 @@
   #mineRows .row.sub{font-size:17px;color:var(--ink2);line-height:1.5} #mineRows .row.sub .v{font-size:17px}
   #mineRows .row.sub .l{white-space:normal;overflow:visible;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;max-width:72%} #mineRows .row.sub .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .acts{display:inline-flex;gap:8px;align-items:center;min-height:26px} .spin{width:14px;height:14px;border:2px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block} @keyframes spin{to{transform:rotate(360deg)}} button.ico{padding:0 6px;height:26px;display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:1;letter-spacing:0;color:var(--ink)} button.ico svg{display:block} button.ico.ok{color:var(--green);border-color:var(--green)}
-  .link.dim{opacity:.5;font-size:13px} .link.go{color:var(--green);font-size:17px} .link.ul .pixi{border-bottom:1.5px solid currentColor;padding-bottom:2px}
+  .link.dim{opacity:.5;font-size:13px} .link.dim svg{width:12px;height:12px} .link.go{color:var(--green);font-size:17px}
+  #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:8px}
   #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
   .row.mine .l,.row.mine .v{background:linear-gradient(transparent 18%,#fff176 18%,#fff176 82%,transparent 82%);padding:0 4px;margin:0 -4px}
   .pixi{display:inline-flex;gap:3px;align-items:center;vertical-align:-2px} .pixi svg{display:block}
@@ -309,15 +310,15 @@
     if (hasMe) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
-      const acts = t => !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : `<span class="acts">${pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : ''}<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei">✔</button></span>`;
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span>${acts(t)}`, fmt(t.cents/100), 'sub')) : [];
+      const pixB = t => !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : pixKeys[t.to] ? `<span class="acts"><button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button></span>` : '';
+      const okB = t => pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei">✔</button>` : '';
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span>${pixB(t)}`, `${okB(t)}${fmt(t.cents/100)}`, 'sub')) : [];
       const hdr = who.length ? `<div class="row hdr"><span class="l">quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     const myBal = hasMe ? (balances()[me] || 0) : 0;
-    const pixIco = `<span class="pixi">${PIX_SVG}${KEY_SVG}${pixKeys[me] ? OK_SVG : NO_SVG}</span>`;
-    $('#pixLine').innerHTML = !hasMe ? '' : myBal > 0 && !pixKeys[me] ? `<a class="link go" id="pixBtn">cadastrar chave pix</a><div style="margin-top:4px">${pixIco}</div>`
-      : `<a class="link${myBal > 0 ? ' ul' : ' dim'}" id="pixBtn" title="${pixKeys[me] ? 'alterar chave pix' : 'cadastrar chave pix'}" style="text-decoration:none">${pixIco}</a>`;
+    $('#pixLine').innerHTML = !hasMe ? '' : !pixKeys[me] ? `<a class="link go" id="pixBtn">cadastrar chave pix</a>`
+      : `<a class="link dim" id="pixBtn" title="alterar chave pix" style="text-decoration:none"><span class="pixi">${PIX_SVG}${KEY_SVG}${OK_SVG}</span></a>`;
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 

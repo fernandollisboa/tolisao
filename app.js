@@ -182,11 +182,11 @@
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   // frases de boteco: sorteadas uma vez por abertura, escolhidas pelo estado da conta
   const SIGNOFF = {
-    owe: ['Paga logo, pai.', 'Fiado só amanhã.', 'Não aceitamos cheque.', 'A conta não se paga sozinha.', 'Bebeu, pagou.'],
-    owed: ['Cobra sem dó.', 'Quem deve, deve.', 'Juros só na amizade.', 'Fiado é confiança.'],
-    even: ['Tudo certo, volte sempre!', 'Casa limpa.', 'Valeu, pai!', 'Freguês bom é freguês quite.'],
-    all: ['Casa fechada, todo mundo quite.', 'Ninguém deve nada. Milagre.', 'Zerou. Bora abrir outra?'],
-    none: ['Valeu, pai!', 'Volte sempre!', 'Gorjeta não incluída.', 'Aberto até o último pagar.'],
+    owe: ['Paga logo, meu bem.', 'Fiado só amanhã, meu amor.', 'Não aceito cheque, viu?', 'A conta não se paga sozinha, meu rei.', 'Bebeu, pagou, minha flor.'],
+    owed: ['Cobra sem dó, meu bem.', 'Quem deve, deve, meu anjo.', 'Juros só na amizade, viu?', 'Fiado é confiança, meu amor.'],
+    even: ['Tudo certo, volte sempre, meu bem!', 'Casa limpa, meu amor.', 'Valeu, meu bem!', 'Deus te pague, meu rei.'],
+    all: ['Casa fechada, todo mundo quite. Benção!', 'Ninguém deve nada. Milagre, meu anjo.', 'Zerou. Bora abrir outra, meu bem?'],
+    none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
   };
   const luck = Math.random();
   const pick = list => list[Math.floor(luck * list.length)];
@@ -199,7 +199,7 @@
     $('#whoBtn').onclick = showWho;
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
-      if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'não devo a ninguém.';
+      if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'não devo a ninguém 🙏';
       if ($('#signoff')) $('#signoff').textContent = pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
     if (hasMe) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');

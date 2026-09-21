@@ -185,7 +185,7 @@
     owe: ['Paga logo, pai.', 'Fiado só amanhã.', 'Não aceitamos cheque.', 'A conta não se paga sozinha.', 'Bebeu, pagou.'],
     owed: ['Cobra sem dó.', 'Quem deve, deve.', 'Juros só na amizade.', 'Fiado é confiança.'],
     even: ['Tudo certo, volte sempre!', 'Casa limpa.', 'Valeu, pai!', 'Freguês bom é freguês quite.'],
-    all: ['Casa fechada, todo mundo quite 🍻', 'Ninguém deve nada. Milagre.', 'Zerou. Bora abrir outra?'],
+    all: ['Casa fechada, todo mundo quite.', 'Ninguém deve nada. Milagre.', 'Zerou. Bora abrir outra?'],
     none: ['Valeu, pai!', 'Volte sempre!', 'Gorjeta não incluída.', 'Aberto até o último pagar.'],
   };
   const luck = Math.random();
@@ -199,7 +199,7 @@
     $('#whoBtn').onclick = showWho;
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
-      $('#tagline').textContent = !hasMe ? 'quem me deve?' : bal > 0 ? 'quem me deve?' : bal < 0 ? 'tô devendo 😬' : 'tô quites 😎';
+      $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'não devo a ninguém.';
       $('#signoff').textContent = pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
     if (hasMe) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');

@@ -306,7 +306,7 @@
     const intro = msg ? '' : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">tipo Splitwise, só que sem app e sem cadastro.</div>
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
         <div>1. anote quem pagou o quê e com quem dividiu</div>
-        <div>2. ela diz quem paga quem, com pix pronto</div>
+        <div>2. o acerto sai sozinho, com o pix pra copiar</div>
         <div>3. o código do evento é a senha</div>
       </div>`;
     overlay(`<h1>Tô lisa(o)</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código pra entrar. não existe ainda? a página cria na hora.'}</p>

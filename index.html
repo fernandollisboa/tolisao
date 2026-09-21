@@ -100,7 +100,7 @@
   <div class="stain"></div>
   <h1>Tô lisa</h1>
   <div class="c muted" style="margin:-2px 0 6px;text-transform:none">quem me deve?</div>
-  <div class="c">Evento: <a class="link" id="roomLabel">—</a><br><span id="whoLine"></span></div>
+  <div class="c">Evento <a class="link" id="roomLabel">—</a><br><span id="whoLine"></span></div>
 
   <div class="hr"></div>
 
@@ -302,7 +302,7 @@
       $('#mine').classList.remove('hidden');
       $('#mineRows').innerHTML = ln('+ paguei', fmt(paid/100)) + ln('− minha parte', fmt(part/100)) + ln(bal > 0 ? '= me devem' : bal < 0 ? '= devo' : '= quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : ''); }
     else $('#mine').classList.add('hidden');
-    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `minha chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">minha chave pix 🔑 <span class="pixi">${PIX_SVG}</span></a>`) : '';
+    $('#pixLine').innerHTML = hasMe ? (pixKeys[me] ? `minha chave pix ✔ <span class="pixi">${PIX_SVG}</span> · <a class="link" id="pixBtn">alterar</a>` : `<a class="link" id="pixBtn">minha chave pix <span class="pixi">${PIX_SVG}</span></a>`) : '';
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
 

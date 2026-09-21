@@ -9,7 +9,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
   background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.025) 0 1px,transparent 1px 3px)}
 .paper:before,.paper:after{content:"";position:absolute;left:0;right:0;height:14px;background:linear-gradient(135deg,transparent 7px,var(--paper) 7px) 0 0/14px 14px,linear-gradient(-135deg,transparent 7px,var(--paper) 7px) 7px 0/14px 14px;background-repeat:repeat-x}
 .paper:before{top:-13px}.paper:after{bottom:-13px;transform:scaleY(-1)}
-.stain{position:absolute;right:6px;top:60px;width:120px;height:120px;border-radius:50%;border:14px solid rgba(190,120,30,.16);box-shadow:inset 0 0 0 3px rgba(190,120,30,.10);transform:rotate(20deg);pointer-events:none}
+.stain{position:absolute;right:-12px;top:-24px;width:84px;height:84px;transform:rotate(14deg);filter:drop-shadow(2px 4px 4px rgba(0,0,0,.35));pointer-events:none;z-index:1}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}
 h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
 .c{text-align:center;font-size:17px;line-height:1.5;text-transform:uppercase}
@@ -78,6 +78,6 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .toast.show{opacity:1}
 @media (min-width:900px) and (min-height:600px){html{zoom:1.5}}
 #boot{display:none;margin:14px 0 2px} #boot .spin{width:22px;height:22px;border-width:3px}
-#app.loading>*:not(h1):not(#boot){display:none} #app.loading #boot{display:block} #app.loading.nospin #boot{display:none}
+#app.loading>*:not(h1):not(#boot){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app:not(.loading)>*:not(.stain){animation:fadein .35s ease both}

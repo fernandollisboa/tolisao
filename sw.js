@@ -1,5 +1,5 @@
 // rede primeiro, cache como reserva: atualizações chegam na hora e o app abre offline com a última versão vista
-const CACHE = 'tolisa-v1';
+const CACHE = 'tolisa-v2';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

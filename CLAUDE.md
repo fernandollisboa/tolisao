@@ -12,7 +12,7 @@ Site: https://fernandollisboa.github.io/splitwise-lite/ (link curto: tinyurl.com
 - `app.js`: toda a lógica, num IIFE, com `// @ts-check` e tipos em JSDoc no topo (`Person`, `Expense`, `Room`, `Transfer`). `jsconfig.json` define as opções (não estrito). Zero erros é o esperado.
 - `style.css`: estilos (tema papel/madeira, fonte VT323).
 - `manifest.json` + `sw.js`: PWA mínima. O service worker é rede-primeiro com cache de reserva (só GET da própria origem); ao mudar a estratégia, troque o nome `CACHE`.
-- `fonts/`: VT323 e Permanent Marker (woff2). `icon.png`, `og.png`/`og2.png`: ícone e preview do WhatsApp (o `og:image` aponta pra `og2.png` pra furar cache).
+- `fonts/`: VT323 e Permanent Marker (woff2). `diva.png` (+ `-192`, `-maskable`): ícone da PWA, favicon e figurinha do canto; `og.png`/`og2.png`: preview do WhatsApp (o `og:image` aponta pra `og2.png` pra furar cache).
 - `tests/`: scripts Playwright (`node tests/run-all.cjs`). Sem framework: cada script sobe um servidor local, intercepta o Firebase e imprime o que checou.
 - `.github/workflows/pages.yml`: deploy da `main`. Troca `__V__` em `index.html` pelo SHA do commit (query `?v=` em `app.js` e `style.css`) pra furar o cache de 10 min do navegador; sem isso, HTML novo com JS velho quebra a página. Pushes seguidos cancelam o deploy anterior; espere o último terminar antes de conferir o site.
 - Estado inicial: `#app` nasce com a classe `loading` (só título e spinner); `openGroup` tira depois do primeiro fetch, e um `setTimeout` inline no HTML tira em 8s como salvaguarda.

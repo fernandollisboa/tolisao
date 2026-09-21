@@ -317,7 +317,7 @@
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', `R$ ${fmt(Math.abs(bal)/100)}`, bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     const myBal = hasMe ? (balances()[me] || 0) : 0;
-    $('#pixLine').innerHTML = !hasMe ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : !pixKeys[me] ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`
+    $('#pixLine').innerHTML = !hasMe || myBal <= 0 ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : !pixKeys[me] ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`
       : `<button class="ico okl" id="pixBtn" title="alterar chave pix">${PIX_SVG}${KEY_SVG} ✔</button>`;
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
       $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';

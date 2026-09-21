@@ -207,9 +207,11 @@
   // ---------- contas ----------
   function shares(cents, ids){ const base = Math.floor(cents/ids.length), rem = cents - base*ids.length; const o={}; ids.forEach((id,i)=>o[id]=base+(i<rem?1:0)); return o; }
   const shareOf = (e, ids) => { if (e.shares) { const o = {}; for (const id of ids) o[id] = e.shares[id] || 0; return o; } return shares(Math.round(e.amount*100), ids); };
-  const howText = (e, name = nameOf) => { const loan = !e.among.includes(e.payer);
+  const howText = (e, name = nameOf, html = false) => { const loan = !e.among.includes(e.payer);
     if (e.shares) return e.among.map(id => `${name(id)} ${fmt((e.shares[id]||0)/100)}`).join(', ');
-    return loan ? `${e.among.map(name).join(', ')} deve${e.among.length===1?'':'m'} tudo` : `÷${e.among.length}`; };
+    if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length===1?'':'m'} tudo`;
+    if (!html) return `÷${e.among.length}`;
+    return expanded.has(e.id) ? `<a class="link" data-among="${e.id}">÷${e.among.length}</a> (${e.among.map(name).join(', ')})` : `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a>`; };
   function balances(){
     const b = {}; state.people.forEach(p => b[p.id] = 0);
     for (const e of state.expenses) {
@@ -231,7 +233,7 @@
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
-  let showAll = false;
+  let showAll = false; const expanded = new Set();
   let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
   const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };
   window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
@@ -317,7 +319,7 @@
     const dayOf = e => new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
     const days = new Set(all.map(dayOf)); let lastDay = null;
     $('#expenses').innerHTML = list.map(e => {
-      const how = howText(e, id => nm(id));
+      const how = howText(e, id => nm(id), true);
       const isNew = lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me));
       let head = ''; if (days.size > 1) { const d = dayOf(e); if (d !== lastDay) { head = `<div class="day">${esc(d)}</div>`; lastDay = d; } }
       return head + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${e.by && e.by !== nameOf(e.payer) ? ` · anotado por ${nmByName(e.by)}` : ''}</span><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button></div>`; }).join('')
@@ -449,6 +451,8 @@
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { if (ev.target.matches('#splitChips input')) { ev.target.closest('.chip').classList.toggle('on', ev.target.checked); updateHint(); } });
   document.addEventListener('click', ev => {
+    const am = ev.target.closest('[data-among]');
+    if (am) { const id = am.dataset.among; expanded.has(id) ? expanded.delete(id) : expanded.add(id); render(); return; }
     const evl = ev.target.closest('[data-ev]');
     if (evl) { const code = evl.dataset.ev; if (code === roomName) return closeOverlay(); $('#evList').textContent = 'abrindo…'; enterRoom(code).catch(e => toast(e.message)); return; }
     const px = ev.target.closest('[data-pix]');

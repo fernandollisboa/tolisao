@@ -551,7 +551,7 @@
     x.font = `${FS}px 'VT323'`; x.textBaseline = 'alphabetic';
     const cw = x.measureText('M').width, COLS = Math.floor((W - 2*M - 2*P) / cw);
     const INK = '#2a2a2a', INK2 = '#5a5a5a', PAPER = '#efe9d8', HL = '#f7f23a';
-    const MARK = ['#fff176','#b9f6a5','#ffb3d9','#a8d8ff','#ffcc80','#d9b3ff','#a7f3e6','#ffd6a5','#e0e0e0','#f4c7ab'];
+    const MARK = ['#f5a9a9','#a9c4f5','#f7b877','#a3dfae','#cdb4f7','#9fdcdc','#f2a9d6','#c5d6a0','#cfd3d8','#f0b89a']; // mesma ordem de tons da PALETTE do site
     const markOf = id => MARK[Math.max(0, state.people.findIndex(p => p.id === id)) % MARK.length];
     const mark = (col, len, color) => { x.fillStyle = color; x.fillRect(L + col*cw - 3, y - FS*0.72, len*cw + 6, FS*0.9); };
     const L = M + P; let y = M + 12 + 50;
@@ -568,12 +568,15 @@
     const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
-    center(`*** TÔ LISA(O) ***`, true);
+    center(`*** TÔ LISA(O) ***`);
     x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('quem me deve?', W/2, y); y += LH;
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 
     // legenda de cores
-    for (const p of state.people) { const pn = fit(nameOf(p.id), COLS - 2); mark(2, pn.length, markOf(p.id)); line('  ' + pn, INK2); }
+    { let col = 2, t = '  '; for (const p of state.people) { const pn = fit(nameOf(p.id), COLS - 2);
+        if (col + pn.length > COLS) { line(t.trimEnd(), INK2); col = 2; t = '  '; }
+        mark(col, pn.length, markOf(p.id)); t += pn + '  '; col += pn.length + 2; }
+      if (t.trim()) line(t.trimEnd(), INK2); }
     blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo

@@ -106,7 +106,7 @@
   <div class="stain"></div>
   <h1>Tô lisa(o)</h1>
   <div class="c muted" style="margin:-2px 0 6px;text-transform:none">quem me deve?</div>
-  <div class="c">Evento <a class="link" id="roomLabel">—</a> · <span id="whoLine"></span></div>
+  <div class="c"><span id="whoLine"></span> · Evento <a class="link" id="roomLabel">—</a></div>
 
   <div class="hr"></div>
 
@@ -312,9 +312,9 @@
       const stMe = settlements(balances());
       const pixB = t => !pixReady ? `<span class="spin" style="width:12px;height:12px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block;margin-left:8px" title="carregando"></span>` : pixKeys[t.to] ? `<button class="ico" style="margin-left:8px" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : '';
       const okB = t => pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitei" style="margin-right:4px">✔</button>` : '';
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px">${okB(t)}${pixB(t)}</span>`, `${fmt(t.cents/100)}`, 'sub')) : [];
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), fmt(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:6px;margin-left:12px">${okB(t)}${pixB(t)}</span>`, `R$ ${fmt(t.cents/100)}`, 'sub')) : [];
       const hdr = who.length ? `<div class="row hdr"><span class="l">quem</span><span class="d"></span><span class="v">quanto</span></div>` : '';
-      $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', fmt(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
+      $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', `R$ ${fmt(Math.abs(bal)/100)}`, bal > 0 ? 'pos' : bal < 0 ? 'neg' : '') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     $('#pixLine').innerHTML = !hasMe ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : !pixKeys[me] ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`

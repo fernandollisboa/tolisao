@@ -499,7 +499,7 @@
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }
     const st = ev.target.closest('[data-settle]');
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
-      if (!(await ask('Quitar?', `${esc(nameOf(from))} pagou ${money(amount)} pra ${esc(nameOf(to))}`, 'quitei'))) return;
+      if (!(await ask('Quitar?', `${nm(from)} pagou <b style="color:var(--green)">${money(amount)}</b> pra ${nm(to)}`, 'quitei'))) return;
       state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); toast('Quitado!');
       window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${roomName}* 👍\n${shareUrl()}`), '_blank', 'noopener'); }
     const de = ev.target.closest('[data-del-expense]');

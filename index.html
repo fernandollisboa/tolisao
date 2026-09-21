@@ -239,7 +239,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, num(t.cents)) +
-        `<div class="small"><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>`).join('') || '<div class="empty">tudo quitado 🎉</div>')
+        (t.from === me ? `<div class="small"><button class="small" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitei</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${nm(e.payer)} → ${nm(e.among[0])}`, num(Math.round(e.amount*100)), 'paid', '<span class="stamp">PAGO</span>') +
         `<div class="small">${new Date(e.at).toLocaleDateString('pt-BR')}${e.by?` · por ${esc(e.by)}`:''} · <a class="link" data-del-expense="${e.id}">desfazer</a></div>`).join('');
 
@@ -388,7 +388,7 @@
 
     center(`*** TÔ LISA ***`, true); blank();
     line(fit(`EVENTO: ${roomName}`, COLS));
-    line(fit(`MOV.: ${d2} - IMP.: ${d2} - ${hm}`, COLS));
+    line(fit(`IMP.: ${d2} - ${hm}`, COLS));
     if (me && state.people.some(p => p.id === me)) line(fit(`OPER.: ${nameOf(me)}`, COLS));
     blank(); dash(); dash();
 

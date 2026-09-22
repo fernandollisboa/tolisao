@@ -2,7 +2,7 @@
 
 Tipo Splitwise, só que sem app e sem cadastro 👍
 
-**Site:** https://fernandollisboa.github.io/splitwise-lite/ · **curto:** tinyurl.com/tolisao
+**Site:** https://fernandollisboa.github.io/tolisao/ · **curto:** tinyurl.com/tolisapp
 
 Três arquivos estáticos (HTML, CSS e JS), sem build e sem backend pra manter. Os dados ficam num Firebase Realtime Database (plano gratuito) acessado direto do navegador.
 

@@ -482,7 +482,7 @@
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
     center(`*** TÔ LISA(O) ***`);
-    x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisao', W/2, y); y += LH;
+    x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisapp', W/2, y); y += LH;
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 
     // legenda de cores

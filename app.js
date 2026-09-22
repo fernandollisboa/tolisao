@@ -10,6 +10,7 @@
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
+  const AMBAR = '#9a5b00';   // mesmo âmbar do cadastrar chave pix: o que falta você fazer
   const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
   const PARTES = false; // link 'dividir em partes diferentes'; some até achar um canto melhor
   const CURRENCY = 'R$';
@@ -218,7 +219,7 @@
     $('#roomLabel').textContent = roomName || '—';
     document.title = roomName ? `${roomName} · Tô Lisa` : 'Tô Lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
-    $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link" id="whoBtn">Quem é você?</a>`;
+    $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link" id="whoBtn" style="color:${AMBAR}">Quem é você?</a>`;
     $('#whoBtn').onclick = showWho;
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;

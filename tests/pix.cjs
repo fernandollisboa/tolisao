@@ -44,9 +44,9 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   console.log('cartão do evento:', (await p2.$eval('#overlayBox', e => e.innerText)).replace(/\n/g,' | '));
   console.log('sair no cartão do evento (deve ser 0):', await p2.locator('#evLeave').count());
   await p2.click('#evBack'); await p2.waitForTimeout(200);
-  // o sair mudou de casa: agora mora no "quem é você", em vermelho
-  await p2.click('#whoBtn'); await p2.waitForSelector('#leaveBtn');
-  console.log('sair no quem é você:', await p2.$eval('#leaveBtn', e => e.textContent + ' · ' + getComputedStyle(e).color));
+  // o cartão "quem é você" não tem mais sair
+  await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel');
+  console.log('sair no quem é você (deve ser 0):', await p2.locator('#leaveBtn').count());
   await p2.click('#whoForm button'); await p2.waitForTimeout(300);
   await p2.screenshot({ path: path.join(OUT, 'pix-mobile.png'), clip: { x: 0, y: 0, width: 390, height: 640 } });
   await p2.locator('#mineRows .row.sub').first().screenshot({ path: path.join(OUT, 'pixbtn4.png') });

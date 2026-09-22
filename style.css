@@ -103,6 +103,8 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 /* o carimbo não ocupa espaço na linha: os pontinhos correm por baixo como se ele não estivesse lá */
 .row.paid .stampbox{position:relative;width:0;flex:none;align-self:center;z-index:4}
 .row.paid .stampbox .stamp{--cy:-50%;position:absolute;left:8px;top:50%;margin-left:0}
-/* o cifrão gruda no número; a coluna que importa é a da direita, onde os valores terminam */
-#mineRows .cur,#settle .cur{width:auto;margin-right:3px} #mineRows .num,#settle .num{min-width:0}
+/* o R$ fica numa coluna só dele e os valores terminam alinhados na direita.
+   Minha conta mistura corpos de texto, então lá a coluna é em px; no Falta pagar, em ch */
+#mineRows .cur{width:22px;margin-right:0} #mineRows .num{min-width:84px}
+#settle .cur{width:auto;margin-right:0} #settle .num{min-width:7ch}
 #splitHint{margin-bottom:-6px}

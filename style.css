@@ -20,7 +20,10 @@ h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:ce
 .row .v{white-space:nowrap} .num{display:inline-block;min-width:7ch;text-align:right}
 .small{font-size:16px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .small>span{flex:1}
-.stamp{display:inline-block;margin-left:9px;vertical-align:middle;font-family:'Permanent Marker',cursive;color:var(--red);border:3px solid currentColor;border-radius:5px;padding:0 5px;font-size:11px;line-height:1.5;transform:rotate(-8deg);opacity:.9;letter-spacing:.5px;pointer-events:none}
+.stamp{display:inline-block;margin-left:9px;vertical-align:middle;font-family:'Permanent Marker',cursive;color:var(--red);border:3px solid currentColor;border-radius:5px;padding:0 5px;font-size:11px;line-height:1.5;transform:translateY(var(--dy,0)) rotate(var(--rot,-8deg));opacity:.9;letter-spacing:.5px;pointer-events:none}
+@keyframes carimbo{0%{opacity:0;transform:translateY(var(--dy,0)) rotate(var(--rot,-8deg)) scale(2.1)}70%{opacity:1;transform:translateY(var(--dy,0)) rotate(var(--rot,-8deg)) scale(.92)}100%{opacity:.9;transform:translateY(var(--dy,0)) rotate(var(--rot,-8deg)) scale(1)}}
+.stamp.ink{animation:carimbo .34s cubic-bezier(.2,.9,.3,1.2) both}
+@media (prefers-reduced-motion:reduce){.stamp.ink{animation:none}}
 .paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #8a7a5a;pointer-events:none}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}

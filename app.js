@@ -439,8 +439,8 @@
       <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v">${esc(roomName)}</span></div>
       <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
       <div class="hr"></div>
-      <div class="c"><button id="evBack" class="ghost">voltar</button></div>`);
-    $('#evBack').onclick = closeOverlay;
+      <div class="c"><button id="evLeave" class="ghost" style="color:var(--red)">sair do evento</button></div>`);
+    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
   }
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 

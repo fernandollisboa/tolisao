@@ -40,10 +40,10 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   console.log('botões na linha da Lia:', await p2.$$eval('#settle .small button', l => l.map(b => b.textContent)));
   await p2.click('[data-pix]'); await p2.waitForTimeout(200); const code = await p2.evaluate(() => window.__copied); console.log('BRCODE:', code);
   console.log('header:', (await p2.$eval('.paper > .c', e => e.innerText)).replace(/\n/g,' | '), '| status visível:', await p2.$eval('#status', e => getComputedStyle(e).display !== 'none'));
-  await p2.click('#roomLabel'); await p2.waitForSelector('#evBack');
+  await p2.click('#roomLabel'); await p2.waitForSelector('#evLeave');
   console.log('cartão do evento:', (await p2.$eval('#overlayBox', e => e.innerText)).replace(/\n/g,' | '));
-  console.log('sair no cartão do evento (deve ser 0):', await p2.locator('#evLeave').count());
-  await p2.click('#evBack'); await p2.waitForTimeout(200);
+  console.log('sair do evento:', await p2.$eval('#evLeave', e => e.textContent + ' · ' + getComputedStyle(e).color));
+  await p2.click('#overlay', { position: { x: 5, y: 5 } }); await p2.waitForTimeout(200);
   // o cartão "quem é você" não tem mais sair
   await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel');
   console.log('sair no quem é você (deve ser 0):', await p2.locator('#leaveBtn').count());

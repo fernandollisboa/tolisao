@@ -84,3 +84,8 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #app.loading>*:not(h1):not(#boot){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app:not(.loading)>*:not(.stain){animation:fadein .35s ease both}
+.confete{position:fixed;z-index:30;pointer-events:none}
+.confete i{position:absolute;display:block;width:8px;height:13px;margin:-6px 0 0 -4px;border-radius:1px;animation:confete 1s var(--del,0ms) cubic-bezier(.12,.72,.35,1) both}
+@keyframes confete{0%{opacity:1;transform:translate(0,0) rotate(0) scale(.6)}25%{opacity:1}100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 190px)) rotate(var(--rot)) scale(1)}}
+button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
+@media (prefers-reduced-motion:reduce){.confete{display:none}}

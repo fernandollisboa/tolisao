@@ -429,8 +429,9 @@
       window.open('https://wa.me/?text=' + encodeURIComponent(`👀 ${nameOf(from)}, tá faltando ${money(+cents/100)} do *${roomName}*${pix}\n${shareUrl()}`), '_blank', 'noopener'); return; }
     const st = near('[data-settle]');
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
+      const r = st.getBoundingClientRect(), fx = r.left + r.width/2, fy = r.top + r.height/2;
       if (!(await ask('Quitar?', `${nm(from)} pagou <b style="color:var(--green)">${money(amount)}</b> pra ${nm(to)}`, 'quitei'))) return;
-      state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); toast('Quitado!');
+      state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); festa(fx, fy); toast('Quitado! 🎉');
       window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${roomName}* 👍\n${shareUrl()}`), '_blank', 'noopener'); }
     const cv = near('[data-copy-value]');
     if (cv) { const val = cv.dataset.copyValue; navigator.clipboard.writeText(val).then(() => toast('Valor copiado. Cola no app do banco.'), () => showCopy('Valor', val)); return; }
@@ -554,6 +555,16 @@
   };
   window.addEventListener('hashchange', () => location.reload());
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  function festa(x, y){
+    if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const box = document.createElement('div'); box.className = 'confete';
+    box.style.left = x + 'px'; box.style.top = y + 'px';
+    for (let i = 0; i < 26; i++) { const s = document.createElement('i');
+      const ang = Math.random() * Math.PI * 2, d = 50 + Math.random() * 130;
+      s.style.cssText = `--dx:${(Math.cos(ang) * d).toFixed(0)}px;--dy:${(Math.sin(ang) * d - 60).toFixed(0)}px;--rot:${(Math.random() * 900 - 450).toFixed(0)}deg;--del:${(Math.random() * 90).toFixed(0)}ms;background:${PALETTE[i % PALETTE.length]}`;
+      box.appendChild(s); }
+    document.body.appendChild(box); setTimeout(() => box.remove(), 1400);
+  }
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- código de barras (Code 128 C) ----------

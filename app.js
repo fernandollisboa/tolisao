@@ -309,7 +309,7 @@
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
         <div>1. anote quem pagou o quê, quando e com quem</div>
         <div>2. copie o pix e pague o deves</div>
-        <div>3. cobre o amiguinho a fazer o mesmo <div>
+        <div>3. cobre o amiguinho a fazer o mesmo</div>
       </div>`;
     overlay(`<h1>Tô lisa(o)</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autofocus autocapitalize="none">

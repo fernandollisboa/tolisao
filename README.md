@@ -14,7 +14,7 @@ Três arquivos estáticos (HTML, CSS e JS), sem build e sem backend pra manter. 
 4. **Minha conta** mostra quanto você deve ou tem a receber. **Acerto** mostra o mínimo de transferências pra zerar todo mundo: quem deve tem os botões de copiar o Pix já com o valor e de quitar; quem tem a receber tem o **cobrar**, que abre o WhatsApp com a cobrança pronta.
 5. **Enviar** gera a imagem da comanda e abre o WhatsApp com o resumo de quem paga quem.
 
-Pra convidar alguém: "copiar link do evento" e manda. No celular dá pra "adicionar à tela inicial": o site é instalável (PWA) e abre offline com a última versão vista.
+Pra convidar alguém: o texto do **Enviar** já vai com o link do evento; ou manda o site e o código. No celular dá pra "adicionar à tela inicial": o site é instalável (PWA) e abre offline com a última versão vista.
 
 ## Dados e segurança
 

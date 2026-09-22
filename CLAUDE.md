@@ -8,7 +8,7 @@ Site: https://fernandollisboa.github.io/splitwise-lite/ (link curto: tinyurl.com
 
 ## Estrutura
 
-- `index.html`: marcação. Seções na ordem: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Acerto → membros/copiar link → rodapé. Overlays em `#overlay` (cartões de papel), formulário de anotar em `#sheet`.
+- `index.html`: marcação. Seções na ordem: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Acerto → membros → rodapé (o link "copiar link do evento" existe mas está com `hidden`). Overlays em `#overlay` (cartões de papel), formulário de anotar em `#sheet`.
 - `app.js`: toda a lógica, num IIFE, com `// @ts-check` e tipos em JSDoc no topo (`Person`, `Expense`, `Room`, `Transfer`). `jsconfig.json` define as opções (não estrito). Zero erros é o esperado.
 - `style.css`: estilos (tema papel/madeira, fonte VT323).
 - `manifest.json` + `sw.js`: PWA mínima. O service worker é rede-primeiro com cache de reserva (só GET da própria origem); ao mudar a estratégia, troque o nome `CACHE`.

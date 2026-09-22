@@ -20,16 +20,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - name: Confere a versão dos assets
-        # o ?v= mora no próprio index.html: o Pages também publica a branch crua,
-        # e um placeholder trocado só aqui voltava como ?v=__V__ pro navegador
+      - name: Versiona os assets pra furar o cache do navegador
+        env:
+          SHA: ${{ github.sha }}
         run: |
+          sed -i "s/?v=[^\"]*/?v=${SHA:0:8}/g" index.html
           grep -o '\(app.js\|style.css\)?v=[^"]*' index.html
-          if grep -q "__V__" index.html; then echo "sobrou o placeholder __V__ no HTML"; exit 1; fi
+          # o ?v= escrito no index.html é a reserva: se o Pages voltar a publicar a
+          # branch crua, é ele que chega no navegador, e aí precisa ter mudado
           if git rev-parse HEAD~1 >/dev/null 2>&1 \
              && git diff --quiet HEAD~1 HEAD -- index.html \
              && ! git diff --quiet HEAD~1 HEAD -- app.js style.css; then
-            echo "app.js/style.css mudaram e o ?v= do index.html não; suba a versão"; exit 1
+            echo "::warning::app.js/style.css mudaram e o ?v= do index.html não; aqui o SHA cobre, mas suba a versão mesmo assim"
           fi
       - uses: actions/configure-pages@v5
         with:
@@ -39,3 +41,15 @@ jobs:
           path: .
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Confere o que ficou no ar
+        env:
+          URL: ${{ steps.deployment.outputs.page_url }}
+          SHA: ${{ github.sha }}
+        run: |
+          for i in $(seq 1 12); do
+            sleep 10
+            if curl -fsS "${URL}?ci=${SHA}" | grep -q "?v=${SHA:0:8}"; then
+              echo "no ar servindo ?v=${SHA:0:8}"; exit 0
+            fi
+          done
+          echo "o site não serviu ?v=${SHA:0:8} em 2 minutos"; exit 1

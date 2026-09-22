@@ -21,10 +21,11 @@ const baixar = url => new Promise((ok, erro) => {
 
   if (html.includes('__V__')) falhas.push('index.html no ar ainda tem o placeholder __V__');
   const versao = (html.match(/app\.js\?v=([^"]*)/) || [])[1];
-  const esperada = (local.match(/app\.js\?v=([^"]*)/) || [])[1];
-  console.log('versão no ar:', versao, '| no repo:', esperada);
-  if (versao !== esperada) falhas.push(`o ?v= no ar (${versao}) não é o do repo (${esperada})`);
-  if (html !== local) falhas.push('index.html no ar difere do repo');
+  console.log('versão no ar:', versao, '| reserva no repo:', (local.match(/app\.js\?v=([^"]*)/) || [])[1]);
+  // o deploy troca o ?v= pelo SHA do commit, então a versão em si pode diferir do repo;
+  // o que não pode diferir é o resto do HTML nem o conteúdo dos arquivos
+  const semVersao = t => t.replace(/\?v=[^"]*/g, '?v=');
+  if (semVersao(html) !== semVersao(local)) falhas.push('index.html no ar difere do repo (fora o ?v=)');
 
   for (const arq of ['app.js', 'style.css', 'sw.js']) {
     const url = BASE + arq + (versao ? '?v=' + versao : '');

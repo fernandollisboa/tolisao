@@ -25,19 +25,20 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 
 ## Deploy
 
-O site é a `main`: o que está lá é o que está no ar. Passo a passo, sempre o mesmo:
+O site é a `main`: o que está lá é o que está no ar. A fonte do Pages é **GitHub Actions**, então quem publica é `.github/workflows/pages.yml`, e só ele.
 
-1. **Suba o `?v=` do `index.html`** (hoje `?v=20260922b`) se mexeu em `app.js` ou `style.css`. É a data mais uma letra; quando a data mudar, volte pro `a`. Sem isso o navegador serve o arquivo velho e parece que nada mudou.
-2. `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs` verde.
-3. Merge na `main` e `git push origin main`.
-4. Espere o deploy e rode **`node tests/noar.cjs`**: ele baixa o que está publicado e compara byte a byte com o repositório. Só depois diga que está no ar.
+1. `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs` verde.
+2. Merge na `main` e `git push origin main`.
+3. Espere o deploy e rode **`node tests/noar.cjs`**: ele baixa o que está publicado e compara com o repositório. Só depois diga que está no ar.
+
+O `?v=` de `app.js` e `style.css` é trocado pelo SHA do commit na hora do deploy, então não há o que lembrar. O valor escrito no `index.html` (hoje `?v=20260922b`) é reserva: se algum dia o Pages voltar a publicar a branch crua, é ele que chega no navegador — aí suba esse número junto com a mudança (data mais uma letra). O workflow avisa se você esquecer.
 
 Duas armadilhas que já custaram caro:
 
-- **O Pages publica duas vezes.** Além do nosso workflow roda o "pages build and deployment", que publica a branch crua e termina *depois* — ele ganha. Por isso o `?v=` mora no `index.html` e não pode ser um placeholder trocado só no workflow: o que chegava no navegador era `?v=__V__`, uma URL que nunca mudava. Pra acabar com o build duplicado, o dono do repositório muda Settings → Pages → Source pra **GitHub Actions**.
+- **O Pages já publicou duas vezes.** Com a fonte em "Deploy from a branch", rodava também o "pages build and deployment", que publica a branch crua e termina *depois* — ele ganhava. O `index.html` que chegava no navegador era o do repositório, com `?v=__V__` literal: uma URL que nunca mudava, e o navegador servia CSS velho por dias. Se alguém mexer em Settings → Pages, é isso que volta.
 - **Pushes seguidos cancelam o deploy anterior.** Espere o último terminar antes de conferir.
 
-O workflow falha se `app.js`/`style.css` mudarem e o `?v=` ficar parado, mas ele é só o aviso: o outro build publica de qualquer jeito. Quem garante é o `tests/noar.cjs`.
+O próprio workflow confere no fim se o site já responde com a versão nova, e falha se não responder em dois minutos. Ainda assim, quem dá a palavra final é o `tests/noar.cjs`, porque ele compara o conteúdo dos arquivos, não só a versão.
 
 ## Dados
 

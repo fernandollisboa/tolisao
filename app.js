@@ -9,7 +9,6 @@
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
-  const MINE_QUITAR = false; // ✔ quitar nas linhas de Minha conta; a ação fica só no acerto
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -207,7 +206,7 @@
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
       const pixB = t => !pixReady ? `<span class="spin" style="width:11px;height:11px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block" title="carregando"></span>` : pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : '';
-      const okB = t => MINE_QUITAR ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>` : '';
+      const okB = t => `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`;
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), money(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px;margin-left:2px">${okB(t)}${pixB(t)}</span>`, `R$&nbsp;<a class="link" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', money(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }
@@ -238,8 +237,7 @@
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, money(t.cents/100), t.from === me ? 'mine' : '') +
-        (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '') +
-        (t.from === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start">${!pixReady ? '<span class="spin"></span>' : ''}${pixReady ? `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}">✔ quitar</button>` : ''}${pixReady && pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}">${PIX_SVG}copiar pix</button>` : ''}</div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
+        (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, money(e.amount), 'paid', `<span class="stamp" style="color:${colorOf(e.payer)}">PAGO<small>${new Date(e.at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</small></span>`) +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '')).join('');
 
@@ -311,7 +309,7 @@
         <div>2. copie o pix e pague o deves</div>
         <div>3. cobre o amiguinho a fazer o mesmo</div>
       </div>`;
-    overlay(`<h1>Tô lisa(o)</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
+    overlay(`<h1>Tô lisa</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`, true);
     $('#gateForm').onsubmit = async ev => {
@@ -378,10 +376,11 @@
     startPolling(); sync(); loadPixKeys();
   }
   function showRoom(){
-    overlay(`<h2 style="margin-top:0">Evento</h2>
-      <div class="c" style="text-transform:none;line-height:2;font-size:22px">${esc(roomName)}</div>
-      <p class="muted" style="margin:4px 0 12px;text-align:center">o código é a senha: quem tem, entra</p>
-      <div class="c" style="margin-top:14px"><button id="evLeave" class="ghost">sair</button> · <button id="evBack" class="ghost">voltar</button></div>`);
+    overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
+      <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v">${esc(roomName)}</span></div>
+      <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
+      <div class="hr"></div>
+      <div class="c"><button id="evLeave" class="ghost" style="color:var(--red)">sair</button> · <button id="evBack" class="ghost">voltar</button></div>`);
     $('#evBack').onclick = closeOverlay;
     $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
   }
@@ -474,7 +473,7 @@
     const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
-    center(`*** TÔ LISA(O) ***`);
+    center(`*** TÔ LISA ***`);
     x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisapp', W/2, y); y += LH;
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
 

@@ -44,7 +44,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   console.log('cartão do evento:', (await p2.$eval('#overlayBox', e => e.innerText)).replace(/\n/g,' | '));
   await p2.click('#evBack'); await p2.waitForTimeout(200);
   await p2.screenshot({ path: path.join(OUT, 'pix-mobile.png'), clip: { x: 0, y: 0, width: 390, height: 640 } });
-  await p2.locator('#settle .small').first().screenshot({ path: path.join(OUT, 'pixbtn4.png') });
+  await p2.locator('#mineRows .row.sub').first().screenshot({ path: path.join(OUT, 'pixbtn4.png') });
   // quitei -> abre zap com "Paguei"
   await p2.evaluate(() => { window.open = (u) => { window.__wa = u; }; }); await p2.click('[data-settle]'); await p2.waitForSelector('#okBtn'); await p2.click('#okBtn'); await p2.waitForTimeout(300);
   console.log('zap:', decodeURIComponent((await p2.evaluate(() => window.__wa)).split('text=')[1]));

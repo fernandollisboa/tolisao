@@ -14,9 +14,9 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   await p1.fill('#gateCode','bailedamada'); await p1.click('#gateForm button'); await p1.waitForSelector('#whoSel');
   await p1.selectOption('#whoSel', { label: 'Lia' }); await p1.click('#whoForm button'); await p1.evaluate(() => document.fonts.ready); await p1.waitForTimeout(400);
   await p1.screenshot({ path: path.join(OUT, 'app-mobile.png'), fullPage: true });
-  console.log('quitei buttons (Lia):', await p1.$$eval('#settle [data-settle]', l => l.length), '| settle rows:', await p1.$$eval('#settle .row:not(.paid)', l => l.length), '| expenses shown:', await p1.$$eval('#expenses .row', l => l.length), '| toggle:', await p1.$eval('#toggleAll', e => e.textContent));
+  console.log('botões quitar em Minha conta (Lia):', await p1.$$eval('#mineRows [data-settle]', l => l.length), '| settle rows:', await p1.$$eval('#settle .row:not(.paid)', l => l.length), '| expenses shown:', await p1.$$eval('#expenses .row', l => l.length), '| toggle:', await p1.$eval('#toggleAll', e => e.textContent));
   // Quitei na primeira linha
-  await p1.click('#settle [data-settle]'); await p1.waitForSelector('#okBtn'); await p1.screenshot({ path: path.join(OUT, 'card-quitei.png') }); await p1.click('#okBtn'); await p1.waitForTimeout(200);
+  await p1.click('#mineRows [data-settle]'); await p1.waitForSelector('#okBtn'); await p1.screenshot({ path: path.join(OUT, 'card-quitei.png') }); await p1.click('#okBtn'); await p1.waitForTimeout(200);
   console.log('after quitei rows:', await p1.$$eval('#settle .row:not(.paid)', l => l.length), '| top expense:', await p1.$eval('#expenses .row', e => e.innerText.split('\n')[0]));
   console.log('scrollWidth/innerWidth:', await p1.evaluate(() => document.documentElement.scrollWidth + '/' + innerWidth));
   // ver todos

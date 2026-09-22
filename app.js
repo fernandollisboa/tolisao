@@ -239,7 +239,7 @@
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
-      + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, val(e.amount), 'paid', `<span class="stamp" style="color:${colorOf(e.payer)}">PAGO<small>${new Date(e.at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</small></span>`) +
+      + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}<span class="stamp" style="color:${colorOf(e.payer)}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>`, val(e.amount), 'paid') +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '')).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');

@@ -505,7 +505,7 @@
 
     // saldo: quem ainda paga quem, e depois quem já está quite
     const GREEN = '#15703a';
-    blank(); center('*** ACERTO ***'); blank();
+    blank(); center('*** FALTA PAGAR ***'); blank();
     if (!st.length) center('TUDO QUITADO');
     for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markOf(t.from)); mark(a.length + 6, c.length, markOf(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
     { const quites = state.people.filter(p => (b[p.id] || 0) === 0);

@@ -301,11 +301,11 @@
     else if (!among.includes(payer)) { h.innerHTML = `Empréstimo: ${esc(among.map(nameOf).join(', '))} deve${among.length===1?'':'m'} o valor todo a ${esc(nameOf(payer))}. Ou ${modo('em partes diferentes')}.`; armaModo(); }
     else { h.innerHTML = `Dividido ${modo('igualmente')} entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`; armaModo(); }
   }
-  /** quanto as partes digitadas somam, contra o total do gasto */
+  /** o que ainda falta (ou sobra) pras partes fecharem o total do gasto */
   function somaDasPartes(){
     const total = Math.round((numVal($('#amount').value) || 0) * 100);
     const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
-    return `somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`;
+    return sum === total ? '✔' : sum < total ? `faltam ${money((total-sum)/100)}` : `sobram ${money((sum-total)/100)}`;
   }
   $('#amount').addEventListener('input', () => { if (splitMode === 'custom') updateHint(); });
   // só o rabo da frase muda enquanto se digita: refazer o hint inteiro apagaria o campo em uso

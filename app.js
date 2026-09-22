@@ -314,8 +314,8 @@
 
   function ask(title, desc, okLabel = 'confirmar'){
     return new Promise(res => {
-      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
-      overlayCancel = () => res(false); $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#cancelBtn').onclick = () => { closeOverlay(); res(false); }; $('#okBtn').focus();
+      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button>`);
+      overlayCancel = () => res(false); $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#okBtn').focus();
     });
   }
   function askText(title, desc, placeholder, value = '', okLabel = 'confirmar'){

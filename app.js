@@ -246,8 +246,8 @@
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
-      + pays.map(e => { const st = stampStyle(e.id); return line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}<span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">desfazer</a>` : ''}`, val(e.amount), 'paid') +
-        (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
+      + pays.map(e => { const st = stampStyle(e.id); return line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}<span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>`, val(e.amount), 'paid') +
+        (e.by && e.by !== nameOf(e.payer) || DESFAZER ? `<div class="small">${e.by && e.by !== nameOf(e.payer) ? `por ${esc(e.by)}` : ''}${DESFAZER ? `<a class="link undo" data-undo="${e.id}">desfazer</a>` : ''}</div>` : ''); }).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
     const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 10);

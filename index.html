@@ -68,9 +68,9 @@
 
 <button id="fab" class="fab" title="Anotar">✎</button>
 <div id="sheet" class="hidden"><div class="paper">
-  <h2 style="margin-top:0">Anotar</h2><p class="muted" style="margin:0 0 12px;text-align:center">quanto foi, o que foi e quem divide</p>
+  <h2 style="margin-top:0">Anotar</h2>
   <form id="expenseForm">
-    <div class="two"><input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" required inputmode="decimal"><input id="desc" placeholder="O quê?" required maxlength="60"></div>
+    <div class="two"><input id="amount" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="0,00" required><input id="desc" placeholder="O quê?" required maxlength="60" enterkeyhint="done" autocomplete="off" autocapitalize="sentences"></div>
     <select id="payer" required></select>
     <div class="chips" id="splitChips"></div>
     <div id="sharesBox" class="shares hidden"></div>

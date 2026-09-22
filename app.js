@@ -184,6 +184,9 @@
     const p = tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('01', key)) + tlv('52', '0000') + tlv('53', '986') + tlv('54', (cents/100).toFixed(2)) + tlv('58', 'BR') + tlv('59', nm) + tlv('60', 'BRASIL') + tlv('62', tlv('05', '***')) + '6304';
     return p + crc16(p);
   }
+  // no teclado do celular o separador é vírgula; aceita 12,50 e 1.234,56 além de 12.50
+  const numVal = v => { let s = String(v).trim().replace(/\s/g, ''); if (!s) return NaN;
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); return parseFloat(s); };
   const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
   const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
   const val = n => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
@@ -265,15 +268,15 @@
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
-  const customShares = () => { const o = {}; for (const i of inputs('#sharesBox input')) o[i.dataset.share] = Math.round((parseFloat(i.value) || 0) * 100); return o; };
+  const customShares = () => { const o = {}; for (const i of inputs('#sharesBox input')) o[i.dataset.share] = Math.round((numVal(i.value) || 0) * 100); return o; };
   function updateHint(){
     const among = inputs('#splitChips input:checked').map(i => i.value);
-    const payer = $('#payer').value; const h = $('#splitHint'); const total = Math.round((parseFloat($('#amount').value) || 0) * 100);
+    const payer = $('#payer').value; const h = $('#splitHint'); const total = Math.round((numVal($('#amount').value) || 0) * 100);
     $('#modeToggle').textContent = splitMode === 'equal' ? 'dividir em partes diferentes' : 'voltar pra partes iguais';
     $('#sharesBox').classList.toggle('hidden', splitMode !== 'custom');
     if (splitMode === 'custom') {
       const prev = customShares();
-      $('#sharesBox').innerHTML = among.map(id => `<div class="row"><span class="l">${nm(id)}</span><span class="d"></span><input type="number" step="0.01" min="0" inputmode="decimal" placeholder="0,00" data-share="${id}" value="${prev[id] ? (prev[id]/100).toFixed(2) : ''}"></div>`).join('');
+      $('#sharesBox').innerHTML = among.map(id => `<div class="row"><span class="l">${nm(id)}</span><span class="d"></span><input type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" data-share="${id}" value="${prev[id] ? (prev[id]/100).toFixed(2) : ''}"></div>`).join('');
       const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
       h.textContent = !among.length ? 'Marque quem divide esse gasto.' : `Partes somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`;
       return;
@@ -284,7 +287,7 @@
   }
   $('#modeToggle').onclick = () => { splitMode = splitMode === 'equal' ? 'custom' : 'equal'; updateHint(); };
   $('#amount').addEventListener('input', () => { if (splitMode === 'custom') updateHint(); });
-  document.addEventListener('input', ev => { const tgt = /** @type {HTMLElement} */ (ev.target); if (tgt.matches('#sharesBox input')) { const among = inputs('#splitChips input:checked').map(i => i.value); const total = Math.round((parseFloat($('#amount').value) || 0) * 100); const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
+  document.addEventListener('input', ev => { const tgt = /** @type {HTMLElement} */ (ev.target); if (tgt.matches('#sharesBox input')) { const among = inputs('#splitChips input:checked').map(i => i.value); const total = Math.round((numVal($('#amount').value) || 0) * 100); const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
     $('#splitHint').textContent = `Partes somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`; } });
 
   // ---------- telas ----------
@@ -414,7 +417,7 @@
   $('#sheetClose').onclick = closeSheet;
   $('#sheet').addEventListener('click', ev => { if (ev.target.id === 'sheet') closeSheet(); });
   $('#expenseForm').onsubmit = ev => { ev.preventDefault();
-    const among = inputs('#splitChips input:checked').map(i => i.value); const amount = parseFloat($('#amount').value);
+    const among = inputs('#splitChips input:checked').map(i => i.value); const amount = numVal($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro'); if (!among.length) return toast('Marque quem divide esse gasto'); if (!(amount > 0)) return toast('Valor inválido');
     const exp = { id: uid(), desc: $('#desc').value.trim(), amount: Math.round(amount*100)/100, payer: $('#payer').value, among, at: Date.now(), by: me ? nameOf(me) : undefined };
     if (splitMode === 'custom') { const sh = customShares(); const total = Math.round(amount*100); const sum = among.reduce((a, id) => a + (sh[id] || 0), 0);

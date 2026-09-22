@@ -235,6 +235,7 @@
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', val(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
+    $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
     $('#itemsSec').classList.toggle('hidden', hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment'));
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;

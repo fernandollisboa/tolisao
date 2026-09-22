@@ -8,7 +8,7 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 
 ## Estrutura
 
-- `index.html`: marcação. Seções na ordem: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Acerto → membros → rodapé (o link "copiar link do evento" existe mas está com `hidden`). Overlays em `#overlay` (cartões de papel), formulário de anotar em `#sheet`. O nome do evento abre `showRoom()`, um cartão no estilo recibo com sair (vermelho) e voltar.
+- `index.html`: marcação. Seções na ordem: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Falta pagar → membros → rodapé (o link "copiar link do evento" existe mas está com `hidden`). Overlays em `#overlay` (cartões de papel), formulário de anotar em `#sheet`. O nome do evento abre `showRoom()`, um cartão no estilo recibo com sair (vermelho) e voltar.
 - `app.js`: toda a lógica, num IIFE, com `// @ts-check` e tipos em JSDoc no topo (`Person`, `Expense`, `Room`, `Transfer`). `jsconfig.json` define as opções (não estrito). Zero erros é o esperado.
 - `style.css`: estilos (tema papel/madeira, fonte VT323).
 - `manifest.json` + `sw.js`: PWA mínima. O service worker é rede-primeiro com cache de reserva (só GET da própria origem); ao mudar a estratégia, troque o nome `CACHE`.
@@ -34,9 +34,9 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 
 - Tudo que vem do banco é hostil: ids só passam se casarem `/^[a-z0-9]{1,32}$/` (entram em atributos HTML sem escape), textos passam por `esc()` antes de `innerHTML`.
 - Cores dos nomes: `PALETTE` por índice na lista de pessoas, sem vermelho/verde (reservados a deve/recebe). O recibo em canvas usa `MARK` na mesma ordem de tons; nada de amarelo lá.
-- Cifrão (`money()`) em Minha conta, Acerto e total; itens sem.
+- Cifrão (`money()`) em Minha conta, Falta pagar e total; itens sem.
 - Frases curtas da interface (rodapé, subtítulo, tutorial) levam ponto final ou exclamação. O rodapé fala como dona de boteco baiana ("meu bem", "meu anjo", "benção"). Emoji só no 👀 do cobrar, no 🎉 do tudo quitado e no 🙏 de "não devo a ninguém".
-- Ações ficam só em Minha conta: nas linhas de quem você deve aparecem `quitar` (✔, com sombra) e `copiar pix`. O Acerto é só leitura, mostra quem paga quem. O `cobrar` segue no código atrás da constante `COBRAR`, hoje desligado. O link `desfazer` nas linhas pagas sai pela constante `DESFAZER`; existe pra testar. Texto do zap (`summaryText`) leva o acerto e o link do evento; a imagem (`renderReceipt`) leva itens e um saldo que é só quem paga quem mais os já quites; os nomes aparecem marcados dentro das próprias linhas, sem legenda no topo.
+- Ações ficam só em Minha conta: nas linhas de quem você deve aparecem `quitar` (✔, com sombra) e `copiar pix`. A seção Falta pagar (`#settle`) é só leitura, mostra quem paga quem. O `cobrar` segue no código atrás da constante `COBRAR`, hoje desligado. O link `desfazer` nas linhas pagas sai pela constante `DESFAZER`; existe pra testar. Texto do zap (`summaryText`) leva o acerto e o link do evento; a imagem (`renderReceipt`) leva itens e um saldo que é só quem paga quem mais os já quites; os nomes aparecem marcados dentro das próprias linhas, sem legenda no topo.
 - Preferir edições pequenas em `app.js`/`style.css`; sem dependências novas; sem framework; sem build.
 - Antes de subir: `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs`.
 - **Toda mudança visual termina com preview enviado ao usuário**, sem ele pedir. Use a skill `preview` (`.claude/skills/preview/SKILL.md`) e o gerador `tests/preview.cjs`; pra propor opções, mande uma folha comparativa em tamanho real.

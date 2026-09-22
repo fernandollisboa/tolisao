@@ -10,6 +10,7 @@
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
+  const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
   const PARTES = false; // link 'dividir em partes diferentes'; some até achar um canto melhor
   const CURRENCY = 'R$';
 
@@ -257,7 +258,7 @@
     const num = c => fmt(c/100);
 
     const s = settlements(b);
-    const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
+    const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid') +
@@ -507,7 +508,6 @@
   async function renderReceipt(){
     await document.fonts.load("28px 'VT323'");
     const b = balances(), st = settlements(b);
-    const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     const items = [...state.expenses.filter(e => e.kind !== 'payment')].reverse();
     const totalCents = items.reduce((a, e) => a + Math.round(e.amount*100), 0);
     const W = 720, M = 24, P = 36, S = 2, FS = 28, LH = 34;

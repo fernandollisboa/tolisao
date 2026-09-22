@@ -18,13 +18,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Versiona os assets pra furar o cache do navegador
-        env:
-          SHA: ${{ github.sha }}
+        with:
+          fetch-depth: 2
+      - name: Confere a versão dos assets
+        # o ?v= mora no próprio index.html: o Pages também publica a branch crua,
+        # e um placeholder trocado só aqui voltava como ?v=__V__ pro navegador
         run: |
-          sed -i "s/__V__/${SHA:0:8}/g" index.html
-          if grep -q "__V__" index.html; then echo "placeholder __V__ não foi substituído"; exit 1; fi
           grep -o '\(app.js\|style.css\)?v=[^"]*' index.html
+          if grep -q "__V__" index.html; then echo "sobrou o placeholder __V__ no HTML"; exit 1; fi
+          if git rev-parse HEAD~1 >/dev/null 2>&1 \
+             && git diff --quiet HEAD~1 HEAD -- index.html \
+             && ! git diff --quiet HEAD~1 HEAD -- app.js style.css; then
+            echo "app.js/style.css mudaram e o ?v= do index.html não; suba a versão"; exit 1
+          fi
       - uses: actions/configure-pages@v5
         with:
           enablement: true

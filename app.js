@@ -260,7 +260,7 @@
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
-      + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}`, val(e.amount), 'paid') +
+      + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid') +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
@@ -353,7 +353,7 @@
       <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">
         <input id="setupName" placeholder="nome" maxlength="30"><button class="small">adicionar</button></form>
       <button id="setupGo" class="big" style="margin-top:16px" ${state.people.length ? '' : 'disabled'}>Continuar</button>
-      <div class="c" style="margin-top:12px"><button id="setupLeave" class="ghost">sair</button></div>`, true);
+      <div class="c" style="margin-top:12px"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`, true);
     $('#setupForm').onsubmit = ev => { ev.preventDefault();
       const name = $('#setupName').value.trim(); if (!name) return;
       if (state.people.some(q => q.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
@@ -372,8 +372,8 @@
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30">
       <input id="whoPix" class="${hasMe ? '' : 'hidden'}" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
       <button class="big">Continuar</button></form>
-      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !hasMe);
-    $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
+      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost" style="color:var(--red)">sair</button></div>`, !hasMe);
+    $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
     $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new');
       $('#whoPix').classList.toggle('hidden', !v); $('#whoPix').value = pixKeys[v] || ''; };
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
@@ -436,9 +436,8 @@
       <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v">${esc(roomName)}</span></div>
       <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
       <div class="hr"></div>
-      <div class="c"><button id="evLeave" class="ghost" style="color:var(--red)">sair</button> · <button id="evBack" class="ghost">voltar</button></div>`);
+      <div class="c"><button id="evBack" class="ghost">voltar</button></div>`);
     $('#evBack').onclick = closeOverlay;
-    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
   }
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 

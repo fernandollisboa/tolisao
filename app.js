@@ -186,7 +186,7 @@
   }
   const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
   const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
-  const val = n => `${CURRENCY}\u00a0<span class="num">${fmt(n)}</span>`;
+  const val = n => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   // frases de boteco: sorteadas uma vez por abertura, escolhidas pelo estado da conta
@@ -215,7 +215,7 @@
       const stMe = settlements(balances());
       const pixB = t => !pixReady ? `<span class="spin" style="width:11px;height:11px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block" title="carregando"></span>` : pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : '';
       const okB = t => `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`;
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px;margin-left:2px">${okB(t)}${pixB(t)}</span>`, `R$&nbsp;<a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px;margin-left:2px">${okB(t)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', val(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
@@ -226,7 +226,7 @@
     if (!pixWant) { if (pl.dataset.k && !pl.classList.contains('gone')) { pl.classList.add('gone'); setTimeout(() => { if (pl.classList.contains('gone')) { pl.innerHTML = ''; pl.dataset.k = ''; } }, 450); } }
     else { pl.classList.remove('gone'); if (pl.dataset.k !== pixWant) { pl.innerHTML = pixWant; pl.dataset.k = pixWant; } }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
-      $('#peopleLine').innerHTML = state.people.map(p => nm(p.id)).join(', ') || 'ninguém';
+      $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') + ',' : 'ninguém';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');

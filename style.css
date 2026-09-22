@@ -35,6 +35,7 @@ button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:
 .share2{display:flex;flex-direction:column;align-items:center}
 button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);width:100%;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:10px}
 .wa,button.big svg{flex:none;position:relative;top:-1px}
+#waBtn{box-shadow:none;width:auto;background:transparent;border:2px dashed var(--rule);font-size:19px;padding:5px 16px}
 button.small{padding:0 8px;font-size:16px;display:inline-flex;align-items:center;gap:6px;line-height:1.6}
 button.small svg{display:block}
 button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}
@@ -68,7 +69,7 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .link.dim{opacity:.5;font-size:13px} .link.dim svg{width:12px;height:12px} .link.go{color:var(--green);font-size:17px}
 #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:0}
 #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
-.row.mine .v{background:linear-gradient(transparent 18%,#fff176 18%,#fff176 82%,transparent 82%);padding:0 4px;margin:0 -4px}
+.row.mine .v{background:linear-gradient(transparent 18%,var(--mk,#fff176) 18%,var(--mk,#fff176) 82%,transparent 82%);padding:0 4px;margin:0 -4px}
 .pixi{display:inline-flex;gap:3px;align-items:center;vertical-align:-2px} .pixi svg{display:block}
 .item .by,.item .who{display:none}
 .item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}

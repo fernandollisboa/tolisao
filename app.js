@@ -126,7 +126,10 @@
 
   // ---------- render ----------
   const PALETTE = ['#1f4e9c','#a3510a','#5b21b6','#0369a1','#8a1a6b','#7a2d0c','#374151','#3730a3','#9d174d','#5a4a1a']; // sem vermelho/verde, que são os tons de deve/recebe
-  const colorOf = id => PALETTE[Math.max(0, state.people.findIndex(p => p.id === id)) % PALETTE.length];
+  const MARK = ['#a9c4f5','#f7b877','#cdb4f7','#a9d8f0','#f2a9d6','#f0b89a','#cfd3d8','#c3c2f0','#f5b3cf','#d6cdb0']; // tons claros pra marca-texto, mesma ordem da PALETTE
+  const idx = id => Math.max(0, state.people.findIndex(p => p.id === id));
+  const colorOf = id => PALETTE[idx(id) % PALETTE.length];
+  const markOf = id => MARK[idx(id) % MARK.length];
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
@@ -243,12 +246,12 @@
     updateHint();
 
     const b = balances();
-    const line = (l, v, cls='', extra='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span>${extra}</div>`;
+    const line = (l, v, cls='', extra='', style='') => `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span>${extra}</div>`;
     const num = c => fmt(c/100);
 
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
-    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '') +
+    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? `--mk:${markOf(me)}` : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}`, val(e.amount), 'paid') +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
@@ -504,8 +507,6 @@
     x.font = `${FS}px 'VT323'`; x.textBaseline = 'alphabetic';
     const cw = x.measureText('M').width, COLS = Math.floor((W - 2*M - 2*P) / cw);
     const INK = '#2a2a2a', INK2 = '#5a5a5a', PAPER = '#efe9d8', HL = '#f7f23a';
-    const MARK = ['#a9c4f5','#f7b877','#cdb4f7','#a9d8f0','#f2a9d6','#f0b89a','#cfd3d8','#c3c2f0','#f5b3cf','#d6cdb0']; // mesma ordem de tons da PALETTE do site
-    const markOf = id => MARK[Math.max(0, state.people.findIndex(p => p.id === id)) % MARK.length];
     const mark = (col, len, color) => { x.fillStyle = color; x.fillRect(L + col*cw - 3, y - FS*0.72, len*cw + 6, FS*0.9); };
     const L = M + P; let y = M + 12 + 50;
     const up = t => String(t).toUpperCase();

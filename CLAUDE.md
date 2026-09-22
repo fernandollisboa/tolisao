@@ -27,6 +27,8 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 
 O site é a `main`: o que está lá é o que está no ar. A fonte do Pages é **GitHub Actions**, então quem publica é `.github/workflows/pages.yml`, e só ele.
 
+Quando o usuário escolhe uma das opções que você ofereceu, isso já é o aval: commite, mergeie na `main` e suba, sem perguntar de novo.
+
 1. `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs` verde.
 2. Merge na `main` e `git push origin main`.
 3. Espere o deploy e rode **`node tests/noar.cjs`**: ele baixa o que está publicado e compara com o repositório. Só depois diga que está no ar.

@@ -12,7 +12,6 @@
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
   const AMBAR = '#9a5b00';   // mesmo âmbar do cadastrar chave pix: o que falta você fazer
   const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
-  const PARTES = false; // link 'dividir em partes diferentes'; some até achar um canto melhor
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -287,24 +286,31 @@
   function updateHint(){
     const among = inputs('#splitChips input:checked').map(i => i.value);
     const payer = $('#payer').value; const h = $('#splitHint'); const total = Math.round((numVal($('#amount').value) || 0) * 100);
-    $('#modeToggle').textContent = splitMode === 'equal' ? 'dividir em partes diferentes' : 'voltar pra partes iguais';
-    $('#modeToggle').parentElement.classList.toggle('hidden', !PARTES);
     $('#sharesBox').classList.toggle('hidden', splitMode !== 'custom');
+    // o modo é a própria palavra da frase: tocar em "igualmente" vira "em partes diferentes"
+    const modo = t => `<a class="link" id="modeToggle" title="trocar o jeito de dividir">${t}</a>`;
+    const armaModo = () => { const m = $('#modeToggle'); if (m) m.onclick = () => { splitMode = splitMode === 'equal' ? 'custom' : 'equal'; updateHint(); }; };
     if (splitMode === 'custom') {
       const prev = customShares();
       $('#sharesBox').innerHTML = among.map(id => `<div class="row"><span class="l">${nm(id)}</span><span class="d"></span><input type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" data-share="${id}" value="${prev[id] ? (prev[id]/100).toFixed(2) : ''}"></div>`).join('');
-      const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
-      h.textContent = !among.length ? 'Marque quem divide esse gasto.' : `Partes somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`;
+      h.innerHTML = `Dividido ${modo('em partes diferentes')}<span id="hintTail">${!among.length ? '.' : ' · ' + somaDasPartes()}</span>`;
+      armaModo();
       return;
     }
     if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
-    else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
-    else h.innerHTML = `Dividido igualmente entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`;
+    else if (!among.includes(payer)) { h.innerHTML = `Empréstimo: ${esc(among.map(nameOf).join(', '))} deve${among.length===1?'':'m'} o valor todo a ${esc(nameOf(payer))}. Ou ${modo('em partes diferentes')}.`; armaModo(); }
+    else { h.innerHTML = `Dividido ${modo('igualmente')} entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`; armaModo(); }
   }
-  $('#modeToggle').onclick = () => { splitMode = splitMode === 'equal' ? 'custom' : 'equal'; updateHint(); };
+  /** quanto as partes digitadas somam, contra o total do gasto */
+  function somaDasPartes(){
+    const total = Math.round((numVal($('#amount').value) || 0) * 100);
+    const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
+    return `somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`;
+  }
   $('#amount').addEventListener('input', () => { if (splitMode === 'custom') updateHint(); });
-  document.addEventListener('input', ev => { const tgt = /** @type {HTMLElement} */ (ev.target); if (tgt.matches('#sharesBox input')) { const among = inputs('#splitChips input:checked').map(i => i.value); const total = Math.round((numVal($('#amount').value) || 0) * 100); const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
-    $('#splitHint').textContent = `Partes somam ${money(sum/100)} de ${money(total/100)}${sum !== total ? (sum < total ? ` · faltam ${money((total-sum)/100)}` : ` · sobram ${money((sum-total)/100)}`) : ' ✔'}`; } });
+  // só o rabo da frase muda enquanto se digita: refazer o hint inteiro apagaria o campo em uso
+  document.addEventListener('input', ev => { const tgt = /** @type {HTMLElement} */ (ev.target);
+    if (tgt.matches('#sharesBox input') && $('#hintTail')) $('#hintTail').textContent = ' · ' + somaDasPartes(); });
 
   // ---------- telas ----------
   let overlayCancel = null, overlaySticky = false;

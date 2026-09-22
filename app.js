@@ -9,6 +9,7 @@
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
+  const DESFAZER = true; // link pra remover um pagamento, útil pra testar
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -245,7 +246,7 @@
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
-      + pays.map(e => { const st = stampStyle(e.id); return line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}<span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>`, val(e.amount), 'paid') +
+      + pays.map(e => { const st = stampStyle(e.id); return line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}<span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">desfazer</a>` : ''}`, val(e.amount), 'paid') +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
@@ -435,6 +436,10 @@
     const cb = near('[data-cobrar]');
     if (cb) { const [from, cents] = cb.dataset.cobrar.split('|'); const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
       window.open('https://wa.me/?text=' + encodeURIComponent(`👀 ${nameOf(from)}, tá faltando ${money(+cents/100)} do *${roomName}*${pix}\n${shareUrl()}`), '_blank', 'noopener'); return; }
+    const un = near('[data-undo]');
+    if (un) { const id = un.dataset.undo; const e = state.expenses.find(x => x.id === id); if (!e) return;
+      if (!(await ask('Desfazer o pagamento?', `${nm(e.payer)} → ${nm(e.among[0])} · ${money(e.amount)}`, 'desfazer'))) return;
+      state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); stamped.delete(id); commit(); toast('Desfeito'); return; }
     const st = near('[data-settle]');
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
       const r = st.getBoundingClientRect(), fx = r.left + r.width/2, fy = r.top + r.height/2;

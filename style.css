@@ -89,3 +89,4 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 @keyframes confete{0%{opacity:1;transform:translate(0,0) rotate(0) scale(.6)}25%{opacity:1}100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 190px)) rotate(var(--rot)) scale(1)}}
 button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 @media (prefers-reduced-motion:reduce){.confete{display:none}}
+.undo{margin-left:10px;font-size:14px;color:var(--ink2);position:relative;z-index:3}

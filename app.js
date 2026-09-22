@@ -196,7 +196,7 @@
     if (!state) return;
     $('#roomLabel').textContent = roomName || '—';
     document.title = roomName ? `${roomName} · Tô Lisa` : 'Tô Lisa · quem me deve?';
-    $('#roomLabel').onclick = showEvents;
+    $('#roomLabel').onclick = showRoom;
     $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link" id="whoBtn">Quem é você?</a>`;
     $('#whoBtn').onclick = showWho;
     const hasMe = me && state.people.some(p => p.id === me);
@@ -377,18 +377,13 @@
     if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync(); loadPixKeys();
   }
-  async function listEvents(){
-    const r = await fetch(`${DB}/rooms.json?shallow=true`, { cache:'no-store' }); if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const ids = Object.keys((await r.json()) || {});
-    const names = await Promise.all(ids.map(async id => { try { const rr = await fetch(`${DB}/rooms/${id}/name.json`, { cache:'no-store' }); return rr.ok ? await rr.json() : null; } catch { return null; } }));
-    return ids.map((id, i) => ({ id, name: names[i] })).filter(e => typeof e.name === 'string' && e.name).sort((a, b) => a.name.localeCompare(b.name));
-  }
-  function showEvents(){
-    overlay(`<h2 style="margin-top:0">Eventos</h2><p class="muted" style="margin:0 0 12px;text-align:center">toque num evento pra abrir</p><div id="evList" class="c" style="text-transform:none;line-height:2">carregando…</div>
-      <div class="c" style="margin-top:14px"><button id="evNew" class="ghost">+ novo evento</button> · <button id="evBack" class="ghost">voltar</button></div>`);
-    $('#evNew').onclick = () => showGate('Código do novo evento:'); $('#evBack').onclick = closeOverlay;
-    listEvents().then(list => { $('#evList').innerHTML = list.map(e => `<div><a class="link" data-ev="${esc(e.name)}">${esc(e.name)}</a>${e.id === groupId ? ' <span class="muted">(atual)</span>' : ''}</div>`).join('') || 'nenhum evento ainda'; })
-      .catch(e => { $('#evList').textContent = 'Não consegui listar: ' + e.message + '. Regras do banco atualizadas?'; });
+  function showRoom(){
+    overlay(`<h2 style="margin-top:0">Evento</h2>
+      <div class="c" style="text-transform:none;line-height:2;font-size:22px">${esc(roomName)}</div>
+      <p class="muted" style="margin:4px 0 12px;text-align:center">o código é a senha: quem tem, entra</p>
+      <div class="c" style="margin-top:14px"><button id="evLeave" class="ghost">sair</button> · <button id="evBack" class="ghost">voltar</button></div>`);
+    $('#evBack').onclick = closeOverlay;
+    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
   }
   function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
 
@@ -420,8 +415,6 @@
     if (!near('a,button,input,label')) { const it = near('.item'); if (it) { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); } }
     const am = near('[data-among]');
     if (am) { const it = /** @type {HTMLElement} */ (am.closest('.item')); const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); return; }
-    const evl = near('[data-ev]');
-    if (evl) { const code = evl.dataset.ev; if (code === roomName) return closeOverlay(); $('#evList').textContent = 'abrindo…'; enterRoom(code).catch(e => toast(e.message)); return; }
     const px = near('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }

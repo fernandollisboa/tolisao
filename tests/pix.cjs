@@ -1,6 +1,6 @@
 const { chromium } = require('./_pw.cjs'); const path = require('path'), os = require('os'); const ROOT = path.join(__dirname, '..'), OUT = os.tmpdir();
 const http = require('http'), fs = require('fs');
-const seed = fs.readFileSync(path.join(__dirname, 'seed.b64'),'utf8'); const store = {};
+const seed = fs.readFileSync(path.join(__dirname, 'seed.b64'),'utf8'); const store = {}; let listagens = 0;
 const srv = require('./_serve.cjs')(4182);
 // mock com as regras do pix: escrita só se não existe ou tok bate; leitura só de /key
 async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', route => { const rq = route.request(), m = rq.method(), path = new URL(rq.url()).pathname;
@@ -12,6 +12,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
     if (mm[3]) { const cur = store[node] ? JSON.parse(store[node]) : null; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(cur ? cur.key : null) }); }
     return route.fulfill({ status: 401, body: '{"error":"Permission denied"}' });
   }
+  if (path === '/rooms.json') listagens++;
   if (path === '/rooms.json') { const o = {}; for (const k of Object.keys(store)) { const mm = k.match(/^\/rooms\/([^/]+)\.json$/); if (mm) o[mm[1]] = true; } return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(o) }); }
   { const mm = path.match(/^\/rooms\/([^/]+)\/name\.json$/); if (mm) { const room = store[`/rooms/${mm[1]}.json`]; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(room ? JSON.parse(room).name ?? null : null) }); } }
   if (m === 'PUT') { store[path] = rq.postData(); return route.fulfill({ status: 200, contentType:'application/json', body: store[path] }); }
@@ -39,13 +40,14 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   console.log('botões na linha da Lia:', await p2.$$eval('#settle .small button', l => l.map(b => b.textContent)));
   await p2.click('[data-pix]'); await p2.waitForTimeout(200); const code = await p2.evaluate(() => window.__copied); console.log('BRCODE:', code);
   console.log('header:', (await p2.$eval('.paper > .c', e => e.innerText)).replace(/\n/g,' | '), '| status visível:', await p2.$eval('#status', e => getComputedStyle(e).display !== 'none'));
-  await p2.click('#roomLabel'); await p2.waitForFunction(() => document.querySelector('#evList') && !document.querySelector('#evList').textContent.includes('carregando'));
-  console.log('eventos:', await p2.$eval('#evList', e => e.innerText.replace(/\n/g,' | ')));
+  await p2.click('#roomLabel'); await p2.waitForSelector('#evLeave');
+  console.log('cartão do evento:', (await p2.$eval('#overlayBox', e => e.innerText)).replace(/\n/g,' | '));
   await p2.click('#evBack'); await p2.waitForTimeout(200);
   await p2.screenshot({ path: path.join(OUT, 'pix-mobile.png'), clip: { x: 0, y: 0, width: 390, height: 640 } });
   await p2.locator('#settle .small').first().screenshot({ path: path.join(OUT, 'pixbtn4.png') });
   // quitei -> abre zap com "Paguei"
   await p2.evaluate(() => { window.open = (u) => { window.__wa = u; }; }); await p2.click('[data-settle]'); await p2.waitForSelector('#okBtn'); await p2.click('#okBtn'); await p2.waitForTimeout(300);
   console.log('zap:', decodeURIComponent((await p2.evaluate(() => window.__wa)).split('text=')[1]));
+  console.log('tentativas de listar eventos (deve ser 0):', listagens);
   console.log('errors:', errs); await b.close(); srv.close();
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

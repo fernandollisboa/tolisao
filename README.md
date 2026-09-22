@@ -18,7 +18,7 @@ Pra convidar alguém: o texto do **Enviar** já vai com o link do evento; ou man
 
 ## Dados e segurança
 
-- Cada evento fica em `rooms/<sha256(código)>`. Quem tem o código (ou o link) lê e escreve. A lista de eventos é pública por design: não guarde nada sensível.
+- Cada evento fica em `rooms/<sha256(código)>`, e o código só existe como hash. Quem tem o código (ou o link) lê e escreve; quem não tem não descobre os eventos, porque as regras abaixo não deixam ler a raiz `rooms`. Ainda assim, não guarde nada sensível: dentro do evento tudo é aberto.
 - A chave Pix fica em `pix/<evento>/<pessoa>/key`, legível por todos, mas só o aparelho que cadastrou consegue trocar (um segredo `tok` fica no navegador dele e nas regras). Se perder o aparelho, apague o nó no console do Firebase.
 - Qualquer pessoa pode cadastrar uma chave em nome de quem ainda não cadastrou. A proteção é a de sempre: **confira o nome do recebedor na tela do banco antes de confirmar o Pix.**
 - Tudo que vem do banco é tratado como hostil (ids filtrados, textos escapados).
@@ -28,7 +28,7 @@ Regras do banco (Realtime Database → Regras):
 ```json
 {
   "rules": {
-    "rooms": { ".read": true, "$room": { ".write": true } },
+    "rooms": { "$room": { ".read": true, ".write": true } },
     "pix": {
       "$room": {
         "$person": {

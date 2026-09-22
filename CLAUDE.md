@@ -28,7 +28,7 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 - Sala: `rooms/<sha256(código)>` com `{v, name, people[], expenses[], deleted[], updatedAt}`. Ids vêm de `uid()` (base36). Item com `kind:'payment'` é uma quitação. `shares` (centavos por pessoa) só em divisão desigual. Empréstimo = pagador fora de `among`.
 - Sincronização: `merge()` faz união por id, exclusões vencem, e roda `clean()` em tudo que vem do banco ou do cache. Comparação com `canon()` (chaves ordenadas) pra não regravar à toa.
 - Pix: `pix/<sala>/<pessoa>/{key, tok}`. `key` legível por todos; só quem tem o `tok` (localStorage do aparelho que cadastrou) troca. Só chave aleatória ou e-mail (`validPixKey`).
-- Regras do banco estão no README. Quem tem o código lê e escreve na sala; a lista de eventos é pública por design.
+- Regras do banco estão no README: leitura e escrita por sala (`rooms/$room`), sem leitura da raiz, então não há como listar eventos. Não existe mais tela de listagem; clicar no nome do evento abre o cartão `showRoom()` com sair/voltar.
 
 ## Convenções
 

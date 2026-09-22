@@ -340,7 +340,6 @@
       ? state.people.map(p => `<div class="row"><span class="l">${nm(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`).join('')
       : '<div class="empty">ninguém ainda</div>';
     overlay(`<h2 style="margin-top:0">*** Quem tá no evento? ***</h2>
-      <p class="muted" style="margin:0 0 12px;text-align:center">bote todo mundo que vai rachar. dá pra incluir mais gente depois.</p>
       ${list}
       <div class="hr"></div>
       <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">
@@ -358,15 +357,17 @@
     $('#setupName').focus();
   }
   function showWho(){
+    const hasMe = !!(me && state.people.some(p => p.id === me));
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30">
-      <input id="whoPix" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
+      <input id="whoPix" class="${hasMe ? '' : 'hidden'}" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
       <button class="big">Continuar</button></form>
-      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !(me && state.people.some(p => p.id === me)));
+      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !hasMe);
     $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
-    $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new'); $('#whoPix').value = pixKeys[v] || ''; };
+    $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new');
+      $('#whoPix').classList.toggle('hidden', !v); $('#whoPix').value = pixKeys[v] || ''; };
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
       const k = $('#whoPix').value.trim(); let key = null;
       if (k && k !== (pixKeys[v] || '')) { key = validPixKey(k); if (!key) return toast('Só chave aleatória ou e-mail'); }

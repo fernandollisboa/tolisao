@@ -145,7 +145,7 @@
   /** traço de marca-texto feito à mão: ângulo, altura e pontas tortas, fixos por linha */
   const markStyle = (seed, color) => { const h = hash32(seed), g = (bit, min, span) => min + ((h >>> bit) & 15) / 15 * span;
     return `--mk:${color};--mka:${g(0, 177.8, 1.2).toFixed(1)}deg;--mkb:${g(4, 181, 1.2).toFixed(1)}deg;`
-      + `--mkt:${g(8, 11, 5).toFixed(0)}%;--mke:${g(12, 84, 6).toFixed(0)}%;--mku:${g(16, 17, 5).toFixed(0)}%;--mkf:${g(20, 77, 6).toFixed(0)}%;`
+      + `--mkt:${g(8, 17, 5).toFixed(0)}%;--mke:${g(12, 78, 5).toFixed(0)}%;--mku:${g(16, 22, 5).toFixed(0)}%;--mkf:${g(20, 73, 5).toFixed(0)}%;`
       + `--mkw:${g(24, 95, 5).toFixed(0)}%;--mkv:${g(2, 92, 6).toFixed(0)}%;--mkx:${g(6, 0, 4).toFixed(0)}%;--mky:${g(10, 2, 6).toFixed(0)}%;--mkz:${g(14, -2, 4).toFixed(0)}px`; };
   let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
   const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };

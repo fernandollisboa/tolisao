@@ -179,6 +179,7 @@
   }
   const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
   const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
+  const val = n => `${CURRENCY}\u00a0<span class="num">${fmt(n)}</span>`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
   const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   // frases de boteco: sorteadas uma vez por abertura, escolhidas pelo estado da conta
@@ -207,9 +208,9 @@
       const stMe = settlements(balances());
       const pixB = t => !pixReady ? `<span class="spin" style="width:11px;height:11px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block" title="carregando"></span>` : pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : '';
       const okB = t => `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`;
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), money(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px;margin-left:2px">${okB(t)}${pixB(t)}</span>`, `R$&nbsp;<a class="link" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span style="display:inline-flex;align-items:center;gap:2px;margin-left:2px">${okB(t)}${pixB(t)}</span>`, `R$&nbsp;<a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
-      $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', money(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }
+      $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', val(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     $('#itemsSec').classList.toggle('hidden', hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment'));
     const myBal = hasMe ? (balances()[me] || 0) : 0;
@@ -236,9 +237,9 @@
 
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
-    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, money(t.cents/100), t.from === me ? 'mine' : '') +
+    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
-      + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, money(e.amount), 'paid', `<span class="stamp" style="color:${colorOf(e.payer)}">PAGO<small>${new Date(e.at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</small></span>`) +
+      + pays.map(e => line(`${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}`, val(e.amount), 'paid', `<span class="stamp" style="color:${colorOf(e.payer)}">PAGO<small>${new Date(e.at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</small></span>`) +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '')).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
@@ -254,7 +255,7 @@
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').textContent = itemsOpen ? '▾' : '▸'; $('#itemsBody').classList.toggle('hidden', !itemsOpen);
-    $('#total').textContent = money(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
+    $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
   const customShares = () => { const o = {}; for (const i of inputs('#sharesBox input')) o[i.dataset.share] = Math.round((parseFloat(i.value) || 0) * 100); return o; };

@@ -17,11 +17,11 @@ h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:ce
 .row{display:flex;align-items:baseline;line-height:1.7;position:relative;font-size:21px}
 .row .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
 .row .d{flex:1;border-bottom:2px dotted var(--rule);margin:0 6px 5px;min-width:14px}
-.row .v{white-space:nowrap}
+.row .v{white-space:nowrap} .num{display:inline-block;min-width:7ch;text-align:right}
 .small{font-size:16px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .small>span{flex:1}
-.stamp{position:absolute;right:-6px;top:-18px;z-index:2;font-family:'Permanent Marker',cursive;color:var(--red);border:3px solid currentColor;border-radius:5px;padding:1px 6px;font-size:12px;line-height:1.1;text-align:center;transform:rotate(-10deg);opacity:.9;letter-spacing:.5px;pointer-events:none} .stamp small{display:block;font-size:9px;letter-spacing:0;line-height:1.1}
-.row.paid{margin-top:16px} .paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #8a7a5a;pointer-events:none}
+.stamp{position:absolute;right:-4px;top:50%;transform:translateY(-50%) rotate(-10deg);z-index:2;font-family:'Permanent Marker',cursive;color:var(--red);border:3px solid currentColor;border-radius:5px;padding:1px 6px;font-size:12px;line-height:1.1;text-align:center;opacity:.9;letter-spacing:.5px;pointer-events:none} .stamp small{display:block;font-size:9px;letter-spacing:0;line-height:1.1}
+.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #8a7a5a;pointer-events:none}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}
 .row.total{font-size:24px;margin-top:10px} .row.total .v{font-size:24px}

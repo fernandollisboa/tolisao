@@ -521,15 +521,14 @@
     line(leader('TOTAL', 'R$ ' + numBig(totalCents)), INK2);
     dash();
 
-    // saldo por pessoa
-    const GREEN = '#15703a', RED = '#9b1c1c';
-    const ppl = state.people.map(p => ({ id: p.id, v: b[p.id] || 0 })).sort((p, q) => q.v - p.v);
-    const signed = v => (v > 0 ? '+' : '-') + 'R$ ' + num(Math.abs(v));
+    // saldo: quem ainda paga quem, e depois quem já está quite
+    const GREEN = '#15703a';
     blank(); center('*** SALDO ***'); blank();
-    for (const p of ppl) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markOf(p.id));
-      line(leader(n, p.v === 0 ? 'QUITE' : signed(p.v)), p.v === 0 ? GREEN : p.v > 0 ? INK : RED); }
-    if (st.length) { blank(); line('QUEM PAGA QUEM', INK2);
-      for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(2, a.length, markOf(t.from)); mark(2 + a.length + 6, c.length, markOf(t.to)); line(leader(`  ${a} PAGA ${c}`, 'R$ ' + num(t.cents))); } }
+    if (!st.length) center('TUDO QUITADO');
+    for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markOf(t.from)); mark(a.length + 6, c.length, markOf(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
+    { const quites = state.people.filter(p => (b[p.id] || 0) === 0);
+      if (quites.length && st.length) blank();
+      for (const p of quites) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markOf(p.id)); line(leader(n, 'QUITE'), GREEN); } }
     dash();
     blank(); center('* * *');
     { const widths = code128Widths('420420420420'); const units = [...widths].reduce((a, c) => a + +c, 0); const BW = 240, BH = 40, k = BW / units; let bx = W/2 - BW/2;

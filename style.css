@@ -97,6 +97,6 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 .undo{margin-left:7px;font-size:15px;color:var(--ink2);text-decoration:none;opacity:.7;position:relative;z-index:3}
 .row.paid .l{display:flex;align-items:center;overflow:visible;min-width:0}
 .row.paid .l .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-/* Minha conta mistura corpos de texto; largura em px deixa os R$ na mesma coluna */
-#mineRows .cur{width:22px} #mineRows .num{min-width:84px}
+/* em Minha conta o cifrão gruda no número; a coluna que importa é a da direita, onde os valores terminam */
+#mineRows .cur{width:auto;margin-right:3px} #mineRows .num{min-width:0}
 #splitHint{margin-bottom:-6px}

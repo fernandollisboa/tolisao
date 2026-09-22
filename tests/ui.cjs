@@ -11,7 +11,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   const c1 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c1); const p1 = await c1.newPage(); p1.on('pageerror', e => errs.push('p1 '+e.message));
   const dialogs = []; p1.on('dialog', d => { dialogs.push(d.message()); d.type() === 'prompt' ? d.accept('Zé') : d.accept(); });
   await p1.goto('http://localhost:4179/#seed=' + seed);
-  await p1.fill('#gateCode','bailedamada'); await p1.click('#gateForm button'); await p1.waitForSelector('#whoSel');
+  await p1.fill('#gateCode','bailedamada'); await p1.click('#gateForm button'); await p1.click('#whoBtn'); await p1.waitForSelector('#whoSel');
   await p1.selectOption('#whoSel', { label: 'Lia' }); await p1.click('#whoForm button'); await p1.evaluate(() => document.fonts.ready); await p1.waitForTimeout(400);
   await p1.screenshot({ path: path.join(OUT, 'app-mobile.png'), fullPage: true });
   console.log('botões quitar em Minha conta (Lia):', await p1.$$eval('#mineRows [data-settle]', l => l.length), '| settle rows:', await p1.$$eval('#settle .row:not(.paid)', l => l.length), '| expenses shown:', await p1.$$eval('#expenses .row', l => l.length), '| toggle:', await p1.$eval('#toggleAll', e => e.textContent));
@@ -29,7 +29,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   await p1.screenshot({ path: path.join(OUT, 'app-mobile-2.png'), fullPage: true });
   // segundo aparelho vê tudo
   const c2 = await b.newContext(); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));
-  await p2.goto('http://localhost:4179/#c=bailedamada'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.click('#whoForm button'); await p2.waitForTimeout(300);
+  await p2.goto('http://localhost:4179/#c=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.click('#whoForm button'); await p2.waitForTimeout(300);
   console.log('p2 sees Cerveja:', (await p2.$eval('#expenses', e => e.innerText)).toUpperCase().includes('CERVEJA'), '| p2 settle rows:', await p2.$$eval('#settle .row:not(.paid)', l => l.length));
   console.log('dialogs:', dialogs.length, '| errors:', errs); await b.close(); srv.close();
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

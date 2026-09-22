@@ -23,14 +23,14 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   const c1 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c1); const p1 = await c1.newPage(); p1.on('pageerror', e => errs.push('p1 '+e.message));
   let promptAnswer = '123.456.789-09'; p1.on('dialog', d => d.type() === 'prompt' ? d.accept(promptAnswer) : d.accept());
   await p1.goto('http://localhost:4182/#seed=' + seed); await p1.fill('#gateCode','bailedamada'); await p1.click('#gateForm button');
-  await p1.waitForSelector('#whoSel'); await p1.selectOption('#whoSel', { label: 'Fernando' }); await p1.click('#whoForm button'); await p1.waitForTimeout(300);
+  await p1.click('#whoBtn'); await p1.waitForSelector('#whoSel'); await p1.selectOption('#whoSel', { label: 'Fernando' }); await p1.click('#whoForm button'); await p1.waitForTimeout(300);
   const setPix = async (pg, v) => { await pg.click('#pixBtn'); await pg.waitForSelector('#askInput'); await pg.fill('#askInput', v); await pg.click('#askForm button.big'); };
   await setPix(p1, promptAnswer); await p1.waitForTimeout(200); console.log('CPF recusado, toast:', await p1.$eval('#toast', e => e.textContent));
   promptAnswer = '+5583999998888'; await setPix(p1, promptAnswer); await p1.waitForTimeout(200); console.log('telefone recusado, toast:', await p1.$eval('#toast', e => e.textContent));
   promptAnswer = '7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d'; await setPix(p1, promptAnswer); await p1.waitForTimeout(400); console.log('aleatória:', await p1.$eval('#toast', e => e.textContent), '|', await p1.$eval('#whoLine', e => e.innerText));
   // Lia tenta sobrescrever a chave do Fernando (outro aparelho) -> negado
   const c2 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));
-  await p2.goto('http://localhost:4182/#c=bailedamada'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Fernando' }); await p2.click('#whoForm button'); await p2.waitForTimeout(300);
+  await p2.goto('http://localhost:4182/#c=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Fernando' }); await p2.click('#whoForm button'); await p2.waitForTimeout(300);
   p2.on('dialog', d => d.type() === 'prompt' ? d.accept('hacker@mal.com') : d.accept());
   await p2.click('#whoBtn'); await p2.waitForSelector('#whoPix'); console.log('campo pré-preenchido no outro aparelho:', await p2.inputValue('#whoPix')); await p2.fill('#whoPix', 'hacker@mal.com'); await p2.click('#whoForm button.big'); await p2.waitForTimeout(400); console.log('troca por outro aparelho:', await p2.$eval('#toast', e => e.textContent));
   console.log('chave no banco continua:', JSON.parse(Object.entries(store).find(([k]) => k.startsWith('/pix/'))[1]).key);

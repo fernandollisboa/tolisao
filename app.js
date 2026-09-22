@@ -373,7 +373,7 @@
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30">
       <input id="whoPix" class="${hasMe ? '' : 'hidden'}" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
       <button class="big">Continuar</button></form>
-      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost" style="color:var(--red)">sair</button></div>`, !hasMe);
+      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost" style="color:var(--red)">sair</button></div>`);
     $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
     $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new');
       $('#whoPix').classList.toggle('hidden', !v); $('#whoPix').value = pixKeys[v] || ''; };
@@ -420,8 +420,9 @@
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     $('#app').classList.remove('loading');
+    // evento sem gente ainda precisa da tela de estreia; com gente, a pessoa cai
+    // direto no acerto e diz quem é quando quiser, pelo "quem é você?" do cabeçalho
     if (!state.people.length) showSetup();
-    else if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync(); loadPixKeys();
   }
   function showQuitado(to, amount){

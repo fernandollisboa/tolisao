@@ -8,7 +8,7 @@ const srv = require('./_serve.cjs')(4181);
     return route.fulfill({ status: 200, contentType: 'application/json', body: store[path] ?? (path.includes('/pix/') && path.includes('/fernando/') ? '"fernando@exemplo.com"' : 'null') }); });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto('http://localhost:4181/#seed=' + seed); await p.fill('#gateCode','bailedamada'); await p.click('#gateForm button');
-  await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: 'Lia' }); await p.click('#whoForm button'); await p.waitForTimeout(300);
+  await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: 'Lia' }); await p.click('#whoForm button'); await p.waitForTimeout(300);
   await p.click('#mineRows [data-settle]'); await p.waitForSelector('#okBtn'); await p.click('#okBtn'); await p.waitForSelector('#quitOk'); await p.click('#quitOk'); await p.waitForTimeout(200);   // uma quitação pra sair o carimbo
   await p.evaluate(() => { window.open = (u) => { window.__wa = u; }; });
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#waBtn')]);

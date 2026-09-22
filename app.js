@@ -307,11 +307,11 @@
     $('#app').classList.add('loading', 'nospin');
     const intro = msg ? '' : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">tipo Splitwise, só que sem app e sem cadastro.</div>
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
-        <div>1. anote quem pagou o quê e com quem dividiu</div>
-        <div>2. o acerto sai sozinho, com o pix pra copiar</div>
-        <div>3. o código do evento é a senha</div>
+        <div>1. anote quem pagou o quê, quando e com quem</div>
+        <div>2. copie o pix e pague o deves</div>
+        <div>3. cobre o amiguinho a fazer o mesmo <div>
       </div>`;
-    overlay(`<h1>Tô lisa(o)</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || 'digite o código pra entrar. não existe ainda? a página cria na hora.'}</p>
+    overlay(`<h1>Tô lisa(o)</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`, true);
     $('#gateForm').onsubmit = async ev => {
@@ -323,14 +323,13 @@
   }
   function showWho(){
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
-    overlay(`<h2 style="margin-top:0">Quem é você?</h2><p class="muted" style="margin:0 0 12px;text-align:center">vira o pagador padrão e assina o que você anotar</p>
+    overlay(`<h2 style="margin-top:0">Quem é você?</h2>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30">
       <input id="whoPix" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
-      <div class="muted" style="text-transform:none;font-size:15px;margin-top:-6px">só chave aleatória ou e-mail. CPF e telefone não.</div>
       <button class="big">Continuar</button></form>
       <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !(me && state.people.some(p => p.id === me)));
-    $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta pelo link ou pelo código.', 'sair')) leave(); };
+    $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
     $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new'); $('#whoPix').value = pixKeys[v] || ''; };
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
       const k = $('#whoPix').value.trim(); let key = null;

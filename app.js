@@ -127,17 +127,26 @@
 
   // ---------- render ----------
   const PALETTE = ['#1f4e9c','#a3510a','#5b21b6','#0369a1','#8a1a6b','#7a2d0c','#374151','#3730a3','#9d174d','#5a4a1a']; // sem vermelho/verde, que são os tons de deve/recebe
-  const colorOf = id => PALETTE[Math.max(0, state.people.findIndex(p => p.id === id)) % PALETTE.length];
+  const MARK = ['#a9c4f5','#f7b877','#cdb4f7','#a9d8f0','#f2a9d6','#f0b89a','#cfd3d8','#c3c2f0','#f5b3cf','#d6cdb0']; // tons claros pra marca-texto, mesma ordem da PALETTE
+  const idx = id => Math.max(0, state.people.findIndex(p => p.id === id));
+  const colorOf = id => PALETTE[idx(id) % PALETTE.length];
+  const markOf = id => MARK[idx(id) % MARK.length];
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
   let showAll = false, itemsOpen = false; const openItems = new Set();
   // carimbo: ângulo fixo por pagamento (não pula entre renders) e batida só na estreia
   const stamped = new Map();
-  const stampStyle = id => { let h = 2166136261; for (const ch of id) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } h = (h ^ (h >>> 15)) >>> 0;
+  const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
+  const stampStyle = id => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
     if (!stamped.has(id)) stamped.set(id, Date.now());
     return { cls: Date.now() - stamped.get(id) < 1200 ? ' ink' : '', css: `--rot:${rot}deg;--dy:${dy}px` }; };
+  /** traço de marca-texto feito à mão: ângulo, altura e pontas tortas, fixos por linha */
+  const markStyle = (seed, color) => { const h = hash32(seed), g = (bit, min, span) => min + ((h >>> bit) & 15) / 15 * span;
+    return `--mk:${color};--mka:${g(0, 177.8, 1.2).toFixed(1)}deg;--mkb:${g(4, 181, 1.2).toFixed(1)}deg;`
+      + `--mkt:${g(8, 11, 5).toFixed(0)}%;--mke:${g(12, 84, 6).toFixed(0)}%;--mku:${g(16, 17, 5).toFixed(0)}%;--mkf:${g(20, 77, 6).toFixed(0)}%;`
+      + `--mkw:${g(24, 95, 5).toFixed(0)}%;--mkv:${g(2, 92, 6).toFixed(0)}%;--mkx:${g(6, 0, 4).toFixed(0)}%;--mky:${g(10, 2, 6).toFixed(0)}%;--mkz:${g(14, -2, 4).toFixed(0)}px`; };
   let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
   const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };
   window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
@@ -230,7 +239,8 @@
     if (!pixWant) { if (pl.dataset.k && !pl.classList.contains('gone')) { pl.classList.add('gone'); setTimeout(() => { if (pl.classList.contains('gone')) { pl.innerHTML = ''; pl.dataset.k = ''; } }, 450); } }
     else { pl.classList.remove('gone'); if (pl.dataset.k !== pixWant) { pl.innerHTML = pixWant; pl.dataset.k = pixWant; } }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
-      $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') + ',' : 'ninguém';
+      $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') : 'ninguém';
+    $('#addPerson').textContent = state.people.length ? ',+' : ' +';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
@@ -243,12 +253,12 @@
     updateHint();
 
     const b = balances();
-    const line = (l, v, cls='', extra='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span>${extra}</div>`;
+    const line = (l, v, cls='', extra='', style='') => `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span>${extra}</div>`;
     const num = c => fmt(c/100);
 
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-5).reverse();
-    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '') +
+    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || '<div class="empty">tudo quitado 🎉</div>')
       + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}`, val(e.amount), 'paid') +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
@@ -332,16 +342,40 @@
       catch (e) { $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Abrir'; }
     };
   }
+  /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você */
+  function showSetup(){
+    const list = state.people.length
+      ? state.people.map(p => `<div class="row"><span class="l">${nm(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`).join('')
+      : '<div class="empty">ninguém ainda</div>';
+    overlay(`<h2 style="margin-top:0">*** Quem tá no evento? ***</h2>
+      ${list}
+      <div class="hr"></div>
+      <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">
+        <input id="setupName" placeholder="nome" maxlength="30"><button class="small">adicionar</button></form>
+      <button id="setupGo" class="big" style="margin-top:16px" ${state.people.length ? '' : 'disabled'}>Continuar</button>
+      <div class="c" style="margin-top:12px"><button id="setupLeave" class="ghost">sair</button></div>`, true);
+    $('#setupForm').onsubmit = ev => { ev.preventDefault();
+      const name = $('#setupName').value.trim(); if (!name) return;
+      if (state.people.some(q => q.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
+      state.people.push({ id: uid(), name, at: Date.now() }); commit(); showSetup(); };
+    for (const b of inputs('#overlayBox [data-drop]'))
+      b.onclick = () => { state.people = state.people.filter(p => p.id !== b.dataset.drop); commit(); showSetup(); };
+    $('#setupGo').onclick = () => { if (!state.people.length) return; closeOverlay(); showWho(); };
+    $('#setupLeave').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
+    $('#setupName').focus();
+  }
   function showWho(){
+    const hasMe = !!(me && state.people.some(p => p.id === me));
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30">
-      <input id="whoPix" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
+      <input id="whoPix" class="${hasMe ? '' : 'hidden'}" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
       <button class="big">Continuar</button></form>
-      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !(me && state.people.some(p => p.id === me)));
+      <div class="c" style="margin-top:12px"><button id="leaveBtn" class="ghost">sair</button></div>`, !hasMe);
     $('#leaveBtn').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
-    $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new'); $('#whoPix').value = pixKeys[v] || ''; };
+    $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new');
+      $('#whoPix').classList.toggle('hidden', !v); $('#whoPix').value = pixKeys[v] || ''; };
     $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
       const k = $('#whoPix').value.trim(); let key = null;
       if (k && k !== (pixKeys[v] || '')) { key = validPixKey(k); if (!key) return toast('Só chave aleatória ou e-mail'); }
@@ -385,7 +419,8 @@
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     $('#app').classList.remove('loading');
-    if (!me || !state.people.some(p => p.id === me)) showWho();
+    if (!state.people.length) showSetup();
+    else if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync(); loadPixKeys();
   }
   function showQuitado(to, amount){
@@ -481,8 +516,6 @@
     x.font = `${FS}px 'VT323'`; x.textBaseline = 'alphabetic';
     const cw = x.measureText('M').width, COLS = Math.floor((W - 2*M - 2*P) / cw);
     const INK = '#2a2a2a', INK2 = '#5a5a5a', PAPER = '#efe9d8', HL = '#f7f23a';
-    const MARK = ['#a9c4f5','#f7b877','#cdb4f7','#a9d8f0','#f2a9d6','#f0b89a','#cfd3d8','#c3c2f0','#f5b3cf','#d6cdb0']; // mesma ordem de tons da PALETTE do site
-    const markOf = id => MARK[Math.max(0, state.people.findIndex(p => p.id === id)) % MARK.length];
     const mark = (col, len, color) => { x.fillStyle = color; x.fillRect(L + col*cw - 3, y - FS*0.72, len*cw + 6, FS*0.9); };
     const L = M + P; let y = M + 12 + 50;
     const up = t => String(t).toUpperCase();

@@ -497,7 +497,6 @@
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
     center(`*** TÔ LISA ***`);
-    x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisapp', W/2, y); y += LH;
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo
@@ -533,7 +532,7 @@
     blank(); center('* * *');
     { const widths = code128Widths('420420420420'); const units = [...widths].reduce((a, c) => a + +c, 0); const BW = 240, BH = 40, k = BW / units; let bx = W/2 - BW/2;
       x.fillStyle = INK; for (let i = 0; i < widths.length; i++) { const w = +widths[i] * k; if (i % 2 === 0) x.fillRect(bx, y - 8, w, BH); bx += w; } y += BH + 4; }
-    y += 10;
+    x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisapp', W/2, y + 16); y += LH + 6;
 
     // papel na altura exata
     const H = y + M + 12;

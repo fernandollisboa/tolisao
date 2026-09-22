@@ -35,7 +35,10 @@ button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:
 .share2{display:flex;flex-direction:column;align-items:center}
 button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);width:100%;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:10px}
 .wa,button.big svg{flex:none;position:relative;top:-1px}
-#waBtn{box-shadow:none;width:auto;background:transparent;border:2px dashed var(--rule);font-size:19px;padding:5px 16px}
+#waBtn{border:0;box-shadow:none;background:transparent;width:auto;padding:0;display:inline-flex;flex-direction:column;align-items:stretch;gap:2px;color:var(--ink)}
+#waBtn .wa-lbl{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:0 12px;font-size:20px}
+/* largura 0 + min-width 100%: a moldura não manda na largura, ela se ajusta ao rótulo e o resto é aparado */
+#waBtn:before,#waBtn:after{content:"-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*";width:0;min-width:100%;overflow:hidden;white-space:nowrap;text-align:center;color:var(--rule);line-height:.8;font-size:18px;letter-spacing:2px}
 button.small{padding:0 8px;font-size:16px;display:inline-flex;align-items:center;gap:6px;line-height:1.6}
 button.small svg{display:block}
 button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}
@@ -100,6 +103,6 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 /* o carimbo não ocupa espaço na linha: os pontinhos correm por baixo como se ele não estivesse lá */
 .row.paid .stampbox{position:relative;width:0;flex:none;align-self:center;z-index:4}
 .row.paid .stampbox .stamp{--cy:-50%;position:absolute;left:8px;top:50%;margin-left:0}
-/* em Minha conta o cifrão gruda no número; a coluna que importa é a da direita, onde os valores terminam */
-#mineRows .cur{width:auto;margin-right:3px} #mineRows .num{min-width:0}
+/* o cifrão gruda no número; a coluna que importa é a da direita, onde os valores terminam */
+#mineRows .cur,#settle .cur{width:auto;margin-right:3px} #mineRows .num,#settle .num{min-width:0}
 #splitHint{margin-bottom:-6px}

@@ -14,7 +14,7 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 - `manifest.json` + `sw.js`: PWA mínima. O service worker é rede-primeiro com cache de reserva (só GET da própria origem); ao mudar a estratégia, troque o nome `CACHE`.
 - `fonts/`: VT323 e Permanent Marker (woff2). `diva.png` (+ `-192`, `-maskable`): ícone da PWA, favicon e figurinha do canto; `og.png`/`og2.png`: preview do WhatsApp (o `og:image` aponta pra `og2.png` pra furar cache).
 - `tests/`: scripts Playwright (`node tests/run-all.cjs`). Sem framework: cada script sobe um servidor local, intercepta o Firebase e imprime o que checou. `tests/preview.cjs` não é teste: é o gerador de imagens pro usuário ver.
-- `.github/workflows/pages.yml`: deploy da `main`. O `?v=` de `app.js` e `style.css` está escrito no próprio `index.html` (ex.: `?v=20260922a`) e **tem que subir junto com qualquer mudança nesses dois arquivos**, senão o navegador serve o cache velho; o workflow falha se você esquecer. Não dá pra trocar isso só no deploy: o Pages também publica a branch crua (o run "pages build and deployment" roda depois do nosso e ganha), então um placeholder substituído no workflow chegava no navegador como `?v=__V__`, uma URL que nunca mudava. Pushes seguidos cancelam o deploy anterior; espere o último terminar antes de conferir o site.
+- `.github/workflows/pages.yml`: deploy da `main`. Veja **Deploy** abaixo antes de subir qualquer coisa.
 - Estado inicial: `#app` nasce com a classe `loading` (só título e spinner); `openGroup` tira depois do primeiro fetch, e um `setTimeout` inline no HTML tira em 8s como salvaguarda.
 
 ## Comandos
@@ -22,6 +22,22 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 - Rodar: abra `index.html` num servidor estático qualquer (`python3 -m http.server`). Não há build.
 - Testes: `npm i -D playwright && npx playwright install chromium` (ou playwright global) e `node tests/run-all.cjs`.
 - Tipos: `npx -p typescript tsc -p jsconfig.json` (deve sair sem erro). Sintaxe rápida: `node --check app.js`.
+
+## Deploy
+
+O site é a `main`: o que está lá é o que está no ar. Passo a passo, sempre o mesmo:
+
+1. **Suba o `?v=` do `index.html`** (hoje `?v=20260922b`) se mexeu em `app.js` ou `style.css`. É a data mais uma letra; quando a data mudar, volte pro `a`. Sem isso o navegador serve o arquivo velho e parece que nada mudou.
+2. `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs` verde.
+3. Merge na `main` e `git push origin main`.
+4. Espere o deploy e rode **`node tests/noar.cjs`**: ele baixa o que está publicado e compara byte a byte com o repositório. Só depois diga que está no ar.
+
+Duas armadilhas que já custaram caro:
+
+- **O Pages publica duas vezes.** Além do nosso workflow roda o "pages build and deployment", que publica a branch crua e termina *depois* — ele ganha. Por isso o `?v=` mora no `index.html` e não pode ser um placeholder trocado só no workflow: o que chegava no navegador era `?v=__V__`, uma URL que nunca mudava. Pra acabar com o build duplicado, o dono do repositório muda Settings → Pages → Source pra **GitHub Actions**.
+- **Pushes seguidos cancelam o deploy anterior.** Espere o último terminar antes de conferir.
+
+O workflow falha se `app.js`/`style.css` mudarem e o `?v=` ficar parado, mas ele é só o aviso: o outro build publica de qualquer jeito. Quem garante é o `tests/noar.cjs`.
 
 ## Dados
 

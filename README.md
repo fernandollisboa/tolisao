@@ -55,4 +55,6 @@ node tests/run-all.cjs
 
 Cada script sobe um servidor local, simula o Firebase e imprime o que checou. Screenshots vão pra pasta temporária do sistema.
 
+Pra ver o resultado de uma mudança visual: `node tests/preview.cjs '#settle'` gera um recorte da tela com dados de exemplo.
+
 Deploy: push na `main` publica via GitHub Pages (`.github/workflows/pages.yml`). Em pull request, `tests.yml` roda os testes.

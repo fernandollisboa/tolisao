@@ -13,7 +13,7 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 - `style.css`: estilos (tema papel/madeira, fonte VT323).
 - `manifest.json` + `sw.js`: PWA mínima. O service worker é rede-primeiro com cache de reserva (só GET da própria origem); ao mudar a estratégia, troque o nome `CACHE`.
 - `fonts/`: VT323 e Permanent Marker (woff2). `diva.png` (+ `-192`, `-maskable`): ícone da PWA, favicon e figurinha do canto; `og.png`/`og2.png`: preview do WhatsApp (o `og:image` aponta pra `og2.png` pra furar cache).
-- `tests/`: scripts Playwright (`node tests/run-all.cjs`). Sem framework: cada script sobe um servidor local, intercepta o Firebase e imprime o que checou.
+- `tests/`: scripts Playwright (`node tests/run-all.cjs`). Sem framework: cada script sobe um servidor local, intercepta o Firebase e imprime o que checou. `tests/preview.cjs` não é teste: é o gerador de imagens pro usuário ver.
 - `.github/workflows/pages.yml`: deploy da `main`. Troca `__V__` em `index.html` pelo SHA do commit (query `?v=` em `app.js` e `style.css`) pra furar o cache de 10 min do navegador; sem isso, HTML novo com JS velho quebra a página. Pushes seguidos cancelam o deploy anterior; espere o último terminar antes de conferir o site.
 - Estado inicial: `#app` nasce com a classe `loading` (só título e spinner); `openGroup` tira depois do primeiro fetch, e um `setTimeout` inline no HTML tira em 8s como salvaguarda.
 
@@ -38,4 +38,5 @@ Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisa
 - Frases curtas da interface (rodapé, subtítulo, tutorial) levam ponto final ou exclamação. O rodapé fala como dona de boteco baiana ("meu bem", "meu anjo", "benção"). Emoji só no 👀 do cobrar, no 🎉 do tudo quitado e no 🙏 de "não devo a ninguém".
 - Ações ficam só em Minha conta: nas linhas de quem você deve aparecem `quitar` (✔, com sombra) e `copiar pix`. O Acerto é só leitura, mostra quem paga quem. O `cobrar` segue no código atrás da constante `COBRAR`, hoje desligado. O link `desfazer` nas linhas pagas sai pela constante `DESFAZER`; existe pra testar. Texto do zap (`summaryText`) leva o acerto e o link do evento; a imagem (`renderReceipt`) leva membros, itens, saldo e quem paga quem.
 - Preferir edições pequenas em `app.js`/`style.css`; sem dependências novas; sem framework; sem build.
-- Antes de subir: `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs`. Ao mexer em layout, tirar screenshot com Playwright em 390px de largura.
+- Antes de subir: `tsc -p jsconfig.json` limpo e `node tests/run-all.cjs`.
+- **Toda mudança visual termina com preview enviado ao usuário**, sem ele pedir. Use a skill `preview` (`.claude/skills/preview/SKILL.md`) e o gerador `tests/preview.cjs`; pra propor opções, mande uma folha comparativa em tamanho real.

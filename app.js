@@ -229,7 +229,8 @@
     if (!pixWant) { if (pl.dataset.k && !pl.classList.contains('gone')) { pl.classList.add('gone'); setTimeout(() => { if (pl.classList.contains('gone')) { pl.innerHTML = ''; pl.dataset.k = ''; } }, 450); } }
     else { pl.classList.remove('gone'); if (pl.dataset.k !== pixWant) { pl.innerHTML = pixWant; pl.dataset.k = pixWant; } }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
-      $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') + ',' : 'ninguém';
+      $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') : 'ninguém';
+    $('#addPerson').textContent = state.people.length ? ',+' : ' +';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
@@ -330,6 +331,29 @@
       catch (e) { $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Abrir'; }
     };
   }
+  /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você */
+  function showSetup(){
+    const list = state.people.length
+      ? state.people.map(p => `<div class="row"><span class="l">${nm(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`).join('')
+      : '<div class="empty">ninguém ainda</div>';
+    overlay(`<h2 style="margin-top:0">*** Quem tá no evento? ***</h2>
+      <p class="muted" style="margin:0 0 12px;text-align:center">bote todo mundo que vai rachar. dá pra incluir mais gente depois.</p>
+      ${list}
+      <div class="hr"></div>
+      <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">
+        <input id="setupName" placeholder="nome" maxlength="30"><button class="small">adicionar</button></form>
+      <button id="setupGo" class="big" style="margin-top:16px" ${state.people.length ? '' : 'disabled'}>Continuar</button>
+      <div class="c" style="margin-top:12px"><button id="setupLeave" class="ghost">sair</button></div>`, true);
+    $('#setupForm').onsubmit = ev => { ev.preventDefault();
+      const name = $('#setupName').value.trim(); if (!name) return;
+      if (state.people.some(q => q.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
+      state.people.push({ id: uid(), name, at: Date.now() }); commit(); showSetup(); };
+    for (const b of inputs('#overlayBox [data-drop]'))
+      b.onclick = () => { state.people = state.people.filter(p => p.id !== b.dataset.drop); commit(); showSetup(); };
+    $('#setupGo').onclick = () => { if (!state.people.length) return; closeOverlay(); showWho(); };
+    $('#setupLeave').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
+    $('#setupName').focus();
+  }
   function showWho(){
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
@@ -383,7 +407,8 @@
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     $('#app').classList.remove('loading');
-    if (!me || !state.people.some(p => p.id === me)) showWho();
+    if (!state.people.length) showSetup();
+    else if (!me || !state.people.some(p => p.id === me)) showWho();
     startPolling(); sync(); loadPixKeys();
   }
   function showQuitado(to, amount){

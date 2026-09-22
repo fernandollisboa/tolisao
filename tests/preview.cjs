@@ -2,6 +2,7 @@
 //   node tests/preview.cjs '#settle'                      -> um recorte
 //   node tests/preview.cjs '#mine' --quem=Lia --saida=/tmp/x.png
 //   node tests/preview.cjs '#settle' --variantes=arq.cjs  -> folha comparativa A/B/C
+//   node tests/preview.cjs --recorte=0,0,390,240            -> recorte por coordenadas
 // O arquivo de variantes exporta { A: { nome, css, js }, B: {...} }.
 const { chromium } = require('./_pw.cjs');
 const path = require('path'), fs = require('fs'), os = require('os');
@@ -25,13 +26,13 @@ const DADOS = {
 
 /**
  * @param {{alvo?:string, quem?:string, pix?:boolean, largura?:number, altura?:number,
- *          dados?:any, variantes?:Record<string,{nome?:string,css?:string,js?:string}>,
+ *          dados?:any, variantes?:Record<string,{nome?:string,css?:string,js?:string}>, recorte?:{x:number,y:number,width:number,height:number},
  *          saida?:string, porta?:number}} opts
  * @returns {Promise<string>} caminho da imagem
  */
 async function preview(opts = {}) {
   const { alvo = null, quem = 'Lia', pix = true, largura = 390, altura = 900,
-          dados = DADOS, variantes = null, porta = 4300 + Math.floor(Math.random()*200) } = opts;
+          dados = DADOS, variantes = null, recorte = null, porta = 4300 + Math.floor(Math.random()*200) } = opts;
   const saida = opts.saida || path.join(os.tmpdir(), 'preview.png');
   const srv = servir(porta);
   const b = await chromium.launch();
@@ -51,7 +52,8 @@ async function preview(opts = {}) {
     await p.click('#whoForm button');
     await p.waitForTimeout(900);
 
-    const tirar = async destino => alvo ? p.locator(alvo).screenshot({ path: destino }) : p.screenshot({ path: destino, fullPage: true });
+    const tirar = async destino => recorte ? p.screenshot({ path: destino, clip: recorte })
+      : alvo ? p.locator(alvo).screenshot({ path: destino }) : p.screenshot({ path: destino, fullPage: true });
 
     if (!variantes) { await tirar(saida); }
     else {
@@ -88,6 +90,7 @@ if (require.main === module) {
   preview({
     alvo, quem: op('quem') || 'Lia', saida: op('saida'),
     largura: +op('largura') || 390,
+    recorte: op('recorte') ? (([x,y,width,height]) => ({x,y,width,height}))(op('recorte').split(',').map(Number)) : null,
     variantes: varArq ? require(path.resolve(varArq)) : null,
   }).then(f => console.log(f)).catch(e => { console.error(e); process.exit(1); });
 }

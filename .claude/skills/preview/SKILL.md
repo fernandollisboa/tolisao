@@ -15,6 +15,7 @@ O gerador fica em `tests/preview.cjs` e sobe o app com dados falsos (cinco pesso
 node tests/preview.cjs '#mine'                      # recorte de uma seção
 node tests/preview.cjs '#settle' --quem=Fernando    # quem você está vendo como
 node tests/preview.cjs --saida=/tmp/tudo.png        # página inteira
+node tests/preview.cjs --recorte=0,0,390,240        # pedaço por coordenadas (cabeçalho, rodapé)
 node tests/preview.cjs '#settle' --variantes=/tmp/v.cjs --saida=/tmp/opts.png
 ```
 

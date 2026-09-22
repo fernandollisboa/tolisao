@@ -24,7 +24,7 @@ h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:ce
 @keyframes carimbo{0%{opacity:0;transform:translateY(var(--dy,0)) rotate(var(--rot,-8deg)) scale(2.1)}70%{opacity:1;transform:translateY(var(--dy,0)) rotate(var(--rot,-8deg)) scale(.92)}100%{opacity:.9;transform:translateY(var(--dy,0)) rotate(var(--rot,-8deg)) scale(1)}}
 .stamp.ink{animation:carimbo .34s cubic-bezier(.2,.9,.3,1.2) both}
 @media (prefers-reduced-motion:reduce){.stamp.ink{animation:none}}
-.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #8a7a5a;pointer-events:none}
+.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #8a7a5a;pointer-events:none;z-index:3}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}
 .row.total{font-size:24px;margin-top:10px} .row.total .v{font-size:24px}
@@ -69,7 +69,9 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .link.dim{opacity:.5;font-size:13px} .link.dim svg{width:12px;height:12px} .link.go{color:var(--green);font-size:17px}
 #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:0}
 #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
-.row.mine .v{background:linear-gradient(transparent 18%,var(--mk,#fff176) 18%,var(--mk,#fff176) 82%,transparent 82%);padding:0 4px;margin:0 -4px}
+.row.mine .v{padding:0 5px;margin:0 -5px;background-repeat:no-repeat;background-size:var(--mkw,99%) 100%,var(--mkv,96%) 100%;background-position:var(--mkx,0) 0,var(--mky,3%) var(--mkz,1px);
+  background-image:linear-gradient(var(--mka,178.6deg),transparent var(--mkt,15%),var(--mk,#fff176) var(--mkt,15%),var(--mk,#fff176) var(--mke,85%),transparent var(--mke,85%)),
+    linear-gradient(var(--mkb,181.4deg),transparent var(--mku,19%),var(--mk,#fff176) var(--mku,19%),var(--mk,#fff176) var(--mkf,81%),transparent var(--mkf,81%))}
 .pixi{display:inline-flex;gap:3px;align-items:center;vertical-align:-2px} .pixi svg{display:block}
 .item .by,.item .who{display:none}
 .item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}

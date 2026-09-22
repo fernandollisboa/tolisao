@@ -94,3 +94,6 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 .row.paid .l .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 /* Minha conta mistura corpos de texto; largura em px deixa os R$ na mesma coluna */
 #mineRows .cur{width:22px} #mineRows .num{min-width:84px}
+/* no Falta pagar o cifrão gruda no número; a coluna que importa é a da direita */
+#settle .num{min-width:0} #settle .cur{margin-right:3px}
+#splitHint{margin-bottom:-6px}

@@ -499,10 +499,22 @@
     center(`*** TÔ LISA ***`);
     center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash();
 
-    // itens: descrição ...... valor, com quem pagou embaixo
-    blank(); center('*** ITENS ***'); blank();
+
     const VW = 10;
     const leader = (l, v) => { l = fit(l, COLS - VW - 2); const dots = '.'.repeat(Math.max(1, COLS - l.length - v.length - 2)); return `${l} ${dots} ${v}`; };
+
+    // saldo: quem ainda paga quem, e depois quem já está quite
+    const GREEN = '#15703a';
+    blank(); center('*** SALDO ***'); blank();
+    if (!st.length) center('TUDO QUITADO');
+    for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markOf(t.from)); mark(a.length + 6, c.length, markOf(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
+    { const quites = state.people.filter(p => (b[p.id] || 0) === 0);
+      if (quites.length && st.length) blank();
+      for (const p of quites) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markOf(p.id)); line(leader(n, 'QUITE'), GREEN); } }
+    dash();
+
+    // itens: descrição ...... valor, com quem pagou embaixo
+    blank(); center('*** ITENS ***'); blank();
     if (!items.length) line('NADA ANOTADO');
     for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
@@ -518,16 +530,6 @@
       line(t.trimEnd(), INK2); }
     blank();
     line(leader('TOTAL', 'R$ ' + numBig(totalCents)), INK2);
-    dash();
-
-    // saldo: quem ainda paga quem, e depois quem já está quite
-    const GREEN = '#15703a';
-    blank(); center('*** SALDO ***'); blank();
-    if (!st.length) center('TUDO QUITADO');
-    for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markOf(t.from)); mark(a.length + 6, c.length, markOf(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
-    { const quites = state.people.filter(p => (b[p.id] || 0) === 0);
-      if (quites.length && st.length) blank();
-      for (const p of quites) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markOf(p.id)); line(leader(n, 'QUITE'), GREEN); } }
     dash();
     blank(); center('* * *');
     { const widths = code128Widths('420420420420'); const units = [...widths].reduce((a, c) => a + +c, 0); const BW = 240, BH = 40, k = BW / units; let bx = W/2 - BW/2;

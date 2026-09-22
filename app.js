@@ -10,6 +10,7 @@
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
+  const PARTES = false; // link 'dividir em partes diferentes'; some até achar um canto melhor
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -273,6 +274,7 @@
     const among = inputs('#splitChips input:checked').map(i => i.value);
     const payer = $('#payer').value; const h = $('#splitHint'); const total = Math.round((numVal($('#amount').value) || 0) * 100);
     $('#modeToggle').textContent = splitMode === 'equal' ? 'dividir em partes diferentes' : 'voltar pra partes iguais';
+    $('#modeToggle').parentElement.classList.toggle('hidden', !PARTES);
     $('#sharesBox').classList.toggle('hidden', splitMode !== 'custom');
     if (splitMode === 'custom') {
       const prev = customShares();
@@ -283,7 +285,7 @@
     }
     if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
     else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
-    else h.textContent = `Dividido igualmente entre ${among.length} pessoa${among.length===1?'':'s'}.`;
+    else h.innerHTML = `Dividido igualmente entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`;
   }
   $('#modeToggle').onclick = () => { splitMode = splitMode === 'equal' ? 'custom' : 'equal'; updateHint(); };
   $('#amount').addEventListener('input', () => { if (splitMode === 'custom') updateHint(); });

@@ -18,6 +18,8 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   console.log('ordem do form:', await p1.$eval('.two', e => [...e.children].map(c => c.id).join(',')));
   await p1.fill('#amount','42.84'); await p1.fill('#desc','Janta');
   for (const n of ['Fernando','Júlia','Klinsmann']) await p1.click(`#splitChips label:has-text("${n}")`);
+  // o link está escondido pela constante PARTES; o recurso continua valendo, então revelamos pra testar
+  await p1.evaluate(() => document.getElementById('modeToggle').parentElement.classList.remove('hidden'));
   await p1.click('#modeToggle'); await p1.waitForSelector('#sharesBox:not(.hidden)');
   await p1.fill('#sharesBox input[data-share="lia"]','18.87'); await p1.fill('#sharesBox input[data-share="mengla"]','20');
   console.log('hint (sobra/falta):', await p1.$eval('#splitHint', e => e.textContent));

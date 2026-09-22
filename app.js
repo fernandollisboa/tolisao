@@ -498,15 +498,7 @@
 
     center(`*** TÔ LISA ***`);
     x.fillStyle = INK2; x.textAlign = 'center'; x.fillText('tinyurl.com/tolisapp', W/2, y); y += LH;
-    center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash(); blank();
-
-    // legenda de cores
-    center('*** MEMBROS ***'); blank();
-    { const rows = [[]]; let len = 0; for (const p of state.people) { const pn = fit(nameOf(p.id), COLS);
-        if (len && len + 2 + pn.length > COLS) { rows.push([]); len = 0; } rows[rows.length - 1].push({ t: pn, id: p.id }); len += (len ? 2 : 0) + pn.length; }
-      for (const row of rows) { const w = row.reduce((a, g) => a + g.t.length, 0) + 2 * (row.length - 1); let col = Math.floor((COLS - w) / 2), t = ' '.repeat(col);
-        for (const g of row) { mark(col, g.t.length, markOf(g.id)); t += g.t + '  '; col += g.t.length + 2; } line(t.trimEnd(), INK2); } }
-    blank(); dash();
+    center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo
     blank(); center('*** ITENS ***'); blank();

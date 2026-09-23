@@ -27,6 +27,7 @@ Como módulo, `preview({ alvo, quem, pix, dados, variantes, saida })` aceita dad
 Quadro congelado não mostra movimento. Pra qualquer coisa que se mexe (risco, ficha, botão que brota, fade), grave:
 
 ```sh
+node tests/video.cjs cascata                    # a nota se preenchendo de cima pra baixo
 node tests/video.cjs pix                        # o copiar pix saindo de trás do ✔
 node tests/video.cjs piscas                     # três ✔ piscando um atrás do outro
 node tests/video.cjs troca                      # trocar de pessoa refaz a nota inteira

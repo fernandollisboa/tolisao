@@ -144,24 +144,27 @@
   // uma vez só por pagamento — o #settle é refeito a cada render e, por tempo, um
   // render no meio do caminho recomeçava a animação do zero
   // quando cada pagamento apareceu na tela; 0 = já estava pago quando a página abriu
-  const vistos = new Map();
-  const RISCO_MS = 550;
-  let settleT = 0;                 // quando o #settle apareceu: as duas voltas do círculo saem daqui
+  const vistos = new Map();        // pagamento -> quando o risco dele deve começar (pode ser no futuro)
+  const RISCO_MS = 550, RISCO_GAP = 130;
+  let settleT = 0, riscoT = 0;     // hora marcada pras voltas do círculo e pros riscos
   const DESENHA_MS = 330, DESENHA_GAP = 200;
   let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
+  // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
+  // preenche de cima pra baixo, na ordem em que a pessoa leria
+  let mineNaTela = false, settleNaTela = false, filaT = 0;
+  const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = (id, i = 0) => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
-    // o risco começa quando a linha fica à vista: com um cartão por cima, a animação
-    // acabava escondida e a pessoa só via o resultado
-    if (!vistos.has(id) && !seguraRisco && $('#overlay').classList.contains('hidden')) vistos.set(id, Date.now());
-    // uma linha atrás da outra, pro recibo se riscar em cascata
-    const atraso = i * 130;
-    // o #settle é refeito a cada render: sem o atraso negativo, um render no meio do
-    // caminho recomeçaria o risco do zero. Assim ele retoma de onde estava.
-    const t = vistos.get(id), dt = t ? Date.now() - t : Infinity;   // sem hora ainda = espera o cartão fechar
-    return { cls: dt < RISCO_MS + atraso ? ' novo' : '', css: `--rot:${rot}deg;--dy:${dy}px`,
-             rd: `--rd:${atraso - Math.min(dt, RISCO_MS + atraso)}ms` }; };
+    // com um cartão por cima a animação acabava escondida e a pessoa só via o resultado.
+    // uma quitação recém-feita entra na hora; as da carga inicial saem do riscoT, em cascata
+    if (!vistos.has(id) && !seguraRisco && $('#overlay').classList.contains('hidden'))
+      vistos.set(id, riscoT ? riscoT + i * RISCO_GAP : Date.now());
+    // o #settle é refeito a cada render: sem o atraso, um render no meio do caminho
+    // recomeçaria o risco do zero. Positivo = ainda vai começar, negativo = retoma.
+    const t = vistos.get(id), dt = t === undefined ? Infinity : Date.now() - t;
+    return { cls: dt < RISCO_MS ? ' novo' : '', css: `--rot:${rot}deg;--dy:${dy}px`,
+             rd: dt < RISCO_MS ? `--rd:${-dt}ms` : '' }; };
   /** traço de marca-texto feito à mão: ângulo, altura e pontas tortas, fixos por linha */
   const markStyle = (seed, color) => { const h = hash32(seed), g = (bit, min, span) => min + ((h >>> bit) & 15) / 15 * span;
     return `--mk:${color};--mka:${g(0, 177.8, 1.2).toFixed(1)}deg;--mkb:${g(4, 181, 1.2).toFixed(1)}deg;`
@@ -177,7 +180,8 @@
   const NO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6l3.6-3.6L7 8.4 8.4 7l3.6 3.6L15.6 7 17 8.4 13.4 12z"/></svg>';
   const PIX_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>';
   let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
-  const pixVisto = new Map();   // pessoa -> quando o botão de copiar pix apareceu
+  const pixVisto = new Map();   // pessoa -> quando as animações da linha dela começam
+  let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, devagar
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
@@ -258,10 +262,13 @@
       // verde duas vezes, um "me pague". As duas saem da mesma hora, guardada uma vez
       // por pessoa; como o #mineRows é refeito a cada poll, o atraso (negativo depois
       // que a animação começou) retoma de onde estava em vez de recomeçar no meio
-      // hora em que a linha assentou (a chave do pix já foi consultada). Dela saem as duas
-      // animações: o copiar pix brotando de trás do ✔ e a piscada verde do próprio ✔
-      const pixDt = t => { if (!pixReady) return null;   // nada de spinner: o botão brotando já conta que chegou
-        if (!pixVisto.has(t.to)) pixVisto.set(t.to, Date.now());
+      // hora marcada pras animações da seção: o copiar pix brotando de trás do ✔ e a
+      // piscada verde do próprio ✔. Só entra na fila quando Minha conta está na tela
+      const meus = bal < 0 ? stMe.filter(t => t.from === me) : [];
+      if (mineNaTela && pixReady && !mineT)
+        mineT = agenda(PIX_MS + PISCA_MS + Math.max(0, meus.length - 1) * PISCA_GAP);
+      const pixDt = t => { if (!pixReady || !mineT) return null;   // nada de spinner: o botão brotando já conta que chegou
+        if (!pixVisto.has(t.to)) pixVisto.set(t.to, mineT);
         return Date.now() - (pixVisto.get(t.to) || 0); };
       const pixB = t => { const dt = pixDt(t); if (dt === null || !pixKeys[t.to]) return '';
         const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';
@@ -271,7 +278,7 @@
       const okB = (t, i) => { const dt = pixDt(t), esp = PIX_MS + i * PISCA_GAP;
         const pi = dt !== null && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
       // caixinha tracejada que aponta o lápis no evento novo
@@ -320,8 +327,11 @@
 
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
-    // as duas voltas do círculo saem da hora em que o #settle apareceu, junto com o risco
-    if (!settleT && !seguraRisco && $('#overlay').classList.contains('hidden')) settleT = Date.now();
+    // o #settle entra na fila atrás de Minha conta, e primeiro as voltas do círculo
+    // (que ficam em cima), depois os riscos dos pagamentos (que ficam embaixo)
+    if (settleNaTela && !settleT && !seguraRisco && $('#overlay').classList.contains('hidden')) {
+      settleT = agenda(DESENHA_MS + DESENHA_GAP);
+      riscoT = agenda(RISCO_MS + Math.max(0, pays.length - 1) * RISCO_GAP); }
     const dtS = settleT ? Date.now() - settleT : Infinity, desenha = dtS < DESENHA_MS + DESENHA_GAP;
     $('#settle').innerHTML = (s.map(t => { const meu = t.from === me; return line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100),
         meu ? 'mine' + (desenha ? ' risca' : '') : '', '',
@@ -329,7 +339,7 @@
         meu ? ` data-copy-value="${fmt(t.cents/100)}" title="copiar valor"` : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : ''); }).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
         : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} abaixo pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
-      + pays.map((e, i) => { const st = stampStyle(e.id, i); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', st.rd) +
+      + pays.map((e, i) => { const st = stampStyle(e.id, i); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', `--ri:${colorOf(e.payer)};${st.rd}`) +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
@@ -449,7 +459,7 @@
     /** escolher já é confirmar: quem é você não tem botão de continuar */
     // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
     // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
-    const entra = v => { me = v; ls.set(meKey(), me); vistos.clear(); pixVisto.clear(); settleT = 0;
+    const entra = v => { me = v; ls.set(meKey(), me); rearmaAnims();
       closeOverlay(); render(); $('#payer').value = me; updateHint(); rejogaDiva(); };
     $('#whoSel').onchange = () => { const v = $('#whoSel').value;
       $('#whoNewBox').classList.toggle('hidden', v !== '__new');
@@ -493,7 +503,7 @@
     $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
-    pixKeys = {}; pixReady = false; pixVisto.clear(); settleT = 0;
+    pixKeys = {}; pixReady = false; rearmaAnims();
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     $('#app').classList.remove('loading');
@@ -763,6 +773,23 @@
     olho.observe(bars);
     rejogaDiva = () => { el.classList.remove('voou'); olho.observe(bars); };
   })();
+  // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
+  let olhoSec = null;
+  function armaOlho(){
+    if (!('IntersectionObserver' in window)) { mineNaTela = settleNaTela = true; return; }
+    if (olhoSec) olhoSec.disconnect();
+    olhoSec = new IntersectionObserver(es => { let mudou = false;
+      for (const e of es) { if (!e.isIntersecting) continue;
+        if (e.target.id === 'mine' && !mineNaTela) { mineNaTela = true; mudou = true; }
+        if (e.target.id === 'settle' && !settleNaTela) { settleNaTela = true; mudou = true; }
+        if (olhoSec) olhoSec.unobserve(e.target); }
+      if (mudou) render(); }, { threshold: .08 });
+    olhoSec.observe($('#mine')); olhoSec.observe($('#settle'));
+  }
+  /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
+  function rearmaAnims(){ vistos.clear(); pixVisto.clear();
+    settleT = riscoT = mineT = filaT = 0; mineNaTela = settleNaTela = false; armaOlho(); }
+  armaOlho();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- código de barras (Code 128 C) ----------

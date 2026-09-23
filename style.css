@@ -65,9 +65,9 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .small{font-size:16px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .small>span{flex:1}
 .stamp{--cy:0px;display:inline-block;margin-left:9px;vertical-align:middle;font-family:'Permanent Marker',cursive;color:var(--red);border:1.5px solid currentColor;border-radius:44% 56% 47% 53%/58% 46% 54% 42%;padding:2px 11px;font-size:11px;line-height:1.5;transform:translateY(calc(var(--cy) + var(--dy,0))) rotate(var(--rot,-8deg));opacity:.9;letter-spacing:.5px;pointer-events:none}
-@keyframes risca{from{width:0;border-top-color:var(--ink)}to{width:100%;border-top-color:#8a7a5a}}
+@keyframes risca{from{width:0}to{width:100%}}
 @media (prefers-reduced-motion:reduce){.row.paid.novo:after{animation:none}}
-.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;top:50%;border-top:2px solid #8a7a5a;pointer-events:none;z-index:2}
+.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;top:50%;border-top:2px solid var(--ri,#8a7a5a);pointer-events:none;z-index:2}
 .row.paid.novo:after{animation:risca .55s ease-out both;animation-delay:var(--rd,0ms)}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}

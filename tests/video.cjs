@@ -17,6 +17,11 @@ const TRES = { name: 'bailedamada', people: DADOS.people,
     { id: 'i3', desc: 'Janta', amount: 80, payer: 'mengla', among: ['mengla','lia'], at: H - 86400000 },
   ] };
 
+/** três dívidas e um pagamento já feito: a nota inteira, pra ver a ordem de cima pra baixo */
+const FILA = { name: 'bailedamada', people: DADOS.people,
+  expenses: [...TRES.expenses,
+    { id: 'pg1', kind: 'payment', desc: 'Pagamento', amount: 40, payer: 'lia', among: ['fernando'], at: H - 3600000 }] };
+
 /** dois devedores: o Klinsmann com duas linhas, a Lia com uma. Pra ver a troca de pessoa */
 const DOIS = { name: 'bailedamada', people: DADOS.people,
   expenses: [
@@ -29,6 +34,12 @@ const CENAS = {
   pix: { nome: 'copiar pix brotando do ✔ e a piscada verde', quem: 'Lia', atrasoPix: 2000,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(4500); } },
+  cascata: { nome: 'a nota se preenchendo de cima pra baixo', quem: 'Lia', atrasoPix: 1200, dados: FILA,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1200);
+      await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      await p.waitForTimeout(5500);
+      await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      await p.waitForTimeout(6000); } },
   piscas: { nome: 'três ✔ piscando um atrás do outro', quem: 'Lia', atrasoPix: 2000, dados: TRES,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(6000); } },

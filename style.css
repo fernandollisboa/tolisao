@@ -11,7 +11,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
 .paper:before{top:-13px}.paper:after{bottom:-13px;transform:scaleY(-1)}
 /* a diva é jogada no recibo: o ponto de queda e o voo mudam a cada vez.
    O JS mede o código de barras e escolhe um lugar que não cobre o "sincronizado". */
-.stain{position:absolute;width:70px;height:70px;--dx:0px;--dy:0px;--rot:-16deg;--vx:70px;--vy:-90px;
+.stain{position:absolute;width:70px;height:70px;box-sizing:border-box;padding:7px;border-radius:50%;background:repeating-conic-gradient(#f2f2f2 0 15deg,transparent 0 30deg),#9b9b9b;--dx:0px;--dy:0px;--rot:-16deg;--vx:70px;--vy:-90px;
   transform:translate(var(--dx),var(--dy)) rotate(var(--rot));filter:drop-shadow(2px 4px 4px rgba(0,0,0,.35));pointer-events:none;z-index:1;
   opacity:0}
 .stain.voou{animation:jogada .7s cubic-bezier(.2,1.1,.4,1) both}
@@ -34,10 +34,10 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .small{font-size:16px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .small>span{flex:1}
 .stamp{--cy:0px;display:inline-block;margin-left:9px;vertical-align:middle;font-family:'Permanent Marker',cursive;color:var(--red);border:1.5px solid currentColor;border-radius:44% 56% 47% 53%/58% 46% 54% 42%;padding:2px 11px;font-size:11px;line-height:1.5;transform:translateY(calc(var(--cy) + var(--dy,0))) rotate(var(--rot,-8deg));opacity:.9;letter-spacing:.5px;pointer-events:none}
-@keyframes carimbo{0%{opacity:0;transform:translateY(calc(var(--cy) + var(--dy,0))) rotate(var(--rot,-8deg)) scale(2.1)}70%{opacity:1;transform:translateY(calc(var(--cy) + var(--dy,0))) rotate(var(--rot,-8deg)) scale(.92)}100%{opacity:.9;transform:translateY(calc(var(--cy) + var(--dy,0))) rotate(var(--rot,-8deg)) scale(1)}}
-.stamp.ink{animation:carimbo .34s cubic-bezier(.2,.9,.3,1.2) both}
-@media (prefers-reduced-motion:reduce){.stamp.ink{animation:none}}
-.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid #8a7a5a;pointer-events:none;z-index:2}
+@keyframes risca{from{width:0;border-top-color:var(--ink)}to{width:100%;border-top-color:#8a7a5a}}
+@media (prefers-reduced-motion:reduce){.row.paid.novo:after{animation:none}}
+.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;top:50%;border-top:2px solid #8a7a5a;pointer-events:none;z-index:2}
+.row.paid.novo:after{animation:risca .55s ease-out both}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}
 /* o ▸ dos itens é o botão que abre e fecha a lista */

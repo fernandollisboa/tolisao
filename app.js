@@ -136,13 +136,13 @@
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
   let showAll = false, itemsOpen = false; const openItems = new Set();
-  // carimbo: ângulo fixo por pagamento (não pula entre renders) e batida só na estreia
+  // carimbo: ângulo fixo por pagamento (não pula entre renders); o risco da linha é que corre na estreia
   const stamped = new Map();
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
     if (!stamped.has(id)) stamped.set(id, Date.now());
-    return { cls: Date.now() - stamped.get(id) < 1200 ? ' ink' : '', css: `--rot:${rot}deg;--dy:${dy}px` }; };
+    return { cls: Date.now() - stamped.get(id) < 1200 ? ' novo' : '', css: `--rot:${rot}deg;--dy:${dy}px` }; };
   /** traço de marca-texto feito à mão: ângulo, altura e pontas tortas, fixos por linha */
   const markStyle = (seed, color) => { const h = hash32(seed), g = (bit, min, span) => min + ((h >>> bit) & 15) / 15 * span;
     return `--mk:${color};--mka:${g(0, 177.8, 1.2).toFixed(1)}deg;--mkb:${g(4, 181, 1.2).toFixed(1)}deg;`
@@ -276,7 +276,7 @@
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
         : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} abaixo pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
-      + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid') +
+      + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls) +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');

@@ -361,7 +361,7 @@
     const list = state.people.length
       ? state.people.map(p => `<div class="row"><span class="l">${nm(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`).join('')
       : '<div class="empty">ninguém ainda</div>';
-    overlay(`<h2 style="margin-top:0">*** Quem tá no evento? ***</h2>
+    overlay(`<h2 class="longo" style="margin-top:0">*** Quem tá no evento? ***</h2>
       ${list}
       <div class="hr"></div>
       <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">

@@ -13,7 +13,7 @@ const dados = CENAS.cascata.dados;   // três dívidas suas e um pagamento já f
 /** os blocos têm que sair nesta ordem; dentro de um bloco a ordem não importa,
  *  porque a piscada e o copiar pix saem juntos de propósito */
 const ESPERADO = [
-  { o_que: 'Minha conta: as piscadas dos ✔ e o copiar pix', bloco: { pisca: 3, brota: 1 } },
+  { o_que: 'Minha conta: as piscadas dos ✔, uma por linha', bloco: { pisca: 3 } },
   { o_que: 'a linha dos itens virando botão, com o ▸ vazado', bloco: { apertinho: 1, moldura: 1, vazado: 1 } },
   { o_que: 'as voltas do círculo, duas por linha sua', bloco: { volta: 6 } },
   { o_que: 'o risco do pagamento', bloco: { risca: 1 } },
@@ -59,6 +59,8 @@ const ESPERADO = [
     await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
     await p.waitForTimeout(4000);
 
+    // o copiar pix corre por fora da fila de propósito (brota assim que a chave chega),
+    // então a posição dele não é fixa: só se cobra que tenha acontecido
     const nossas = new Set(ESPERADO.flatMap(e => Object.keys(e.bloco)));
     // todo render refaz o #mineRows e o #settle, e a animação recomeça do ponto certo
     // pelo atraso negativo — mas dispara animationstart de novo. Só o primeiro conta.
@@ -69,6 +71,10 @@ const ESPERADO = [
       if (vistos.has(chave)) return false; vistos.add(chave); return true; });
     const t0 = ev.length ? ev[0].t : 0;
     for (const e of ev) console.log(String(e.t - t0).padStart(6) + 'ms', e.nome.padEnd(7), e.alvo);
+
+    const brotou = (await p.evaluate(() => window.__ev)).some(e => e.nome === 'brota');
+    if (!brotou) erros.push('o copiar pix não brotou');
+    console.log('copiar pix brotou (fora da fila):', brotou ? 'ok' : 'FALHOU');
 
     let i = 0;
     for (const passo of ESPERADO) {

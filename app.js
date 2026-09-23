@@ -273,7 +273,10 @@
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
-      $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', val(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }
+      // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
+      // caixinha tracejada que aponta o lápis no evento novo
+      $('#mineRows').innerHTML = (bal === 0 ? '<div class="empty vazio">tudo quite! 🎉<br><b>você não deve nada a ninguém.</b></div>'
+        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda

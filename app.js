@@ -141,20 +141,21 @@
   // render no meio do caminho recomeçava a animação do zero
   // quando cada pagamento apareceu na tela; 0 = já estava pago quando a página abriu
   const vistos = new Map();
-  let primeiroRender = true;
   const RISCO_MS = 550;
   let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
-  const stampStyle = id => { const h = hash32(id);
+  const stampStyle = (id, i = 0) => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
-    // o risco começa quando a linha fica à vista: com o cartão de "quitado!" por cima,
-    // a animação acabava escondida e a pessoa só via o resultado
-    if (!vistos.has(id)) { if (primeiroRender) vistos.set(id, 0);
-      else if (!seguraRisco && $('#overlay').classList.contains('hidden')) vistos.set(id, Date.now()); }
+    // o risco começa quando a linha fica à vista: com um cartão por cima, a animação
+    // acabava escondida e a pessoa só via o resultado
+    if (!vistos.has(id) && !seguraRisco && $('#overlay').classList.contains('hidden')) vistos.set(id, Date.now());
+    // uma linha atrás da outra, pro recibo se riscar em cascata
+    const atraso = i * 130;
     // o #settle é refeito a cada render: sem o atraso negativo, um render no meio do
     // caminho recomeçaria o risco do zero. Assim ele retoma de onde estava.
     const t = vistos.get(id), dt = t ? Date.now() - t : Infinity;   // sem hora ainda = espera o cartão fechar
-    return { cls: dt < RISCO_MS ? ' novo' : '', css: `--rot:${rot}deg;--dy:${dy}px`, rd: `--rd:${-Math.min(dt, RISCO_MS)}ms` }; };
+    return { cls: dt < RISCO_MS + atraso ? ' novo' : '', css: `--rot:${rot}deg;--dy:${dy}px`,
+             rd: `--rd:${atraso - Math.min(dt, RISCO_MS + atraso)}ms` }; };
   /** traço de marca-texto feito à mão: ângulo, altura e pontas tortas, fixos por linha */
   const markStyle = (seed, color) => { const h = hash32(seed), g = (bit, min, span) => min + ((h >>> bit) & 15) / 15 * span;
     return `--mk:${color};--mka:${g(0, 177.8, 1.2).toFixed(1)}deg;--mkb:${g(4, 181, 1.2).toFixed(1)}deg;`
@@ -296,7 +297,7 @@
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
         : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} abaixo pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
-      + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', st.rd) +
+      + pays.map((e, i) => { const st = stampStyle(e.id, i); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', st.rd) +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');
@@ -313,7 +314,6 @@
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').classList.toggle('aberto', itemsOpen); $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
-    primeiroRender = false;
   }
   let splitMode = 'equal';
   const customShares = () => { const o = {}; for (const i of inputs('#sharesBox input')) o[i.dataset.share] = Math.round((numVal(i.value) || 0) * 100); return o; };

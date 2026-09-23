@@ -255,8 +255,7 @@
       // o copiar pix brota de trás do ✔ quando a chave chega, em vez de piscar na tela.
       // como o #mineRows é refeito a cada poll, o atraso negativo retoma a animação
       // de onde ela estava em vez de recomeçar no meio do caminho
-      const pixB = t => { if (!pixReady) return `<span class="spin" style="width:11px;height:11px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block" title="carregando"></span>`;
-        if (!pixKeys[t.to]) return '';
+      const pixB = t => { if (!pixReady || !pixKeys[t.to]) return '';   // nada de spinner: o botão brotando já conta que chegou
         if (!pixVisto.has(t.to)) pixVisto.set(t.to, Date.now());
         const dt = Date.now() - (pixVisto.get(t.to) || 0);
         const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';

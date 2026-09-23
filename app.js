@@ -230,7 +230,8 @@
     { const wl = $('#whoLine');
       const html = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
       if (wl.dataset.k !== html) { wl.innerHTML = html; wl.dataset.k = html; }
-      $('#whoBtn').onclick = showWho; }
+      // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
+      $('#whoBtn').onclick = () => state.people.length ? showWho() : showSetup(); }
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
       if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém 🙏';
@@ -259,6 +260,8 @@
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
       $('#fab').classList.add('chamando'); }   // sempre preenchido, pra ver como fica
+    // nota vazia não tem o que mandar: o zap some e sobra só o "quem é você?"
+    $('#waBtn').classList.toggle('hidden', vazio);
     $('#itemsSec').classList.toggle('hidden', vazio || (hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment')));
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
@@ -455,9 +458,8 @@
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     $('#app').classList.remove('loading');
-    // evento sem gente ainda precisa da tela de estreia; com gente, a pessoa cai
-    // direto no acerto e diz quem é quando quiser, pelo "quem é você?" do cabeçalho
-    if (!state.people.length) showSetup();
+    // ninguém é interrompido na chegada: a tela de estreia e o "quem é você?"
+    // esperam o toque no botão do cabeçalho
     startPolling(); sync(); loadPixKeys();
   }
   function showQuitado(to, amount){

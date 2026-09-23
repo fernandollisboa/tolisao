@@ -29,12 +29,13 @@ Quadro congelado não mostra movimento. Pra qualquer coisa que se mexe (risco, f
 ```sh
 node tests/video.cjs pix                        # o copiar pix saindo de trás do ✔
 node tests/video.cjs piscas                     # três ✔ piscando um atrás do outro
+node tests/video.cjs troca                      # trocar de pessoa refaz a nota inteira
 node tests/video.cjs chave                      # o cadastrar chave pix descendo do título
 node tests/video.cjs ficha --saida=/tmp/f.webm  # a ficha caindo no rodapé
 node tests/video.cjs risco --vel=0.35           # o risco correndo nas linhas pagas
 ```
 
-`--vel` é a velocidade das animações (0.35 = bem devagar). Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é, quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.
+`--vel` é a velocidade das animações (0.35 = bem devagar). `--css=arq.css` injeta uma folha depois da do app: como o `@keyframes` de mesmo nome vence o anterior, dá pra gravar uma variação da animação sem tocar no `style.css` — é assim que se oferecem opções de movimento, um vídeo por letra. Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é, quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.
 
 ## Opções de design
 

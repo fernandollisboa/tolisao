@@ -447,7 +447,10 @@
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
         <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
-    const entra = v => { me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint(); rejogaDiva(); };
+    // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
+    // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
+    const entra = v => { me = v; ls.set(meKey(), me); vistos.clear(); pixVisto.clear(); settleT = 0;
+      closeOverlay(); render(); $('#payer').value = me; updateHint(); rejogaDiva(); };
     $('#whoSel').onchange = () => { const v = $('#whoSel').value;
       $('#whoNewBox').classList.toggle('hidden', v !== '__new');
       if (v === '__new') return $('#whoNew').focus();

@@ -17,6 +17,13 @@ const TRES = { name: 'bailedamada', people: DADOS.people,
     { id: 'i3', desc: 'Janta', amount: 80, payer: 'mengla', among: ['mengla','lia'], at: H - 86400000 },
   ] };
 
+/** dois devedores: o Klinsmann com duas linhas, a Lia com uma. Pra ver a troca de pessoa */
+const DOIS = { name: 'bailedamada', people: DADOS.people,
+  expenses: [
+    { id: 'i1', desc: 'Airbnb', amount: 300, payer: 'fernando', among: ['fernando','lia','klinsmann'], at: H - 3*86400000 },
+    { id: 'i2', desc: 'Gasolina', amount: 120, payer: 'julia', among: ['julia','lia','klinsmann'], at: H - 2*86400000 },
+  ] };
+
 /** cada cena diz quem você é, quanto o pix demora e o que a câmera faz */
 const CENAS = {
   pix: { nome: 'copiar pix brotando do ✔ e a piscada verde', quem: 'Lia', atrasoPix: 2000,
@@ -25,6 +32,13 @@ const CENAS = {
   piscas: { nome: 'três ✔ piscando um atrás do outro', quem: 'Lia', atrasoPix: 2000, dados: TRES,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(6000); } },
+  troca: { nome: 'trocar de pessoa refaz a nota inteira', quem: 'Klinsmann', atrasoPix: 800, dados: DOIS,
+    acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
+      await p.waitForTimeout(4500);
+      await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
+      await p.selectOption('#whoSel', { label: 'Lia' });
+      await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
+      await p.waitForTimeout(5000); } },
   chave: { nome: 'o cadastrar chave pix descendo do título', quem: 'Júlia', atrasoPix: 2500,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#pixBtn', { timeout: 9000 }); await p.waitForTimeout(4000); } },
@@ -38,7 +52,7 @@ const CENAS = {
 };
 
 /**
- * @param {{cena?:string, vel?:number, largura?:number, altura?:number, dados?:any, saida?:string, porta?:number}} opts
+ * @param {{cena?:string, vel?:number, largura?:number, altura?:number, dados?:any, css?:string, saida?:string, porta?:number}} opts
  * @returns {Promise<string>} caminho do vídeo
  */
 async function video(opts = {}) {
@@ -67,6 +81,8 @@ async function video(opts = {}) {
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
     await p.goto(`http://localhost:${porta}/#c=${dados.name}`);
+    // css de experiência: entra depois da folha do app, então redefine keyframes e vence
+    if (opts.css) await p.addStyleTag({ content: opts.css });
     await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
     await p.selectOption('#whoSel', { label: c.quem });
     await c.acao(p);
@@ -83,7 +99,9 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const cena = args.find(a => !a.startsWith('--')) || 'pix';
   const op = a => { const v = args.find(x => x.startsWith('--' + a + '=')); return v && v.split('=')[1]; };
+  const arqCss = op('css');
   video({ cena, saida: op('saida'), vel: op('vel') ? Number(op('vel')) : undefined,
+          css: arqCss ? fs.readFileSync(arqCss, 'utf8') : undefined,
           largura: op('largura') ? Number(op('largura')) : undefined })
     .then(f => console.log(f)).catch(e => { console.error('FAIL', e); process.exit(1); });
 }

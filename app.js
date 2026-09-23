@@ -282,7 +282,7 @@
       return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${by}</span>${me && (e.by ? e.by === nameOf(me) : e.payer === me) ? `<button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : ''}</div></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
-    $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').textContent = itemsOpen ? '▾' : '▸'; $('#itemsBody').classList.toggle('hidden', !itemsOpen);
+    $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').classList.toggle('aberto', itemsOpen); $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';

@@ -14,6 +14,7 @@
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
   const INSTALAR = true;
+  const APERTO_VISITAS = 3;  // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
   const CURRENCY = 'R$';
 
@@ -25,6 +26,9 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: k => { try { localStorage.removeItem(k); } catch {} } };
+  // visitas contadas neste aparelho: o convite de instalar e o aperto dos itens leem daqui
+  const VISITAS = 'racha:visitas', CONVIDOU = 'racha:convidou', ABRIU = 'racha:abriuItens';
+  const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
 
   /** @type {string|null} */ let groupId = null; let roomName = '';
   /** @type {Room|null} */ let state = null;
@@ -326,7 +330,8 @@
     // trás, e o toquinho furava a fila antes de Minha conta existir
     // lista aberta (quem acabou de anotar cai nela assim) já sabe que a linha abre:
     // nada de convite, e o bloco não reserva vez na fila
-    if (itemsOpen && !itensT) itensT = -1;
+    // quem já abriu a lista na mão, ou já veio mais de APERTO_VISITAS vezes, também aprendeu
+    if (!itensT && (itemsOpen || ls.get(ABRIU) || visitas > APERTO_VISITAS)) itensT = -1;
     if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
         && !$('#itemsSec').classList.contains('hidden')) itensT = agenda(APERTO_LEAD);
     const myBal = hasMe ? (balances()[me] || 0) : 0;
@@ -579,7 +584,7 @@
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
-  $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; render(); };
+  $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; if (itemsOpen) ls.set(ABRIU, '1'); render(); };
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
   $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); convidaInstalar(); };
@@ -738,8 +743,6 @@
   // do rodapé pede; o toque do ✎ também convida, uma vez só, na segunda visita e só
   // com gasto anotado. No iPhone o evento não existe: o botão ensina o caminho do Safari.
   let convite = null;
-  const VISITAS = 'racha:visitas', CONVIDOU = 'racha:convidou';
-  const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
   const jaInstalado = () => matchMedia('(display-mode: standalone)').matches
     || /** @type {any} */ (navigator).standalone === true;   // standalone é só do Safari
   const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent)

@@ -164,7 +164,7 @@
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
   let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
-  let itensT = 0; /* -1: dispensado, a lista já foi aberta */ const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
+  let itensT = 0, itensSuave = false; /* -1: dispensado, a lista já foi aberta */ const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
   const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
@@ -330,10 +330,12 @@
     // trás, e o toquinho furava a fila antes de Minha conta existir
     // lista aberta (quem acabou de anotar cai nela assim) já sabe que a linha abre:
     // nada de convite, e o bloco não reserva vez na fila
-    // quem já abriu a lista na mão, ou já veio mais de APERTO_VISITAS vezes, também aprendeu
-    if (!itensT && (itemsOpen || ls.get(ABRIU) || visitas > APERTO_VISITAS)) itensT = -1;
+    // quem já abriu a lista na mão, ou já veio mais de APERTO_VISITAS vezes, também
+    // aprendeu: esse ganha só o toquinho de leve na caixinha do ▸
+    if (!itensT && itemsOpen) itensT = -1;
     if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
-        && !$('#itemsSec').classList.contains('hidden')) itensT = agenda(APERTO_LEAD);
+        && !$('#itemsSec').classList.contains('hidden')) {
+      itensSuave = !!ls.get(ABRIU) || visitas > APERTO_VISITAS; itensT = agenda(APERTO_LEAD); }
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     // sem spinner aqui também: a linha fica vazia e o botão desce de debaixo do título
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
@@ -400,9 +402,9 @@
     // a linha é o mesmo elemento em todo render: mexer no atraso depois reiniciaria a
     // animação, então ele é marcado uma vez só e fica quieto
     { const ih = $('#itemsHead');
-      if (itemsOpen) ih.classList.remove('pisca');   // abriu no meio do convite: para ali
+      if (itemsOpen) ih.classList.remove('pisca', 'suave');   // abriu no meio do convite: para ali
       else if (itensT > 0 && !ih.dataset.pisca) { ih.dataset.pisca = '1';
-        ih.style.setProperty('--ad', `${itensT - Date.now()}ms`); ih.classList.add('pisca'); } } $('#itemsBody').classList.toggle('hidden', !itemsOpen);
+        ih.style.setProperty('--ad', `${itensT - Date.now()}ms`); ih.classList.add(itensSuave ? 'suave' : 'pisca'); } } $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
@@ -494,10 +496,17 @@
       state.people.push({ id: uid(), name, at: Date.now() }); commit(); showSetup(); };
     for (const b of inputs('#overlayBox [data-drop]'))
       b.onclick = () => { state.people = state.people.filter(p => p.id !== b.dataset.drop); commit(); showSetup(); };
-    $('#setupGo').onclick = () => { if (!state.people.length) return; closeOverlay(); showWho(); };
+    // evento de uma pessoa só: não há o que perguntar, quem criou é ela
+    $('#setupGo').onclick = () => { if (!state.people.length) return;
+      if (state.people.length === 1) return souEu(state.people[0].id);
+      closeOverlay(); showWho(); };
     $('#setupLeave').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
     $('#setupName').focus();
   }
+  // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
+  // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
+  function souEu(v){ me = v; ls.set(meKey(), me); rearmaAnims();
+    closeOverlay(); render(); $('#payer').value = me; updateHint(); rejogaDiva(); }
   function showWho(){
     const opts = state.people.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
@@ -505,10 +514,7 @@
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
         <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
-    // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
-    // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
-    const entra = v => { me = v; ls.set(meKey(), me); rearmaAnims();
-      closeOverlay(); render(); $('#payer').value = me; updateHint(); rejogaDiva(); };
+    const entra = souEu;
     $('#whoSel').onchange = () => { const v = $('#whoSel').value;
       $('#whoNewBox').classList.toggle('hidden', v !== '__new');
       if (v === '__new') return $('#whoNew').focus();
@@ -883,7 +889,7 @@
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
     settleT = riscoT = mineT = itensT = filaT = 0;
     mineNaTela = itensNaTela = settleNaTela = false;
-    const ih = $('#itemsHead'); ih.classList.remove('pisca'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
+    const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }
   armaOlho();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }

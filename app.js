@@ -242,6 +242,9 @@
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
     // enquanto não houver nada anotado, o balão mostra por onde se começa
     // no caderno em branco o título não tem o que apresentar; fica só a caixa
+    { const f = $('.stain'); if (f) { const b = hasMe ? (balances()[me] || 0) : null;
+        f.classList.toggle('quite', b !== null && b >= 0);
+        f.classList.toggle('devendo', b !== null && b < 0); } }
     $('#settleHead').classList.toggle('hidden', vazio);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
@@ -644,21 +647,31 @@
     const r = (a, b) => a + Math.random() * (b - a);
     const D = 70, folga = 6;               // tamanho da figurinha
     let slot = 0;
-    /** onde cada vaga cai, medido no código de barras de agora */
-    const vaga = i => { const bt = bars.offsetTop, bl = bars.offsetLeft, bw = bars.offsetWidth, bh = bars.offsetHeight;
+    /** as vagas vazias do rodapé, medidas na página de agora */
+    const vagas = () => { const papelOu = bars.offsetParent; if (!papelOu) return null;   // escondido (tela de código, carregando)
+      const bt = bars.offsetTop, bl = bars.offsetLeft, bw = bars.offsetWidth, bh = bars.offsetHeight;
       const base = bt + bh - D + folga, acima = bt - D * 0.55;
-      return [ { x: bl + bw - D * 0.55, y: base },        // ponta direita
-               { x: bl - D * 0.45, y: base },             // ponta esquerda
-               { x: bl + bw - D * 0.75, y: acima },       // acima, à direita
-               { x: bl - D * 0.2, y: acima },             // acima, à esquerda
-               { x: bl + bw / 2 - D / 2, y: acima - 14 },  // acima, no meio, perto da frase
-             ][i]; };
+      const larg = /** @type {HTMLElement} */ (papelOu).clientWidth;
+      const frase = $('#signoff'), fy = frase ? frase.offsetTop - D * 0.35 : acima;
+      const st = $('#status'), sy = st ? st.offsetTop - D * 0.45 : base;
+      const esq = -D * 0.35, dir = larg - D * 0.65;       // meio pra fora das bordas do papel
+      return [ { x: bl + bw - D * 0.55, y: base },        // ponta direita do código
+               { x: bl - D * 0.45, y: base },             // ponta esquerda do código
+               { x: bl + bw - D * 0.75, y: acima },       // acima do código, à direita
+               { x: bl - D * 0.2, y: acima },             // acima do código, à esquerda
+               { x: bl + bw / 2 - D / 2, y: acima - 14 }, // acima, no meio
+               { x: esq, y: fy },                         // ao lado da frase, à esquerda
+               { x: dir, y: fy },                         // ao lado da frase, à direita
+               { x: esq + 6, y: sy },                     // ao lado do sincronizado, à esquerda
+               { x: dir - 6, y: sy },                     // ao lado do sincronizado, à direita
+             ]; };
+    const vaga = i => { const v = vagas(); return v && v[i]; };
     // a página muda de altura ao longo da vida (entrar no evento, abrir itens),
     // então a vaga é recalculada, não guardada em pixels
-    const posiciona = () => { const p = vaga(slot);
+    const posiciona = () => { const p = vaga(slot); if (!p) return;
       el.style.left = Math.round(p.x) + 'px'; el.style.top = Math.round(p.y) + 'px';
       el.style.right = 'auto'; el.style.bottom = 'auto'; };
-    const sorteia = () => { slot = Math.floor(Math.random() * 5); posiciona();
+    const sorteia = () => { const v = vagas(); slot = Math.floor(Math.random() * (v ? v.length : 5)); posiciona();
       el.style.setProperty('--dx', r(-8, 8).toFixed(1) + 'px');
       el.style.setProperty('--dy', r(-6, 6).toFixed(1) + 'px');
       el.style.setProperty('--rot', r(-28, 12).toFixed(1) + 'deg');

@@ -11,31 +11,34 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
 .paper:before{top:-13px}.paper:after{bottom:-13px;transform:scaleY(-1)}
 /* a diva é jogada no recibo: o ponto de queda e o voo mudam a cada vez.
    O JS mede o código de barras e escolhe um lugar que não cobre o "sincronizado". */
-.stain{position:absolute;width:70px;height:70px;box-sizing:border-box;padding:7px;border-radius:50%;background:repeating-conic-gradient(#fff8e6 0 12.86deg,transparent 0 25.71deg),#9a5b00;--dx:0px;--dy:0px;--rot:-16deg;--vx:70px;--vy:-90px;
+.stain{position:absolute;width:70px;height:70px;box-sizing:border-box;padding:7px;border-radius:50%;--f1:#9a5b00;--f2:#fff8e6;background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);--dx:0px;--dy:0px;--rot:-16deg;--vx:70px;--vy:-90px;
   transform:translate(var(--dx),var(--dy)) rotate(var(--rot));filter:drop-shadow(2px 4px 4px rgba(0,0,0,.35));pointer-events:none;z-index:1;
   opacity:0}
+/* a cor conta como você está: rosa quem não deve nada, verde quem deve, âmbar quem não disse quem é */
+.stain.quite{--f1:#d94f8a;--f2:#ffe3ef}
+.stain.devendo{--f1:#0f4d2a;--f2:#dff0e4}
 .stain.voou{animation:jogada .85s linear both}
 .stain.voou.cambalhota{animation:cambalhota 1.05s linear both}
 /* ficha de pôquer: cai acelerando, bate, quica duas vezes cada vez mais baixo
    e assenta. A cambalhota gira mais e ainda roda um tico depois de pousar. */
+/* ficha de pôquer: entra já em movimento, quica duas vezes cada vez mais baixo
+   e assenta. Nada de amassar: acrílico não deforma. */
 @keyframes jogada{
-  0%{opacity:0;transform:translate(calc(var(--dx) + var(--vx)),calc(var(--dy) + var(--vy))) rotate(calc(var(--rot) + 160deg)) scale(.8);animation-timing-function:cubic-bezier(.5,0,.85,.4)}
-  35%{opacity:1}
-  46%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 7deg)) scale(1.06,.9);animation-timing-function:cubic-bezier(.2,.7,.4,1)}
-  62%{transform:translate(var(--dx),calc(var(--dy) - 11px)) rotate(calc(var(--rot) - 3deg)) scale(.99,1.02);animation-timing-function:cubic-bezier(.5,0,.85,.4)}
-  76%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 1deg)) scale(1.04,.95);animation-timing-function:cubic-bezier(.2,.7,.4,1)}
-  86%{transform:translate(var(--dx),calc(var(--dy) - 4px)) rotate(var(--rot)) scale(1,1);animation-timing-function:cubic-bezier(.5,0,.85,.4)}
-  94%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(1.02,.98)}
-  100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(1)}}
+  0%{opacity:0;transform:translate(calc(var(--dx) + var(--vx)),calc(var(--dy) + var(--vy))) rotate(calc(var(--rot) + 160deg));animation-timing-function:cubic-bezier(.25,.35,.7,1)}
+  25%{opacity:1}
+  45%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 7deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  60%{transform:translate(var(--dx),calc(var(--dy) - 12px)) rotate(calc(var(--rot) - 4deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  75%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 2deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  86%{transform:translate(var(--dx),calc(var(--dy) - 4px)) rotate(var(--rot));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 @keyframes cambalhota{
-  0%{opacity:0;transform:translate(calc(var(--dx) + var(--vx)),calc(var(--dy) + var(--vy))) rotate(calc(var(--rot) + 700deg)) scale(.62);animation-timing-function:cubic-bezier(.45,0,.85,.45)}
-  30%{opacity:1}
-  48%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 26deg)) scale(1.08,.88);animation-timing-function:cubic-bezier(.2,.7,.4,1)}
-  64%{transform:translate(var(--dx),calc(var(--dy) - 15px)) rotate(calc(var(--rot) - 16deg)) scale(.98,1.03);animation-timing-function:cubic-bezier(.5,0,.85,.4)}
-  78%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 8deg)) scale(1.05,.94);animation-timing-function:cubic-bezier(.2,.7,.4,1)}
-  88%{transform:translate(var(--dx),calc(var(--dy) - 5px)) rotate(calc(var(--rot) - 3deg));animation-timing-function:cubic-bezier(.5,0,.85,.4)}
-  95%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 1deg)) scale(1.02,.98)}
-  100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(1)}}
+  0%{opacity:0;transform:translate(calc(var(--dx) + var(--vx)),calc(var(--dy) + var(--vy))) rotate(calc(var(--rot) + 700deg));animation-timing-function:cubic-bezier(.25,.35,.7,1)}
+  22%{opacity:1}
+  46%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 30deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  62%{transform:translate(var(--dx),calc(var(--dy) - 16px)) rotate(calc(var(--rot) - 18deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  77%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 8deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  88%{transform:translate(var(--dx),calc(var(--dy) - 5px)) rotate(calc(var(--rot) - 3deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 @media (prefers-reduced-motion:reduce){.stain{opacity:1}.stain.voou{animation:none}}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}
 h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}

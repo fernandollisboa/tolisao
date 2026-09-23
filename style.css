@@ -67,7 +67,7 @@ form{display:grid;gap:10px}
 .status:empty{display:none}
 .status.err{color:var(--red)}
 .hidden{display:none !important}
-.fab{position:fixed;right:18px;bottom:22px;z-index:8;width:58px;height:58px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--paper);border:3px solid var(--ink);font-size:28px;box-shadow:4px 4px 0 var(--ink);transform:rotate(-6deg)}
+.fab{position:fixed;right:18px;bottom:22px;z-index:8;width:58px;height:58px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--ink);font-size:28px;box-shadow:4px 4px 0 var(--ink);transform:rotate(-6deg)}
 #overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto}
 #overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 #sheet .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}

@@ -23,6 +23,8 @@ Pra convidar alguém: o texto do **Enviar** já vai com o link do evento; ou man
 - Qualquer pessoa pode cadastrar uma chave em nome de quem ainda não cadastrou. A proteção é a de sempre: **confira o nome do recebedor na tela do banco antes de confirmar o Pix.**
 - Tudo que vem do banco é tratado como hostil (ids filtrados, textos escapados).
 
+Pra instalar no celular, o botão **instalar no celular** fica no rodapé do evento. No Android ele usa o `beforeinstallprompt` do Chrome (que já não mostra banner sozinho); no iPhone ele ensina o caminho do Safari, que é o único jeito lá.
+
 Regras do banco (Realtime Database → Regras):
 
 > **O `.read` fica dentro do `$room`, nunca em `rooms`.** As regras cascateiam pra baixo e não dá pra revogar mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixa todos os eventos do banco de uma vez, e o hash do código deixa de valer de nada.

@@ -53,10 +53,10 @@ const CENAS = {
   chave: { nome: 'o cadastrar chave pix descendo do título', quem: 'Júlia', atrasoPix: 2500,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#pixBtn', { timeout: 9000 }); await p.waitForTimeout(4000); } },
-  ficha: { nome: 'a ficha caindo no rodapé', quem: 'Lia', atrasoPix: 0,
-    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(700);
-      await p.evaluate(() => document.querySelector('.bars').scrollIntoView({ behavior: 'smooth', block: 'center' }));
-      await p.waitForTimeout(4000); } },
+  ficha: { nome: 'a ficha caindo quando a página acaba', quem: 'Lia', atrasoPix: 0,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1500);
+      await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
+      await p.waitForTimeout(5000); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

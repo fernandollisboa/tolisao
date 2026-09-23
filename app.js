@@ -139,6 +139,9 @@
   const idx = id => Math.max(0, state.people.findIndex(p => p.id === id));
   const colorOf = id => PALETTE[idx(id) % PALETTE.length];
   const markOf = id => MARK[idx(id) % MARK.length];
+  // o emoji da conta fechada varia, mas não pisca a cada render: sai do evento e do dia
+  const FESTA = ['🎉', '🙌', '🙏', '❣️', '🥂', '✨'];
+  const festeja = () => FESTA[hash32((groupId || '') + new Date().toDateString()) % FESTA.length];
   const markForte = id => MARKR[idx(id) % MARKR.length];   // o mesmo tom, firme: recibo em png e a volta da caneta
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
@@ -262,7 +265,7 @@
       $('#whoBtn').onclick = () => state.people.length ? showWho() : showSetup(); }
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
-      if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém 🙏';
+      if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém';   // o emoji ficou pra caixinha
       if ($('#signoff')) $('#signoff').textContent = pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
     // evento sem nada anotado: Minha conta e Itens só teriam zeros, então somem
     const vazio = state.expenses.length === 0;
@@ -296,8 +299,9 @@
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
-      // caixinha tracejada que aponta o lápis no evento novo
-      $('#mineRows').innerHTML = (bal === 0 ? '<div class="empty vazio quite">tudo quite! 🎉<br><b>você não deve nada a ninguém.</b></div>'
+      // caixinha tracejada que aponta o lápis no evento novo. Uma linha só: o subtítulo
+      // lá em cima já diz que você não deve nada, e dizer de novo aqui virava eco
+      $('#mineRows').innerHTML = (bal === 0 ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
         : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + hdr + who.join(''); }
     else $('#mine').classList.add('hidden');
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
@@ -314,7 +318,7 @@
       $('#fab').classList.add('chamando'); }   // sempre preenchido, pra ver como fica
     // nota vazia não tem o que mandar: o zap some e sobra só o "quem é você?"
     $('#waBtn').classList.toggle('hidden', vazio);
-    $('#itemsSec').classList.toggle('hidden', vazio || (hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment')));
+    $('#itemsSec').classList.toggle('hidden', vazio);   // quem está quite também quer ver no que gastou
     // entre Minha conta e Falta pagar na página, e entre as duas na fila também. O
     // cartão do "quem é você?" segura: com ele aberto os itens já estão visíveis por
     // trás, e o toquinho furava a fila antes de Minha conta existir

@@ -10,6 +10,7 @@
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
+  const MEMBROS = false;     // lista de gente no rodapé; desligada pra ver como fica sem
   const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
   const CURRENCY = 'R$';
 
@@ -252,7 +253,8 @@
     if (!pixWant) { if (pl.dataset.k && !pl.classList.contains('gone')) { pl.classList.add('gone'); setTimeout(() => { if (pl.classList.contains('gone')) { pl.innerHTML = ''; pl.dataset.k = ''; } }, 450); } }
     else { pl.classList.remove('gone'); if (pl.dataset.k !== pixWant) { pl.innerHTML = pixWant; pl.dataset.k = pixWant; } }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
-      $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') : 'ninguém';
+    $('#peopleSec').classList.toggle('hidden', !MEMBROS);
+    $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') : 'ninguém';
     $('#addPerson').textContent = state.people.length ? ',+' : ' +';
 
     const payerSel = $('#payer'); const prevPayer = payerSel.value || me;

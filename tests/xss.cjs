@@ -12,6 +12,7 @@ const evil = { name: 'bailedamada', updatedAt: 1, people: [
   const p = await c.newPage(); p.on('pageerror', e => errs.push(e.message));
   await p.goto('http://localhost:4187/#c=bailedamada'); await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: 'Fernando' }); await p.waitForTimeout(800);
   await p.click('#itemsHead'); await p.waitForTimeout(100);
+  await p.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden'));
   const r = await p.evaluate(() => ({ xss: window.__xss, people: [...document.querySelectorAll('#peopleLine .nm')].map(e => e.textContent), items: [...document.querySelectorAll('#expenses .item .l')].map(e => e.textContent.trim()), pixBtns: document.querySelectorAll('[data-pix]').length, imgs: document.querySelectorAll('img:not(.stain)').length }));
   console.log(JSON.stringify(r), '| errors:', errs);
   const ok = r.xss === undefined && r.people.length === 2 && r.items.length === 1 && r.items[0].includes('<script>') && r.pixBtns === 0 && r.imgs === 0 && !errs.length;

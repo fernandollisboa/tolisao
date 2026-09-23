@@ -65,6 +65,7 @@ button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);widt
 /* enquanto o balão chama, o ✎ fica preenchido pra ficar claro pra onde ele aponta */
 #fab.chamando{background:#9a5b00;color:#fff;border-color:var(--ink)}
 @media (prefers-reduced-motion:reduce){#dica{animation:none}}
+#whoNewBox button{background:#9a5b00;color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
 button.small{padding:0 8px;font-size:16px;display:inline-flex;align-items:center;gap:6px;line-height:1.6}
 button.small svg{display:block}
 button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}

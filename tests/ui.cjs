@@ -22,6 +22,8 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   // ver todos
   console.log('toggle hidden (<=10 itens):', await p1.$eval('#toggleAll', e => e.classList.contains('hidden')));
   // adicionar pessoa via prompt
+  // a lista do rodapé está atrás da constante MEMBROS; revelamos pra exercitar o +
+  await p1.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden'));
   await p1.click('#addPerson'); await p1.waitForSelector('#askInput'); await p1.fill('#askInput','Zé'); await p1.click('#askForm button.big'); await p1.waitForTimeout(200); console.log('people:', await p1.$eval('#peopleLine', e => e.innerText));
   // FAB + gasto
   await p1.click('#fab'); await p1.waitForSelector('#sheet:not(.hidden)'); await p1.fill('#desc','Cerveja'); await p1.fill('#amount','50'); await p1.click('#expenseForm button');

@@ -46,6 +46,9 @@ button.small svg{display:block}
 button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}
 button.ghost{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 4px}
 a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
+/* "quem é você?" é o que falta fazer: botãozinho âmbar, mesmo tom do cadastrar pix */
+a.link.amb{color:#9a5b00;text-decoration:none;border:2px solid currentColor;border-radius:4px;box-shadow:2px 2px 0 currentColor;padding:1px 8px;font-size:16px;text-transform:uppercase;display:inline-block}
+a.link.amb:active{transform:translate(2px,2px);box-shadow:none}
 #addPerson{text-decoration:none;padding:2px 8px 2px 0;margin-right:-8px;white-space:nowrap}
 button:disabled{opacity:.45;cursor:default;box-shadow:none}
 input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}

@@ -242,7 +242,9 @@
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
     // enquanto não houver nada anotado, o balão mostra por onde se começa
     // no caderno em branco o título não tem o que apresentar; fica só a caixa
+    // a ficha só entra em nota que já tem gasto; em caderno vazio ela é poluição
     { const f = $('.stain'); if (f) { const b = hasMe ? (balances()[me] || 0) : null;
+        f.classList.toggle('hidden', vazio);
         f.classList.toggle('quite', b !== null && b >= 0);
         f.classList.toggle('devendo', b !== null && b < 0); } }
     $('#settleHead').classList.toggle('hidden', vazio);
@@ -690,6 +692,7 @@
     // recomeça quando a pessoa troca de nome, aí sim vale outra ficha
     const olho = new IntersectionObserver(es => { for (const e of es) {
       if (!e.isIntersecting) continue;
+      if (el.classList.contains('hidden')) continue;   // nota sem gasto: a ficha espera
       sorteia(); el.classList.add('voou'); olho.unobserve(bars);
     } }, { threshold: .55 });
     olho.observe(bars);

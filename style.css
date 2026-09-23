@@ -49,6 +49,9 @@ a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
 /* "quem é você?" é o que falta fazer: botãozinho âmbar, mesmo tom do cadastrar pix */
 a.link.amb{color:#9a5b00;text-decoration:none;border:2px solid currentColor;border-radius:4px;box-shadow:2px 2px 0 currentColor;padding:1px 8px;font-size:16px;text-transform:uppercase;display:inline-block}
 a.link.amb:active{transform:translate(2px,2px);box-shadow:none}
+@keyframes chama{0%,70%,100%{transform:rotate(0)}76%{transform:rotate(-3deg) scale(1.05)}82%{transform:rotate(3deg) scale(1.05)}88%{transform:rotate(-1.5deg)}}
+a.link.amb{animation:chama 2.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){a.link.amb{animation:none}}
 #addPerson{text-decoration:none;padding:2px 8px 2px 0;margin-right:-8px;white-space:nowrap}
 button:disabled{opacity:.45;cursor:default;box-shadow:none}
 input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}

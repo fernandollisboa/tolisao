@@ -245,7 +245,7 @@
     $('#settleHead').classList.toggle('hidden', vazio);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
-      $('#fab').classList.toggle('chamando', chama); }
+      $('#fab').classList.add('chamando'); }   // sempre preenchido, pra ver como fica
     $('#itemsSec').classList.toggle('hidden', vazio || (hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment')));
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;

@@ -170,8 +170,24 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:0}
 #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
 /* linha de quem eu devo: circulada à caneta, com a volta dupla de quem rabisca duas vezes */
-.row.mine .v{position:relative;padding:2px 9px;margin:0 -9px;border:2px solid var(--mk,#7a6a4a);border-radius:40% 60% 45% 55%/60% 45% 55% 40%}
-.row.mine .v:before{content:"";position:absolute;inset:-3px -2px -2px -3px;border:1.5px solid var(--mk,#7a6a4a);border-radius:55% 45% 60% 40%/45% 60% 40% 55%;opacity:.65;transform:rotate(1.5deg)}
+/* as duas voltas ficam em pseudo-elementos pra poderem ser desenhadas sem mexer no número */
+.row.mine .v{position:relative;padding:2px 9px;margin:0 -9px;cursor:pointer}
+.row.mine .v:after{content:"";position:absolute;inset:-2px;border:2px solid var(--mk,#7a6a4a);border-radius:40% 60% 45% 55%/60% 45% 55% 40%;pointer-events:none}
+.row.mine .v:before{content:"";position:absolute;inset:-5px -4px -4px -5px;border:1.5px solid var(--mk,#7a6a4a);border-radius:55% 45% 60% 40%/45% 60% 40% 55%;opacity:.65;transform:rotate(1.5deg);pointer-events:none}
+/* a caneta dá a volta: o conic esconde o que ainda não foi riscado, em passos curtos */
+.row.mine.risca .v:after{animation:volta .33s steps(1) both;animation-delay:var(--rd2,0ms)}
+.row.mine.risca .v:before{animation:volta .33s steps(1) both;animation-delay:calc(var(--rd2,0ms) + .2s)}
+@keyframes volta{
+  0%{-webkit-mask-image:conic-gradient(#000 0deg,transparent 0);mask-image:conic-gradient(#000 0deg,transparent 0)}
+  12%{-webkit-mask-image:conic-gradient(#000 52deg,transparent 0);mask-image:conic-gradient(#000 52deg,transparent 0)}
+  25%{-webkit-mask-image:conic-gradient(#000 103deg,transparent 0);mask-image:conic-gradient(#000 103deg,transparent 0)}
+  37%{-webkit-mask-image:conic-gradient(#000 150deg,transparent 0);mask-image:conic-gradient(#000 150deg,transparent 0)}
+  50%{-webkit-mask-image:conic-gradient(#000 196deg,transparent 0);mask-image:conic-gradient(#000 196deg,transparent 0)}
+  62%{-webkit-mask-image:conic-gradient(#000 240deg,transparent 0);mask-image:conic-gradient(#000 240deg,transparent 0)}
+  75%{-webkit-mask-image:conic-gradient(#000 285deg,transparent 0);mask-image:conic-gradient(#000 285deg,transparent 0)}
+  87%{-webkit-mask-image:conic-gradient(#000 330deg,transparent 0);mask-image:conic-gradient(#000 330deg,transparent 0)}
+  100%{-webkit-mask-image:none;mask-image:none}}
+@media (prefers-reduced-motion:reduce){.row.mine.risca .v:before,.row.mine.risca .v:after{animation:none}}
 .pixi{display:inline-flex;gap:3px;align-items:center;vertical-align:-2px} .pixi svg{display:block}
 .item .by,.item .who{display:none}
 .item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}

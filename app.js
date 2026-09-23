@@ -146,6 +146,8 @@
   // quando cada pagamento apareceu na tela; 0 = já estava pago quando a página abriu
   const vistos = new Map();
   const RISCO_MS = 550;
+  let settleT = 0;                 // quando o #settle apareceu: as duas voltas do círculo saem daqui
+  const DESENHA_MS = 330, DESENHA_GAP = 200;
   let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = (id, i = 0) => { const h = hash32(id);
@@ -310,13 +312,19 @@
     updateHint();
 
     const b = balances();
-    const line = (l, v, cls='', extra='', style='') => `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span>${extra}</div>`;
+    const line = (l, v, cls='', extra='', style='', vat='') => `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
     const num = c => fmt(c/100);
 
     const s = settlements(b);
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
-    $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
-        (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
+    // as duas voltas do círculo saem da hora em que o #settle apareceu, junto com o risco
+    if (!settleT && !seguraRisco && $('#overlay').classList.contains('hidden')) settleT = Date.now();
+    const dtS = settleT ? Date.now() - settleT : Infinity, desenha = dtS < DESENHA_MS + DESENHA_GAP;
+    $('#settle').innerHTML = (s.map(t => { const meu = t.from === me; return line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100),
+        meu ? 'mine' + (desenha ? ' risca' : '') : '', '',
+        meu ? markStyle(t.from + t.to, markOf(me)) + (desenha ? `;--rd2:${-dtS}ms` : '') : '',
+        meu ? ` data-copy-value="${fmt(t.cents/100)}" title="copiar valor"` : '') +
+        (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : ''); }).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
         : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} abaixo pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
       + pays.map((e, i) => { const st = stampStyle(e.id, i); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', st.rd) +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
@@ -479,7 +487,7 @@
     $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
-    pixKeys = {}; pixReady = false; pixVisto.clear();
+    pixKeys = {}; pixReady = false; pixVisto.clear(); settleT = 0;
     try { const remote = await apiGet(groupId); state = merge(state, remote); if (!state.name && code) { state.name = code; state.updatedAt = Date.now(); apiPut(groupId, state).catch(() => {}); } cacheSave(); render(); setStatus('Sincronizado'); }
     catch (e) { if (e.notFound) return showLost(); if (!state) { state = fresh(code); render(); } setStatus('Offline · ' + e.message, true); }
     $('#app').classList.remove('loading');

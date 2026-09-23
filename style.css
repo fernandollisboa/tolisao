@@ -46,8 +46,8 @@ button.small svg{display:block}
 button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}
 button.ghost{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 4px}
 a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
-/* "quem é você?" é o que falta fazer: botãozinho âmbar, mesmo tom do cadastrar pix */
-a.link.amb{color:#9a5b00;text-decoration:none;border:2px solid currentColor;border-radius:4px;box-shadow:2px 2px 0 currentColor;padding:1px 8px;font-size:16px;text-transform:uppercase;display:inline-block}
+/* "quem é você?" é o que falta fazer: marca-texto amarelo com borda de tinta, e um balancinho de me-aperte */
+a.link.amb{color:var(--ink);background:#ffd23f;text-decoration:none;border:2px solid var(--ink);border-radius:4px;box-shadow:2px 2px 0 var(--ink);padding:1px 8px;font-size:16px;text-transform:uppercase;display:inline-block}
 a.link.amb:active{transform:translate(2px,2px);box-shadow:none}
 @keyframes chama{0%,70%,100%{transform:rotate(0)}76%{transform:rotate(-3deg) scale(1.05)}82%{transform:rotate(3deg) scale(1.05)}88%{transform:rotate(-1.5deg)}}
 a.link.amb{animation:chama 2.6s ease-in-out infinite}

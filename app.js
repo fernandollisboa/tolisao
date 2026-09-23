@@ -127,8 +127,8 @@
   }
 
   // ---------- render ----------
-  const PALETTE = ['#1f4e9c','#a3510a','#5b21b6','#0369a1','#8a1a6b','#7a2d0c','#374151','#3730a3','#9d174d','#5a4a1a']; // sem vermelho/verde, que são os tons de deve/recebe
-  const MARK = ['#a9c4f5','#f7b877','#cdb4f7','#a9d8f0','#f2a9d6','#f0b89a','#cfd3d8','#c3c2f0','#f5b3cf','#d6cdb0']; // tons claros pra marca-texto, mesma ordem da PALETTE
+  const PALETTE = ['#8a5345','#45838a','#531c8a','#b25993','#001bb2','#2472b2','#b224b2','#4c3b75','#751742','#0050b2']; // matizes afastados entre si e longe do vermelho/verde (deve/recebe) e do âmbar dos botões
+  const MARK = ['#f7dad2','#d2f4f7','#dabcf7','#f7d2ea','#adb8f7','#bcddf7','#f7bcf7','#ddd3f7','#f7bcd7','#adcef7']; // marca-texto: os mesmos tons, clarinhos, na mesma ordem
   const idx = id => Math.max(0, state.people.findIndex(p => p.id === id));
   const colorOf = id => PALETTE[idx(id) % PALETTE.length];
   const markOf = id => MARK[idx(id) % MARK.length];

@@ -143,13 +143,17 @@
   const vistos = new Map();
   let primeiroRender = true;
   const RISCO_MS = 550;
+  let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
-    if (!vistos.has(id)) vistos.set(id, primeiroRender ? 0 : Date.now());
+    // o risco começa quando a linha fica à vista: com o cartão de "quitado!" por cima,
+    // a animação acabava escondida e a pessoa só via o resultado
+    if (!vistos.has(id)) { if (primeiroRender) vistos.set(id, 0);
+      else if (!seguraRisco && $('#overlay').classList.contains('hidden')) vistos.set(id, Date.now()); }
     // o #settle é refeito a cada render: sem o atraso negativo, um render no meio do
     // caminho recomeçaria o risco do zero. Assim ele retoma de onde estava.
-    const t = vistos.get(id), dt = t ? Date.now() - t : Infinity;
+    const t = vistos.get(id), dt = t ? Date.now() - t : Infinity;   // sem hora ainda = espera o cartão fechar
     return { cls: dt < RISCO_MS ? ' novo' : '', css: `--rot:${rot}deg;--dy:${dy}px`, rd: `--rd:${-Math.min(dt, RISCO_MS)}ms` }; };
   /** traço de marca-texto feito à mão: ângulo, altura e pontas tortas, fixos por linha */
   const markStyle = (seed, color) => { const h = hash32(seed), g = (bit, min, span) => min + ((h >>> bit) & 15) / 15 * span;
@@ -467,8 +471,10 @@
       <p class="muted" style="margin:0 0 14px;text-align:center">avise ${nm(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
       <div class="c" style="margin-top:12px"><button id="quitOk" class="ghost">fechar</button></div>`);
-    $('#quitOk').onclick = closeOverlay;
-    $('#waAviso').onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${roomName}* 👍\n${shareUrl()}`), '_blank', 'noopener'); closeOverlay(); };
+    const fecha = () => { closeOverlay(); seguraRisco = false; render(); };   // solta o risco da linha nova
+    $('#quitOk').onclick = fecha;
+    overlayCancel = fecha;
+    $('#waAviso').onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${roomName}* 👍\n${shareUrl()}`), '_blank', 'noopener'); fecha(); };
   }
   function showRoom(){
     overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
@@ -522,7 +528,8 @@
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
       const r = st.getBoundingClientRect(), fx = r.left + r.width/2, fy = r.top + r.height/2;
       if (!(await ask('Quitar?', `${nm(from)} pagou <b style="color:var(--green)">${money(amount)}</b> pra ${nm(to)}`, 'quitei'))) return;
-      state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined }); commit(); festa(fx, fy); toast('Quitado! 🎉');
+      state.expenses.push({ id: uid(), kind:'payment', desc:'Pagamento', amount, payer: from, among:[to], at: Date.now(), by: me ? nameOf(me) : undefined });
+      seguraRisco = true; commit(); festa(fx, fy); toast('Quitado! 🎉');
       showQuitado(to, amount); }
     const cv = near('[data-copy-value]');
     if (cv) { const val = cv.dataset.copyValue; navigator.clipboard.writeText(val).then(() => toast('Valor copiado. Cola no app do banco.'), () => showCopy('Valor', val)); return; }

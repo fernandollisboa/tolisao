@@ -160,7 +160,7 @@
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
   let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
-  let itensT = 0; const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
+  let itensT = 0; /* -1: dispensado, a lista já foi aberta */ const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
   const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
@@ -321,6 +321,9 @@
     // entre Minha conta e Falta pagar na página, e entre as duas na fila também. O
     // cartão do "quem é você?" segura: com ele aberto os itens já estão visíveis por
     // trás, e o toquinho furava a fila antes de Minha conta existir
+    // lista aberta (quem acabou de anotar cai nela assim) já sabe que a linha abre:
+    // nada de convite, e o bloco não reserva vez na fila
+    if (itemsOpen && !itensT) itensT = -1;
     if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
         && !$('#itemsSec').classList.contains('hidden')) itensT = agenda(APERTO_LEAD);
     const myBal = hasMe ? (balances()[me] || 0) : 0;
@@ -389,7 +392,8 @@
     // a linha é o mesmo elemento em todo render: mexer no atraso depois reiniciaria a
     // animação, então ele é marcado uma vez só e fica quieto
     { const ih = $('#itemsHead');
-      if (itensT && !ih.dataset.pisca) { ih.dataset.pisca = '1';
+      if (itemsOpen) ih.classList.remove('pisca');   // abriu no meio do convite: para ali
+      else if (itensT > 0 && !ih.dataset.pisca) { ih.dataset.pisca = '1';
         ih.style.setProperty('--ad', `${itensT - Date.now()}ms`); ih.classList.add('pisca'); } } $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }

@@ -264,11 +264,13 @@
       // que a animação começou) retoma de onde estava em vez de recomeçar no meio
       // hora marcada pras animações da seção: o copiar pix brotando de trás do ✔ e a
       // piscada verde do próprio ✔. Só entra na fila quando Minha conta está na tela
+      // Minha conta pega a vez assim que aparece, sem esperar a chave do pix: senão o
+      // #settle, que já estava na tela, tomava a frente e o botão só saía depois dos riscos
       const meus = bal < 0 ? stMe.filter(t => t.from === me) : [];
-      if (mineNaTela && pixReady && !mineT)
-        mineT = agenda(PIX_MS + PISCA_MS + Math.max(0, meus.length - 1) * PISCA_GAP);
+      if (mineNaTela && !mineT) mineT = agenda(PIX_MS + PISCA_MS + Math.max(0, meus.length - 1) * PISCA_GAP);
       const pixDt = t => { if (!pixReady || !mineT) return null;   // nada de spinner: o botão brotando já conta que chegou
-        if (!pixVisto.has(t.to)) pixVisto.set(t.to, mineT);
+        // se a chave demorou mais que a vez da seção, a linha anima a partir de agora
+        if (!pixVisto.has(t.to)) pixVisto.set(t.to, Math.max(mineT, Date.now()));
         return Date.now() - (pixVisto.get(t.to) || 0); };
       const pixB = t => { const dt = pixDt(t); if (dt === null || !pixKeys[t.to]) return '';
         const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';

@@ -153,7 +153,11 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .dupla{position:relative;display:inline-flex;align-items:center;gap:2px;margin-left:2px}
 #mineRows .dupla>.ok{position:relative;z-index:2}
 #mineRows .dupla>.brota{position:relative;z-index:1;animation:brota .42s cubic-bezier(.2,.9,.3,1.15) both}
-@keyframes brota{0%{opacity:0;transform:translateX(calc(-100% - 6px)) scale(.6)}30%{opacity:1}100%{opacity:1;transform:none}}
+/* o lugar do botão abre enquanto ele sai: antes ele já ocupava a largura, parado */
+@keyframes brota{
+  0%{opacity:0;max-width:0;overflow:hidden;transform:translateX(calc(-100% - 6px)) scale(.6)}
+  30%{opacity:1}
+  100%{opacity:1;max-width:60px;overflow:hidden;transform:none}}
 /* assim que o copiar pix termina de sair, o ✔ vazado se enche de verde duas vezes: "me pague" */
 #mineRows .dupla>.ok.pisca{animation:pisca .9s ease-in-out both}
 @keyframes pisca{

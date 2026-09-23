@@ -675,8 +675,12 @@
       el.style.setProperty('--dx', r(-8, 8).toFixed(1) + 'px');
       el.style.setProperty('--dy', r(-6, 6).toFixed(1) + 'px');
       el.style.setProperty('--rot', r(-28, 12).toFixed(1) + 'deg');
-      el.style.setProperty('--vx', r(-90, 90).toFixed(0) + 'px');
-      el.style.setProperty('--vy', r(-120, -60).toFixed(0) + 'px');
+      // a ficha é jogada de fora do papel: entra pela esquerda, pela direita ou de baixo
+      const vindo = Math.floor(Math.random() * 3);
+      const vx = vindo === 0 ? -r(170, 280) : vindo === 1 ? r(170, 280) : r(-70, 70);
+      const vy = vindo === 2 ? r(140, 230) : r(-30, 60);
+      el.style.setProperty('--vx', vx.toFixed(0) + 'px');
+      el.style.setProperty('--vy', vy.toFixed(0) + 'px');
       el.classList.toggle('cambalhota', Math.random() < 0.45); };
     sorteia();
     if ('ResizeObserver' in window) new ResizeObserver(posiciona).observe($('#app'));

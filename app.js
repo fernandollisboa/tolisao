@@ -128,10 +128,14 @@
 
   // ---------- render ----------
   const PALETTE = ['#8a5345','#45838a','#531c8a','#b25993','#001bb2','#2472b2','#b224b2','#4c3b75','#751742','#0050b2']; // matizes afastados entre si e longe do vermelho/verde (deve/recebe) e do âmbar dos botões
-  const MARK = ['#f7dad2','#d2f4f7','#dabcf7','#f7d2ea','#adb8f7','#bcddf7','#f7bcf7','#ddd3f7','#f7bcd7','#adcef7']; // marca-texto: os mesmos tons, clarinhos, na mesma ordem
+  const MARK = ['#f7dad2','#d2f4f7','#dabcf7','#f7d2ea','#adb8f7','#bcddf7','#f7bcf7','#ddd3f7','#f7bcd7','#adcef7']; // marca-texto da tela: os mesmos tons, clarinhos, na mesma ordem
+  // no recibo em png o papel é mais escuro e o zap ainda comprime: os tons claros da tela sumiam
+  // no fundo (o de Fernando ficava a 10 de distância dele). Mesmos matizes, bem mais firmes.
+  const MARKR = ['#eb8d75','#75dfeb','#b075eb','#eb75c2','#7587eb','#75b6eb','#eb75eb','#9875eb','#eb75ab','#75aaeb'];
   const idx = id => Math.max(0, state.people.findIndex(p => p.id === id));
   const colorOf = id => PALETTE[idx(id) % PALETTE.length];
   const markOf = id => MARK[idx(id) % MARK.length];
+  const markImg = id => MARKR[idx(id) % MARKR.length];   // marca-texto do recibo em png
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
@@ -259,8 +263,7 @@
     // a ficha só entra em nota que já tem gasto; em caderno vazio ela é poluição
     { const f = $('.stain'); if (f) { const b = hasMe ? (balances()[me] || 0) : null;
         f.classList.toggle('hidden', vazio);
-        f.classList.toggle('quite', b !== null && b >= 0);
-        f.classList.toggle('devendo', b !== null && b < 0); } }
+        f.classList.toggle('quite', b !== null && b >= 0); } }   // quem deve fica no âmbar de sempre
     $('#settleHead').classList.toggle('hidden', vazio);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
@@ -574,7 +577,7 @@
     const initial = id => { const n = norm(nameOf(id)); let k = 1; while (k < n.length && state.people.some(p => p.id !== id && norm(nameOf(p.id)).slice(0, k) === n.slice(0, k))) k++; return n.slice(0, k); };
     /** @param {{ t: string, id?: string, w?: number }[]} segs */
     const flow = segs => { let col = 0, t = ''; for (const g of segs) { if (!g.t) continue; if (col > 2 && col + (g.w || g.t.length) > COLS) { line(t.trimEnd(), INK2); t = '  '; col = 2; }
-      if (g.id) mark(col, g.t.length, markOf(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };
+      if (g.id) mark(col, g.t.length, markImg(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };
     const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
@@ -589,10 +592,10 @@
     const GREEN = '#15703a';
     blank(); center('*** FALTA PAGAR ***'); blank();
     if (!st.length) center('TUDO QUITADO');
-    for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markOf(t.from)); mark(a.length + 6, c.length, markOf(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
+    for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markImg(t.from)); mark(a.length + 6, c.length, markImg(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
     { const quites = state.people.filter(p => (b[p.id] || 0) === 0);
       if (quites.length && st.length) blank();
-      for (const p of quites) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markOf(p.id)); line(leader(n, 'QUITE'), GREEN); } }
+      for (const p of quites) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markImg(p.id)); line(leader(n, 'QUITE'), GREEN); } }
     dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo
@@ -600,7 +603,7 @@
     if (!items.length) line('NADA ANOTADO');
     for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
-      const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markOf(e.payer));
+      const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markImg(e.payer));
       if (e.shares) { const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([{ t:'  ' }, { t: pn, id: e.payer }, { t: ' PAGOU · ' }]);
         e.among.forEach((id, i) => { const n = fit(nameOf(id), 14), v = ' ' + num(e.shares[id] || 0); segs.push({ t: n, id, w: n.length + v.length }, { t: v + (i < e.among.length - 1 ? ', ' : '') }); }); flow(segs); continue; }
       if (!e.among.includes(e.payer)) { const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([{ t:'  ' }, { t: pn, id: e.payer }, { t: ' PAGOU · ' }]);
@@ -608,7 +611,7 @@
       const all = state.people.every(p => e.among.includes(p.id));
       if (all) { line('  ' + fit(`${pn} pagou · ÷${e.among.length} todos`, COLS - 2), INK2); continue; }
       const head = `  ${pn} PAGOU · ÷${e.among.length} `; let col = head.length, t = head;
-      for (const id of e.among) { const ini = initial(id); if (col + ini.length > COLS) break; mark(col, ini.length, markOf(id)); t += ini + ' '; col += ini.length + 1; }
+      for (const id of e.among) { const ini = initial(id); if (col + ini.length > COLS) break; mark(col, ini.length, markImg(id)); t += ini + ' '; col += ini.length + 1; }
       line(t.trimEnd(), INK2); }
     blank();
     line(leader('TOTAL', 'R$ ' + numBig(totalCents)), INK2);
@@ -670,21 +673,23 @@
     /** as vagas vazias do rodapé, medidas na página de agora */
     const vagas = () => { const papelOu = bars.offsetParent; if (!papelOu) return null;   // escondido (tela de código, carregando)
       const bt = bars.offsetTop, bl = bars.offsetLeft, bw = bars.offsetWidth, bh = bars.offsetHeight;
-      const base = bt + bh - D + folga, acima = bt - D * 0.55;
-      const larg = /** @type {HTMLElement} */ (papelOu).clientWidth;
-      const frase = $('#signoff'), fy = frase ? frase.offsetTop - D * 0.35 : acima;
-      const st = $('#status'), sy = st ? st.offsetTop - D * 0.45 : base;
-      const esq = -D * 0.35, dir = larg - D * 0.65;       // meio pra fora das bordas do papel
-      return [ { x: bl + bw - D * 0.55, y: base },        // ponta direita do código
-               { x: bl - D * 0.45, y: base },             // ponta esquerda do código
-               { x: bl + bw - D * 0.75, y: acima },       // acima do código, à direita
-               { x: bl - D * 0.2, y: acima },             // acima do código, à esquerda
-               { x: bl + bw / 2 - D / 2, y: acima - 14 }, // acima, no meio
-               { x: esq, y: fy },                         // ao lado da frase, à esquerda
-               { x: dir, y: fy },                         // ao lado da frase, à direita
-               { x: esq + 6, y: sy },                     // ao lado do sincronizado, à esquerda
-               { x: dir - 6, y: sy },                     // ao lado do sincronizado, à direita
-             ]; };
+      const papel = /** @type {HTMLElement} */ (papelOu);
+      const larg = papel.clientWidth, alt = papel.clientHeight;
+      const st = $('#status'), sy = st ? st.offsetTop - D * 0.35 : bt + bh;
+      const topo = bt - D * 0.25;                  // nada acima do código: a ficha fica só no rodapé
+      const base = bt + bh - D + folga;
+      // a ficha cai inteira dentro do papel: a folga cobre o empurrãozinho do --dx/--dy
+      const yMax = Math.max(topo, alt - D - 12);
+      const dentro = p => ({ x: Math.max(12, Math.min(p.x, larg - D - 12)),
+                             y: Math.min(Math.max(p.y, topo), yMax) });
+      return [ { x: bl + bw - D * 0.9, y: base },        // ponta direita do código
+               { x: bl, y: base },                       // ponta esquerda do código
+               { x: bl + bw / 2 - D / 2, y: base },      // em cima do código, no meio
+               { x: bl + bw - D, y: topo },              // topo do código, à direita
+               { x: bl, y: topo },                       // topo do código, à esquerda
+               { x: 12, y: sy },                         // ao lado do sincronizado, à esquerda
+               { x: larg - D - 12, y: sy },              // ao lado do sincronizado, à direita
+             ].map(dentro); };
     const vaga = i => { const v = vagas(); return v && v[i]; };
     // a página muda de altura ao longo da vida (entrar no evento, abrir itens),
     // então a vaga é recalculada, não guardada em pixels
@@ -701,7 +706,10 @@
       const vy = vindo === 2 ? r(140, 230) : r(-30, 60);
       el.style.setProperty('--vx', vx.toFixed(0) + 'px');
       el.style.setProperty('--vy', vy.toFixed(0) + 'px');
-      el.classList.toggle('cambalhota', Math.random() < 0.45); };
+      // quase sempre um voo só; de vez em quando cambalhota, e raramente ela teima e quica de novo
+      const jeito = Math.random();
+      el.classList.toggle('cambalhota', jeito < 0.4);
+      el.classList.toggle('requica', jeito >= 0.4 && jeito < 0.52); };
     sorteia();
     if ('ResizeObserver' in window) new ResizeObserver(posiciona).observe($('#app'));
     window.addEventListener('resize', posiciona);

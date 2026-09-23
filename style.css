@@ -14,11 +14,13 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
 .stain{position:absolute;width:70px;height:70px;box-sizing:border-box;padding:7px;border-radius:50%;--f1:#9a5b00;--f2:#fff8e6;background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);--dx:0px;--dy:0px;--rot:-16deg;--vx:70px;--vy:-90px;
   transform:translate(var(--dx),var(--dy)) rotate(var(--rot));filter:drop-shadow(2px 4px 4px rgba(0,0,0,.35));pointer-events:none;z-index:1;
   opacity:0}
-/* a cor conta como você está: rosa quem não deve nada, verde quem deve, âmbar quem não disse quem é */
+/* a cor conta como você está: rosa quem não deve nada, âmbar quem deve (e quem ainda não disse quem é) */
 .stain.quite{--f1:#d94f8a;--f2:#ffe3ef}
-.stain.devendo{--f1:#0f4d2a;--f2:#dff0e4}
+/* guardado pro futuro: o verde escuro de quem deve */
+.stain.verde{--f1:#0f4d2a;--f2:#dff0e4}
 .stain.voou{animation:jogada .85s linear both}
 .stain.voou.cambalhota{animation:cambalhota 1.05s linear both}
+.stain.voou.requica{animation:requica 1.3s linear both}
 /* ficha de pôquer: cai acelerando, bate, quica duas vezes cada vez mais baixo
    e assenta. A cambalhota gira mais e ainda roda um tico depois de pousar. */
 /* ficha de pôquer: entra já em movimento, quica duas vezes cada vez mais baixo
@@ -38,6 +40,17 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
   62%{transform:translate(var(--dx),calc(var(--dy) - 16px)) rotate(calc(var(--rot) - 18deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
   77%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 8deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
   88%{transform:translate(var(--dx),calc(var(--dy) - 5px)) rotate(calc(var(--rot) - 3deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
+/* teimosa: cai mais alto e quica três vezes antes de assentar. Sorteada de vez em quando. */
+@keyframes requica{
+  0%{opacity:0;transform:translate(calc(var(--dx) + var(--vx)),calc(var(--dy) + var(--vy))) rotate(calc(var(--rot) + 200deg));animation-timing-function:cubic-bezier(.25,.35,.7,1)}
+  18%{opacity:1}
+  32%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 12deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  46%{transform:translate(var(--dx),calc(var(--dy) - 21px)) rotate(calc(var(--rot) - 9deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  60%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 6deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  72%{transform:translate(var(--dx),calc(var(--dy) - 10px)) rotate(calc(var(--rot) - 4deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  83%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 2deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  92%{transform:translate(var(--dx),calc(var(--dy) - 3px)) rotate(var(--rot));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
   100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 @media (prefers-reduced-motion:reduce){.stain{opacity:1}.stain.voou{animation:none}}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}

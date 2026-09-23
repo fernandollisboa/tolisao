@@ -633,12 +633,20 @@
       box.appendChild(s); }
     document.body.appendChild(box); setTimeout(() => box.remove(), 1400);
   }
-  // cada abertura joga a diva num ponto e num ângulo um pouco diferentes
+  // a diva só é jogada quando o código de barras entra na tela, e cai num ponto
+  // e num ângulo diferentes a cada vez que reaparece
   (function jogaDiva(){ const el = /** @type {HTMLElement|null} */ (document.querySelector('.stain')); if (!el) return;
     const r = (a, b) => (a + Math.random() * (b - a)).toFixed(1);
-    el.style.setProperty('--dx', r(-16, 10) + 'px');
-    el.style.setProperty('--dy', r(-12, 12) + 'px');
-    el.style.setProperty('--rot', r(-28, 8) + 'deg'); })();
+    const sorteia = () => { el.style.setProperty('--dx', r(-16, 10) + 'px');
+      el.style.setProperty('--dy', r(-12, 12) + 'px');
+      el.style.setProperty('--rot', r(-28, 8) + 'deg'); };
+    sorteia();
+    if (!('IntersectionObserver' in window)) return el.classList.add('voou');
+    new IntersectionObserver(es => { for (const e of es) {
+      if (!e.isIntersecting) { el.classList.remove('voou'); continue; }
+      sorteia(); el.classList.add('voou');
+    } }, { threshold: .55 }).observe(el);
+  })();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- código de barras (Code 128 C) ----------

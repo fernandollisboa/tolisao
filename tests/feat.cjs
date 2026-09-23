@@ -10,7 +10,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   const b = await chromium.launch(); const errs = [];
   const c1 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c1); const p1 = await c1.newPage(); p1.on('pageerror', e => errs.push('p1 '+e.message)); p1.on('dialog', d => d.accept());
   await p1.goto('http://localhost:4183/#seed=' + seed); await p1.fill('#gateCode','bailedamada'); await p1.click('#gateForm button');
-  await p1.click('#whoBtn'); await p1.waitForSelector('#whoSel'); await p1.selectOption('#whoSel', { label: 'Júlia' }); await p1.click('#whoForm button'); await p1.waitForTimeout(300);
+  await p1.click('#whoBtn'); await p1.waitForSelector('#whoSel'); await p1.selectOption('#whoSel', { label: 'Júlia' }); await p1.waitForTimeout(300);
   console.log('minha conta:', (await p1.$eval('#mineRows', e => e.innerText)).replace(/\n/g,' | '));
   console.log('status no rodapé:', await p1.evaluate(() => { const st = document.querySelector('#status'); const bars = document.querySelector('.bars'); return bars.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING ? 'sim' : 'não'; }));
   // Júlia anota a janta em partes diferentes: Lia 18,87 + Mengla 23,97 = 42,84
@@ -32,7 +32,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   await p1.screenshot({ path: path.join(OUT, 'feat-1.png'), fullPage: true });
   // Lia abre: vê NOVO no item da Júlia, sua linha marcada, resumo dela
   const c2 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));
-  await p2.goto('http://localhost:4183/#c=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.click('#whoForm button'); await p2.waitForTimeout(400);
+  await p2.goto('http://localhost:4183/#c=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.waitForTimeout(400);
   console.log('novo tags:', await p2.$$eval('#expenses .tag', l => l.length), '| minha linha:', await p2.$eval('#settle .row.mine .l', e => e.innerText));
   console.log('minha conta Lia:', (await p2.$eval('#mineRows', e => e.innerText)).replace(/\n/g,' | '));
   await p2.screenshot({ path: path.join(OUT, 'feat-2.png'), clip: { x: 0, y: 0, width: 390, height: 900 } });

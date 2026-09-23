@@ -49,7 +49,6 @@ async function preview(opts = {}) {
     await p.goto(`http://localhost:${porta}/#c=${dados.name}`);
     await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
     await p.selectOption('#whoSel', { label: quem });
-    await p.click('#whoForm button');
     await p.waitForTimeout(900);
 
     const tirar = async destino => recorte ? p.screenshot({ path: destino, clip: recorte })

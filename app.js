@@ -273,7 +273,7 @@
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
-        : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
+        : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} abaixo pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
       + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid') +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 
@@ -386,21 +386,22 @@
     $('#setupName').focus();
   }
   function showWho(){
-    const hasMe = !!(me && state.people.some(p => p.id === me));
     const opts = state.people.map(p => `<option value="${p.id}" ${p.id===me?'selected':''}>${esc(p.name)}</option>`).join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
-      <input id="whoNew" class="hidden" placeholder="seu nome" maxlength="30">
-      <input id="whoPix" class="${hasMe ? '' : 'hidden'}" placeholder="chave pix (opcional)" maxlength="80" autocapitalize="none" autocomplete="off" value="${esc(me && pixKeys[me] || '')}">
-      <button class="big">Continuar</button></form>`);
-    $('#whoSel').onchange = () => { const v = $('#whoSel').value; $('#whoNew').classList.toggle('hidden', v !== '__new');
-      $('#whoPix').classList.toggle('hidden', !v); $('#whoPix').value = pixKeys[v] || ''; };
-    $('#whoForm').onsubmit = ev => { ev.preventDefault(); let v = $('#whoSel').value;
-      const k = $('#whoPix').value.trim(); let key = null;
-      if (k && k !== (pixKeys[v] || '')) { key = validPixKey(k); if (!key) return toast('Só chave aleatória ou e-mail'); }
-      if (v === '__new') { const n = $('#whoNew').value.trim(); if (!n) return; const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); v = p.id; commit(); }
-      if (!v) return; me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint();
-      if (key) putPix(me, key); };
+      <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
+        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
+    /** escolher já é confirmar: quem é você não tem botão de continuar */
+    const entra = v => { me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint(); };
+    $('#whoSel').onchange = () => { const v = $('#whoSel').value;
+      $('#whoNewBox').classList.toggle('hidden', v !== '__new');
+      if (v === '__new') return $('#whoNew').focus();
+      if (v) entra(v); };
+    $('#whoForm').onsubmit = ev => { ev.preventDefault();
+      const n = $('#whoNew').value.trim(); if (!n) return;
+      if (state.people.some(q => q.name.toLowerCase() === n.toLowerCase())) return toast('Já existe alguém com esse nome');
+      const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); commit(); entra(p.id); };
+    $('#whoSel').focus();
   }
   function showLost(){
     clearInterval(pollTimer); $('#app').classList.add('loading', 'nospin');

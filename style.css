@@ -76,12 +76,14 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsCaret{display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border:2px solid var(--ink);border-radius:4px;background:#fff8e6;box-shadow:2px 2px 0 var(--ink);font-size:15px;line-height:1}
 #itemsCaret span{display:block;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
 #itemsCaret.aberto span{transform:rotate(90deg)}
-#itemsHead:active #itemsCaret{transform:translate(2px,2px);box-shadow:none}
-/* quando a seção chega na tela a linha inteira vira botão por um instante e afunda
-   uma vez, com o ▸ piscando vazado: é a linha toda que abre, não só a caixinha.
+/* a linha inteira é o botão: moldura de papel com sombra dura, que afunda no toque.
+   Quando a seção chega na tela ela entra, afunda uma vez, e o ▸ pisca vazado.
    A moldura é um :before com folga, pra não mexer no layout nem encostar no texto */
 #itemsHead{isolation:isolate}
-#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;background:#fff8e6;box-shadow:3px 3px 0 var(--ink);z-index:-1;opacity:0;pointer-events:none}
+#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;background:#fff8e6;box-shadow:3px 3px 0 var(--ink);z-index:-1;pointer-events:none}
+/* antes da vez dela na fila a moldura não existe, senão sumiria e voltaria na entrada */
+#itemsHead:not(.pisca):before{opacity:0}
+#itemsHead:active{transform:translate(3px,3px)} #itemsHead:active:before{box-shadow:none}
 #itemsHead.pisca{animation:apertinho 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca:before{animation:moldura 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca #itemsCaret span{animation:vazado 1.6s ease-in-out var(--ad,0ms) backwards}
@@ -90,8 +92,7 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
   0%{opacity:0;box-shadow:3px 3px 0 var(--ink)}
   20%,44%{opacity:1;box-shadow:3px 3px 0 var(--ink)}
   54%{opacity:1;box-shadow:0 0 0 var(--ink)}
-  66%,78%{opacity:1;box-shadow:3px 3px 0 var(--ink)}
-  100%{opacity:0;box-shadow:3px 3px 0 var(--ink)}}
+  66%,100%{opacity:1;box-shadow:3px 3px 0 var(--ink)}}
 @keyframes vazado{
   0%,100%{transform:none;color:var(--ink);-webkit-text-stroke:0 var(--ink)}
   20%,60%{transform:scale(1.6);color:transparent;-webkit-text-stroke:1.2px var(--ink)}

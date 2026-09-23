@@ -12,9 +12,9 @@
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
   const MEMBROS = false;     // lista de gente no rodapé; desligada pra ver como fica sem
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
-  // beforeinstallprompt e espera o site oferecer. Um botão dentro da nota é justamente
-  // o que a gente não quer num app "sem app", então fica desligado.
-  const INSTALAR = false;
+  // beforeinstallprompt e espera o site pedir. Pedir exige gesto, mas não exige botão:
+  // o convite fica pendurado no toque do ✎, uma vez só.
+  const INSTALAR = true;
   const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
   const CURRENCY = 'R$';
 
@@ -572,7 +572,7 @@
   $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; render(); };
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
-  $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); };
+  $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); convidaInstalar(); };
   $('#sheetClose').onclick = closeSheet;
   $('#sheet').addEventListener('click', ev => { if (ev.target.id === 'sheet') closeSheet(); });
   $('#expenseForm').onsubmit = ev => { ev.preventDefault();
@@ -724,29 +724,24 @@
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
   // ---------- instalar na tela de início ----------
-  // O Chrome parou de mostrar banner sozinho faz tempo: o navegador só avisa o site
-  // (beforeinstallprompt) e quem tem que oferecer é a página. No iPhone esse evento
-  // nem existe — lá o caminho é Compartilhar → Adicionar à Tela de Início, e o máximo
-  // que dá pra fazer é ensinar. Por isso o botão só aparece onde tem o que fazer.
+  // Sem botão: um app "sem app" não fica pedindo pra ser instalado. O navegador avisa
+  // que dá (beforeinstallprompt), a gente guarda, e o convite nativo sai no toque do ✎
+  // — gesto que o prompt() exige e que a pessoa ia dar de qualquer jeito. Uma vez só,
+  // na segunda visita e só com gasto anotado, pra não convidar quem só espiou.
+  // No iPhone o evento não existe: lá só dá pelo Compartilhar do Safari, na mão.
   let convite = null;
-  // navigator.standalone é só do Safari, não está no tipo padrão
+  const VISITAS = 'racha:visitas', CONVIDOU = 'racha:convidou';
+  const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
   const jaInstalado = () => matchMedia('(display-mode: standalone)').matches
-    || /** @type {any} */ (navigator).standalone === true;
-  const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPad se passa por Mac
-  const mostraInstalar = () => $('#instalar').classList.toggle('hidden', !INSTALAR || jaInstalado() || !(convite || ehIOS()));
-  window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); convite = ev; mostraInstalar(); });
-  window.addEventListener('appinstalled', () => { convite = null; mostraInstalar(); toast('Instalado! 🎉'); });
-  $('#instalar').onclick = async () => {
-    if (convite) { convite.prompt(); const r = await convite.userChoice; convite = null; mostraInstalar();
-      if (r.outcome !== 'accepted') toast('Deixa pra próxima, meu bem.'); return; }
-    overlay(`<h2 style="margin-top:0">Instalar</h2>
-      <p class="muted" style="margin:0 0 14px;text-align:center;text-transform:none">no iPhone é pelo Safari, em dois toques:</p>
-      <div class="c" style="text-transform:none;font-size:17px;line-height:1.8">1. toque em <b>Compartilhar</b>, lá embaixo.<br>2. escolha <b>Adicionar à Tela de Início</b>.</div>
-      <div class="c" style="margin-top:16px"><button id="instOk" class="ghost">fechar</button></div>`);
-    $('#instOk').onclick = closeOverlay;
-  };
-  mostraInstalar();
+    || /** @type {any} */ (navigator).standalone === true;   // standalone é só do Safari
+  window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); convite = ev; });
+  window.addEventListener('appinstalled', () => { convite = null; ls.set(CONVIDOU, '1'); });
+  function convidaInstalar(){
+    if (!INSTALAR || !convite || ls.get(CONVIDOU) || jaInstalado()) return;
+    if (visitas < 2 || !state || !state.expenses.length) return;
+    ls.set(CONVIDOU, '1');   // aceite ou recuse, não pergunto de novo
+    const c = convite; convite = null; c.prompt();
+  }
   const LAPIS_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg>';
   const WA_SVG = '<svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
   function festa(x, y){

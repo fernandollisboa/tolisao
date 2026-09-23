@@ -2,6 +2,7 @@
 //   node tests/video.cjs pix                       -> o copiar pix saindo de trás do ✔
 //   node tests/video.cjs ficha --saida=/tmp/f.webm -> a ficha sendo jogada no rodapé
 //   node tests/video.cjs risco --vel=0.35          -> o risco correndo nas linhas pagas
+// --css=arq.css redefine keyframes; --js=arq.js roda antes do app (ouvir classes, copiar atrasos).
 // --vel é a velocidade das animações (0.35 = bem devagar, 1 = normal).
 const { chromium } = require('./_pw.cjs');
 const path = require('path'), fs = require('fs'), os = require('os');
@@ -59,13 +60,17 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1500);
       await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
       await p.waitForTimeout(5000); } },
+  itens: { nome: 'o toquinho na linha dos itens quando ela chega na tela', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
+      await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      await p.waitForTimeout(5000); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
 };
 
 /**
- * @param {{cena?:string, vel?:number, largura?:number, altura?:number, dados?:any, css?:string, saida?:string, porta?:number}} opts
+ * @param {{cena?:string, vel?:number, largura?:number, altura?:number, dados?:any, css?:string, js?:string, saida?:string, porta?:number}} opts
  * @returns {Promise<string>} caminho do vídeo
  */
 async function video(opts = {}) {
@@ -98,6 +103,8 @@ async function video(opts = {}) {
         const eu = gente.find(x => x.name === quem);
         if (eu) localStorage.setItem(`racha:${sala}:me`, eu.id); } catch {}
     }, [sala, dados.name, c.quem, dados.people]);
+    // js de experiência: roda antes do app, pra poder ouvir o que ele faz
+    if (opts.js) await p.addInitScript(opts.js);
     // o navegador roda as animações mais devagar, senão some antes de dar pra ver
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
@@ -119,9 +126,10 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const cena = args.find(a => !a.startsWith('--')) || 'pix';
   const op = a => { const v = args.find(x => x.startsWith('--' + a + '=')); return v && v.split('=')[1]; };
-  const arqCss = op('css');
+  const arqCss = op('css'), arqJs = op('js');
   video({ cena, saida: op('saida'), vel: op('vel') ? Number(op('vel')) : undefined,
           css: arqCss ? fs.readFileSync(arqCss, 'utf8') : undefined,
+          js: arqJs ? fs.readFileSync(arqJs, 'utf8') : undefined,
           largura: op('largura') ? Number(op('largura')) : undefined })
     .then(f => console.log(f)).catch(e => { console.error('FAIL', e); process.exit(1); });
 }

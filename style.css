@@ -55,7 +55,7 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 @keyframes risca{from{width:0;border-top-color:var(--ink)}to{width:100%;border-top-color:#8a7a5a}}
 @media (prefers-reduced-motion:reduce){.row.paid.novo:after{animation:none}}
 .paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;top:50%;border-top:2px solid #8a7a5a;pointer-events:none;z-index:2}
-.row.paid.novo:after{animation:risca .55s ease-out both}
+.row.paid.novo:after{animation:risca .55s ease-out both;animation-delay:var(--rd,0ms)}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}
 /* o ▸ dos itens é o botão que abre e fecha a lista */

@@ -8,11 +8,26 @@ const path = require('path'), fs = require('fs'), os = require('os');
 const servir = require('./_serve.cjs');
 const { DADOS } = require('./preview.cjs');
 
+const H = Date.now();
+/** três dívidas pro ✔ piscar linha a linha; só o Fernando tem chave de pix */
+const TRES = { name: 'bailedamada', people: DADOS.people,
+  expenses: [
+    { id: 'i1', desc: 'Airbnb', amount: 300, payer: 'fernando', among: ['fernando','lia'], at: H - 3*86400000 },
+    { id: 'i2', desc: 'Gasolina', amount: 120, payer: 'julia', among: ['julia','lia'], at: H - 2*86400000 },
+    { id: 'i3', desc: 'Janta', amount: 80, payer: 'mengla', among: ['mengla','lia'], at: H - 86400000 },
+  ] };
+
 /** cada cena diz quem você é, quanto o pix demora e o que a câmera faz */
 const CENAS = {
   pix: { nome: 'copiar pix brotando do ✔ e a piscada verde', quem: 'Lia', atrasoPix: 2000,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(4500); } },
+  piscas: { nome: 'três ✔ piscando um atrás do outro', quem: 'Lia', atrasoPix: 2000, dados: TRES,
+    acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
+      await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(6000); } },
+  chave: { nome: 'o cadastrar chave pix descendo do título', quem: 'Júlia', atrasoPix: 2500,
+    acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
+      await p.waitForSelector('#pixBtn', { timeout: 9000 }); await p.waitForTimeout(4000); } },
   ficha: { nome: 'a ficha caindo no rodapé', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(700);
       await p.evaluate(() => document.querySelector('.bars').scrollIntoView({ behavior: 'smooth', block: 'center' }));
@@ -28,8 +43,9 @@ const CENAS = {
  */
 async function video(opts = {}) {
   const { cena = 'pix', vel = 0.5, largura = 390, altura = 844,
-          dados = DADOS, porta = 4500 + Math.floor(Math.random()*200) } = opts;
+          porta = 4500 + Math.floor(Math.random()*200) } = opts;
   const c = CENAS[cena]; if (!c) throw new Error(`cena desconhecida: ${cena} (tem ${Object.keys(CENAS).join(', ')})`);
+  const dados = opts.dados || c.dados || DADOS;
   const saida = opts.saida || path.join(os.tmpdir(), `video-${cena}.webm`);
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'tolisa-vid-'));
   const srv = servir(porta);

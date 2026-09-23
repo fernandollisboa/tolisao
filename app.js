@@ -234,6 +234,8 @@
     else $('#mine').classList.add('hidden');
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
+    // enquanto não houver nada anotado, o balão mostra por onde se começa
+    $('#dica').classList.toggle('hidden', !hasMe || state.expenses.length > 0);
     $('#itemsSec').classList.toggle('hidden', hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment'));
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;

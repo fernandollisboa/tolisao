@@ -25,6 +25,8 @@ Pra convidar alguém: o texto do **Enviar** já vai com o link do evento; ou man
 
 Regras do banco (Realtime Database → Regras):
 
+> **O `.read` fica dentro do `$room`, nunca em `rooms`.** As regras cascateiam pra baixo e não dá pra revogar mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixa todos os eventos do banco de uma vez, e o hash do código deixa de valer de nada.
+
 ```json
 {
   "rules": {

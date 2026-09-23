@@ -95,7 +95,7 @@ button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);widt
 /* o zap é a segunda bolinha flutuante, vizinha do anotar */
 #waBtn.wafab{right:88px;bottom:22px;width:58px;height:58px;border-radius:50%;transform:rotate(5deg);color:var(--ink);transition:right .4s cubic-bezier(.2,.9,.25,1)}
 #waBtn.wafab .wa-lbl{display:flex;align-items:center;justify-content:center}
-#waBtn.wafab .wa{width:26px;height:26px;top:0}
+#waBtn.wafab .wa{width:27px;height:27px;top:0}
 /* sem ninguém escolhido não existe o ✎: o zap ocupa a vaga da ponta.
    Quando a pessoa entra, ele escorrega pra dentro e abre espaço pro lápis. */
 #waBtn.wafab.so{right:18px}

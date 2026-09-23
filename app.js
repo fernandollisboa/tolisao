@@ -551,7 +551,7 @@
       state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
-  const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : 'https://fernandollisboa.github.io/tolisao/';
+  const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : 'https://tolisa.com.br/';
   const shareUrl = () => `${SITE}#c=${encodeURIComponent(roomName)}`;
   $('#shareBtn').onclick = async () => { const url = shareUrl();
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { showCopy('Link do evento', url); } };

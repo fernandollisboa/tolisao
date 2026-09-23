@@ -4,7 +4,7 @@
 
 "Tô Lisa · quem me deve?": divisor de gastos entre amigos, estilo Splitwise, sem app e sem cadastro.
 Três arquivos estáticos (`index.html`, `style.css`, `app.js`), sem build, publicados no GitHub Pages, com Firebase Realtime Database via REST.
-Site: https://fernandollisboa.github.io/tolisao/ (link curto: tinyurl.com/tolisapp). Tudo em pt-BR.
+Site: https://tolisa.com.br/ (link curto: tinyurl.com/tolisapp). Tudo em pt-BR.
 
 ## Estrutura
 

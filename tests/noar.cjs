@@ -4,7 +4,7 @@
 //   node tests/noar.cjs            -> confere o site oficial
 //   node tests/noar.cjs <url base> -> confere outro endereço
 const fs = require('fs'), path = require('path'), https = require('https');
-const BASE = (process.argv[2] || 'https://fernandollisboa.github.io/tolisao/').replace(/\/?$/, '/');
+const BASE = (process.argv[2] || 'https://tolisa.com.br/').replace(/\/?$/, '/');
 const RAIZ = path.join(__dirname, '..');
 
 const baixar = url => new Promise((ok, erro) => {

@@ -217,8 +217,11 @@
     $('#roomLabel').textContent = roomName || '—';
     document.title = roomName ? `${roomName} · Tô Lisa` : 'Tô Lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
-    $('#whoLine').innerHTML = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
-    $('#whoBtn').onclick = showWho;
+    // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
+    { const wl = $('#whoLine');
+      const html = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
+      if (wl.dataset.k !== html) { wl.innerHTML = html; wl.dataset.k = html; }
+      $('#whoBtn').onclick = showWho; }
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
       if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém 🙏';
@@ -266,7 +269,7 @@
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
     $('#settle').innerHTML = (s.map(t => line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100), t.from === me ? 'mine' : '', '', t.from === me ? markStyle(t.from + t.to, markOf(me)) : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '')).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
-        : `<div class="empty vazio">nada anotado ainda.<br><b>toque no ${LAPIS_SVG} pra anotar o primeiro gasto.</b></div>`))
+        : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
       + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp${st.cls}" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid') +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 

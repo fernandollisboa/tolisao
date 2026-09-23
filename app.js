@@ -310,7 +310,10 @@
     // a ficha só entra em nota que já tem gasto; em caderno vazio ela é poluição
     { const f = $('.stain'); if (f) { const b = hasMe ? (balances()[me] || 0) : null;
         f.classList.toggle('hidden', vazio);
-        f.classList.toggle('quite', b !== null && b >= 0); } }   // quem deve fica no âmbar de sempre
+        // a cor é a situação: deve (vermelho), recebe (verde), quite (rosa); sem nome, âmbar
+        f.classList.toggle('deve', b !== null && b < 0);
+        f.classList.toggle('recebe', b !== null && b > 0);
+        f.classList.toggle('quite', b === 0); } }
     $('#settleHead').classList.toggle('hidden', vazio);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);

@@ -14,10 +14,11 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
 .stain{position:absolute;width:70px;height:70px;box-sizing:border-box;padding:7px;border-radius:50%;--f1:#9a5b00;--f2:#fff8e6;background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);--dx:0px;--dy:0px;--rot:-16deg;--vx:70px;--vy:-90px;
   transform:translate(var(--dx),var(--dy)) rotate(var(--rot));filter:drop-shadow(2px 4px 4px rgba(0,0,0,.35));pointer-events:none;z-index:1;
   opacity:0}
-/* a cor conta como você está: rosa quem não deve nada, âmbar quem deve (e quem ainda não disse quem é) */
+/* a cor conta como você está: vermelho quem deve, verde quem tem a receber, rosa quem
+   está quite, e o âmbar de sempre pra quem ainda não disse quem é */
+.stain.deve{--f1:var(--red);--f2:#fbe3df}
+.stain.recebe{--f1:var(--green);--f2:#dff0e4}
 .stain.quite{--f1:#d94f8a;--f2:#ffe3ef}
-/* guardado pro futuro: o verde escuro de quem deve */
-.stain.verde{--f1:#0f4d2a;--f2:#dff0e4}
 .stain.voou{animation:jogada .85s linear both}
 .stain.voou.cambalhota{animation:cambalhota 1.05s linear both}
 .stain.voou.requica{animation:requica 1.3s linear both}

@@ -223,7 +223,9 @@
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
       if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém 🙏';
       if ($('#signoff')) $('#signoff').textContent = pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
-    if (hasMe) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
+    // evento sem nada anotado: Minha conta e Itens só teriam zeros, então somem
+    const vazio = state.expenses.length === 0;
+    if (hasMe && !vazio) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
       const pixB = t => !pixReady ? `<span class="spin" style="width:11px;height:11px;border:1.5px dotted var(--ink2);border-radius:50%;animation:spin 1.1s linear infinite;display:inline-block" title="carregando"></span>` : pixKeys[t.to] ? `<button class="ico" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>` : '';
@@ -236,7 +238,7 @@
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
     // enquanto não houver nada anotado, o balão mostra por onde se começa
     $('#dica').classList.toggle('hidden', !hasMe || state.expenses.length > 0);
-    $('#itemsSec').classList.toggle('hidden', hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment'));
+    $('#itemsSec').classList.toggle('hidden', vazio || (hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment')));
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] ? '' : !pixReady ? `<span class="acts"><span class="spin" title="carregando"></span></span>` : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
     const pl = $('#pixLine');

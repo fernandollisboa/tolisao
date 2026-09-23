@@ -77,15 +77,28 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsCaret span{display:block;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
 #itemsCaret.aberto span{transform:rotate(90deg)}
 #itemsHead:active #itemsCaret{transform:translate(2px,2px);box-shadow:none}
-/* um toquinho e meio quando a seção chega na tela: me aperta */
-#itemsCaret.pisca{animation:apertinho .62s ease-in-out both}
-@keyframes apertinho{
-  0%,46%,100%{transform:none;box-shadow:2px 2px 0 var(--ink)}
-  22%{transform:translate(2px,2px) scale(.94);box-shadow:0 0 0 var(--ink)}
-  72%{transform:translate(1px,1px) scale(.975);box-shadow:1px 1px 0 var(--ink)}}
+/* quando a seção chega na tela a linha inteira vira botão por um instante e afunda
+   uma vez, com o ▸ piscando vazado: é a linha toda que abre, não só a caixinha.
+   A moldura é um :before com folga, pra não mexer no layout nem encostar no texto */
+#itemsHead{isolation:isolate}
+#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;background:#fff8e6;box-shadow:3px 3px 0 var(--ink);z-index:-1;opacity:0;pointer-events:none}
+#itemsHead.pisca{animation:apertinho 1.6s ease-in-out var(--ad,0ms) backwards}
+#itemsHead.pisca:before{animation:moldura 1.6s ease-in-out var(--ad,0ms) backwards}
+#itemsHead.pisca #itemsCaret span{animation:vazado 1.6s ease-in-out var(--ad,0ms) backwards}
+@keyframes apertinho{0%,44%,66%,100%{transform:none}54%{transform:translate(3px,3px)}}
+@keyframes moldura{
+  0%{opacity:0;box-shadow:3px 3px 0 var(--ink)}
+  20%,44%{opacity:1;box-shadow:3px 3px 0 var(--ink)}
+  54%{opacity:1;box-shadow:0 0 0 var(--ink)}
+  66%,78%{opacity:1;box-shadow:3px 3px 0 var(--ink)}
+  100%{opacity:0;box-shadow:3px 3px 0 var(--ink)}}
+@keyframes vazado{
+  0%,100%{transform:none;color:var(--ink);-webkit-text-stroke:0 var(--ink)}
+  20%,60%{transform:scale(1.6);color:transparent;-webkit-text-stroke:1.2px var(--ink)}
+  40%,80%{transform:scale(1.15);color:var(--ink);-webkit-text-stroke:0 var(--ink)}}
 @keyframes abreLista{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #itemsBody:not(.hidden){animation:abreLista .22s ease-out}
-@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsCaret.pisca,#itemsBody:not(.hidden){transition:none;animation:none}}
+@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsBody:not(.hidden){transition:none;animation:none}}
 .row.total{font-size:24px;margin-top:10px} .row.total .v{font-size:24px}
 .bars{margin:18px auto 0;height:40px;width:230px} .bars svg{display:block;width:100%;height:100%}
 .empty{color:var(--muted);font-size:17px;text-align:center;padding:4px 0}

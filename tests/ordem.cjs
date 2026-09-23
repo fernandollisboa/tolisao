@@ -14,7 +14,7 @@ const dados = CENAS.cascata.dados;   // três dívidas suas e um pagamento já f
  *  porque a piscada e o copiar pix saem juntos de propósito */
 const ESPERADO = [
   { o_que: 'Minha conta: as piscadas dos ✔ e o copiar pix', bloco: { pisca: 3, brota: 1 } },
-  { o_que: 'os dois toquinhos no botão dos itens', bloco: { apertinho: 1 } },
+  { o_que: 'a linha dos itens virando botão, com o ▸ vazado', bloco: { apertinho: 1, moldura: 1, vazado: 1 } },
   { o_que: 'as voltas do círculo, duas por linha sua', bloco: { volta: 6 } },
   { o_que: 'o risco do pagamento', bloco: { risca: 1 } },
 ];

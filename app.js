@@ -158,7 +158,7 @@
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
   let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
-  let itensT = 0; const APERTO_MS = 620, APERTO_LEAD = 300;   // um toquinho e meio: me aperta
+  let itensT = 0; const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
   const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
@@ -383,11 +383,11 @@
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').classList.toggle('aberto', itemsOpen);
-    // o caret é o mesmo elemento em todo render: mexer no atraso depois reiniciaria a
+    // a linha é o mesmo elemento em todo render: mexer no atraso depois reiniciaria a
     // animação, então ele é marcado uma vez só e fica quieto
-    { const ca = $('#itemsCaret');
-      if (itensT && !ca.dataset.pisca) { ca.dataset.pisca = '1';
-        ca.style.animationDelay = `${itensT - Date.now()}ms`; ca.classList.add('pisca'); } } $('#itemsBody').classList.toggle('hidden', !itemsOpen);
+    { const ih = $('#itemsHead');
+      if (itensT && !ih.dataset.pisca) { ih.dataset.pisca = '1';
+        ih.style.setProperty('--ad', `${itensT - Date.now()}ms`); ih.classList.add('pisca'); } } $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
@@ -858,7 +858,7 @@
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
     settleT = riscoT = mineT = itensT = filaT = 0;
     mineNaTela = itensNaTela = settleNaTela = false;
-    const ca = $('#itemsCaret'); ca.classList.remove('pisca'); delete ca.dataset.pisca; ca.style.animationDelay = '';
+    const ih = $('#itemsHead'); ih.classList.remove('pisca'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }
   armaOlho();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }

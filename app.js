@@ -633,6 +633,12 @@
       box.appendChild(s); }
     document.body.appendChild(box); setTimeout(() => box.remove(), 1400);
   }
+  // cada abertura joga a diva num ponto e num ângulo um pouco diferentes
+  (function jogaDiva(){ const el = /** @type {HTMLElement|null} */ (document.querySelector('.stain')); if (!el) return;
+    const r = (a, b) => (a + Math.random() * (b - a)).toFixed(1);
+    el.style.setProperty('--dx', r(-16, 10) + 'px');
+    el.style.setProperty('--dy', r(-12, 12) + 'px');
+    el.style.setProperty('--rot', r(-28, 8) + 'deg'); })();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
   // ---------- código de barras (Code 128 C) ----------

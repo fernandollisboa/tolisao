@@ -9,7 +9,13 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
   background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.025) 0 1px,transparent 1px 3px)}
 .paper:before,.paper:after{content:"";position:absolute;left:0;right:0;height:14px;background:linear-gradient(135deg,transparent 7px,var(--paper) 7px) 0 0/14px 14px,linear-gradient(-135deg,transparent 7px,var(--paper) 7px) 7px 0/14px 14px;background-repeat:repeat-x}
 .paper:before{top:-13px}.paper:after{bottom:-13px;transform:scaleY(-1)}
-.stain{position:absolute;right:-12px;top:-24px;width:84px;height:84px;transform:rotate(14deg);filter:drop-shadow(2px 4px 4px rgba(0,0,0,.35));pointer-events:none;z-index:1}
+/* a diva é jogada no recibo: cai perto do código de barras, nunca no mesmo lugar */
+.stain{position:absolute;right:14px;bottom:34px;top:auto;width:70px;height:70px;--dx:0px;--dy:0px;--rot:-16deg;
+  transform:translate(var(--dx),var(--dy)) rotate(var(--rot));filter:drop-shadow(2px 4px 4px rgba(0,0,0,.35));pointer-events:none;z-index:1;
+  animation:jogada .7s cubic-bezier(.2,1.1,.4,1) both}
+@keyframes jogada{0%{opacity:0;transform:translate(calc(var(--dx) + 70px),calc(var(--dy) - 90px)) rotate(calc(var(--rot) + 240deg)) scale(.75)}
+  55%{opacity:1}100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
+@media (prefers-reduced-motion:reduce){.stain{animation:none}}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}
 h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
 h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}

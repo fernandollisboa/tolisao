@@ -167,7 +167,11 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
   38%,78%,100%{opacity:1;transform:none;background:#fff8e6;color:#9a5b00}
   58%{opacity:1;transform:scale(1.12);background:#9a5b00;color:#fff8e6}}
 @media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#pixLine #pixBtn{animation:none}}
-#pixLine{max-height:40px;overflow:hidden;transition:max-height .4s ease,opacity .3s ease} #pixLine .acts{transition:transform .35s ease} #pixLine.gone{max-height:0;opacity:0} #pixLine.gone .acts{transform:translateY(-14px) scale(.4)}
+/* a linha nasce sem altura: o espaço abre junto com o botão descendo, não antes dele */
+#pixLine{max-height:0;overflow:hidden;margin:0;transition:max-height .42s cubic-bezier(.2,.9,.3,1),margin .42s cubic-bezier(.2,.9,.3,1),opacity .3s ease}
+#pixLine.cheio{max-height:46px;margin:-2px 0 10px}
+#pixLine .acts{transition:transform .35s ease}
+#pixLine.gone{max-height:0;margin:0;opacity:0} #pixLine.gone .acts{transform:translateY(-14px) scale(.4)}
 .link.dim{opacity:.5;font-size:13px} .link.dim svg{width:12px;height:12px} .link.go{color:var(--green);font-size:17px}
 #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:0}
 #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}

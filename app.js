@@ -304,8 +304,11 @@
     // sem spinner aqui também: a linha fica vazia e o botão desce de debaixo do título
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
     const pl = $('#pixLine');
-    if (!pixWant) { if (pl.dataset.k && !pl.classList.contains('gone')) { pl.classList.add('gone'); setTimeout(() => { if (pl.classList.contains('gone')) { pl.innerHTML = ''; pl.dataset.k = ''; } }, 450); } }
-    else { pl.classList.remove('gone'); if (pl.dataset.k !== pixWant) { pl.innerHTML = pixWant; pl.dataset.k = pixWant; } }
+    if (!pixWant) { if (pl.dataset.k && !pl.classList.contains('gone')) { pl.classList.add('gone');
+      setTimeout(() => { if (pl.classList.contains('gone')) { pl.innerHTML = ''; pl.dataset.k = ''; pl.classList.remove('cheio'); } }, 450); } }
+    // a altura vem num quadro depois do conteúdo, senão não há de onde a transição sair
+    else { pl.classList.remove('gone'); if (pl.dataset.k !== pixWant) { pl.innerHTML = pixWant; pl.dataset.k = pixWant;
+      requestAnimationFrame(() => pl.classList.add('cheio')); } }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
     $('#peopleSec').classList.toggle('hidden', !MEMBROS);
     $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') : 'ninguém';

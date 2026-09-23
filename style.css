@@ -41,9 +41,9 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .bars{margin:18px auto 0;height:40px;width:230px} .bars svg{display:block;width:100%;height:100%}
 .empty{color:var(--muted);font-size:17px;text-align:center;padding:4px 0}
 /* caderno em branco: a caixa tracejada diz por onde começar */
-/* mesma cor do balão que aponta pro ✎: os dois dizem a mesma coisa */
-.empty.vazio{background:#9a5b00;color:#fff;border:2px solid var(--ink);border-radius:5px;box-shadow:2px 2px 0 var(--ink);padding:12px 14px;margin:10px 0;font-size:18px;line-height:1.5;text-transform:uppercase;letter-spacing:.5px}
-.empty.vazio b{font-weight:400;color:#fff}
+/* caderno em branco: a caixa tracejada diz por onde começar */
+.empty.vazio{border:2px dashed var(--rule);border-radius:4px;padding:12px 14px;margin:6px 0;font-size:18px;line-height:1.5;color:var(--ink2)}
+.empty.vazio b{font-weight:400;color:var(--ink)}
 button,input,select{font:inherit;color:var(--ink)}
 button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:5px 12px;cursor:pointer;text-transform:uppercase;font-size:17px;letter-spacing:.5px}
 .share2{display:flex;flex-direction:column;align-items:center}

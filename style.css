@@ -152,7 +152,12 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .dupla>.ok{position:relative;z-index:2}
 #mineRows .dupla>.brota{position:relative;z-index:1;animation:brota .42s cubic-bezier(.2,.9,.3,1.15) both}
 @keyframes brota{0%{opacity:0;transform:translateX(calc(-100% - 6px)) scale(.6)}30%{opacity:1}100%{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}}
+/* assim que o copiar pix termina de sair, o ✔ vazado se enche de verde duas vezes: "me pague" */
+#mineRows .dupla>.ok.pisca{animation:pisca .95s ease-in-out both}
+@keyframes pisca{
+  0%,22%,52%,100%{background:#fff8e6;color:var(--green);transform:none}
+  9%,39%{background:var(--green);color:#fff8e6;transform:scale(1.14)}}
+@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca{animation:none}}
 #pixLine{max-height:40px;overflow:hidden;transition:max-height .4s ease,opacity .3s ease} #pixLine .acts{transition:transform .35s ease} #pixLine.gone{max-height:0;opacity:0} #pixLine.gone .acts{transform:translateY(-14px) scale(.4)}
 .link.dim{opacity:.5;font-size:13px} .link.dim svg{width:12px;height:12px} .link.go{color:var(--green);font-size:17px}
 #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:0}

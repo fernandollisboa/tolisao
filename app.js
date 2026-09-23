@@ -176,7 +176,7 @@
   const PIX_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>';
   let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const pixVisto = new Map();   // pessoa -> quando o botão de copiar pix apareceu
-  const PIX_MS = 420;
+  const PIX_MS = 420, PISCA_MS = 950;
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
@@ -252,15 +252,19 @@
     if (hasMe && !vazio) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
-      // o copiar pix brota de trás do ✔ quando a chave chega, em vez de piscar na tela.
-      // como o #mineRows é refeito a cada poll, o atraso negativo retoma a animação
-      // de onde ela estava em vez de recomeçar no meio do caminho
-      const pixB = t => { if (!pixReady || !pixKeys[t.to]) return '';   // nada de spinner: o botão brotando já conta que chegou
+      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ pisca
+      // verde duas vezes, um "me pague". As duas saem da mesma hora, guardada uma vez
+      // por pessoa; como o #mineRows é refeito a cada poll, o atraso (negativo depois
+      // que a animação começou) retoma de onde estava em vez de recomeçar no meio
+      const pixDt = t => { if (!pixReady || !pixKeys[t.to]) return null;   // nada de spinner: o botão brotando já conta que chegou
         if (!pixVisto.has(t.to)) pixVisto.set(t.to, Date.now());
-        const dt = Date.now() - (pixVisto.get(t.to) || 0);
+        return Date.now() - (pixVisto.get(t.to) || 0); };
+      const pixB = t => { const dt = pixDt(t); if (dt === null) return '';
         const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';
         return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>`; };
-      const okB = t => `<button class="ico ok" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`;
+      const okB = t => { const dt = pixDt(t);   // a piscada espera o copiar pix acabar de sair
+        const pi = dt !== null && dt < PIX_MS + PISCA_MS ? ` pisca" style="animation-delay:${PIX_MS - dt}ms` : '';
+        return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? stMe.filter(t => t.from === me).map(t => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       $('#mineRows').innerHTML = ln(bal > 0 ? 'me devem' : bal < 0 ? 'eu devo' : 'quites', val(Math.abs(bal)/100), bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'ok') + hdr + who.join(''); }

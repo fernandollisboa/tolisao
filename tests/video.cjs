@@ -10,9 +10,9 @@ const { DADOS } = require('./preview.cjs');
 
 /** cada cena diz quem você é, quanto o pix demora e o que a câmera faz */
 const CENAS = {
-  pix: { nome: 'copiar pix brotando do ✔', quem: 'Lia', atrasoPix: 2000,
+  pix: { nome: 'copiar pix brotando do ✔ e a piscada verde', quem: 'Lia', atrasoPix: 2000,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
-      await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(2500); } },
+      await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(4500); } },
   ficha: { nome: 'a ficha caindo no rodapé', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(700);
       await p.evaluate(() => document.querySelector('.bars').scrollIntoView({ behavior: 'smooth', block: 'center' }));

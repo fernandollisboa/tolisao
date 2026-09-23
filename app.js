@@ -676,20 +676,27 @@
       const papel = /** @type {HTMLElement} */ (papelOu);
       const larg = papel.clientWidth, alt = papel.clientHeight;
       const st = $('#status'), sy = st ? st.offsetTop - D * 0.35 : bt + bh;
-      const topo = bt - D * 0.25;                  // nada acima do código: a ficha fica só no rodapé
+      const frase = $('#signoff'), caixa = frase && frase.parentElement;
+      // teto: a linha tracejada logo acima do "* * *". Dali pra cima é conta, não é rodapé.
+      const topo = caixa ? caixa.offsetTop - D * 0.4 : bt - D * 0.25;
       const base = bt + bh - D + folga;
       // a ficha cai inteira dentro do papel: a folga cobre o empurrãozinho do --dx/--dy
       const yMax = Math.max(topo, alt - D - 12);
       const dentro = p => ({ x: Math.max(12, Math.min(p.x, larg - D - 12)),
                              y: Math.min(Math.max(p.y, topo), yMax) });
-      return [ { x: bl + bw - D * 0.9, y: base },        // ponta direita do código
-               { x: bl, y: base },                       // ponta esquerda do código
-               { x: bl + bw / 2 - D / 2, y: base },      // em cima do código, no meio
-               { x: bl + bw - D, y: topo },              // topo do código, à direita
-               { x: bl, y: topo },                       // topo do código, à esquerda
-               { x: 12, y: sy },                         // ao lado do sincronizado, à esquerda
-               { x: larg - D - 12, y: sy },              // ao lado do sincronizado, à direita
-             ].map(dentro); };
+      const v = [ { x: bl + bw - D * 0.9, y: base },        // ponta direita do código
+                  { x: bl, y: base },                       // ponta esquerda do código
+                  { x: bl + bw / 2 - D / 2, y: base },      // em cima do código, no meio
+                  { x: bl + bw - D, y: bt - D * 0.25 },     // topo do código, à direita
+                  { x: bl, y: bt - D * 0.25 },              // topo do código, à esquerda
+                  { x: 12, y: sy },                         // ao lado do sincronizado, à esquerda
+                  { x: larg - D - 12, y: sy },              // ao lado do sincronizado, à direita
+                ];
+      // ao lado do "valeu, meu bem!" só entra se sobrar vão dos dois lados: recado não se tapa
+      if (caixa && frase) { const vao = (larg - frase.offsetWidth) / 2;
+        if (vao >= D + 14) { const fy = caixa.offsetTop + caixa.offsetHeight / 2 - D / 2;
+          v.push({ x: 12, y: fy }, { x: larg - D - 12, y: fy }); } }
+      return v.map(dentro); };
     const vaga = i => { const v = vagas(); return v && v[i]; };
     // a página muda de altura ao longo da vida (entrar no evento, abrir itens),
     // então a vaga é recalculada, não guardada em pixels

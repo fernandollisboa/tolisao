@@ -11,6 +11,10 @@
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
   const MEMBROS = false;     // lista de gente no rodapé; desligada pra ver como fica sem
+  // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
+  // beforeinstallprompt e espera o site oferecer. Um botão dentro da nota é justamente
+  // o que a gente não quer num app "sem app", então fica desligado.
+  const INSTALAR = false;
   const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
   const CURRENCY = 'R$';
 
@@ -730,7 +734,7 @@
     || /** @type {any} */ (navigator).standalone === true;
   const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent)
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPad se passa por Mac
-  const mostraInstalar = () => $('#instalar').classList.toggle('hidden', jaInstalado() || !(convite || ehIOS()));
+  const mostraInstalar = () => $('#instalar').classList.toggle('hidden', !INSTALAR || jaInstalado() || !(convite || ehIOS()));
   window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); convite = ev; mostraInstalar(); });
   window.addEventListener('appinstalled', () => { convite = null; mostraInstalar(); toast('Instalado! 🎉'); });
   $('#instalar').onclick = async () => {

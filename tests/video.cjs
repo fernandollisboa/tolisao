@@ -7,6 +7,8 @@ const { chromium } = require('./_pw.cjs');
 const path = require('path'), fs = require('fs'), os = require('os');
 const servir = require('./_serve.cjs');
 const { DADOS } = require('./preview.cjs');
+const { createHash } = require('crypto');
+const sha256 = t => createHash('sha256').update(t).digest('hex');
 
 const H = Date.now();
 /** três dívidas pro ✔ piscar linha a linha; só o Fernando tem chave de pix */
@@ -76,8 +78,8 @@ async function video(opts = {}) {
   const srv = servir(porta);
   const b = await chromium.launch();
   try {
-    const ctx = await b.newContext({ viewport: { width: largura, height: altura }, deviceScaleFactor: 2,
-      recordVideo: { dir: pasta, size: { width: largura * 2, height: altura * 2 } } });
+    const ctx = await b.newContext({ viewport: { width: largura, height: altura },
+      recordVideo: { dir: pasta, size: { width: largura, height: altura } } });
     await ctx.route(/fake-db/, async r => {
       const u = r.request().url();
       // o pix chega depois do resto, como no mundo real: é isso que a animação conta
@@ -88,14 +90,21 @@ async function video(opts = {}) {
     });
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
+    // entra já identificado: senão o vídeo começa com a tela de código e o cartão de
+    // "quem é você?" piscando, e o que interessa fica no fim
+    const sala = await sha256(dados.name);
+    await p.addInitScript(([sala, code, quem, gente]) => {
+      try { localStorage.setItem('racha:room', JSON.stringify({ code, id: sala }));
+        const eu = gente.find(x => x.name === quem);
+        if (eu) localStorage.setItem(`racha:${sala}:me`, eu.id); } catch {}
+    }, [sala, dados.name, c.quem, dados.people]);
     // o navegador roda as animações mais devagar, senão some antes de dar pra ver
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
     await p.goto(`http://localhost:${porta}/#c=${dados.name}`);
     // css de experiência: entra depois da folha do app, então redefine keyframes e vence
     if (opts.css) await p.addStyleTag({ content: opts.css });
-    await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
-    await p.selectOption('#whoSel', { label: c.quem });
+    await p.waitForSelector('#mine:not(.hidden)', { timeout: 8000 });
     await c.acao(p);
     if (erros.length) console.error('ERROS NA PÁGINA:', erros);
     const v = p.video(); await ctx.close();

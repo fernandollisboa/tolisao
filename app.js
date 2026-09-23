@@ -147,19 +147,22 @@
   const vistos = new Map();        // pagamento -> quando o risco dele deve começar (pode ser no futuro)
   const RISCO_MS = 550, RISCO_GAP = 130;
   let settleT = 0, riscoT = 0;     // hora marcada pras voltas do círculo e pros riscos
-  const DESENHA_MS = 330, DESENHA_GAP = 200;
+  const DESENHA_MS = 330, DESENHA_GAP = 200, VOLTA_GAP = 220;   // VOLTA_GAP: uma linha sua atrás da outra
   let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
   let mineNaTela = false, settleNaTela = false, filaT = 0;
   const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
-  const stampStyle = (id, i = 0) => { const h = hash32(id);
+  const stampStyle = id => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
     // com um cartão por cima a animação acabava escondida e a pessoa só via o resultado.
     // uma quitação recém-feita entra na hora; as da carga inicial saem do riscoT, em cascata
-    if (!vistos.has(id) && !seguraRisco && $('#overlay').classList.contains('hidden'))
-      vistos.set(id, riscoT ? riscoT + i * RISCO_GAP : Date.now());
+    // só entra aqui uma quitação feita agora: as da carga inicial são carimbadas em
+    // bloco quando o #settle pega a vez na fila. Sem o riscoT, o primeiro render
+    // marcava todas com a hora de agora e elas riscavam antes de tudo, fora de ordem.
+    if (!vistos.has(id) && riscoT && !seguraRisco && $('#overlay').classList.contains('hidden'))
+      vistos.set(id, Date.now());
     // o #settle é refeito a cada render: sem o atraso, um render no meio do caminho
     // recomeçaria o risco do zero. Positivo = ainda vai começar, negativo = retoma.
     const t = vistos.get(id), dt = t === undefined ? Infinity : Date.now() - t;
@@ -334,17 +337,22 @@
     const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
     // o #settle entra na fila atrás de Minha conta, e primeiro as voltas do círculo
     // (que ficam em cima), depois os riscos dos pagamentos (que ficam embaixo)
+    const nMeus = s.filter(t => t.from === me).length;
     if (settleNaTela && !settleT && !seguraRisco && $('#overlay').classList.contains('hidden')) {
-      settleT = agenda(DESENHA_MS + DESENHA_GAP);
-      riscoT = agenda(RISCO_MS + Math.max(0, pays.length - 1) * RISCO_GAP); }
-    const dtS = settleT ? Date.now() - settleT : Infinity, desenha = dtS < DESENHA_MS + DESENHA_GAP;
-    $('#settle').innerHTML = (s.map(t => { const meu = t.from === me; return line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100),
+      settleT = agenda(DESENHA_MS + DESENHA_GAP + Math.max(0, nMeus - 1) * VOLTA_GAP);
+      riscoT = agenda(RISCO_MS + Math.max(0, pays.length - 1) * RISCO_GAP);
+      pays.forEach((e, i) => vistos.set(e.id, riscoT + i * RISCO_GAP)); }   // de cima pra baixo
+    const dtS = settleT ? Date.now() - settleT : Infinity;
+    const desenha = dtS < DESENHA_MS + DESENHA_GAP + Math.max(0, nMeus - 1) * VOLTA_GAP;
+    let ordem = 0;   // as suas linhas riscam uma atrás da outra, de cima pra baixo
+    $('#settle').innerHTML = (s.map(t => { const meu = t.from === me, o = meu ? ordem++ : 0;
+      return line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100),
         meu ? 'mine' + (desenha ? ' risca' : '') : '', '',
-        meu ? markStyle(t.from + t.to, markOf(me)) + (desenha ? `;--rd2:${-dtS}ms` : '') : '',
+        meu ? markStyle(t.from + t.to, markOf(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
         meu ? ` data-copy-value="${fmt(t.cents/100)}" title="copiar valor"` : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : ''); }).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
         : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} abaixo pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
-      + pays.map((e, i) => { const st = stampStyle(e.id, i); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', `--ri:${colorOf(e.payer)};${st.rd}`) +
+      + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', `--ri:${colorOf(e.payer)};${st.rd}`) +
         (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
 
     const items = state.expenses.filter(e => e.kind !== 'payment');

@@ -394,7 +394,7 @@
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
         <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
-    const entra = v => { me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint(); };
+    const entra = v => { me = v; ls.set(meKey(), me); closeOverlay(); render(); $('#payer').value = me; updateHint(); rejogaDiva(); };
     $('#whoSel').onchange = () => { const v = $('#whoSel').value;
       $('#whoNewBox').classList.toggle('hidden', v !== '__new');
       if (v === '__new') return $('#whoNew').focus();
@@ -633,6 +633,7 @@
       box.appendChild(s); }
     document.body.appendChild(box); setTimeout(() => box.remove(), 1400);
   }
+  let rejogaDiva = () => {};   // atribuída abaixo; joga a ficha de novo
   // a diva só é jogada quando o código de barras entra na tela. O lugar sai de
   // uma lista de cantos ao redor do código, sempre acima do "sincronizado", e o
   // voo às vezes vem direto, às vezes dando cambalhota
@@ -668,10 +669,14 @@
     if ('ResizeObserver' in window) new ResizeObserver(posiciona).observe($('#app'));
     window.addEventListener('resize', posiciona);
     if (!('IntersectionObserver' in window)) return el.classList.add('voou');
-    new IntersectionObserver(es => { for (const e of es) {
-      if (!e.isIntersecting) { el.classList.remove('voou'); continue; }
-      sorteia(); el.classList.add('voou');
-    } }, { threshold: .55 }).observe(bars);
+    // uma jogada só: depois que ela cai, rolar de novo não traz outra.
+    // recomeça quando a pessoa troca de nome, aí sim vale outra ficha
+    const olho = new IntersectionObserver(es => { for (const e of es) {
+      if (!e.isIntersecting) continue;
+      sorteia(); el.classList.add('voou'); olho.unobserve(bars);
+    } }, { threshold: .55 });
+    olho.observe(bars);
+    rejogaDiva = () => { el.classList.remove('voou'); olho.observe(bars); };
   })();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 

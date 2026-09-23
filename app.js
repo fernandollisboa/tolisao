@@ -147,11 +147,14 @@
   const vistos = new Map();        // pagamento -> quando o risco dele deve começar (pode ser no futuro)
   const RISCO_MS = 550, RISCO_GAP = 130;
   let settleT = 0, riscoT = 0;     // hora marcada pras voltas do círculo e pros riscos
-  const DESENHA_MS = 330, DESENHA_GAP = 200, VOLTA_GAP = 220;   // VOLTA_GAP: uma linha sua atrás da outra
+  // nada de volta por cima de volta: a segunda começa quando a primeira fecha,
+  // e a linha de baixo espera as duas da linha de cima
+  const DESENHA_MS = 260, DESENHA_GAP = 260, VOLTA_GAP = 520;
   let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
-  let mineNaTela = false, settleNaTela = false, filaT = 0;
+  let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
+  let itensT = 0; const APERTO_MS = 1100;   // o botão dos itens dá dois toquinhos: me aperta
   const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
@@ -275,15 +278,17 @@
         // se a chave demorou mais que a vez da seção, a linha anima a partir de agora
         if (!pixVisto.has(t.to)) pixVisto.set(t.to, Math.max(mineT, Date.now()));
         return Date.now() - (pixVisto.get(t.to) || 0); };
-      const pixB = t => { const dt = pixDt(t); if (dt === null || !pixKeys[t.to]) return '';
-        const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';
+      // a linha pisca primeiro — o "me pague" — e só depois entrega a ferramenta de pagar
+      const pixB = (t, i) => { const dt = pixDt(t); if (dt === null || !pixKeys[t.to]) return '';
+        const esp = PISCA_MS + i * PISCA_GAP;
+        const br = dt < esp + PIX_MS ? ` brota" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>`; };
-      // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da
-      // outra, esperando o copiar pix acabar de sair
-      const okB = (t, i) => { const dt = pixDt(t), esp = PIX_MS + i * PISCA_GAP;
+      // toda linha pisca, tenha chave de pix ou não: a conta é a mesma, e a piscada
+      // abre a seção. Uma linha atrás da outra
+      const okB = (t, i) => { const dt = pixDt(t), esp = i * PISCA_GAP;
         const pi = dt !== null && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t, i)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
       // caixinha tracejada que aponta o lápis no evento novo
@@ -305,6 +310,11 @@
     // nota vazia não tem o que mandar: o zap some e sobra só o "quem é você?"
     $('#waBtn').classList.toggle('hidden', vazio);
     $('#itemsSec').classList.toggle('hidden', vazio || (hasMe && (balances()[me] || 0) === 0 && state.expenses.some(e => e.kind !== 'payment')));
+    // entre Minha conta e Falta pagar na página, e entre as duas na fila também. O
+    // cartão do "quem é você?" segura: com ele aberto os itens já estão visíveis por
+    // trás, e o toquinho furava a fila antes de Minha conta existir
+    if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
+        && !$('#itemsSec').classList.contains('hidden')) itensT = agenda(APERTO_MS);
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     // sem spinner aqui também: a linha fica vazia e o botão desce de debaixo do título
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
@@ -367,7 +377,12 @@
       return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${by}</span>${me && (e.by ? e.by === nameOf(me) : e.payer === me) ? `<button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : ''}</div></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
-    $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').classList.toggle('aberto', itemsOpen); $('#itemsBody').classList.toggle('hidden', !itemsOpen);
+    $('#itemsCount').textContent = `${all.length} ${all.length === 1 ? 'item' : 'itens'}`; $('#itemsCaret').classList.toggle('aberto', itemsOpen);
+    // o caret é o mesmo elemento em todo render: mexer no atraso depois reiniciaria a
+    // animação, então ele é marcado uma vez só e fica quieto
+    { const ca = $('#itemsCaret');
+      if (itensT && !ca.dataset.pisca) { ca.dataset.pisca = '1';
+        ca.style.animationDelay = `${itensT - Date.now()}ms`; ca.classList.add('pisca'); } } $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
@@ -789,19 +804,23 @@
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
   let olhoSec = null;
   function armaOlho(){
-    if (!('IntersectionObserver' in window)) { mineNaTela = settleNaTela = true; return; }
+    if (!('IntersectionObserver' in window)) { mineNaTela = itensNaTela = settleNaTela = true; return; }
     if (olhoSec) olhoSec.disconnect();
     olhoSec = new IntersectionObserver(es => { let mudou = false;
       for (const e of es) { if (!e.isIntersecting) continue;
         if (e.target.id === 'mine' && !mineNaTela) { mineNaTela = true; mudou = true; }
+        if (e.target.id === 'itemsSec' && !itensNaTela) { itensNaTela = true; mudou = true; }
         if (e.target.id === 'settle' && !settleNaTela) { settleNaTela = true; mudou = true; }
         if (olhoSec) olhoSec.unobserve(e.target); }
       if (mudou) render(); }, { threshold: .08 });
-    olhoSec.observe($('#mine')); olhoSec.observe($('#settle'));
+    for (const id of ['#mine', '#itemsSec', '#settle']) olhoSec.observe($(id));
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = filaT = 0; mineNaTela = settleNaTela = false; armaOlho(); }
+    settleT = riscoT = mineT = itensT = filaT = 0;
+    mineNaTela = itensNaTela = settleNaTela = false;
+    const ca = $('#itemsCaret'); ca.classList.remove('pisca'); delete ca.dataset.pisca; ca.style.animationDelay = '';
+    armaOlho(); }
   armaOlho();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 

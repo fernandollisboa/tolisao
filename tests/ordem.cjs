@@ -12,8 +12,9 @@ const PORTA = 4190, QUEM = 'Lia', ALTURA = 420;
 const dados = CENAS.cascata.dados;   // três dívidas suas e um pagamento já feito
 /** o que tem que acontecer, nesta ordem, cada um depois do anterior */
 const ESPERADO = [
-  { nome: 'brota', o_que: 'o copiar pix sai de trás do ✔' },
   { nome: 'pisca', o_que: 'os ✔ piscam, um por linha', vezes: 3 },
+  { nome: 'brota', o_que: 'o copiar pix sai de trás do ✔' },
+  { nome: 'apertinho', o_que: 'os dois toquinhos no botão dos itens' },
   { nome: 'volta', o_que: 'as voltas do círculo, duas por linha sua', vezes: 6 },
   { nome: 'risca', o_que: 'o risco do pagamento' },
 ];
@@ -50,6 +51,8 @@ const ESPERADO = [
 
     await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
     await p.waitForTimeout(3500);
+    await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ block: 'center' }));
+    await p.waitForTimeout(2500);
     await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
     await p.waitForTimeout(4000);
 

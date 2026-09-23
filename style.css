@@ -77,11 +77,12 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsCaret span{display:block;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
 #itemsCaret.aberto span{transform:rotate(90deg)}
 #itemsHead:active #itemsCaret{transform:translate(2px,2px);box-shadow:none}
-/* dois toquinhos de leve quando a seção chega na tela: me aperta */
-#itemsCaret.pisca{animation:apertinho 1.1s ease-in-out both}
+/* um toquinho e meio quando a seção chega na tela: me aperta */
+#itemsCaret.pisca{animation:apertinho .62s ease-in-out both}
 @keyframes apertinho{
-  0%,29%,59%,100%{transform:none;box-shadow:2px 2px 0 var(--ink)}
-  14%,44%{transform:translate(2px,2px) scale(.94);box-shadow:0 0 0 var(--ink)}}
+  0%,46%,100%{transform:none;box-shadow:2px 2px 0 var(--ink)}
+  22%{transform:translate(2px,2px) scale(.94);box-shadow:0 0 0 var(--ink)}
+  72%{transform:translate(1px,1px) scale(.975);box-shadow:1px 1px 0 var(--ink)}}
 @keyframes abreLista{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #itemsBody:not(.hidden){animation:abreLista .22s ease-out}
 @media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsCaret.pisca,#itemsBody:not(.hidden){transition:none;animation:none}}
@@ -157,7 +158,7 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 /* o copiar pix sai de trás do ✔ quando a chave chega, em vez de aparecer seco */
 #mineRows .dupla{position:relative;display:inline-flex;align-items:center;gap:2px;margin-left:2px}
 #mineRows .dupla>.ok{position:relative;z-index:2}
-#mineRows .dupla>.brota{position:relative;z-index:1;animation:brota .42s cubic-bezier(.2,.9,.3,1.15) both}
+#mineRows .dupla>.brota{position:relative;z-index:1;min-width:0;animation:brota .42s cubic-bezier(.2,.9,.3,1.15) both}
 /* o lugar do botão abre enquanto ele sai: antes ele já ocupava a largura, parado */
 @keyframes brota{
   0%{opacity:0;max-width:0;overflow:hidden;transform:translateX(calc(-100% - 6px)) scale(.6)}
@@ -186,12 +187,15 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}
 /* linha de quem eu devo: circulada à caneta, com a volta dupla de quem rabisca duas vezes */
 /* as duas voltas ficam em pseudo-elementos pra poderem ser desenhadas sem mexer no número */
-.row.mine .v{position:relative;padding:2px 9px;margin:0 -9px;cursor:pointer}
-.row.mine .v:after{content:"";position:absolute;inset:-2px;border:2px solid var(--mk,#7a6a4a);border-radius:40% 60% 45% 55%/60% 45% 55% 40%;pointer-events:none}
-.row.mine .v:before{content:"";position:absolute;inset:-5px -4px -4px -5px;border:1.5px solid var(--mk,#7a6a4a);border-radius:55% 45% 60% 40%/45% 60% 40% 55%;opacity:.65;transform:rotate(1.5deg);pointer-events:none}
+/* a volta é maior que a linha: sem folga ela encostava na de cima e na de baixo,
+   e a barriga da direita ia parar em cima da borda do papel */
+#settle .row.mine{margin:5px 0}
+.row.mine .v{position:relative;z-index:3;padding:2px 7px;margin:0 -5px;cursor:pointer}   /* acima do risco da linha vizinha */
+.row.mine .v:after{content:"";position:absolute;inset:-2px;border:2.5px solid var(--mk,#7a6a4a);border-radius:40% 60% 45% 55%/60% 45% 55% 40%;pointer-events:none}
+.row.mine .v:before{content:"";position:absolute;inset:-5px -4px -4px -5px;border:2px solid var(--mk,#7a6a4a);border-radius:55% 45% 60% 40%/45% 60% 40% 55%;opacity:.8;transform:rotate(1.5deg);pointer-events:none}
 /* a caneta dá a volta: o conic esconde o que ainda não foi riscado, em passos curtos */
-.row.mine.risca .v:after{animation:volta .26s steps(1) both;animation-delay:var(--rd2,0ms)}
-.row.mine.risca .v:before{animation:volta .26s steps(1) both;animation-delay:calc(var(--rd2,0ms) + .26s)}
+.row.mine.risca .v:after{animation:volta .18s steps(1) both;animation-delay:var(--rd2,0ms)}
+.row.mine.risca .v:before{animation:volta .18s steps(1) both;animation-delay:calc(var(--rd2,0ms) + .18s)}
 @keyframes volta{
   0%{-webkit-mask-image:conic-gradient(#000 0deg,transparent 0);mask-image:conic-gradient(#000 0deg,transparent 0)}
   12%{-webkit-mask-image:conic-gradient(#000 52deg,transparent 0);mask-image:conic-gradient(#000 52deg,transparent 0)}

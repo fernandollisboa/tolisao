@@ -135,7 +135,7 @@
   const idx = id => Math.max(0, state.people.findIndex(p => p.id === id));
   const colorOf = id => PALETTE[idx(id) % PALETTE.length];
   const markOf = id => MARK[idx(id) % MARK.length];
-  const markImg = id => MARKR[idx(id) % MARKR.length];   // marca-texto do recibo em png
+  const markForte = id => MARKR[idx(id) % MARKR.length];   // o mesmo tom, firme: recibo em png e a volta da caneta
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   const nmList = ids => ids.map(nm).join(', ');
@@ -147,14 +147,14 @@
   const vistos = new Map();        // pagamento -> quando o risco dele deve começar (pode ser no futuro)
   const RISCO_MS = 550, RISCO_GAP = 130;
   let settleT = 0, riscoT = 0;     // hora marcada pras voltas do círculo e pros riscos
-  // nada de volta por cima de volta: a segunda começa quando a primeira fecha,
-  // e a linha de baixo espera as duas da linha de cima
-  const DESENHA_MS = 260, DESENHA_GAP = 260, VOLTA_GAP = 520;
+  // a caneta é rápida, mas não escreve dois traços ao mesmo tempo: cada volta começa
+  // quando a anterior fecha, dentro da linha e de uma linha pra outra
+  const DESENHA_MS = 180, DESENHA_GAP = 180, VOLTA_GAP = 360;
   let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
   let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
-  let itensT = 0; const APERTO_MS = 1100;   // o botão dos itens dá dois toquinhos: me aperta
+  let itensT = 0; const APERTO_MS = 620, APERTO_LEAD = 300;   // um toquinho e meio: me aperta
   const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
@@ -189,6 +189,7 @@
   const pixVisto = new Map();   // pessoa -> quando as animações da linha dela começam
   let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, devagar
+  const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
@@ -271,24 +272,24 @@
       // hora marcada pras animações da seção: o copiar pix brotando de trás do ✔ e a
       // piscada verde do próprio ✔. Só entra na fila quando Minha conta está na tela
       // Minha conta pega a vez assim que aparece, sem esperar a chave do pix: senão o
-      // #settle, que já estava na tela, tomava a frente e o botão só saía depois dos riscos
+      // #settle, que já estava na tela, tomava a frente. A fila só reserva o tempo das
+      // piscadas, e curto: quem vem depois não precisa esperar tudo acabar
       const meus = bal < 0 ? stMe.filter(t => t.from === me) : [];
-      if (mineNaTela && !mineT) mineT = agenda(PIX_MS + PISCA_MS + Math.max(0, meus.length - 1) * PISCA_GAP);
-      const pixDt = t => { if (!pixReady || !mineT) return null;   // nada de spinner: o botão brotando já conta que chegou
-        // se a chave demorou mais que a vez da seção, a linha anima a partir de agora
-        if (!pixVisto.has(t.to)) pixVisto.set(t.to, Math.max(mineT, Date.now()));
-        return Date.now() - (pixVisto.get(t.to) || 0); };
-      // a linha pisca primeiro — o "me pague" — e só depois entrega a ferramenta de pagar
-      const pixB = (t, i) => { const dt = pixDt(t); if (dt === null || !pixKeys[t.to]) return '';
-        const esp = PISCA_MS + i * PISCA_GAP;
-        const br = dt < esp + PIX_MS ? ` brota" style="animation-delay:${esp - dt}ms` : '';
+      // sem linha nenhuma não há o que reservar: quem vem depois não espera à toa
+      if (mineNaTela && !mineT) mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0);
+      // o copiar pix corre por fora da fila: brota assim que a chave chega do banco,
+      // sem esperar as piscadas nem segurar quem vem depois. Nada de spinner: o botão
+      // brotando já conta que chegou
+      const pixB = t => { if (!pixReady || !pixKeys[t.to]) return '';
+        if (!pixVisto.has(t.to)) pixVisto.set(t.to, Date.now());
+        const dt = Date.now() - (pixVisto.get(t.to) || 0);
+        const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';
         return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>`; };
-      // toda linha pisca, tenha chave de pix ou não: a conta é a mesma, e a piscada
-      // abre a seção. Uma linha atrás da outra
-      const okB = (t, i) => { const dt = pixDt(t), esp = i * PISCA_GAP;
-        const pi = dt !== null && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
+      // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
+      const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
+        const pi = dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t, i)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       const hdr = '';
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
       // caixinha tracejada que aponta o lápis no evento novo
@@ -314,7 +315,7 @@
     // cartão do "quem é você?" segura: com ele aberto os itens já estão visíveis por
     // trás, e o toquinho furava a fila antes de Minha conta existir
     if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
-        && !$('#itemsSec').classList.contains('hidden')) itensT = agenda(APERTO_MS);
+        && !$('#itemsSec').classList.contains('hidden')) itensT = agenda(APERTO_LEAD);
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     // sem spinner aqui também: a linha fica vazia e o botão desce de debaixo do título
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
@@ -349,8 +350,8 @@
     // (que ficam em cima), depois os riscos dos pagamentos (que ficam embaixo)
     const nMeus = s.filter(t => t.from === me).length;
     if (settleNaTela && !settleT && !seguraRisco && $('#overlay').classList.contains('hidden')) {
-      settleT = agenda(DESENHA_MS + DESENHA_GAP + Math.max(0, nMeus - 1) * VOLTA_GAP);
-      riscoT = agenda(RISCO_MS + Math.max(0, pays.length - 1) * RISCO_GAP);
+      settleT = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
+      riscoT = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
       pays.forEach((e, i) => vistos.set(e.id, riscoT + i * RISCO_GAP)); }   // de cima pra baixo
     const dtS = settleT ? Date.now() - settleT : Infinity;
     const desenha = dtS < DESENHA_MS + DESENHA_GAP + Math.max(0, nMeus - 1) * VOLTA_GAP;
@@ -358,7 +359,7 @@
     $('#settle').innerHTML = (s.map(t => { const meu = t.from === me, o = meu ? ordem++ : 0;
       return line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100),
         meu ? 'mine' + (desenha ? ' risca' : '') : '', '',
-        meu ? markStyle(t.from + t.to, markOf(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
+        meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
         meu ? ` data-copy-value="${fmt(t.cents/100)}" title="copiar valor"` : '') +
         (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : ''); }).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
         : `<div class="empty vazio">nada anotado ainda.<br><b>${hasMe ? `toque no ${LAPIS_SVG} abaixo pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
@@ -647,7 +648,7 @@
     const initial = id => { const n = norm(nameOf(id)); let k = 1; while (k < n.length && state.people.some(p => p.id !== id && norm(nameOf(p.id)).slice(0, k) === n.slice(0, k))) k++; return n.slice(0, k); };
     /** @param {{ t: string, id?: string, w?: number }[]} segs */
     const flow = segs => { let col = 0, t = ''; for (const g of segs) { if (!g.t) continue; if (col > 2 && col + (g.w || g.t.length) > COLS) { line(t.trimEnd(), INK2); t = '  '; col = 2; }
-      if (g.id) mark(col, g.t.length, markImg(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };
+      if (g.id) mark(col, g.t.length, markForte(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };
     const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
@@ -662,10 +663,10 @@
     const GREEN = '#15703a';
     blank(); center('*** FALTA PAGAR ***'); blank();
     if (!st.length) center('TUDO QUITADO');
-    for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markImg(t.from)); mark(a.length + 6, c.length, markImg(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
+    for (const t of st) { const a = fit(nameOf(t.from), 12), c = fit(nameOf(t.to), 12); mark(0, a.length, markForte(t.from)); mark(a.length + 6, c.length, markForte(t.to)); line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents))); }
     { const quites = state.people.filter(p => (b[p.id] || 0) === 0);
       if (quites.length && st.length) blank();
-      for (const p of quites) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markImg(p.id)); line(leader(n, 'QUITE'), GREEN); } }
+      for (const p of quites) { const n = fit(nameOf(p.id), COLS - 16); mark(0, n.length, markForte(p.id)); line(leader(n, 'QUITE'), GREEN); } }
     dash();
 
     // itens: descrição ...... valor, com quem pagou embaixo
@@ -673,7 +674,7 @@
     if (!items.length) line('NADA ANOTADO');
     for (const e of items) { const cents = Math.round(e.amount*100);
       line(leader(e.desc, num(cents)));
-      const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markImg(e.payer));
+      const pn = fit(nameOf(e.payer), 14); mark(2, pn.length, markForte(e.payer));
       if (e.shares) { const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([{ t:'  ' }, { t: pn, id: e.payer }, { t: ' PAGOU · ' }]);
         e.among.forEach((id, i) => { const n = fit(nameOf(id), 14), v = ' ' + num(e.shares[id] || 0); segs.push({ t: n, id, w: n.length + v.length }, { t: v + (i < e.among.length - 1 ? ', ' : '') }); }); flow(segs); continue; }
       if (!e.among.includes(e.payer)) { const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([{ t:'  ' }, { t: pn, id: e.payer }, { t: ' PAGOU · ' }]);
@@ -681,7 +682,7 @@
       const all = state.people.every(p => e.among.includes(p.id));
       if (all) { line('  ' + fit(`${pn} pagou · ÷${e.among.length} todos`, COLS - 2), INK2); continue; }
       const head = `  ${pn} PAGOU · ÷${e.among.length} `; let col = head.length, t = head;
-      for (const id of e.among) { const ini = initial(id); if (col + ini.length > COLS) break; mark(col, ini.length, markImg(id)); t += ini + ' '; col += ini.length + 1; }
+      for (const id of e.among) { const ini = initial(id); if (col + ini.length > COLS) break; mark(col, ini.length, markForte(id)); t += ini + ' '; col += ini.length + 1; }
       line(t.trimEnd(), INK2); }
     blank();
     line(leader('TOTAL', 'R$ ' + numBig(totalCents)), INK2);

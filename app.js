@@ -633,19 +633,45 @@
       box.appendChild(s); }
     document.body.appendChild(box); setTimeout(() => box.remove(), 1400);
   }
-  // a diva só é jogada quando o código de barras entra na tela, e cai num ponto
-  // e num ângulo diferentes a cada vez que reaparece
-  (function jogaDiva(){ const el = /** @type {HTMLElement|null} */ (document.querySelector('.stain')); if (!el) return;
-    const r = (a, b) => (a + Math.random() * (b - a)).toFixed(1);
-    const sorteia = () => { el.style.setProperty('--dx', r(-16, 10) + 'px');
-      el.style.setProperty('--dy', r(-12, 12) + 'px');
-      el.style.setProperty('--rot', r(-28, 8) + 'deg'); };
+  // a diva só é jogada quando o código de barras entra na tela. O lugar sai de
+  // uma lista de cantos ao redor do código, sempre acima do "sincronizado", e o
+  // voo às vezes vem direto, às vezes dando cambalhota
+  (function jogaDiva(){
+    const el = /** @type {HTMLElement|null} */ (document.querySelector('.stain'));
+    const bars = /** @type {HTMLElement|null} */ (document.querySelector('.bars'));
+    if (!el || !bars) return;
+    const r = (a, b) => a + Math.random() * (b - a);
+    const D = 70, folga = 6;               // tamanho da figurinha
+    let slot = 0;
+    /** onde cada vaga cai, medido no código de barras de agora */
+    const vaga = i => { const bt = bars.offsetTop, bl = bars.offsetLeft, bw = bars.offsetWidth, bh = bars.offsetHeight;
+      const base = bt + bh - D + folga, acima = bt - D * 0.55;
+      return [ { x: bl + bw - D * 0.55, y: base },        // ponta direita
+               { x: bl - D * 0.45, y: base },             // ponta esquerda
+               { x: bl + bw - D * 0.75, y: acima },       // acima, à direita
+               { x: bl - D * 0.2, y: acima },             // acima, à esquerda
+               { x: bl + bw / 2 - D / 2, y: acima - 14 },  // acima, no meio, perto da frase
+             ][i]; };
+    // a página muda de altura ao longo da vida (entrar no evento, abrir itens),
+    // então a vaga é recalculada, não guardada em pixels
+    const posiciona = () => { const p = vaga(slot);
+      el.style.left = Math.round(p.x) + 'px'; el.style.top = Math.round(p.y) + 'px';
+      el.style.right = 'auto'; el.style.bottom = 'auto'; };
+    const sorteia = () => { slot = Math.floor(Math.random() * 5); posiciona();
+      el.style.setProperty('--dx', r(-8, 8).toFixed(1) + 'px');
+      el.style.setProperty('--dy', r(-6, 6).toFixed(1) + 'px');
+      el.style.setProperty('--rot', r(-28, 12).toFixed(1) + 'deg');
+      el.style.setProperty('--vx', r(-90, 90).toFixed(0) + 'px');
+      el.style.setProperty('--vy', r(-120, -60).toFixed(0) + 'px');
+      el.classList.toggle('cambalhota', Math.random() < 0.45); };
     sorteia();
+    if ('ResizeObserver' in window) new ResizeObserver(posiciona).observe($('#app'));
+    window.addEventListener('resize', posiciona);
     if (!('IntersectionObserver' in window)) return el.classList.add('voou');
     new IntersectionObserver(es => { for (const e of es) {
       if (!e.isIntersecting) { el.classList.remove('voou'); continue; }
       sorteia(); el.classList.add('voou');
-    } }, { threshold: .55 }).observe(el);
+    } }, { threshold: .55 }).observe(bars);
   })();
   let tt; function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 

@@ -317,18 +317,30 @@
       // e a frase é a mesma história ("paguei" e "como pagar"). Corre por fora da fila,
       // atrás da última piscada — a piscada é o pedido, o balão é a explicação. Some
       // sozinho no fim da animação, ou no primeiro toque em qualquer um dos dois
-      if (mineT && meus.length && !dicaT && !ls.get(VIU_ACERTO)) {
-        dicaT = mineT + (meus.length - 1) * PISCA_GAP + PISCA_MS; ls.set(VIU_ACERTO, '1'); }
+      if (mineT && meus.length && !dicaT && !ls.get(VIU_ACERTO))
+        dicaT = mineT + (meus.length - 1) * PISCA_GAP + PISCA_MS;
       // o atraso negativo retoma de onde estava: o #mineRows é refeito a cada poll
       const dtD = dicaT ? Date.now() - dicaT : Infinity;
       const balao = dtD < DICA_MS
         ? `<span class="dicaok" style="animation-delay:${-dtD}ms">✔ quita. copiar pix já vai com o valor.</span>` : '';
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}${i === 0 ? balao : ''}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>${i === 0 ? balao : ''}`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
       // caixinha tracejada que aponta o lápis no evento novo. Uma linha só: o subtítulo
       // lá em cima já diz que você não deve nada, e dizer de novo aqui virava eco
       $('#mineRows').innerHTML = (bal === 0 ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
-        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + who.join(''); }
+        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + who.join('');
+      // o balão é centrado na linha, que é a única largura que não vaza do papel: centrar
+      // na dupla jogava metade dele pra fora quando o nome era curto. A setinha é que
+      // aponta pra dupla, e o único jeito de saber onde ela está é medindo
+      // a setinha mira o ✔, não o meio da dupla: o copiar pix nasce com `max-width:0`
+      // e vai abrindo, então medir a dupla logo depois do innerHTML pega ela sem ele
+      { const dc = $('#mineRows .dicaok');
+        if (dc) { const ok = dc.parentElement.querySelector('.dupla > .ok');
+          if (ok) { const a = ok.getBoundingClientRect(), c = dc.getBoundingClientRect();
+            dc.style.setProperty('--seta', `${Math.round(a.left + a.width / 2 - c.left)}px`); }
+          // "já viu" só quando ele começa a aparecer mesmo: recarregar no meio da espera
+          // (ou errar o nome no "quem é você?") não pode gastar a única vez
+          dc.addEventListener('animationstart', () => ls.set(VIU_ACERTO, '1'), { once: true }); } } }
     else $('#mine').classList.add('hidden');
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
@@ -636,8 +648,11 @@
     if (!near('a,button,input,label')) { const it = near('.item'); if (it) { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); } }
     const am = near('[data-among]');
     if (am) { const it = /** @type {HTMLElement} */ (am.closest('.item')); const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); return; }
-    // tocou em um dos dois: o balão já disse o que tinha pra dizer
-    if (near('[data-pix],[data-settle]') && dicaT) { dicaT = 0; render(); }
+    // tocou em um dos dois: o balão já disse o que tinha pra dizer. Nada de render()
+    // aqui — ele refaz o #mineRows, e o [data-settle] logo abaixo ainda vai medir o
+    // botão pra saber de onde sai o confete; com o nó já trocado, saía do canto
+    if (dicaT && near('[data-pix],[data-settle]')) { dicaT = 0;
+      const dc = $('#mineRows .dicaok'); if (dc) dc.remove(); }
     const px = near('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }

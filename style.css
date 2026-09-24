@@ -241,20 +241,27 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 /* balãozinho da primeira vez: o ✔ e o copiar pix não dizem o que fazem, então o
    balão diz. Mesmo papel do #dica que aponta pro ✎, em tamanho de caber na linha.
    pointer-events:none porque ele cobre a linha de baixo e não é pra pegar o toque */
-#mineRows .dupla>.dicaok{position:absolute;z-index:9;top:calc(100% + 11px);left:50%;
-  width:max-content;max-width:min(216px,52vw);text-align:center;background:#9a5b00;color:#fff;
+/* ele se posiciona pela linha inteira, não pela dupla: centrado na dupla, metade dele
+   ficava fora do papel quando o nome era curto (e o overflow-x:clip do body só escondia
+   o estrago). Centrado na linha, a largura máxima é a do papel e não tem como vazar */
+#mineRows .row.sub .dicaok{position:absolute;z-index:9;top:calc(100% + 11px);left:0;right:0;
+  margin:0 auto;width:max-content;max-width:100%;text-align:center;background:#9a5b00;color:#fff;
   border:2px solid var(--ink);border-radius:5px;padding:5px 9px;line-height:1.15;font-size:15px;
   text-transform:uppercase;letter-spacing:.4px;box-shadow:2px 2px 0 var(--ink);pointer-events:none;
-  transform:translateX(-50%);animation:balao 5.2s ease-out both}
-/* a setinha aponta pro meio da dupla, que é onde os dois botões estão */
-#mineRows .dupla>.dicaok:before{content:"";position:absolute;left:50%;margin-left:-9px;top:-9px;
+  animation:balao 5.2s ease-out both}
+/* a setinha é que aponta pros botões: o --seta vem medido no render (do ✔, que é o
+   que já está lá), e o clamp segura ela dentro do balão quando o ✔ fica longe do meio */
+#mineRows .row.sub .dicaok:before{content:"";position:absolute;top:-9px;
+  left:clamp(11px,var(--seta,50%),calc(100% - 11px));margin-left:-9px;
   border:9px solid transparent;border-bottom-color:var(--ink);border-top:0}
+/* só opacidade e um pulinho vertical: escalar mexeria na largura do balão, e é dela
+   que sai a conta do --seta — a setinha andava junto com a entrada */
 @keyframes balao{
-  0%{opacity:0;transform:translate(-50%,-6px) scale(.94)}
-  6%,88%{opacity:1;transform:translate(-50%,0) scale(1)}
-  100%{opacity:0;transform:translate(-50%,-4px) scale(.98)}}
+  0%{opacity:0;transform:translateY(-6px)}
+  6%,88%{opacity:1;transform:none}
+  100%{opacity:0;transform:translateY(-4px)}}
 /* quem pediu menos movimento continua lendo o recado, e ele continua sumindo sozinho */
-@media (prefers-reduced-motion:reduce){#mineRows .dupla>.dicaok{animation-name:balaoQuieto}
+@media (prefers-reduced-motion:reduce){#mineRows .row.sub .dicaok{animation-name:balaoQuieto}
   @keyframes balaoQuieto{0%,88%{opacity:1}100%{opacity:0}}}
 /* a linha nasce sem altura: o espaço abre junto com o botão descendo, não antes dele */
 #pixLine{max-height:0;overflow:hidden;margin:0;transition:max-height .42s cubic-bezier(.2,.9,.3,1),margin .42s cubic-bezier(.2,.9,.3,1),opacity .3s ease}

@@ -60,6 +60,34 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1500);
       await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
       await p.waitForTimeout(5000); } },
+  pega: { nome: 'dois toques a ficha treme, no terceiro ela descola, boia e é jogada fora', quem: 'Lia', atrasoPix: 0,
+    acao: async p => { await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+      // um dedo de mentira, pra quem assiste ver onde a pessoa toca
+      await p.evaluate(() => { const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;z-index:99;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(255,255,255,.55);border:2px solid rgba(0,0,0,.5);pointer-events:none;left:-50px;top:-50px;transition:transform .1s';
+        document.body.appendChild(d);
+        addEventListener('pointermove', e => { d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px'; }, true);
+        addEventListener('pointerdown', () => d.style.transform = 'scale(.7)', true);
+        addEventListener('pointerup', () => d.style.transform = '', true); });
+      await p.waitForSelector('.stain.pousou', { timeout: 12000 }); await p.waitForTimeout(500);
+      const c = async () => { const b = await p.locator('.stain').boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+      let o = await c(); await p.mouse.move(o.x, o.y, { steps: 8 }); await p.waitForTimeout(300);
+      const tem = cl => p.evaluate(cl => document.querySelector('.stain').classList.contains(cl), cl);
+      const exige = (ok, msg) => { if (!ok) throw new Error('pega: ' + msg); };
+      for (let i = 0; i < 2; i++) { await p.mouse.down(); await p.mouse.up(); await p.waitForTimeout(550); }
+      exige(!(await tem('solta')), 'descolou antes do terceiro toque');
+      await p.mouse.down(); await p.waitForTimeout(250);
+      exige(await tem('solta'), 'o terceiro toque não agarrou');
+      await p.mouse.move(200, 380, { steps: 40 }); await p.mouse.move(120, 260, { steps: 30 }); await p.waitForTimeout(250);
+      o = await c(); exige(Math.hypot(o.x - 120, o.y - 260) < 12, `não seguiu o dedo (${o.x},${o.y})`);
+      await p.mouse.up(); await p.waitForTimeout(500);
+      exige(!(await tem('fora')), 'soltou devagar e ela sumiu');
+      await p.mouse.wheel(0, -500); await p.waitForTimeout(900);            // ela boia enquanto a página rola
+      const o2 = await c(); exige(Math.hypot(o2.x - o.x, o2.y - o.y) < 3, 'rolou junto com a página');
+      o = o2; await p.mouse.move(o.x, o.y, { steps: 8 }); await p.mouse.down(); await p.waitForTimeout(250);
+      await p.mouse.move(o.x + 40, o.y + 10, { steps: 6 }); await p.mouse.move(o.x + 220, o.y - 120, { steps: 3 }); await p.mouse.up();
+      await p.waitForTimeout(1800); exige(await tem('fora'), 'o arremesso não jogou fora');
+      console.log('pega: treme, agarra no terceiro, boia na rolagem e voa no arremesso'); } },
   itens: { nome: 'o toquinho na linha dos itens quando ela chega na tela', quem: 'Lia', atrasoPix: 600,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
       await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ behavior: 'smooth', block: 'center' }));

@@ -826,7 +826,7 @@
     const vaga = i => { const v = vagas(); return v && v[i]; };
     // a página muda de altura ao longo da vida (entrar no evento, abrir itens),
     // então a vaga é recalculada, não guardada em pixels
-    const posiciona = () => { const p = vaga(slot); if (!p) return;
+    const posiciona = () => { const p = vaga(slot); if (!p || el.classList.contains('solta')) return;
       el.style.left = Math.round(p.x) + 'px'; el.style.top = Math.round(p.y) + 'px';
       el.style.right = 'auto'; el.style.bottom = 'auto'; };
     const sorteia = () => { const v = vagas(); slot = Math.floor(Math.random() * (v ? v.length : 5)); posiciona();
@@ -863,13 +863,63 @@
       // reporta; pegar a vez no mesmo quadro fazia a ficha furar tudo. Um respiro e
       // aí sim ela pega o último lugar.
       aviso = setTimeout(() => { const t = agenda(DIVA_MS);
-        aviso = setTimeout(() => el.classList.add('voou'), Math.max(0, t - Date.now())); }, 400); };
+        aviso = setTimeout(() => { el.classList.add('voou');
+          // sem animação (movimento reduzido) não há animationend: já pousa
+          if (matchMedia('(prefers-reduced-motion: reduce)').matches) el.classList.add('pousou'); }, Math.max(0, t - Date.now())); }, 400); };
     window.addEventListener('scroll', confere, { passive: true });
     window.addEventListener('resize', confere);
     if ('ResizeObserver' in window) new ResizeObserver(confere).observe($('#app'));
     // uma jogada só: chegar no fim de novo não traz outra. Recomeça quando a pessoa
     // troca de nome, aí sim vale outra ficha
-    rejogaDiva = () => { clearTimeout(aviso); jogada = false; el.classList.remove('voou'); confere(); };
+    // pousou: a ficha passa a ser pegável. Dois toques ela treme; o terceiro já agarra,
+    // no mesmo gesto. Agarrada, sai do papel pro body (fixed dentro de algo com
+    // transform não fica fixo) e segue o dedo; solta devagar, fica boiando ali; solta
+    // com força, voa na direção do arremesso, cai e some até a próxima jogada.
+    const casa = el.parentElement, depois = el.nextSibling;
+    let toques = 0, zera = 0, pega = null, voo = 0;
+    el.addEventListener('animationend', e => { if (e.animationName === 'treme') el.classList.remove('treme');
+      else if (el.classList.contains('voou')) el.classList.add('pousou'); });
+    el.addEventListener('dragstart', e => e.preventDefault());
+    el.addEventListener('pointerdown', e => {
+      if (!el.classList.contains('pousou')) return;
+      e.preventDefault(); clearTimeout(zera);
+      if (!el.classList.contains('solta') && ++toques < 3) {
+        el.classList.remove('treme'); void el.offsetWidth; el.classList.add('treme');
+        zera = setTimeout(() => { toques = 0; }, 1500); return; }
+      toques = 0; cancelAnimationFrame(voo);
+      const b = el.getBoundingClientRect();
+      if (!el.classList.contains('solta')) {
+        document.body.appendChild(el); el.classList.remove('treme'); el.classList.add('solta'); }
+      const cx = b.left + (b.width - el.offsetWidth) / 2, cy = b.top + (b.height - el.offsetHeight) / 2;
+      el.style.left = cx + 'px'; el.style.top = cy + 'px';
+      el.classList.remove('voando'); el.classList.add('segura');
+      pega = { dx: e.clientX - cx, dy: e.clientY - cy, rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
+      el.setPointerCapture(e.pointerId); });
+    el.addEventListener('pointermove', e => { if (!pega) return;
+      el.style.left = (e.clientX - pega.dx) + 'px'; el.style.top = (e.clientY - pega.dy) + 'px';
+      pega.rastro.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
+      while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift(); });
+    const solta = e => { if (!pega) return;
+      const p0 = pega.rastro[0], dt = Math.max(16, e.timeStamp - p0.t);
+      let vx = (e.clientX - p0.x) / dt, vy = (e.clientY - p0.y) / dt;   // px por ms
+      pega = null; el.classList.remove('segura');
+      if (Math.hypot(vx, vy) < 0.7) return;                           // devagar: fica boiando
+      // arremesso: segue reto com gravidade e giro até sair da tela
+      el.classList.add('voando');
+      let x = parseFloat(el.style.left), y = parseFloat(el.style.top), rot = parseFloat(el.style.getPropertyValue('--rot')) || 0, t = performance.now();
+      const giro = vx * 0.6;
+      const passo = agora => { const d = Math.min(40, agora - t); t = agora;
+        vy += 0.0025 * d; x += vx * d; y += vy * d; rot += giro * d;
+        el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.setProperty('--rot', rot.toFixed(1) + 'deg');
+        if (x < -D * 2 || x > innerWidth + D || y > innerHeight + D || y < -innerHeight) { el.classList.add('fora'); return; }
+        voo = requestAnimationFrame(passo); };
+      voo = requestAnimationFrame(passo); };
+    el.addEventListener('pointerup', solta);
+    el.addEventListener('pointercancel', solta);
+    rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = false; pega = null; toques = 0;
+      if (el.parentElement !== casa) casa.insertBefore(el, depois);
+      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'segura', 'voando', 'fora');
+      confere(); };
   })();
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
   let olhoSec = null;

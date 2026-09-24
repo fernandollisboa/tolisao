@@ -68,3 +68,5 @@ Antes de mandar mudança, leia o [CONTRIBUTING.md](CONTRIBUTING.md): o que o pro
 ## Licença
 
 [MIT](LICENSE). Pega e usa.
+
+As fontes em `fonts/` não entram nisso: VT323 é SIL OFL 1.1 e Permanent Marker é Apache 2.0, cada uma com a licença ao lado ([fonts/README.md](fonts/README.md)).

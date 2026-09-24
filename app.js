@@ -624,6 +624,10 @@
     const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (ev.target).closest('#mineRows .dupla > button.ico'));
     if (!b) return;
     tocouOk = true; b.classList.remove('pisca');
+    // a piscada é montada com `animation-delay` inline, e declaração inline vence a
+    // folha: sem tirar o atraso, o toque nascia adiantado (a piscada correndo) ou
+    // parado no primeiro quadro pelo tempo do atraso que sobrou
+    b.style.removeProperty('animation-delay');
     // tocar de novo antes da anterior acabar recomeça a animação
     b.classList.remove('tocou'); void b.offsetWidth; b.classList.add('tocou');
     b.addEventListener('animationend', () => b.classList.remove('tocou'), { once: true });
@@ -984,7 +988,7 @@
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = itensT = filaT = 0;
+    settleT = riscoT = mineT = itensT = filaT = 0; tocouOk = false;   // nota nova, convite novo
     mineNaTela = itensNaTela = settleNaTela = false;
     const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }

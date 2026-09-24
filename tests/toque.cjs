@@ -11,16 +11,21 @@ const dados = CENAS.toque.dados;   // três dívidas suas, só o Fernando com ch
   const srv = servir(PORTA); const b = await chromium.launch(); const erros = [];
   const exige = (ok, msg) => { if (!ok) erros.push(msg); };
   try {
-    const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
-    await ctx.route(/fake-db/, r => { const u = r.request().url();
-      if (u.includes('/pix/')) return r.fulfill({ json: u.includes('/fernando/') ? 'fernando@exemplo.com' : null });
-      if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
-      r.fulfill({ json: dados }); });
-    const p = await ctx.newPage(); p.on('pageerror', e => erros.push(e.message));
-    await p.goto(`http://localhost:${PORTA}/#c=${dados.name}`);
-    await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
-    await p.selectOption('#whoSel', { label: QUEM });
-    await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));
+    /** um aparelho no evento, já identificado: `toque` liga o dedo, senão é mouse */
+    const aparelho = async ({ toque = true, largura = 390 } = {}) => {
+      const ctx = await b.newContext({ viewport: { width: largura, height: 844 }, hasTouch: toque });
+      await ctx.route(/fake-db/, r => { const u = r.request().url();
+        if (u.includes('/pix/')) return r.fulfill({ json: u.includes('/fernando/') ? 'fernando@exemplo.com' : null });
+        if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
+        r.fulfill({ json: dados }); });
+      const pg = await ctx.newPage(); pg.on('pageerror', e => erros.push(`${toque ? 'dedo' : 'mouse'}: ${e.message}`));
+      await pg.goto(`http://localhost:${PORTA}/#c=${dados.name}`);
+      await pg.click('#whoBtn'); await pg.waitForSelector('#whoSel');
+      await pg.selectOption('#whoSel', { label: QUEM });
+      await pg.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));
+      return pg; };
+
+    const p = await aparelho();
     await p.waitForSelector('#mineRows [data-pix]', { timeout: 9000 });
     await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
     await p.waitForTimeout(2600);   // as piscadas já acabaram: daqui pra frente é só o toque
@@ -46,26 +51,42 @@ const dados = CENAS.toque.dados;   // três dívidas suas, só o Fernando com ch
       if (sel.includes('settle')) { await p.waitForSelector('#okBtn'); await p.click('#overlay', { position: { x: 5, y: 5 } }); await p.waitForTimeout(300); }
     }
 
-    // 2. o toque vence a piscada montada, sem !important
-    await p.evaluate(() => document.querySelector('#mineRows [data-settle]').classList.add('pisca'));
-    exige(await anim('#mineRows [data-settle]') === 'pisca', 'a piscada não montou pra valer no teste');
-    const o = await meio('#mineRows [data-settle]');
-    await p.touchscreen.tap(o.x, o.y);
-    const venceu = await anim('#mineRows [data-settle]');
-    exige(venceu === 'toque', `a piscada ganhou do toque (${venceu})`);
-    console.log('o toque vence a piscada:', venceu === 'toque' ? 'ok' : 'FALHOU');
-    await p.waitForSelector('#okBtn'); await p.click('#overlay', { position: { x: 5, y: 5 } }); await p.waitForTimeout(300);
+    // 2. com a piscada montada de verdade — classe e o `animation-delay` inline que o
+    //    render deixa no botão — o toque ainda tem que ganhar, e sair do começo
+    const p2 = await aparelho();
+    await p2.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
+    await p2.waitForSelector('#mineRows .ok.pisca', { timeout: 9000 });
+    const piscando = await p2.$$eval('#mineRows .ok.pisca', l => l.length);
+    exige(piscando > 1, `o teste precisa de mais de uma linha piscando pra valer: ${piscando}`);
 
-    // 3. no mouse quem responde é o hover: o clique não monta a animação de toque
-    const ctx2 = await b.newContext({ viewport: { width: 1280, height: 900 } });
-    await ctx2.route(/fake-db/, r => { const u = r.request().url();
-      if (u.includes('/pix/')) return r.fulfill({ json: u.includes('/fernando/') ? 'fernando@exemplo.com' : null });
-      if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
-      r.fulfill({ json: dados }); });
-    const d = await ctx2.newPage(); d.on('pageerror', e => erros.push('desktop ' + e.message));
-    await d.goto(`http://localhost:${PORTA}/#c=${dados.name}`);
-    await d.click('#whoBtn'); await d.waitForSelector('#whoSel'); await d.selectOption('#whoSel', { label: QUEM });
-    await d.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));
+    const segunda = p2.locator('#mineRows .row.sub').nth(1).locator('button.ico.ok');
+    const atraso = await segunda.evaluate(e => e.style.animationDelay);
+    exige(/ms$/.test(atraso), `a piscada tinha que estar montada com atraso inline: "${atraso}"`);
+    const cx = await segunda.evaluate(e => { const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+    await p2.touchscreen.tap(cx[0], cx[1]);
+    const est = await segunda.evaluate(e => ({ nome: getComputedStyle(e).animationName,
+      atraso: getComputedStyle(e).animationDelay, inline: e.style.animationDelay }));
+    exige(est.nome === 'toque', `a piscada ganhou do toque (${est.nome})`);
+    exige(est.atraso === '0s', `o toque herdou o atraso da piscada e não começou na hora: ${est.atraso}`);
+    console.log('o toque vence a piscada montada:', est.nome === 'toque' && est.atraso === '0s' ? 'ok' : 'FALHOU',
+      `| atraso ${atraso} -> ${est.atraso}`);
+    await p2.waitForSelector('#okBtn'); await p2.click('#overlay', { position: { x: 5, y: 5 } }); await p2.waitForTimeout(300);
+
+    // 3. tocou num, o convite acabou: as outras linhas param de piscar no render seguinte
+    await p2.waitForFunction(() => !document.querySelector('#mineRows .ok.pisca'), null, { timeout: 12000 })
+      .catch(() => erros.push('as outras linhas continuaram piscando depois do toque'));
+    console.log('o convite acaba no primeiro toque:', erros.length ? 'FALHOU' : 'ok');
+
+    // 4. nota nova, convite novo: trocar de pessoa faz o ✔ pedir de novo
+    for (const n of ['Júlia', QUEM]) { await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel');
+      await p2.selectOption('#whoSel', { label: n }); await p2.waitForTimeout(200); }
+    await p2.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
+    const voltou = await p2.waitForSelector('#mineRows .ok.pisca', { timeout: 9000 }).then(() => true).catch(() => false);
+    exige(voltou, 'depois de trocar de pessoa o ✔ não voltou a pedir');
+    console.log('trocar de pessoa refaz o convite:', voltou ? 'ok' : 'FALHOU');
+
+    // 5. no mouse quem responde é o hover: o clique não monta a animação de toque
+    const d = await aparelho({ toque: false, largura: 1280 });
     await d.waitForSelector('#mineRows [data-pix]', { timeout: 9000 });
     await d.click('#mineRows [data-pix]');
     const noMouse = await d.$eval('#mineRows [data-pix]', e => e.classList.contains('tocou'));

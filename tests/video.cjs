@@ -88,6 +88,24 @@ const CENAS = {
       await p.mouse.move(o.x + 40, o.y + 10, { steps: 6 }); await p.mouse.move(o.x + 220, o.y - 120, { steps: 3 }); await p.mouse.up();
       await p.waitForTimeout(1800); exige(await tem('fora'), 'o arremesso não jogou fora');
       console.log('pega: treme, agarra no terceiro, boia na rolagem e voa no arremesso'); } },
+  chato: { nome: 'segura, toca, segura na ficha: a diva desliga; o mesmo no rodapé liga de novo', quem: 'Lia', atrasoPix: 0,
+    acao: async p => { await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+      await p.waitForSelector('.stain.pousou', { timeout: 12000 }); await p.waitForTimeout(400);
+      const exige = (ok, msg) => { if (!ok) throw new Error('chato: ' + msg); };
+      const senha = async sel => { const b = await p.locator(sel).boundingBox(); const x = b.x + b.width / 2, y = b.y + b.height / 2;
+        await p.mouse.move(x, y, { steps: 6 });
+        for (const ms of [650, 90, 650]) { await p.mouse.down(); await p.waitForTimeout(ms); await p.mouse.up(); await p.waitForTimeout(250); } };
+      const estado = () => p.evaluate(() => ({ chato: document.body.classList.contains('chato'), frase: document.querySelector('#signoff').textContent,
+        sub: getComputedStyle(document.querySelector('#tagline')).display, ficha: getComputedStyle(document.querySelector('.stain')).display }));
+      await senha('.stain'); await p.waitForTimeout(1200);
+      let e = await estado(); exige(e.chato && e.frase === 'Deus é fiel.' && e.sub === 'none' && e.ficha === 'none', 'não desligou ' + JSON.stringify(e));
+      exige(await p.evaluate(() => localStorage.getItem('racha:chato') === '1'), 'não guardou no aparelho');
+      await p.waitForTimeout(800); await senha('#signoff'); await p.waitForTimeout(400);
+      e = await estado(); exige(!e.chato && e.frase !== 'Deus é fiel.' && e.sub !== 'none', 'não ligou de volta ' + JSON.stringify(e));
+      // o subtítulo volta e empurra a página: a ficha espera o fim de novo, como sempre
+      await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
+      await p.waitForSelector('.stain.pousou', { timeout: 8000 }); await p.waitForTimeout(600);
+      console.log('chato: a senha desliga a diva, o rodapé liga de volta e a ficha é jogada de novo'); } },
   itens: { nome: 'o toquinho na linha dos itens quando ela chega na tela', quem: 'Lia', atrasoPix: 600,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
       await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ behavior: 'smooth', block: 'center' }));

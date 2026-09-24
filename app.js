@@ -255,6 +255,21 @@
   };
   const luck = Math.random();
   const pick = list => list[Math.floor(luck * list.length)];
+  // easter egg: segurar, tocar, segurar na ficha desliga a diva (modo chato). Some a
+  // ficha, some o subtítulo e o rodapé vira "Deus é fiel.". O mesmo toque no rodapé
+  // liga de novo. Fica guardado no aparelho.
+  const CHATO = 'racha:chato';
+  let chato = ls.get(CHATO) === '1';
+  document.body.classList.toggle('chato', chato);
+  /** forte (segurou) e fraco (tocou) em sequência; três seguidos formam a senha */
+  function senha(alvo, ok){ let ritmo = [], ini = 0, x0 = 0, y0 = 0, longe = false, zera = 0;
+    alvo.addEventListener('pointerdown', e => { ini = e.timeStamp; x0 = e.clientX; y0 = e.clientY; longe = false; clearTimeout(zera); });
+    alvo.addEventListener('pointermove', e => { if (ini && Math.hypot(e.clientX - x0, e.clientY - y0) > 14) longe = true; });
+    alvo.addEventListener('pointerup', e => { if (!ini) return; const dur = e.timeStamp - ini; ini = 0;
+      if (longe) { ritmo = []; return; }
+      ritmo = [...ritmo, dur >= 450 ? 'F' : 'f'].slice(-3);
+      if (ritmo.join('') === 'FfF') { ritmo = []; ok(); }
+      zera = setTimeout(() => { ritmo = []; }, 1600); }); }
   function render(){
     if (!state) return;
     $('#roomLabel').textContent = roomName || '—';
@@ -269,7 +284,7 @@
     const hasMe = me && state.people.some(p => p.id === me);
     { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
       if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém';   // o emoji ficou pra caixinha
-      if ($('#signoff')) $('#signoff').textContent = pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
+      if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
     // evento sem nada anotado: Minha conta e Itens só teriam zeros, então somem
     const vazio = state.expenses.length === 0;
     if (hasMe && !vazio) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
@@ -856,7 +871,7 @@
     const confere = () => {
       // ainda carregando, a nota é só o spinner: numa tela alta isso já é o "fim da
       // página" e a ficha caía antes do evento existir
-      if (jogada || $('#app').classList.contains('loading')) return;
+      if (chato || jogada || $('#app').classList.contains('loading')) return;
       if (el.classList.contains('hidden') || !noFim()) return;   // nota sem gasto: a ficha espera
       jogada = true; sorteia(); clearTimeout(aviso);
       // as seções só entram na fila depois que o #app sai do loading e o observador
@@ -865,7 +880,7 @@
       aviso = setTimeout(() => { const t = agenda(DIVA_MS);
         aviso = setTimeout(() => { el.classList.add('voou');
           // sem animação (movimento reduzido) não há animationend: já pousa
-          if (matchMedia('(prefers-reduced-motion: reduce)').matches) el.classList.add('pousou'); }, Math.max(0, t - Date.now())); }, 400); };
+          if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.classList.remove('voou'); el.classList.add('pousou'); } }, Math.max(0, t - Date.now())); }, 400); };
     window.addEventListener('scroll', confere, { passive: true });
     window.addEventListener('resize', confere);
     if ('ResizeObserver' in window) new ResizeObserver(confere).observe($('#app'));
@@ -878,7 +893,8 @@
     const casa = el.parentElement, depois = el.nextSibling;
     let toques = 0, zera = 0, pega = null, voo = 0;
     el.addEventListener('animationend', e => { if (e.animationName === 'treme') el.classList.remove('treme');
-      else if (el.classList.contains('voou')) el.classList.add('pousou'); });
+      // pousada, larga as classes do voo: a cambalhota vence o pousou no CSS e rejogava a cada toque
+      else if (el.classList.contains('voou')) { el.classList.remove('voou', 'cambalhota', 'requica'); el.classList.add('pousou'); } });
     el.addEventListener('dragstart', e => e.preventDefault());
     el.addEventListener('pointerdown', e => {
       if (!el.classList.contains('pousou')) return;
@@ -918,8 +934,16 @@
     el.addEventListener('pointercancel', solta);
     rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = false; pega = null; toques = 0;
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'segura', 'voando', 'fora');
+      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'segura', 'voando', 'fora', 'apaga');
       confere(); };
+    // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
+    senha(el, () => { chato = true; ls.set(CHATO, '1'); pega = null; cancelAnimationFrame(voo);
+      el.classList.remove('segura', 'treme'); el.classList.add('apaga');
+      setTimeout(() => { document.body.classList.add('chato'); render(); }, 700); });
+    // e no "Deus é fiel." do rodapé, liga de novo: ela volta falando e é jogada outra vez
+    const frase = $('#signoff');
+    if (frase) senha(frase, () => { if (!chato) return; chato = false; ls.del(CHATO);
+      document.body.classList.remove('chato'); render(); rejogaDiva(); });
   })();
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
   let olhoSec = null;

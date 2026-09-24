@@ -1,0 +1,16 @@
+{
+  "name": "tolisa",
+  "private": true,
+  "description": "Ferramentas de desenvolvimento do tô lisa. O site é estático e não depende de nada disso.",
+  "scripts": {
+    "test": "node tests/run-all.cjs",
+    "types": "tsc -p jsconfig.json",
+    "preview": "node tests/preview.cjs",
+    "video": "node tests/video.cjs",
+    "noar": "node tests/noar.cjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "typescript": "^7.0.2"
+  }
+}

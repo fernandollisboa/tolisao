@@ -13,10 +13,12 @@ Abra `http://localhost:8000`. Não há passo de build: salvou, recarregou, está
 ## Antes de subir qualquer coisa
 
 ```sh
-npm i -D playwright && npx playwright install chromium   # uma vez só
-npx -p typescript tsc -p jsconfig.json                   # tem que sair limpo
-node tests/run-all.cjs                                   # tem que sair verde
+npm ci && npx playwright install chromium   # uma vez só
+npm run types                               # tem que sair limpo
+npm test                                    # tem que sair verde
 ```
+
+`npm test pix xss` roda só o que você quer, `npm test -- --segue` vai até o fim mesmo com falha e `npm test -- --lista` diz que nomes existem.
 
 `node --check app.js` dá uma conferida rápida de sintaxe quando você só quer saber se o arquivo fecha.
 
@@ -61,7 +63,7 @@ Playwright cru, sem framework. Cada script sobe um servidor local, intercepta o 
 | `ordem.cjs` | a ordem das animações, ouvindo `animationstart` |
 | `pega.cjs` | a ficha pegável e o modo chato |
 
-Bug que deu na mão vira teste antes do conserto. `preview.cjs` e `video.cjs` não são testes, são os geradores de imagem e vídeo; `icone.cjs` regenera os `ficha-*.png` da PWA e `noar.cjs` confere o que está publicado.
+Bug que deu na mão vira teste antes do conserto. As dependências são de desenvolvimento e só: o site não carrega nada disso. `preview.cjs` e `video.cjs` não são testes, são os geradores de imagem e vídeo; `icone.cjs` regenera os `ficha-*.png` da PWA e `noar.cjs` confere o que está publicado.
 
 ## Commits e branches
 

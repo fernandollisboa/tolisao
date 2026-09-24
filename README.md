@@ -48,13 +48,13 @@ Regras do banco (Realtime Database → Regras):
 
 ## Desenvolver
 
-Não tem build. Sirva a pasta com qualquer servidor estático (`python3 -m http.server`) e abra `index.html`. A lógica fica em `app.js` (com `// @ts-check` e tipos em JSDoc; `npx -p typescript tsc -p jsconfig.json` checa), estilos em `style.css`. A URL do banco é a constante `DB` no topo do `app.js`.
+Não tem build. Sirva a pasta com qualquer servidor estático (`python3 -m http.server`) e abra `index.html`. A lógica fica em `app.js` (com `// @ts-check` e tipos em JSDoc; `npm run types` checa), estilos em `style.css`. A URL do banco é a constante `DB` no topo do `app.js`.
 
 Testes (Playwright, sem framework):
 
 ```sh
-npm i -D playwright && npx playwright install chromium
-node tests/run-all.cjs
+npm ci && npx playwright install chromium
+npm test
 ```
 
 Cada script sobe um servidor local, simula o Firebase e imprime o que checou. Screenshots vão pra pasta temporária do sistema.
@@ -64,3 +64,7 @@ Pra ver o resultado de uma mudança visual: `node tests/preview.cjs '#settle'` g
 Deploy: push na `main` publica via GitHub Pages (`.github/workflows/pages.yml`). Em pull request, `tests.yml` roda os testes.
 
 Antes de mandar mudança, leia o [CONTRIBUTING.md](CONTRIBUTING.md): o que o projeto não aceita, o estilo do código, como gerar preview e como conferir o deploy.
+
+## Licença
+
+[MIT](LICENSE). Pega e usa.

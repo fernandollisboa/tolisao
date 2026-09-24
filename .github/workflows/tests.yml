@@ -13,8 +13,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
-      - run: npm i --no-save playwright typescript
-      - run: npx tsc -p jsconfig.json
+          cache: npm
+      - run: npm ci
+      - run: npm run types
       - run: echo "PW_VERSION=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
         id: pw-cache
@@ -25,4 +26,4 @@ jobs:
         run: npx playwright install --with-deps chromium
       - if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
-      - run: node tests/run-all.cjs
+      - run: npm test

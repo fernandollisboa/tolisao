@@ -1,4 +1,4 @@
-# Tô Lisa · quem me deve?
+# tô lisa · quem me deve?
 
 Tipo Splitwise, só que sem app e sem cadastro 👍
 

@@ -1,9 +1,9 @@
 ---
 name: preview
-description: Gera e envia preview visual do Tô Lisa. Use SEMPRE que mexer em algo que aparece na tela (CSS, layout, cor, texto de interface, botão, carimbo, animação, recibo, cartões do overlay) e sempre que for oferecer opções de design pro usuário escolher. Dispara em pedidos como "muda a cor", "aumenta o botão", "me dá opções", "ideias de", "tá feio", "me dá preview".
+description: Gera e envia preview visual do tô lisa. Use SEMPRE que mexer em algo que aparece na tela (CSS, layout, cor, texto de interface, botão, carimbo, animação, recibo, cartões do overlay) e sempre que for oferecer opções de design pro usuário escolher. Dispara em pedidos como "muda a cor", "aumenta o botão", "me dá opções", "ideias de", "tá feio", "me dá preview".
 ---
 
-# Preview do Tô Lisa
+# Preview do tô lisa
 
 O usuário não lê diff, ele olha. Toda mudança visual termina com uma imagem enviada por `SendUserFile`, sem ele precisar pedir.
 

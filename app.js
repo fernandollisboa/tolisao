@@ -258,7 +258,7 @@
   function render(){
     if (!state) return;
     $('#roomLabel').textContent = roomName || '—';
-    document.title = roomName ? `${roomName} · Tô Lisa` : 'Tô Lisa · quem me deve?';
+    document.title = roomName ? `${roomName} · tô lisa` : 'tô lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
     { const wl = $('#whoLine');
@@ -468,7 +468,7 @@
         <div>2. copie o pix e pague o deves</div>
         <div>3. cobre o amiguinho a fazer o mesmo</div>
       </div>`;
-    overlay(`<h1>Tô lisa</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
+    overlay(`<h1>tô lisa</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`, true);
     $('#gateForm').onsubmit = async ev => {

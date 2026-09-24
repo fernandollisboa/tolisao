@@ -2,7 +2,7 @@
 
 ## O que é
 
-"Tô Lisa · quem me deve?": divisor de gastos entre amigos, estilo Splitwise, sem app e sem cadastro.
+"tô lisa · quem me deve?": divisor de gastos entre amigos, estilo Splitwise, sem app e sem cadastro.
 Três arquivos estáticos (`index.html`, `style.css`, `app.js`), sem build, publicados no GitHub Pages, com Firebase Realtime Database via REST.
 Site: https://tolisa.com.br/. Tudo em pt-BR.
 

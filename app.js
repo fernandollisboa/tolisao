@@ -843,7 +843,13 @@
       // a ficha é jogada de fora do papel: entra pela esquerda, pela direita ou de baixo
       const vindo = Math.floor(Math.random() * 3);
       const vx = vindo === 0 ? -r(170, 280) : vindo === 1 ? r(170, 280) : r(-70, 70);
-      const vy = vindo === 2 ? r(140, 230) : r(-30, 60);
+      // ela pode nascer fora do papel, mas não abaixo do fim da página: o documento
+      // cresceria no meio do voo e a barra de rolagem encolhia na mão de quem lê.
+      // A folga é o rodapé do body, que é onde ainda cabe ficha sem esticar nada
+      const papel = /** @type {HTMLElement|null} */ (bars.offsetParent);
+      const folgaBaixo = papel ? Math.max(0, document.documentElement.scrollHeight
+        - (papel.offsetTop + (parseFloat(el.style.top) || 0) + D) - 8) : 0;
+      const vy = Math.min(vindo === 2 ? r(140, 230) : r(-30, 60), folgaBaixo);
       el.style.setProperty('--vx', vx.toFixed(0) + 'px');
       el.style.setProperty('--vy', vy.toFixed(0) + 'px');
       // quase sempre um voo só; de vez em quando cambalhota, e raramente ela teima e quica de novo

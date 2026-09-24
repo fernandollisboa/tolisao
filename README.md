@@ -62,3 +62,5 @@ Cada script sobe um servidor local, simula o Firebase e imprime o que checou. Sc
 Pra ver o resultado de uma mudança visual: `node tests/preview.cjs '#settle'` gera um recorte da tela com dados de exemplo.
 
 Deploy: push na `main` publica via GitHub Pages (`.github/workflows/pages.yml`). Em pull request, `tests.yml` roda os testes.
+
+Antes de mandar mudança, leia o [CONTRIBUTING.md](CONTRIBUTING.md): o que o projeto não aceita, o estilo do código, como gerar preview e como conferir o deploy.

@@ -14,6 +14,7 @@
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
   const INSTALAR = true;
+  const PEGA_FICHA = false;  // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3;  // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const PAGOS_NA_LISTA = 3;  // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
   const CURRENCY = 'R$';
@@ -135,20 +136,17 @@
 
   // ---------- render ----------
   const PALETTE = ['#8a5345','#45838a','#531c8a','#b25993','#001bb2','#2472b2','#b224b2','#4c3b75','#751742','#0050b2']; // matizes afastados entre si e longe do vermelho/verde (deve/recebe) e do âmbar dos botões
-  const MARK = ['#f7dad2','#d2f4f7','#dabcf7','#f7d2ea','#adb8f7','#bcddf7','#f7bcf7','#ddd3f7','#f7bcd7','#adcef7']; // marca-texto da tela: os mesmos tons, clarinhos, na mesma ordem
-  // no recibo em png o papel é mais escuro e o zap ainda comprime: os tons claros da tela sumiam
-  // no fundo (o de Fernando ficava a 10 de distância dele). Mesmos matizes, bem mais firmes.
+  // marca-texto: os mesmos matizes da PALETTE, bem mais firmes. No recibo em png o papel é
+  // mais escuro e o zap ainda comprime: tom claro sumia no fundo (o de Fernando ficava a 10 dele).
   const MARKR = ['#eb8d75','#75dfeb','#b075eb','#eb75c2','#7587eb','#75b6eb','#eb75eb','#9875eb','#eb75ab','#75aaeb'];
   const idx = id => Math.max(0, state.people.findIndex(p => p.id === id));
   const colorOf = id => PALETTE[idx(id) % PALETTE.length];
-  const markOf = id => MARK[idx(id) % MARK.length];
   // o emoji da conta fechada varia, mas não pisca a cada render: sai do evento e do dia
   const FESTA = ['🎉', '🙌', '🙏', '❣️', '🥂', '✨'];
   const festeja = () => FESTA[hash32((groupId || '') + new Date().toDateString()) % FESTA.length];
   const markForte = id => MARKR[idx(id) % MARKR.length];   // o mesmo tom, firme: recibo em png e a volta da caneta
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
-  const nmList = ids => ids.map(nm).join(', ');
   let showAll = false, itemsOpen = false; const openItems = new Set();
   // carimbo: ângulo fixo por pagamento (não pula entre renders); o risco da linha corre
   // uma vez só por pagamento — o #settle é refeito a cada render e, por tempo, um
@@ -192,8 +190,6 @@
   // ---------- pix ----------
   const COPY_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
   const KEY_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12.65 10A6 6 0 0 0 1 12a6 6 0 0 0 11.65 2H18v3h4v-7h-9.35zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
-  const OK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 15-5-5 1.4-1.4L10 14.2l7.6-7.6L19 8z"/></svg>';
-  const NO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm5 13.6L15.6 17 12 13.4 8.4 17 7 15.6l3.6-3.6L7 8.4 8.4 7l3.6 3.6L15.6 7 17 8.4 13.4 12z"/></svg>';
   const PIX_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>';
   let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const pixVisto = new Map();   // pessoa -> quando as animações da linha dela começam
@@ -244,7 +240,6 @@
   const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
   const val = n => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
-  const listNames = ids => ids.map(nameOf).map(esc).join(', ');
   // frases de boteco: sorteadas uma vez por abertura, escolhidas pelo estado da conta
   const SIGNOFF = {
     owe: ['Paga logo, meu bem.', 'Fiado só amanhã, meu amor.', 'Não aceito cheque, viu?', 'A conta não se paga sozinha, meu anjo.', 'Bebeu, pagou, minha flor.'],
@@ -315,12 +310,11 @@
         const pi = dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
-      const hdr = '';
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
       // caixinha tracejada que aponta o lápis no evento novo. Uma linha só: o subtítulo
       // lá em cima já diz que você não deve nada, e dizer de novo aqui virava eco
       $('#mineRows').innerHTML = (bal === 0 ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
-        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + hdr + who.join(''); }
+        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + who.join(''); }
     else $('#mine').classList.add('hidden');
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
@@ -336,7 +330,7 @@
     $('#settleHead').classList.toggle('hidden', vazio);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
-      $('#fab').classList.add('chamando'); }   // sempre preenchido, pra ver como fica
+      $('#fab').classList.toggle('chamando', chama); }   // preenchido só enquanto o balão aponta pra ele
     // nota vazia não tem o que mandar: o zap some e sobra só o "quem é você?"
     $('#waBtn').classList.toggle('hidden', vazio);
     $('#itemsSec').classList.toggle('hidden', vazio);   // quem está quite também quer ver no que gastou
@@ -657,7 +651,6 @@
   const shareUrl = () => `${SITE}#c=${encodeURIComponent(roomName)}`;
   $('#shareBtn').onclick = async () => { const url = shareUrl();
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { showCopy('Link do evento', url); } };
-  function joinNames(names){ return names.length <= 1 ? names.join('') : names.slice(0,-1).join(', ') + ' e ' + names[names.length-1]; }
   function summaryText(){
     const st = settlements(balances()); const ev = roomName || 'acerto';
     if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl()}`;
@@ -689,7 +682,6 @@
     /** @param {{ t: string, id?: string, w?: number }[]} segs */
     const flow = segs => { let col = 0, t = ''; for (const g of segs) { if (!g.t) continue; if (col > 2 && col + (g.w || g.t.length) > COLS) { line(t.trimEnd(), INK2); t = '  '; col = 2; }
       if (g.id) mark(col, g.t.length, markForte(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };
-    const wrap = (t, col) => { const words = up(t).split(' '); let cur = ''; for (const w of words) { if (cur && (cur + ' ' + w).length > COLS - 2) { line('  ' + cur, col); cur = w; } else cur = cur ? cur + ' ' + w : w; } if (cur) line('  ' + cur, col); };
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
     center(`*** TÔ LISA ***`);
@@ -841,7 +833,7 @@
     const vaga = i => { const v = vagas(); return v && v[i]; };
     // a página muda de altura ao longo da vida (entrar no evento, abrir itens),
     // então a vaga é recalculada, não guardada em pixels
-    const posiciona = () => { const p = vaga(slot); if (!p || el.classList.contains('solta')) return;
+    const posiciona = () => { const p = vaga(slot); if (!p || el.classList.contains('solta') || el.classList.contains('largada')) return;
       el.style.left = Math.round(p.x) + 'px'; el.style.top = Math.round(p.y) + 'px';
       el.style.right = 'auto'; el.style.bottom = 'auto'; };
     const sorteia = () => { const v = vagas(); slot = Math.floor(Math.random() * (v ? v.length : 5)); posiciona();
@@ -891,21 +883,24 @@
     // transform não fica fixo) e segue o dedo; solta devagar, fica boiando ali; solta
     // com força, voa na direção do arremesso, cai e some até a próxima jogada.
     const casa = el.parentElement, depois = el.nextSibling;
+    // no aparelho de toque o dedo vai junto com a ficha; com mouse o gesto não fecha
+    const pegavel = PEGA_FICHA || navigator.maxTouchPoints > 0;
+    if (pegavel) document.body.classList.add('pegavel');
     let toques = 0, zera = 0, pega = null, voo = 0;
     el.addEventListener('animationend', e => { if (e.animationName === 'treme') el.classList.remove('treme');
       // pousada, larga as classes do voo: a cambalhota vence o pousou no CSS e rejogava a cada toque
       else if (el.classList.contains('voou')) { el.classList.remove('voou', 'cambalhota', 'requica'); el.classList.add('pousou'); } });
     el.addEventListener('dragstart', e => e.preventDefault());
     el.addEventListener('pointerdown', e => {
-      if (!el.classList.contains('pousou')) return;
+      if (!pegavel || !el.classList.contains('pousou')) return;
       e.preventDefault(); clearTimeout(zera);
-      if (!el.classList.contains('solta') && ++toques < 3) {
+      if (!el.classList.contains('solta') && !el.classList.contains('largada') && ++toques < 3) {
         el.classList.remove('treme'); void el.offsetWidth; el.classList.add('treme');
         zera = setTimeout(() => { toques = 0; }, 1500); return; }
       toques = 0; cancelAnimationFrame(voo);
       const b = el.getBoundingClientRect();
       if (!el.classList.contains('solta')) {
-        document.body.appendChild(el); el.classList.remove('treme'); el.classList.add('solta'); }
+        document.body.appendChild(el); el.classList.remove('treme', 'largada'); el.classList.add('solta'); }
       const cx = b.left + (b.width - el.offsetWidth) / 2, cy = b.top + (b.height - el.offsetHeight) / 2;
       el.style.left = cx + 'px'; el.style.top = cy + 'px';
       el.classList.remove('voando'); el.classList.add('segura');
@@ -915,11 +910,21 @@
       el.style.left = (e.clientX - pega.dx) + 'px'; el.style.top = (e.clientY - pega.dy) + 'px';
       pega.rastro.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
       while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift(); });
+    // largada devagar, a ficha volta pro papel no ponto em que parou: presa na tela ela
+    // ficava boiando por cima de tudo, andando junto com a rolagem
+    const assenta = () => {
+      const vx = parseFloat(el.style.left), vy = parseFloat(el.style.top);
+      if (!Number.isFinite(vx) || !Number.isFinite(vy)) return;
+      if (el.parentElement !== casa) casa.insertBefore(el, depois);
+      el.classList.remove('solta', 'voando'); el.classList.add('largada');
+      const c = casa.getBoundingClientRect();
+      el.style.setProperty('--dx', '0px'); el.style.setProperty('--dy', '0px');
+      el.style.left = Math.round(vx - c.left) + 'px'; el.style.top = Math.round(vy - c.top) + 'px'; };
     const solta = e => { if (!pega) return;
       const p0 = pega.rastro[0], dt = Math.max(16, e.timeStamp - p0.t);
       let vx = (e.clientX - p0.x) / dt, vy = (e.clientY - p0.y) / dt;   // px por ms
       pega = null; el.classList.remove('segura');
-      if (Math.hypot(vx, vy) < 0.7) return;                           // devagar: fica boiando
+      if (Math.hypot(vx, vy) < 0.7) return assenta();                  // devagar: assenta onde parou
       // arremesso: segue reto com gravidade e giro até sair da tela
       el.classList.add('voando');
       let x = parseFloat(el.style.left), y = parseFloat(el.style.top), rot = parseFloat(el.style.getPropertyValue('--rot')) || 0, t = performance.now();
@@ -934,7 +939,7 @@
     el.addEventListener('pointercancel', solta);
     rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = false; pega = null; toques = 0;
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'segura', 'voando', 'fora', 'apaga');
+      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga');
       confere(); };
     // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
     senha(el, () => { chato = true; ls.set(CHATO, '1'); pega = null; cancelAnimationFrame(voo);

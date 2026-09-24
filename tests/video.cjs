@@ -82,12 +82,15 @@ const CENAS = {
       o = await c(); exige(Math.hypot(o.x - 120, o.y - 260) < 12, `não seguiu o dedo (${o.x},${o.y})`);
       await p.mouse.up(); await p.waitForTimeout(500);
       exige(!(await tem('fora')), 'soltou devagar e ela sumiu');
-      await p.mouse.wheel(0, -500); await p.waitForTimeout(900);            // ela boia enquanto a página rola
-      const o2 = await c(); exige(Math.hypot(o2.x - o.x, o2.y - o.y) < 3, 'rolou junto com a página');
+      exige(await tem('largada'), 'soltou devagar e ela não voltou pro papel');
+      const antes = await p.evaluate(() => window.scrollY);
+      await p.mouse.wheel(0, -500); await p.waitForTimeout(900);            // assentada no papel, rola junto
+      const rolou = antes - (await p.evaluate(() => window.scrollY));
+      const o2 = await c(); exige(Math.abs((o2.y - o.y) - rolou) < 4, `ficou presa na tela (${o.y} -> ${o2.y}, rolagem ${rolou})`);
       o = o2; await p.mouse.move(o.x, o.y, { steps: 8 }); await p.mouse.down(); await p.waitForTimeout(250);
       await p.mouse.move(o.x + 40, o.y + 10, { steps: 6 }); await p.mouse.move(o.x + 220, o.y - 120, { steps: 3 }); await p.mouse.up();
       await p.waitForTimeout(1800); exige(await tem('fora'), 'o arremesso não jogou fora');
-      console.log('pega: treme, agarra no terceiro, boia na rolagem e voa no arremesso'); } },
+      console.log('pega: treme, agarra no terceiro, assenta no papel e voa no arremesso'); } },
   chato: { nome: 'segura, toca, segura na ficha: a diva desliga; o mesmo no rodapé liga de novo', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
       await p.waitForSelector('.stain.pousou', { timeout: 12000 }); await p.waitForTimeout(400);
@@ -129,7 +132,8 @@ async function video(opts = {}) {
   const srv = servir(porta);
   const b = await chromium.launch();
   try {
-    const ctx = await b.newContext({ viewport: { width: largura, height: altura },
+    // hasTouch: a ficha só é pegável em aparelho de toque (navigator.maxTouchPoints)
+    const ctx = await b.newContext({ viewport: { width: largura, height: altura }, hasTouch: true,
       recordVideo: { dir: pasta, size: { width: largura, height: altura } } });
     await ctx.route(/fake-db/, async r => {
       const u = r.request().url();

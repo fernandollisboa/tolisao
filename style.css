@@ -56,11 +56,14 @@ body{margin:0;min-height:100vh;overflow-x:hidden;max-width:100vw;color:var(--ink
 @media (prefers-reduced-motion:reduce){.stain{opacity:1}.stain.voou{animation:none}}
 /* a ficha pousada é pegável: dois toques ela treme, no terceiro descola do papel e
    segue o dedo por cima da tela; solta com força, voa pra fora */
-.stain.pousou{animation:none;opacity:1;pointer-events:auto;cursor:grab;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-drag:none}
+.stain.pousou{animation:none;opacity:1;pointer-events:auto;cursor:default;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-drag:none}
 .stain.pousou.treme{animation:treme .32s ease-out}
 @keyframes treme{0%,100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}
   30%{transform:translate(var(--dx),calc(var(--dy) - 5px)) rotate(calc(var(--rot) - 9deg))}
   65%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) + 5deg))}}
+body.pegavel .stain.pousou{cursor:grab}
+/* largada devagar: volta pro papel e fica no lugar em que parou, rolando junto com a nota */
+.stain.largada{z-index:5;transition:transform .15s}
 .stain.solta{position:fixed;z-index:60;touch-action:none;transform:rotate(var(--rot)) scale(var(--esc,1));transition:transform .15s,filter .15s}
 .stain.solta.segura{--esc:1.18;cursor:grabbing;transition:transform .15s,filter .15s;filter:drop-shadow(6px 14px 10px rgba(0,0,0,.4))}
 .stain.solta.voando{transition:none}
@@ -172,6 +175,19 @@ a.link.amb{animation:chama 1.8s ease-in-out infinite;transform-origin:50% 60%}
 @media (prefers-reduced-motion:reduce){a.link.amb{animation:none}}
 #addPerson{text-decoration:none;padding:2px 8px 2px 0;margin-right:-8px;white-space:nowrap}
 button:disabled{opacity:.45;cursor:default;box-shadow:none}
+/* no desktop não há dedo: o mouse por cima preenche o botão com a cor dele mesmo */
+@media (hover:hover) and (pointer:fine){
+  button{transition:background .12s ease,color .12s ease}
+  button:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+  /* o ✔ e o cadastrar chave param com a piscada montada (`both`); só o !important
+     passa na frente dela, e cancelar a animação faria a piscada rodar de novo na saída */
+  button.ico.ok:hover:not(:disabled){background:var(--green) !important;color:var(--paper) !important}
+  button.ico.amb:hover:not(:disabled),#whoNewBox button:hover:not(:disabled){background:#9a5b00 !important;color:#fff !important}
+  button.ico.okl:hover:not(:disabled){background:#5aa46a;color:#fff}
+  button.danger:hover:not(:disabled){background:var(--red);color:var(--paper)}
+  button.ghost:hover:not(:disabled){background:transparent;color:var(--ink)}
+  #fab:not(.chamando):hover{background:var(--ink);color:var(--paper)}
+}
 input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}
 input::placeholder{color:#9a8a6a;text-transform:uppercase}
 form{display:grid;gap:10px}

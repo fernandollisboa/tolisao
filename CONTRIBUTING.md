@@ -51,7 +51,9 @@ Padrão é 390 de largura, em tamanho real. Nunca encolha a imagem pra caber mai
 
 ## Testes
 
-Playwright cru, sem framework. Cada script sobe um servidor local, intercepta o Firebase com dados falsos e imprime o que conferiu; `tests/run-all.cjs` roda todos e para no primeiro que falhar.
+Playwright cru, sem framework. Quem monta o cenário é `tests/_app.cjs`: `abre({ dados, quem, pix })` sobe o servidor numa porta livre, finge o Firebase (com as regras do pix do README), abre o navegador e já entra identificado. O teste fica só com o que é dele. `app.aba({ quem })` é outro aparelho no mesmo banco, `app.loja` é o que ficou gravado e `app.erros` junta os erros de página de todas as abas. `tests/run-all.cjs` roda todos e para no primeiro que falhar.
+
+Teste não imprime, teste confere: se um número pode mudar sem nada ficar vermelho, aquilo é um `console.log` disfarçado de teste. Imprimir o que conferiu é bom, e é só isso que o `console.log` faz aqui.
 
 | arquivo | o que cobre |
 |---|---|
@@ -62,6 +64,8 @@ Playwright cru, sem framework. Cada script sobe um servidor local, intercepta o 
 | `xss.cjs` | nome e descrição hostis não viram HTML |
 | `ordem.cjs` | a ordem das animações, ouvindo `animationstart` |
 | `pega.cjs` | a ficha pegável e o modo chato |
+
+Porta nenhuma é cravada: `_serve.cjs` pede a porta 0 e `await srv.pronto` diz qual o sistema deu. Porta fixa já colidiu na prática (`EADDRINUSE` com dois geradores rodando).
 
 Bug que deu na mão vira teste antes do conserto. As dependências são de desenvolvimento e só: o site não carrega nada disso. `preview.cjs` e `video.cjs` não são testes, são os geradores de imagem e vídeo; `icone.cjs` regenera os `ficha-*.png` da PWA e `noar.cjs` confere o que está publicado.
 

@@ -2,13 +2,12 @@
 // relógios espalhados por app.js (fila do agenda, atrasos negativos, carimbo dos
 // pagamentos), então é fácil furar sem perceber: aqui ela é medida de verdade,
 // ouvindo animationstart, e comparada com a ordem da página.
-const { chromium } = require('./_pw.cjs');
-const servir = require('./_serve.cjs');
+const { abre } = require('./_app.cjs');
 const { CENAS } = require('./video.cjs');
 
 // tela baixa de propósito: o acerto tem que nascer abaixo da dobra, senão não dá
 // pra checar que nada anima fora da vista
-const PORTA = 4190, QUEM = 'Lia', ALTURA = 420;
+const QUEM = 'Lia', ALTURA = 420;
 const dados = CENAS.cascata.dados;   // três dívidas suas e um pagamento já feito
 /** os blocos têm que sair nesta ordem; dentro de um bloco a ordem não importa,
  *  porque a piscada e o copiar pix saem juntos de propósito */
@@ -20,25 +19,16 @@ const ESPERADO = [
 ];
 
 (async () => {
-  const srv = servir(PORTA); const b = await chromium.launch(); const erros = [];
-  try {
-    const ctx = await b.newContext({ viewport: { width: 390, height: ALTURA } });
-    await ctx.route(/fake-db/, async r => { const u = r.request().url();
-      // a chave do pix chega depois do resto, como no mundo real
-      if (u.includes('/pix/')) { await new Promise(ok => setTimeout(ok, 1200));
-        return r.fulfill({ json: u.includes('/fernando/') ? 'fernando@exemplo.com' : null }); }
-      if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
-      r.fulfill({ json: dados }); });
-    const p = await ctx.newPage(); p.on('pageerror', e => erros.push(e.message));
-    await p.addInitScript(() => { window.__ev = [];
+  // a chave do pix chega depois do resto, como no mundo real: é o que a fila conta
+  const app = await abre({ dados, quem: QUEM, altura: ALTURA, atrasoPix: 1200,
+    pix: { fernando: 'fernando@exemplo.com' },
+    inicio: () => { window.__ev = [];
       addEventListener('animationstart', e => { const t = /** @type {any} */ (e.target);
         const row = t.closest && t.closest('.row');
         window.__ev.push({ nome: e.animationName, t: Math.round(performance.now()), pseudo: e.pseudoElement || '',
-          alvo: row ? (row.textContent || '').trim().slice(0, 24) : (t.id || '') }); }, true); });
-
-    await p.goto(`http://localhost:${PORTA}/#c=${dados.name}`);
-    await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
-    await p.selectOption('#whoSel', { label: QUEM });
+          alvo: row ? (row.textContent || '').trim().slice(0, 24) : (t.id || '') }); }, true); } });
+  const p = app.p, erros = app.erros;
+  try {
     // antes de dizer quem é, a nota é outra (sem Minha conta) e anima por conta dela;
     // o que interessa aqui é a sequência de quem já se identificou
     await p.evaluate(() => { window.__ev.length = 0; });
@@ -87,6 +77,6 @@ const ESPERADO = [
     }
     if (ev.length > i) erros.push(`sobrou animação depois do fim: ${ev.slice(i).map(e => e.nome).join(', ')}`);
     console.log('ordem de cima pra baixo:', erros.length ? 'FALHOU' : 'ok', '| errors:', erros);
-  } finally { await b.close(); srv.close(); }
+  } finally { await app.fecha(); }
   if (erros.length) process.exit(1);
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

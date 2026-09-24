@@ -7,6 +7,7 @@
 const { chromium } = require('./_pw.cjs');
 const path = require('path'), fs = require('fs'), os = require('os');
 const servir = require('./_serve.cjs');
+const { banco } = require('./_app.cjs');
 
 const HOJE = Date.now();
 /** evento de exemplo: gente com nomes de tamanhos diferentes, item dividido, uma quitação */
@@ -32,21 +33,17 @@ const DADOS = {
  */
 async function preview(opts = {}) {
   const { alvo = null, quem = 'Lia', pix = true, largura = 390, altura = 900,
-          dados = DADOS, variantes = null, recorte = null, porta = 4300 + Math.floor(Math.random()*200) } = opts;
+          dados = DADOS, variantes = null, recorte = null, porta = 0 } = opts;
   const saida = opts.saida || path.join(os.tmpdir(), 'preview.png');
-  const srv = servir(porta);
+  const srv = servir(porta); const emUso = await srv.pronto;   // 0 = o SO escolhe uma livre
   const b = await chromium.launch();
   try {
     const ctx = await b.newContext({ viewport: { width: largura, height: altura }, deviceScaleFactor: 2 });
-    await ctx.route(/fake-db/, r => {
-      const u = r.request().url();
-      if (u.includes('/pix/')) return r.fulfill({ json: pix && u.includes('/fernando/') ? 'fernando@exemplo.com' : null });
-      if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
-      r.fulfill({ json: dados });
-    });
+    // o mesmo Firebase de mentira dos testes, pra não ter dois jeitos de fingir o banco
+    await ctx.route(/fake-db/, banco({ dados, pix: pix ? { fernando: 'fernando@exemplo.com' } : {} }).rota);
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
-    await p.goto(`http://localhost:${porta}/#c=${dados.name}`);
+    await p.goto(`http://localhost:${emUso}/#c=${dados.name}`);
     await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
     await p.selectOption('#whoSel', { label: quem });
     await p.waitForTimeout(900);

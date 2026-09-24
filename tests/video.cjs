@@ -7,6 +7,7 @@
 const { chromium } = require('./_pw.cjs');
 const path = require('path'), fs = require('fs'), os = require('os');
 const servir = require('./_serve.cjs');
+const { banco } = require('./_app.cjs');
 const { DADOS } = require('./preview.cjs');
 const { createHash } = require('crypto');
 const sha256 = t => createHash('sha256').update(t).digest('hex');
@@ -123,26 +124,20 @@ const CENAS = {
  * @returns {Promise<string>} caminho do vídeo
  */
 async function video(opts = {}) {
-  const { cena = 'pix', vel = 0.5, largura = 390, altura = 844,
-          porta = 4500 + Math.floor(Math.random()*200) } = opts;
+  const { cena = 'pix', vel = 0.5, largura = 390, altura = 844, porta = 0 } = opts;
   const c = CENAS[cena]; if (!c) throw new Error(`cena desconhecida: ${cena} (tem ${Object.keys(CENAS).join(', ')})`);
   const dados = opts.dados || c.dados || DADOS;
   const saida = opts.saida || path.join(os.tmpdir(), `video-${cena}.webm`);
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'tolisa-vid-'));
-  const srv = servir(porta);
+  const srv = servir(porta); const emUso = await srv.pronto;   // 0 = o SO escolhe uma livre
   const b = await chromium.launch();
   try {
     // hasTouch: a ficha só é pegável em aparelho de toque (navigator.maxTouchPoints)
     const ctx = await b.newContext({ viewport: { width: largura, height: altura }, hasTouch: true,
       recordVideo: { dir: pasta, size: { width: largura, height: altura } } });
-    await ctx.route(/fake-db/, async r => {
-      const u = r.request().url();
-      // o pix chega depois do resto, como no mundo real: é isso que a animação conta
-      if (u.includes('/pix/')) { if (c.atrasoPix) await new Promise(ok => setTimeout(ok, c.atrasoPix));
-        return r.fulfill({ json: u.includes('/fernando/') ? 'fernando@exemplo.com' : null }); }
-      if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
-      r.fulfill({ json: dados });
-    });
+    // o mesmo Firebase de mentira dos testes. O pix chega depois do resto, como no
+    // mundo real: é isso que a animação conta
+    await ctx.route(/fake-db/, banco({ dados, pix: { fernando: 'fernando@exemplo.com' }, atrasoPix: c.atrasoPix }).rota);
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
     // entra já identificado: senão o vídeo começa com a tela de código e o cartão de
@@ -158,7 +153,7 @@ async function video(opts = {}) {
     // o navegador roda as animações mais devagar, senão some antes de dar pra ver
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
-    await p.goto(`http://localhost:${porta}/#c=${dados.name}`);
+    await p.goto(`http://localhost:${emUso}/#c=${dados.name}`);
     // css de experiência: entra depois da folha do app, então redefine keyframes e vence
     if (opts.css) await p.addStyleTag({ content: opts.css });
     await p.waitForSelector('#mine:not(.hidden)', { timeout: 8000 });

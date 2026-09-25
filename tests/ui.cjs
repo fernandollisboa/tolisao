@@ -13,6 +13,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   await p1.goto('http://localhost:4179/#seed=' + seed);
   await p1.fill('#gateCode','bailedamada'); await p1.click('#gateForm button'); await p1.click('#whoBtn'); await p1.waitForSelector('#whoSel');
   await p1.selectOption('#whoSel', { label: 'Lia' }); await p1.evaluate(() => document.fonts.ready); await p1.waitForTimeout(400);
+  if (!await p1.$eval('#fab', e => e.classList.contains('chamando'))) throw new Error('fab deveria começar chamando');
   await p1.screenshot({ path: path.join(OUT, 'app-mobile.png'), fullPage: true });
   console.log('botões quitar em Minha conta (Lia):', await p1.$$eval('#mineRows [data-settle]', l => l.length), '| settle rows:', await p1.$$eval('#settle .row:not(.paid)', l => l.length), '| expenses shown:', await p1.$$eval('#expenses .row', l => l.length), '| toggle:', await p1.$eval('#toggleAll', e => e.textContent));
   // Quitei na primeira linha
@@ -28,6 +29,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   // FAB + gasto
   await p1.click('#fab'); await p1.waitForSelector('#sheet:not(.hidden)'); await p1.fill('#desc','Cerveja'); await p1.fill('#amount','50'); await p1.click('#expenseForm button');
   await p1.waitForSelector('#sheet', { state: 'hidden' }); console.log('added via fab; top expense:', await p1.$eval('#expenses .row', e => e.innerText.split('\n')[0]));
+  if (!await p1.$eval('#fab', e => e.classList.contains('chamando'))) throw new Error('fab deveria continuar chamando depois do primeiro gasto');
   await p1.screenshot({ path: path.join(OUT, 'app-mobile-2.png'), fullPage: true });
   // segundo aparelho vê tudo
   const c2 = await b.newContext(); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));

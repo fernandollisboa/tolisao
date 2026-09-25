@@ -330,7 +330,7 @@
     $('#settleHead').classList.toggle('hidden', vazio);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
-      $('#fab').classList.toggle('chamando', chama); }   // preenchido só enquanto o balão aponta pra ele
+      $('#fab').classList.add('chamando'); }   // o ✎ volta a ficar âmbar o tempo todo
     // nota vazia não tem o que mandar: o zap some e sobra só o "quem é você?"
     $('#waBtn').classList.toggle('hidden', vazio);
     $('#itemsSec').classList.toggle('hidden', vazio);   // quem está quite também quer ver no que gastou

@@ -40,7 +40,7 @@ A `main` tem regra de proteção exigindo o check `test` (`.github/workflows/tes
 3. `git checkout main && git pull origin main`.
 4. Espere o deploy (`gh run watch`) e rode **`node tests/noar.cjs`**: ele baixa o que está publicado e compara com o repositório. Só depois diga que está no ar.
 
-O `?v=` de `app.js` e `style.css` é trocado pelo SHA do commit na hora do deploy, então não há o que lembrar. O valor escrito no `index.html` (hoje `?v=20260925a`) é reserva: se algum dia o Pages voltar a publicar a branch crua, é ele que chega no navegador — aí suba esse número junto com a mudança (data mais uma letra). O workflow avisa se você esquecer.
+O `?v=` de `app.js` e `style.css` é trocado pelo SHA do commit na hora do deploy (o `sed` do workflow reescreve `?v=` seja lá o que estiver ali), então isso não afeta o deploy normal. O valor escrito no `index.html` é só reserva: se algum dia o Pages voltar a publicar a branch crua (a armadilha já documentada abaixo), é ele que chega no navegador sem passar pelo SHA — aí sim precisa ter mudado desde o último deploy, senão o navegador reaproveita o CSS/JS velho do cache pela mesma URL. Suba esse número (data mais uma letra) junto com mudança visual em `app.js`/`style.css`; o workflow avisa (`::warning::`) se você esquecer, mas não bloqueia o deploy. Não precisa atualizar essa frase toda vez — o valor vive só no `index.html`.
 
 Duas armadilhas que já custaram caro:
 

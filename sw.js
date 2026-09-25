@@ -12,6 +12,8 @@ self.addEventListener('fetch', e => {
   // a navegação leva o ?senha= do evento: guarda pela URL sem query, senão cada
   // evento visitado virava uma cópia igual do mesmo index.html no cache
   const chave = nav ? new Request(url.origin + url.pathname) : e.request;
-  e.respondWith(fetch(pedido).then(r => { if (r.ok) caches.open(CACHE).then(c => c.put(chave, r.clone())); return r; })
+  // o clone tem que sair antes de devolver r: se esperar o caches.open() abrir pra
+  // clonar, o navegador já começou a ler o corpo e o clone falha ("body is already used")
+  e.respondWith(fetch(pedido).then(r => { if (r.ok) { const copia = r.clone(); caches.open(CACHE).then(c => c.put(chave, copia)); } return r; })
     .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || (nav ? caches.match('./index.html') : undefined))));
 });

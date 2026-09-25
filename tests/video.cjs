@@ -143,6 +143,8 @@ const CENAS = {
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
+  datilo: { nome: '"tô lisa" se digitando sozinho, só na primeira visita', quem: 'Lia', atrasoPix: 0,
+    acao: async p => { await p.waitForTimeout(3500); } },
 };
 
 /**

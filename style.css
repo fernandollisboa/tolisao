@@ -77,6 +77,17 @@ body.pegavel .stain.pousou{cursor:grab}
 body.chato .stain,body.chato #tagline{display:none}
 #signoff{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}
+/* só na primeira visita neste aparelho: "tô lisa" se digita sozinho, dando vida à
+   tela antes mesmo do fetch responder (não tem muito a ver com nota térmica, mas
+   era só isso que a #14 queria ver) */
+#titulo{display:inline-block}
+#titulo.datilo{clip-path:inset(0 100% 0 0);animation:datilografa .85s steps(7,end) forwards}
+#titulo.datilo:after{content:"";display:inline-block;width:3px;height:.8em;margin-left:3px;background:var(--ink);vertical-align:-3px;opacity:0;
+  animation:cursorEntra 0s .85s forwards,cursorPisca .6s step-end .85s 4 forwards}
+@keyframes datilografa{to{clip-path:inset(0 0 0 0)}}
+@keyframes cursorEntra{to{opacity:1}}
+@keyframes cursorPisca{0%,49%{opacity:1}50%,100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#titulo.datilo{animation:none;clip-path:none}#titulo.datilo:after{animation:none;opacity:0}}
 h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
 h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .c{text-align:center;font-size:17px;line-height:1.5;text-transform:uppercase}
@@ -105,7 +116,7 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
    É a linha toda que abre, não só a caixinha. A moldura é um :before com folga,
    pra não mexer no layout nem encostar no texto */
 #itemsHead{isolation:isolate}
-#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;background:#fff8e6;box-shadow:3px 3px 0 var(--ink);z-index:-1;opacity:0;pointer-events:none}
+#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;background:#fff8e6;box-shadow:3px 3px 0 var(--ink);z-index:-1;opacity:0;pointer-events:none;transition:opacity .15s ease}
 #itemsHead.pisca{animation:apertinho 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca:before{animation:moldura 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca #itemsCaret span{animation:vazado 1.6s ease-in-out var(--ad,0ms) backwards}
@@ -152,7 +163,7 @@ button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);widt
 /* sem ninguém escolhido não existe o ✎: o zap ocupa a vaga da ponta.
    Quando a pessoa entra, ele escorrega pra dentro e abre espaço pro lápis. */
 #waBtn.wafab.so{right:18px}
-@media (prefers-reduced-motion:reduce){#waBtn.wafab{transition:none}}
+@media (prefers-reduced-motion:reduce){#waBtn.wafab{transition:none}.fab{animation:none}}
 /* balãozinho do primeiro gasto: aponta pro ✎ enquanto o evento não tem nada anotado */
 #dica{position:fixed;z-index:9;right:14px;bottom:92px;max-width:196px;text-align:center;background:#9a5b00;color:#fff;
   border:2px solid var(--ink);border-radius:5px;padding:7px 11px;line-height:1.2;font-size:19px;text-transform:uppercase;letter-spacing:.5px;box-shadow:2px 2px 0 var(--ink)}
@@ -190,6 +201,12 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   button.danger:hover:not(:disabled){background:var(--red);color:var(--paper)}
   button.ghost:hover:not(:disabled){background:transparent;color:var(--ink)}
   #fab:not(.chamando):hover{background:var(--ink);color:var(--paper)}
+  /* a linha dos itens não é <button>, então o mouse por cima não tinha nenhum aviso:
+     acende a mesma moldura que o toque usa no celular */
+  #itemsHead:hover:before{opacity:1}
+  /* pulso levinho o tempo todo, sem trocar de cor; para no hover, que já é o próprio aviso */
+  .fab{animation:pulsaFab 2.6s ease-in-out infinite}
+  .fab:hover{animation-play-state:paused}
 }
 input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}
 input::placeholder{color:#9a8a6a;text-transform:uppercase}
@@ -205,6 +222,9 @@ form{display:grid;gap:10px}
 .status.err{color:var(--red)}
 .hidden{display:none !important}
 .fab{position:fixed;right:18px;bottom:22px;z-index:8;width:58px;height:58px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--ink);font-size:28px;box-shadow:4px 4px 0 var(--ink);transform:rotate(-6deg)}
+/* o pulso desktop (abaixo, em hover:hover) é só de brilho: mexer em transform mudava
+   o retângulo do botão a cada quadro, e o Playwright nunca via ele "parado" pra clicar */
+@keyframes pulsaFab{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
 #overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto}
 #overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 #sheet .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}

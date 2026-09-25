@@ -2,6 +2,11 @@ name: Testes
 on:
   pull_request:
     branches: [main]
+  # também roda direto na main: é o único jeito do cache do playwright sobreviver, já
+  # que ele fica preso à branch que o salvou e toda PR aqui apaga a própria branch no
+  # merge — sem isso, nenhuma PR nova herda cache de nenhuma outra, só sempre da main
+  push:
+    branches: [main]
 permissions:
   contents: read
 jobs:

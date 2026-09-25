@@ -33,11 +33,14 @@ O site é a `main`: o que está lá é o que está no ar. A fonte do Pages é **
 
 Quando o usuário escolhe uma das opções que você ofereceu, isso já é o aval: commite, mergeie na `main` e suba, sem perguntar de novo.
 
-1. `npm run types` limpo e `npm test` verde.
-2. Merge na `main` e `git push origin main`.
-3. Espere o deploy e rode **`node tests/noar.cjs`**: ele baixa o que está publicado e compara com o repositório. Só depois diga que está no ar.
+A `main` tem regra de proteção exigindo o check `test` (`.github/workflows/tests.yml`, que só roda em `pull_request`): push direto é recusado. Então o fluxo é branch → PR → esperar o check → mergear. Se o check passar, mergeie sem pedir confirmação de novo — não precisa de revisão a mais que isso.
 
-O `?v=` de `app.js` e `style.css` é trocado pelo SHA do commit na hora do deploy, então não há o que lembrar. O valor escrito no `index.html` (hoje `?v=20260924c`) é reserva: se algum dia o Pages voltar a publicar a branch crua, é ele que chega no navegador — aí suba esse número junto com a mudança (data mais uma letra). O workflow avisa se você esquecer.
+1. `npm run types` limpo e `npm test` verde.
+2. Commit numa branch, `gh pr create`, espere `gh pr checks <n>` fechar em verde, `gh pr merge <n> --merge --delete-branch`.
+3. `git checkout main && git pull origin main`.
+4. Espere o deploy (`gh run watch`) e rode **`node tests/noar.cjs`**: ele baixa o que está publicado e compara com o repositório. Só depois diga que está no ar.
+
+O `?v=` de `app.js` e `style.css` é trocado pelo SHA do commit na hora do deploy, então não há o que lembrar. O valor escrito no `index.html` (hoje `?v=20260925a`) é reserva: se algum dia o Pages voltar a publicar a branch crua, é ele que chega no navegador — aí suba esse número junto com a mudança (data mais uma letra). O workflow avisa se você esquecer.
 
 Duas armadilhas que já custaram caro:
 

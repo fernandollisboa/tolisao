@@ -627,7 +627,7 @@
     // a piscada é montada com `animation-delay` inline, e declaração inline vence a
     // folha: sem tirar o atraso, o toque nascia adiantado (a piscada correndo) ou
     // parado no primeiro quadro pelo tempo do atraso que sobrou
-    b.style.removeProperty('animation-delay');
+b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // tocar de novo antes da anterior acabar recomeça a animação
     b.classList.remove('tocou'); void b.offsetWidth; b.classList.add('tocou');
     b.addEventListener('animationend', () => b.classList.remove('tocou'), { once: true });

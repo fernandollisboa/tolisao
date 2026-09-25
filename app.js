@@ -249,7 +249,7 @@
     owe: ['Paga logo, meu bem.', 'Fiado só amanhã, meu amor.', 'Não aceito cheque, viu?', 'A conta não se paga sozinha, meu anjo.', 'Bebeu, pagou, minha flor.'],
     owed: ['Cobra sem dó, meu bem.', 'Quem deve, deve, meu anjo.', 'Juros só na amizade, viu?', 'Fiado é confiança, meu amor.'],
     even: ['Tudo certo, volte sempre, meu bem!', 'Casa limpa, meu amor.', 'Valeu, meu bem!', 'Deus te pague, minha flor.'],
-    all: ['Casa fechada, todo mundo quite. Benção!', 'Ninguém deve nada. Milagre, meu anjo.', 'Zerou. Bora abrir outra, meu bem?'],
+    all: ['Casa fechada, todo mundo quite. Benção!', 'Ninguém deve nada. Milagre!', 'Zerou. Bora abrir outra, meu bem?'],
     none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
   };
   const luck = Math.random();
@@ -281,7 +281,8 @@
       // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
       $('#whoBtn').onclick = () => state.people.length ? showWho() : showSetup(); }
     const hasMe = me && state.people.some(p => p.id === me);
-    { const bal = hasMe ? (balances()[me] || 0) : 0; const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
+    const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
+    { const bal = hasMe ? (balances()[me] || 0) : 0;
       if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém';   // o emoji ficou pra caixinha
       if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
     // evento sem nada anotado: Minha conta e Itens só teriam zeros, então somem
@@ -361,7 +362,10 @@
         f.classList.toggle('deve', b !== null && b < 0);
         f.classList.toggle('recebe', b !== null && b > 0);
         f.classList.toggle('quite', b === 0); } }
-    $('#settleHead').classList.toggle('hidden', vazio);
+    // todo mundo quite já é dito em Minha conta; repetir aqui era eco
+    $('#settleHead').classList.toggle('hidden', vazio || allEven);
+    $('#settle').classList.toggle('hidden', allEven);
+    $('#settleHr').classList.toggle('hidden', allEven);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
       $('#fab').classList.add('chamando'); }   // o ✎ volta a ficar âmbar o tempo todo

@@ -234,6 +234,36 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
   22%{opacity:1}
   38%,78%,100%{opacity:1;transform:none;background:#fff8e6;color:#9a5b00}
   58%{opacity:1;transform:scale(1.12);background:#9a5b00;color:#fff8e6}}
+@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#pixLine #pixBtn,#mineRows .dupla>button.ico.tocou{animation:none}}
+/* o fadein do #mine já o deixa num contexto de empilhamento próprio, então o balão
+   não conseguia subir acima da linha dos itens por dentro: quem sobe é a seção */
+#mine{position:relative;z-index:2}
+/* balãozinho da primeira vez: o ✔ e o copiar pix não dizem o que fazem, então o
+   balão diz. Mesmo papel do #dica que aponta pro ✎, em tamanho de caber na linha.
+   pointer-events:none porque ele cobre a linha de baixo e não é pra pegar o toque */
+/* ele se posiciona pela linha inteira, não pela dupla: centrado na dupla, metade dele
+   ficava fora do papel quando o nome era curto (e o overflow-x:clip do body só escondia
+   o estrago). Centrado na linha, a largura máxima é a do papel e não tem como vazar */
+#mineRows .row.sub .dicaok{position:absolute;z-index:9;top:calc(100% + 11px);left:var(--esq,0);
+  width:max-content;max-width:100%;text-align:center;background:#9a5b00;color:#fff;
+  border:2px solid var(--ink);border-radius:5px;padding:5px 9px;line-height:1.15;font-size:15px;
+  text-transform:uppercase;letter-spacing:.4px;box-shadow:2px 2px 0 var(--ink);pointer-events:none;
+  animation:balao 5.2s ease-out both}
+/* --esq e --seta vêm medidos no render: o balão nasce centrado no ✔ (que é o botão
+   que sempre está lá — o copiar pix nasce com max-width:0 e mediria errado) e preso
+   dentro da linha; a setinha cai em cima dele. O clamp é só cinto de segurança */
+#mineRows .row.sub .dicaok:before{content:"";position:absolute;top:-9px;
+  left:clamp(11px,var(--seta,50%),calc(100% - 11px));margin-left:-9px;
+  border:9px solid transparent;border-bottom-color:var(--ink);border-top:0}
+/* só opacidade e um pulinho vertical: escalar mexeria na largura do balão, e é dela
+   que sai a conta do --seta — a setinha andava junto com a entrada */
+@keyframes balao{
+  0%{opacity:0;transform:translateY(-6px)}
+  6%,88%{opacity:1;transform:none}
+  100%{opacity:0;transform:translateY(-4px)}}
+/* quem pediu menos movimento continua lendo o recado, e ele continua sumindo sozinho */
+@media (prefers-reduced-motion:reduce){#mineRows .row.sub .dicaok{animation-name:balaoQuieto}
+  @keyframes balaoQuieto{0%,88%{opacity:1}100%{opacity:0}}}
 /* no celular não existe hover: o toque preenche o botão com a cor dele e volta, o
    mesmo vocabulário da piscada, só que curto. A classe vem do JS e não do :active
    porque no iOS o :active só acorda com um ouvinte de toque, e porque a animação
@@ -246,7 +276,6 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 @keyframes toque{
   0%,40%{background:var(--tc);color:#fff8e6}
   100%{background:#fff8e6;color:var(--tc)}}
-@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#pixLine #pixBtn,#mineRows .dupla>button.ico.tocou{animation:none}}
 /* a linha nasce sem altura: o espaço abre junto com o botão descendo, não antes dele */
 #pixLine{max-height:0;overflow:hidden;margin:0;transition:max-height .42s cubic-bezier(.2,.9,.3,1),margin .42s cubic-bezier(.2,.9,.3,1),opacity .3s ease}
 #pixLine.cheio{max-height:46px;margin:-2px 0 10px}

@@ -29,6 +29,7 @@
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: k => { try { localStorage.removeItem(k); } catch {} } };
   // visitas contadas neste aparelho: o convite de instalar e o aperto dos itens leem daqui
   const VISITAS = 'racha:visitas', CONVIDOU = 'racha:convidou', ABRIU = 'racha:abriuItens';
+  const VIU_ACERTO = 'racha:viuAcerto';   // o balão dos botões de Minha conta, uma vez por aparelho
   const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
 
   /** @type {string|null} */ let groupId = null; let roomName = '';
@@ -196,7 +197,9 @@
   let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, devagar
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
-  let tocouOk = false;      // tocou num dos botões: o convite da piscada já foi respondido
+  const DICA_MS = 5200;   // quanto o balão dos botões fica na tela antes de sumir sozinho
+  let dicaT = 0;          // hora marcada pro balão (0 = ainda não entrou, -1 = já dispensado)
+  let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
@@ -310,12 +313,42 @@
       const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
         const pi = !tocouOk && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
+      // os dois botões não dizem o que fazem: um balão conta, uma vez só neste aparelho.
+      // Um balão pra dupla, não um pra cada: em 390px dois balões lado a lado não cabem,
+      // e a frase é a mesma história ("paguei" e "como pagar"). Corre por fora da fila,
+      // atrás da última piscada — a piscada é o pedido, o balão é a explicação. Some
+      // sozinho no fim da animação, ou no primeiro toque em qualquer um dos dois
+      if (!meus.length && dicaT > 0 && !ls.get(VIU_ACERTO)) dicaT = 0;
+      if (mineT && meus.length && !dicaT && !ls.get(VIU_ACERTO))
+        dicaT = Math.max(Date.now(), mineT + (meus.length - 1) * PISCA_GAP + PISCA_MS);
+      // o atraso negativo retoma de onde estava: o #mineRows é refeito a cada poll
+      const dtD = dicaT > 0 ? Date.now() - dicaT : Infinity;
+      const balao = dtD < DICA_MS
+        ? `<span class="dicaok" style="animation-delay:${-dtD}ms">✔ quita. copiar pix já vai com o valor.</span>` : '';
+      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>${i === 0 ? balao : ''}`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
       // caixinha tracejada que aponta o lápis no evento novo. Uma linha só: o subtítulo
       // lá em cima já diz que você não deve nada, e dizer de novo aqui virava eco
       $('#mineRows').innerHTML = (bal === 0 ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
-        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + who.join(''); }
+        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + who.join('');
+      // o balão é centrado na linha, que é a única largura que não vaza do papel: centrar
+      // na dupla jogava metade dele pra fora quando o nome era curto. A setinha é que
+      // aponta pra dupla, e o único jeito de saber onde ela está é medindo
+      // a setinha mira o ✔, não o meio da dupla: o copiar pix nasce com `max-width:0`
+      // e vai abrindo, então medir a dupla logo depois do innerHTML pega ela sem ele
+      // o balão fica centrado no ✔ e preso dentro da linha: centrado *na linha* ele
+      // se afastava do botão na tela larga, e a setinha batia no clamp e apontava pro
+      // nada. Preso na linha, que é a largura do papel, continua sem ter como vazar
+      { const dc = $('#mineRows .dicaok');
+        if (dc) { const ok = dc.parentElement.querySelector('.dupla > .ok'), linha = dc.closest('.row');
+          if (ok && linha) { const a = ok.getBoundingClientRect(), c = dc.getBoundingClientRect(), r = linha.getBoundingClientRect();
+            const meio = a.left + a.width / 2;
+            const esq = Math.max(0, Math.min(meio - c.width / 2 - r.left, r.width - c.width));
+            dc.style.setProperty('--esq', `${Math.round(esq)}px`);
+            dc.style.setProperty('--seta', `${Math.round(meio - r.left - esq)}px`); }
+          // "já viu" só quando ele começa a aparecer mesmo: recarregar no meio da espera
+          // (ou errar o nome no "quem é você?") não pode gastar a única vez
+          dc.addEventListener('animationstart', () => ls.set(VIU_ACERTO, '1'), { once: true }); } } }
     else $('#mine').classList.add('hidden');
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
@@ -638,6 +671,13 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     if (!near('a,button,input,label')) { const it = near('.item'); if (it) { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); } }
     const am = near('[data-among]');
     if (am) { const it = /** @type {HTMLElement} */ (am.closest('.item')); const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); return; }
+    // tocou em um dos dois: o balão já disse o que tinha pra dizer. Nada de render()
+    // aqui — ele refaz o #mineRows, e o [data-settle] logo abaixo ainda vai medir o
+    // botão pra saber de onde sai o confete; com o nó já trocado, saía do canto
+    // e é pra valer: o -1 diz "dispensado" (o 0 diria "ainda não entrou", e o render
+    // seguinte reagendava tudo), e quem tocou num dos dois já não precisa de recado
+    if (dicaT && near('[data-pix],[data-settle]')) { dicaT = -1; ls.set(VIU_ACERTO, '1');
+      const dc = $('#mineRows .dicaok'); if (dc) dc.remove(); }
     const px = near('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }
@@ -988,7 +1028,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = itensT = filaT = 0; tocouOk = false;   // nota nova, convite novo
+    settleT = riscoT = mineT = itensT = filaT = dicaT = 0; tocouOk = false;   // nota nova, convite novo
     mineNaTela = itensNaTela = settleNaTela = false;
     const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }

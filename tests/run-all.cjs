@@ -5,7 +5,7 @@
 //   node tests/run-all.cjs --segue    -> não para no primeiro que falhar
 // Quem imprime o que checou é cada teste; aqui só sai o placar.
 const { spawnSync } = require('child_process'); const path = require('path');
-const TESTES = ['ui', 'feat', 'pix', 'ordem', 'img', 'xss', 'pega', 'toque'];
+const TESTES = ['ui', 'feat', 'pix', 'ordem', 'img', 'xss', 'pega', 'dica', 'toque'];
 
 const args = process.argv.slice(2);
 const segue = args.includes('--segue');

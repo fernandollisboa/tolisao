@@ -109,6 +109,13 @@ const CENAS = {
       await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
       await p.waitForSelector('.stain.pousou', { timeout: 8000 }); await p.waitForTimeout(600);
       console.log('chato: a senha desliga a diva, o rodapé liga de volta e a ficha é jogada de novo'); } },
+  dica: { nome: 'o balão contando o que o ✔ e o copiar pix fazem, na primeira vez', quem: 'Lia', atrasoPix: 900, dados: TRES,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(700);
+      await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      // as piscadas pedem "me pague"; o balão vem atrás explicando os dois botões
+      await p.waitForSelector('.dicaok', { timeout: 9000 });
+      await p.waitForFunction(() => !document.querySelector('.dicaok'), null, { timeout: 20000 });
+      await p.waitForTimeout(900); } },
   toque: { nome: 'o toque preenchendo o ✔ e o copiar pix, que no celular não têm hover', quem: 'Lia', atrasoPix: 900, dados: TRES,
     acao: async p => {
       await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));

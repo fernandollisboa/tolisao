@@ -145,8 +145,8 @@ const CENAS = {
       await p.waitForTimeout(3500); } },
   datilo: { nome: '"tô lisa" se digitando sozinho, com a hesitação da pontuação no fim', quem: 'Lia', atrasoPix: 0,
     // é troca de textContent por setTimeout, não CSS: o --vel do CDP não afeta o
-    // tempo real dela. ~1.7s de sequência + folga pro document.fonts.ready.
-    acao: async p => { await p.waitForTimeout(2800); } },
+    // tempo real dela. ~3.3s de sequência + folga pro document.fonts.ready.
+    acao: async p => { await p.waitForTimeout(4200); } },
 };
 
 /**

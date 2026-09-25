@@ -244,13 +244,14 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 /* ele se posiciona pela linha inteira, não pela dupla: centrado na dupla, metade dele
    ficava fora do papel quando o nome era curto (e o overflow-x:clip do body só escondia
    o estrago). Centrado na linha, a largura máxima é a do papel e não tem como vazar */
-#mineRows .row.sub .dicaok{position:absolute;z-index:9;top:calc(100% + 11px);left:0;right:0;
-  margin:0 auto;width:max-content;max-width:100%;text-align:center;background:#9a5b00;color:#fff;
+#mineRows .row.sub .dicaok{position:absolute;z-index:9;top:calc(100% + 11px);left:var(--esq,0);
+  width:max-content;max-width:100%;text-align:center;background:#9a5b00;color:#fff;
   border:2px solid var(--ink);border-radius:5px;padding:5px 9px;line-height:1.15;font-size:15px;
   text-transform:uppercase;letter-spacing:.4px;box-shadow:2px 2px 0 var(--ink);pointer-events:none;
   animation:balao 5.2s ease-out both}
-/* a setinha é que aponta pros botões: o --seta vem medido no render (do ✔, que é o
-   que já está lá), e o clamp segura ela dentro do balão quando o ✔ fica longe do meio */
+/* --esq e --seta vêm medidos no render: o balão nasce centrado no ✔ (que é o botão
+   que sempre está lá — o copiar pix nasce com max-width:0 e mediria errado) e preso
+   dentro da linha; a setinha cai em cima dele. O clamp é só cinto de segurança */
 #mineRows .row.sub .dicaok:before{content:"";position:absolute;top:-9px;
   left:clamp(11px,var(--seta,50%),calc(100% - 11px));margin-left:-9px;
   border:9px solid transparent;border-bottom-color:var(--ink);border-top:0}

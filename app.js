@@ -198,7 +198,7 @@
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, devagar
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   const DICA_MS = 5200;   // quanto o balão dos botões fica na tela antes de sumir sozinho
-  let dicaT = 0;          // hora marcada pro balão (0 = não vai aparecer)
+  let dicaT = 0;          // hora marcada pro balão (0 = ainda não entrou, -1 = já dispensado)
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
@@ -320,7 +320,7 @@
       if (mineT && meus.length && !dicaT && !ls.get(VIU_ACERTO))
         dicaT = mineT + (meus.length - 1) * PISCA_GAP + PISCA_MS;
       // o atraso negativo retoma de onde estava: o #mineRows é refeito a cada poll
-      const dtD = dicaT ? Date.now() - dicaT : Infinity;
+      const dtD = dicaT > 0 ? Date.now() - dicaT : Infinity;
       const balao = dtD < DICA_MS
         ? `<span class="dicaok" style="animation-delay:${-dtD}ms">✔ quita. copiar pix já vai com o valor.</span>` : '';
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>${i === 0 ? balao : ''}`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
@@ -334,10 +334,16 @@
       // aponta pra dupla, e o único jeito de saber onde ela está é medindo
       // a setinha mira o ✔, não o meio da dupla: o copiar pix nasce com `max-width:0`
       // e vai abrindo, então medir a dupla logo depois do innerHTML pega ela sem ele
+      // o balão fica centrado no ✔ e preso dentro da linha: centrado *na linha* ele
+      // se afastava do botão na tela larga, e a setinha batia no clamp e apontava pro
+      // nada. Preso na linha, que é a largura do papel, continua sem ter como vazar
       { const dc = $('#mineRows .dicaok');
-        if (dc) { const ok = dc.parentElement.querySelector('.dupla > .ok');
-          if (ok) { const a = ok.getBoundingClientRect(), c = dc.getBoundingClientRect();
-            dc.style.setProperty('--seta', `${Math.round(a.left + a.width / 2 - c.left)}px`); }
+        if (dc) { const ok = dc.parentElement.querySelector('.dupla > .ok'), linha = dc.closest('.row');
+          if (ok && linha) { const a = ok.getBoundingClientRect(), c = dc.getBoundingClientRect(), r = linha.getBoundingClientRect();
+            const meio = a.left + a.width / 2;
+            const esq = Math.max(0, Math.min(meio - c.width / 2 - r.left, r.width - c.width));
+            dc.style.setProperty('--esq', `${Math.round(esq)}px`);
+            dc.style.setProperty('--seta', `${Math.round(meio - r.left - esq)}px`); }
           // "já viu" só quando ele começa a aparecer mesmo: recarregar no meio da espera
           // (ou errar o nome no "quem é você?") não pode gastar a única vez
           dc.addEventListener('animationstart', () => ls.set(VIU_ACERTO, '1'), { once: true }); } } }
@@ -651,7 +657,9 @@
     // tocou em um dos dois: o balão já disse o que tinha pra dizer. Nada de render()
     // aqui — ele refaz o #mineRows, e o [data-settle] logo abaixo ainda vai medir o
     // botão pra saber de onde sai o confete; com o nó já trocado, saía do canto
-    if (dicaT && near('[data-pix],[data-settle]')) { dicaT = 0;
+    // e é pra valer: o -1 diz "dispensado" (o 0 diria "ainda não entrou", e o render
+    // seguinte reagendava tudo), e quem tocou num dos dois já não precisa de recado
+    if (dicaT && near('[data-pix],[data-settle]')) { dicaT = -1; ls.set(VIU_ACERTO, '1');
       const dc = $('#mineRows .dicaok'); if (dc) dc.remove(); }
     const px = near('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);

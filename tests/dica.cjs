@@ -78,6 +78,15 @@ const APERTADO = { name: 'bailedamada',
       & exige(ma.naSeta, `a setinha não aponta pro ✔ no caso apertado: ${JSON.stringify(ma)}`);
     console.log('320px, nome curto e sem pix:', apertado ? 'ok' : 'FALHOU', JSON.stringify(ma));
 
+    // e no desktop, onde a linha é bem mais larga que o balão, ele tem que andar até o
+    // ✔ em vez de ficar no meio da linha — senão a setinha bate no clamp e aponta pro nada
+    const dk = await aparelho({ largura: 1440 });
+    await dk.waitForSelector('.dicaok', { timeout: 9000 });
+    const md = await medida(dk);
+    const desktop = exige(md.naSeta, `a setinha não aponta pro ✔ no desktop: ${JSON.stringify(md)}`)
+      & exige(md.noPapel, `o balão saiu do papel no desktop: ${JSON.stringify(md)}`);
+    console.log('1440px:', desktop ? 'ok' : 'FALHOU', JSON.stringify(md));
+
     // 4. o toque no ✔ fecha o balão — e o confete continua saindo do botão, não do canto
     const alvo = await p.$eval('#mineRows [data-settle]', e => { const r = e.getBoundingClientRect();
       return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; });
@@ -105,7 +114,21 @@ const APERTADO = { name: 'bailedamada',
     await r.reload();
     const insistiu = await r.waitForSelector('.dicaok', { timeout: 9000 }).then(() => true).catch(() => false);
     exige(insistiu, 'recarregar antes de o balão aparecer gastou a única vez');
-    console.log('recarregar na espera não gasta a vez:', insistiu ? 'ok' : 'FALHOU', '| errors:', erros);
+    console.log('recarregar na espera não gasta a vez:', insistiu ? 'ok' : 'FALHOU');
+
+    // 7. e quem quita *antes* de o balão aparecer não pode vê-lo brotar depois: dispensar
+    //    é pra valer, no render logo em seguida, no poll e na visita seguinte
+    const c = await aparelho();
+    await c.waitForSelector('#mineRows [data-settle]', { timeout: 9000 });
+    await c.click('#mineRows [data-settle]'); await c.waitForSelector('#okBtn'); await c.click('#okBtn');
+    await c.waitForSelector('#quitOk'); await c.click('#quitOk');
+    await c.waitForTimeout(9000);   // passa a hora marcada e ainda um poll inteiro
+    const brotou = await c.$$eval('.dicaok', l => l.length);
+    exige(brotou === 0, `o balão dispensado voltou depois (${brotou})`);
+    await c.reload(); await c.waitForSelector('#mineRows .row', { timeout: 9000 }); await c.waitForTimeout(3000);
+    const naVolta = await c.$$eval('.dicaok', l => l.length);
+    exige(naVolta === 0, `o balão dispensado voltou na visita seguinte (${naVolta})`);
+    console.log('dispensar antes da hora é pra valer:', brotou === 0 && naVolta === 0 ? 'ok' : 'FALHOU', '| errors:', erros);
   } finally { await b.close(); srv.close(); }
   if (erros.length) process.exit(1);
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

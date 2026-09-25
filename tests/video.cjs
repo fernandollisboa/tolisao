@@ -143,10 +143,10 @@ const CENAS = {
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
-  datilo: { nome: '"tô lisa" se digitando sozinho, só na primeira visita', quem: 'Lia', atrasoPix: 0,
-    // a animação inteira (0.85s de datilografia + 4 piscadas de 0.6s) esticada pelo
-    // vel padrão (0.8x) já passa de 4s. Espera generoso pra não cortar a última piscada.
-    acao: async p => { await p.waitForTimeout(6000); } },
+  datilo: { nome: '"tô lisa" se digitando sozinho, com a hesitação da pontuação no fim', quem: 'Lia', atrasoPix: 0,
+    // é troca de textContent por setTimeout, não CSS: o --vel do CDP não afeta o
+    // tempo real dela. ~1.7s de sequência + folga pro document.fonts.ready.
+    acao: async p => { await p.waitForTimeout(2800); } },
 };
 
 /**

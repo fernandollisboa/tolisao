@@ -77,22 +77,13 @@ body.pegavel .stain.pousou{cursor:grab}
 body.chato .stain,body.chato #tagline{display:none}
 #signoff{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}
-/* só na primeira visita neste aparelho: "tô lisa" se digita sozinho, dando vida à
-   tela antes mesmo do fetch responder (não tem muito a ver com nota térmica, mas
-   era só isso que a #14 queria ver) */
-#titulo{display:inline-block}
-/* sem clip-path parado aqui: o Chrome remove animação "forwards" terminada assim que
-   pode (efeito "replaced animation"), e o elemento volta pro que está declarado fora
-   da animação — se fosse inset(0 100% 0 0) igual o 0% do keyframe, o título sumia de
-   vez depois de terminar de digitar. Com nada declarado, o "resto" é clip-path:none
-   (tudo visível), que já é o estado final que a animação persegue */
-#titulo.datilo{animation:datilografa .85s steps(7,end) forwards}
-#titulo.datilo:after{content:"";display:inline-block;width:3px;height:.8em;margin-left:3px;background:var(--ink);vertical-align:-3px;opacity:0;
-  animation:cursorEntra 0s .85s forwards,cursorPisca .6s step-end .85s 4 forwards}
-@keyframes datilografa{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
-@keyframes cursorEntra{to{opacity:1}}
-@keyframes cursorPisca{0%,49%{opacity:1}50%,100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){#titulo.datilo{animation:none;clip-path:none}#titulo.datilo:after{animation:none;opacity:0}}
+/* só na primeira tela que a pessoa vê neste aparelho: "tô lisa" se digita sozinho
+   (app.js troca o textContent por setTimeout — nada de animação CSS no texto em si,
+   só o cursor abaixo pisca). Um clip-path animado já deu bug de verdade num navegador
+   (o relógio da animação não andava), então o texto não depende de nenhum relógio */
+h1 span.digitando:after{content:"";display:inline-block;width:3px;height:.7em;margin-left:3px;background:var(--ink);vertical-align:-2px;animation:cursorPisca .5s step-end infinite}
+@keyframes cursorPisca{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){h1 span.digitando:after{animation:none;opacity:0}}
 h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
 h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .c{text-align:center;font-size:17px;line-height:1.5;text-transform:uppercase}

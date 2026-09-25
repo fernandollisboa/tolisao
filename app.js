@@ -44,21 +44,25 @@
     tituloJaAnimou = true;
     document.fonts.ready.then(() => {
       if (!el.isConnected) return;   // a tela pode ter trocado enquanto a fonte carregava
+      // a cadência é de gente de verdade, não de metrônomo: os intervalos abaixo
+      // foram medidos quadro a quadro de um vídeo do usuário digitando isso na
+      // barra do navegador. `d` é a espera *antes* daquele texto aparecer.
       const BASE = 'tô lisa';
-      const passos = [];
-      for (let i = 1; i <= BASE.length; i++) passos.push({ t: BASE.slice(0, i), d: 100 });     // cadência certeira
-      passos.push({ t: BASE + '!', d: 700 });                                                  // rapidinho o primeiro ! ... espera
-      passos.push({ t: BASE + '!!', d: 65 }, { t: BASE + '!!!', d: 550 });                     // rapidinho mais dois, olha um instante
-      passos.push({ t: BASE + '!!', d: 90 }, { t: BASE + '!', d: 150 });                       // apaga !!
-      passos.push({ t: BASE + '!?', d: 700 });                                                 // digita ? ... espera um pouquinho
-      passos.push({ t: BASE + '!', d: 100 }, { t: BASE, d: 90 });                              // apaga tudo
+      const LETRAS = [150, 950, 265, 215, 185, 85, 200];                                        // uma por letra: tropeça no ô, embala no "lis"
+      const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
+      passos.push({ t: BASE + '!', d: 765 });                                                   // olha o que escreveu e crava um !
+      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 });                     // volta pra pôr mais um, e emenda o terceiro
+      passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 });                       // pensa melhor e apaga dois
+      passos.push({ t: BASE + '!?', d: 700 });                                                  // tenta o ? ... e olha
+      passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 });                              // apaga o !? também
+      passos.push({ t: BASE + '.', d: 300 }, { t: BASE, d: 900 });                              // acaba num ponto, que some pro título ficar igual ao resto
       el.textContent = ''; el.classList.add('digitando');
       let i = 0;
       const passo = () => {
         if (i >= passos.length) { el.classList.remove('digitando'); return; }
         el.textContent = passos[i].t; const atraso = passos[i + 1]?.d ?? 90; i++; setTimeout(passo, atraso);
       };
-      setTimeout(passo, 150);
+      setTimeout(passo, passos[0].d);
     });
   }
 

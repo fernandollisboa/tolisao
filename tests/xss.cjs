@@ -10,7 +10,7 @@ const evil = { name: 'bailedamada', updatedAt: 1, people: [
 (async () => { const b = await chromium.launch(); const c = await b.newContext({ viewport: { width: 390, height: 844 } }); const errs = [];
   await c.route(/fake-db/, r => { const u = r.request().url(); if (u.includes('/pix/')) return r.fulfill({ json: u.includes('/lia/') ? '<img src=x onerror="window.__xss=5">' : null }); if (r.request().method() !== 'GET') return r.fulfill({ json: {} }); r.fulfill({ json: evil }); });
   const p = await c.newPage(); p.on('pageerror', e => errs.push(e.message));
-  await p.goto('http://localhost:4187/#c=bailedamada'); await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: 'Fernando' }); await p.waitForTimeout(800);
+  await p.goto('http://localhost:4187/?senha=bailedamada'); await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: 'Fernando' }); await p.waitForTimeout(800);
   await p.click('#itemsHead'); await p.waitForTimeout(100);
   await p.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden'));
   const r = await p.evaluate(() => ({ xss: window.__xss, people: [...document.querySelectorAll('#peopleLine .nm')].map(e => e.textContent), items: [...document.querySelectorAll('#expenses .item .l')].map(e => e.textContent.trim()), pixBtns: document.querySelectorAll('[data-pix]').length, imgs: document.querySelectorAll('img:not(.stain)').length }));

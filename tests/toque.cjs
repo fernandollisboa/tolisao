@@ -19,7 +19,7 @@ const dados = CENAS.toque.dados;   // três dívidas suas, só o Fernando com ch
         if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
         r.fulfill({ json: dados }); });
       const pg = await ctx.newPage(); pg.on('pageerror', e => erros.push(`${toque ? 'dedo' : 'mouse'}: ${e.message}`));
-      await pg.goto(`http://localhost:${PORTA}/#c=${dados.name}`);
+      await pg.goto(`http://localhost:${PORTA}/?senha=${dados.name}`);
       await pg.click('#whoBtn'); await pg.waitForSelector('#whoSel');
       await pg.selectOption('#whoSel', { label: QUEM });
       await pg.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));

@@ -1,4 +1,4 @@
-// o código do evento no endereço, e o "voltar" do "Evento novo?" quando o código sai errado
+// o código do evento no endereço (?senha=), e o "voltar" do "Evento novo?" quando o código sai errado
 const { chromium } = require('./_pw.cjs'); const store = {};
 const srv = require('./_serve.cjs')(4187);
 const falha = m => { console.error('FAIL', m); process.exit(1); };
@@ -20,15 +20,15 @@ const falha = m => { console.error('FAIL', m); process.exit(1); };
   await p.click('#gateForm button'); await p.waitForSelector('#okBtn');
   await p.mouse.click(5, 5); await p.waitForSelector('#gateForm', { timeout: 3000 }).catch(() => falha('tocar fora deixou a tela sem cartão'));
   console.log('tocar fora: volta pro código');
-  // agora cria: o endereço passa a levar o código
+  // agora cria: o endereço passa a levar o código, em ?senha= (o #c= ficava feio)
   await p.fill('#gateCode', 'Bailedamada'); await p.click('#gateForm button'); await p.click('#okBtn');
-  await p.waitForSelector('#app:not(.loading)'); const h = await p.evaluate(() => location.hash);
-  if (h !== '#c=bailedamada') falha('endereço sem o código: ' + h); console.log('endereço:', h);
+  await p.waitForSelector('#app:not(.loading)'); const s = await p.evaluate(() => location.search);
+  if (s !== '?senha=bailedamada') falha('endereço sem o código: ' + s); console.log('endereço:', s);
   // recarregar com o código no endereço fica no mesmo evento, sem perguntar nada
   await p.reload(); await p.waitForSelector('#app:not(.loading)');
   if (await p.isVisible('#okBtn')) falha('recarregar perguntou de novo');
-  // colar o link de outro evento na mesma aba entra nele
-  await p.evaluate(() => { location.hash = '#c=outroevento'; }); await p.waitForSelector('#okBtn', { timeout: 5000 }).catch(() => falha('colar outro link não trocou de evento'));
+  // colar o link de outro evento na mesma aba entra nele (mudar a query recarrega sozinho)
+  await p.evaluate(() => { location.search = '?senha=outroevento'; }); await p.waitForSelector('#okBtn', { timeout: 5000 }).catch(() => falha('colar outro link não trocou de evento'));
   console.log('outro link na mesma aba: pergunta se cria "outroevento"');
   if (errs.length) falha(errs.join(' | '));
   console.log('url: ok'); await b.close(); srv.close();

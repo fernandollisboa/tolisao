@@ -36,7 +36,7 @@ const ESPERADO = [
         window.__ev.push({ nome: e.animationName, t: Math.round(performance.now()), pseudo: e.pseudoElement || '',
           alvo: row ? (row.textContent || '').trim().slice(0, 24) : (t.id || '') }); }, true); });
 
-    await p.goto(`http://localhost:${PORTA}/#c=${dados.name}`);
+    await p.goto(`http://localhost:${PORTA}/?senha=${dados.name}`);
     await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
     await p.selectOption('#whoSel', { label: QUEM });
     // antes de dizer quem é, a nota é outra (sem Minha conta) e anima por conta dela;

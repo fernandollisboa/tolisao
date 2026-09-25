@@ -185,7 +185,7 @@ async function video(opts = {}) {
     // o navegador roda as animações mais devagar, senão some antes de dar pra ver
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
-    await p.goto(`http://localhost:${porta}/#c=${dados.name}`);
+    await p.goto(`http://localhost:${porta}/?senha=${dados.name}`);
     // css de experiência: entra depois da folha do app, então redefine keyframes e vence
     if (opts.css) await p.addStyleTag({ content: opts.css });
     await p.waitForSelector('#mine:not(.hidden)', { timeout: 8000 });

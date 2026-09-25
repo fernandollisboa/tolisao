@@ -606,7 +606,7 @@
   }
   async function openGroup(code, id){
     // o código fica no endereço: copiar a URL da barra já manda o evento
-    if (code && location.hash !== '#c=' + encodeURIComponent(code)) history.replaceState(null, '', location.pathname + location.search + '#c=' + encodeURIComponent(code));
+    if (code && location.search !== '?senha=' + encodeURIComponent(code)) history.replaceState(null, '', location.pathname + '?senha=' + encodeURIComponent(code) + location.hash);
     roomName = code; groupId = id; me = ls.get(meKey()); lastSeen = +ls.get(seenKey()) || 0; showAll = false;
     $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
     state = cacheLoad(); if (state) render();
@@ -637,7 +637,7 @@
       <div class="c"><button id="evLeave" class="ghost" style="color:var(--red)">sair do evento</button></div>`);
     $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
   }
-  function leave(){ ls.del('racha:room'); location.hash = ''; location.reload(); }
+  function leave(){ ls.del('racha:room'); location.href = location.pathname; }
 
   // ---------- eventos ----------
   $('#addPerson').onclick = async () => { const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim(); if (!name) return;
@@ -715,7 +715,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
   const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : 'https://tolisa.com.br/';
-  const shareUrl = () => `${SITE}#c=${encodeURIComponent(roomName)}`;
+  const shareUrl = () => `${SITE}?senha=${encodeURIComponent(roomName)}`;
   $('#shareBtn').onclick = async () => { const url = shareUrl();
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { showCopy('Link do evento', url); } };
   function summaryText(){
@@ -815,7 +815,6 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     } catch (e) { toast('Não consegui gerar a imagem: ' + e.message); waText(); }
     finally { btn.disabled = false; }
   };
-  window.addEventListener('hashchange', () => location.reload());
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
   // ---------- instalar na tela de início ----------
@@ -1059,15 +1058,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     $('#bars').innerHTML = `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none" fill="#222" aria-hidden="true">${rects}</svg>`;
   })();
 
-  // colar outro link de evento na mesma aba muda só o #: recarrega pra entrar nele
-  addEventListener('hashchange', () => { const c = location.hash.match(/#c=([^&]+)/);
-    let code = ''; try { code = c ? decodeURIComponent(c[1]).trim().toLowerCase() : ''; } catch {}
-    if (code && code !== roomName) location.reload(); });
+  // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
   // ---------- início ----------
   (async () => {
-    const c = location.hash.match(/#c=([^&]+)/);
+    const c = new URLSearchParams(location.search).get('senha');
     let saved = null; try { saved = JSON.parse(ls.get('racha:room')); } catch {}
-    if (c) { let code = ''; try { code = decodeURIComponent(c[1]).trim().toLowerCase(); } catch {}
+    if (c) { const code = c.trim().toLowerCase();
       // o endereço agora sempre carrega o código: recarregar o evento de sempre não é entrar de novo
       // (e, se ele sumiu do banco, cai no "Evento não encontrado" com a cópia, não no "Evento novo?")
       if (saved && saved.code === code && /^[0-9a-f]{64}$/.test(saved.id || '') && DB) return openGroup(saved.code, saved.id);

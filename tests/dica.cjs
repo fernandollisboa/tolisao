@@ -27,7 +27,7 @@ const APERTADO = { name: 'bailedamada',
     if (ouvindo) await ctx.addInitScript(() => { window.__ev = [];
       addEventListener('animationstart', e => window.__ev.push({ nome: e.animationName, t: Math.round(performance.now()) }), true); });
     const p = await ctx.newPage(); p.on('pageerror', e => erros.push(e.message));
-    await p.goto(`http://localhost:${PORTA}/#c=${d.name}`);
+    await p.goto(`http://localhost:${PORTA}/?senha=${d.name}`);
     await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
     await p.selectOption('#whoSel', { label: QUEM });
     return p; };

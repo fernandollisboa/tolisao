@@ -33,7 +33,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   await p1.screenshot({ path: path.join(OUT, 'app-mobile-2.png'), fullPage: true });
   // segundo aparelho vê tudo
   const c2 = await b.newContext(); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));
-  await p2.goto('http://localhost:4179/#c=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.waitForTimeout(300);
+  await p2.goto('http://localhost:4179/?senha=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.waitForTimeout(300);
   console.log('p2 sees Cerveja:', (await p2.$eval('#expenses', e => e.innerText)).toUpperCase().includes('CERVEJA'), '| p2 settle rows:', await p2.$$eval('#settle .row:not(.paid)', l => l.length));
   console.log('dialogs:', dialogs.length, '| errors:', errs); await b.close(); srv.close();
 })().catch(e => { console.error('FAIL', e); process.exit(1); });

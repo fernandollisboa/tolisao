@@ -317,8 +317,9 @@
       // e a frase é a mesma história ("paguei" e "como pagar"). Corre por fora da fila,
       // atrás da última piscada — a piscada é o pedido, o balão é a explicação. Some
       // sozinho no fim da animação, ou no primeiro toque em qualquer um dos dois
+      if (!meus.length && dicaT > 0 && !ls.get(VIU_ACERTO)) dicaT = 0;
       if (mineT && meus.length && !dicaT && !ls.get(VIU_ACERTO))
-        dicaT = mineT + (meus.length - 1) * PISCA_GAP + PISCA_MS;
+        dicaT = Math.max(Date.now(), mineT + (meus.length - 1) * PISCA_GAP + PISCA_MS);
       // o atraso negativo retoma de onde estava: o #mineRows é refeito a cada poll
       const dtD = dicaT > 0 ? Date.now() - dicaT : Infinity;
       const balao = dtD < DICA_MS

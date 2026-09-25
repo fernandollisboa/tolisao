@@ -31,13 +31,34 @@
   const VISITAS = 'racha:visitas', CONVIDOU = 'racha:convidou', ABRIU = 'racha:abriuItens';
   const VIU_ACERTO = 'racha:viuAcerto';   // o balão dos botões de Minha conta, uma vez por aparelho
   const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
-  // "tô lisa" se digita sozinho só na primeira visita: dinamismo na tela antes do fetch responder
-  // não confia só no "forwards" da animação pra ficar visível: em pelo menos um
-  // navegador de verdade o clip-path nunca chegou a se mexer (getAnimations() vazio o
-  // tempo todo, sem repaint suficiente pra andar o relógio da animação) e o título
-  // ficava escondido pra sempre. O setTimeout garante o fim de qualquer jeito.
-  if (visitas === 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const t = $('#titulo'); if (t) { t.classList.add('datilo'); setTimeout(() => t.classList.remove('datilo'), 3400); }
+  // "tô lisa" se digita sozinho na primeira tela que a pessoa vê (o cartão do código,
+  // ou o cabeçalho do evento se ela entrar direto por um link) — só na primeira visita
+  // deste aparelho, e uma vez só, seja qual das duas telas aparecer primeiro.
+  // É tudo em JS (troca de textContent), não CSS: um clip-path animado já deu bug de
+  // verdade num navegador (o relógio da animação simplesmente não andava, sem
+  // getAnimations() nenhum rodando) — trocar texto por setTimeout não depende de
+  // nenhum relógio de animação, só do event loop normal.
+  let tituloJaAnimou = false;
+  function digitaTitulo(el){
+    if (!el || tituloJaAnimou || visitas !== 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    tituloJaAnimou = true;
+    document.fonts.ready.then(() => {
+      if (!el.isConnected) return;   // a tela pode ter trocado enquanto a fonte carregava
+      const BASE = 'tô lisa';
+      const passos = [];
+      for (let i = 1; i <= BASE.length; i++) passos.push({ t: BASE.slice(0, i), d: 55 });
+      passos.push({ t: BASE + '!', d: 90 }, { t: BASE + '!!', d: 70 }, { t: BASE + '!!!', d: 70 });
+      passos.push({ t: BASE + '!!', d: 260 }, { t: BASE + '!', d: 90 });     // apaga !! (hesita antes)
+      passos.push({ t: BASE + '!?', d: 320 });                              // digita ? e hesita
+      passos.push({ t: BASE + '!', d: 90 }, { t: BASE, d: 90 });             // apaga !?
+      el.textContent = ''; el.classList.add('digitando');
+      let i = 0;
+      const passo = () => {
+        if (i >= passos.length) { el.classList.remove('digitando'); return; }
+        el.textContent = passos[i].t; const atraso = passos[i + 1]?.d ?? 90; i++; setTimeout(passo, atraso);
+      };
+      setTimeout(passo, 150);
+    });
   }
 
   /** @type {string|null} */ let groupId = null; let roomName = '';
@@ -524,9 +545,10 @@
         <div>2. copie o pix e pague o deves</div>
         <div>3. cobre o amiguinho a fazer o mesmo</div>
       </div>`;
-    overlay(`<h1>tô lisa</h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
+    overlay(`<h1><span id="tituloGate">tô lisa</span></h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autofocus autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`, true);
+    digitaTitulo($('#tituloGate'));
     $('#gateForm').onsubmit = async ev => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Abrindo…';
@@ -617,6 +639,7 @@
     if (code && location.search !== '?senha=' + encodeURIComponent(code)) history.replaceState(null, '', location.pathname + '?senha=' + encodeURIComponent(code) + location.hash);
     roomName = code; groupId = id; me = ls.get(meKey()); lastSeen = +ls.get(seenKey()) || 0; showAll = false;
     $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
+    digitaTitulo($('#titulo'));
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
     pixKeys = {}; pixReady = false; rearmaAnims();

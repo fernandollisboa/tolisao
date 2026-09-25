@@ -489,8 +489,9 @@
 
   function ask(title, desc, okLabel = 'confirmar'){
     return new Promise(res => {
-      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button>`);
+      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
       overlayCancel = () => res(false); $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#okBtn').focus();
+      $('#cancelBtn').onclick = () => { overlayCancel = null; closeOverlay(); res(false); };
     });
   }
   function askText(title, desc, placeholder, value = '', okLabel = 'confirmar'){
@@ -517,8 +518,12 @@
     $('#gateForm').onsubmit = async ev => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Abrindo…';
-      try { await enterRoom($('#gateCode').value.trim().toLowerCase()); }
-      catch (e) { $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Abrir'; }
+      const code = $('#gateCode').value;
+      try { await enterRoom(code.trim().toLowerCase()); }
+      catch (e) {
+        // o "Evento novo?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
+        if (!$('#gateForm')) { showGate(); $('#gateCode').value = code; }
+        $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Abrir'; }
     };
   }
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você */
@@ -596,6 +601,8 @@
     await openGroup(code, id);
   }
   async function openGroup(code, id){
+    // o código fica no endereço: copiar a URL da barra já manda o evento
+    if (code && location.hash !== '#c=' + encodeURIComponent(code)) history.replaceState(null, '', location.pathname + location.search + '#c=' + encodeURIComponent(code));
     roomName = code; groupId = id; me = ls.get(meKey()); lastSeen = +ls.get(seenKey()) || 0; showAll = false;
     $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
     state = cacheLoad(); if (state) render();
@@ -1048,11 +1055,19 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     $('#bars').innerHTML = `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none" fill="#222" aria-hidden="true">${rects}</svg>`;
   })();
 
+  // colar outro link de evento na mesma aba muda só o #: recarrega pra entrar nele
+  addEventListener('hashchange', () => { const c = location.hash.match(/#c=([^&]+)/);
+    let code = ''; try { code = c ? decodeURIComponent(c[1]).trim().toLowerCase() : ''; } catch {}
+    if (code && code !== roomName) location.reload(); });
   // ---------- início ----------
   (async () => {
     const c = location.hash.match(/#c=([^&]+)/);
-    if (c) { const code = decodeURIComponent(c[1]).trim().toLowerCase(); try { return await enterRoom(code); } catch (e) { return showGate(e.message); } }
     let saved = null; try { saved = JSON.parse(ls.get('racha:room')); } catch {}
+    if (c) { let code = ''; try { code = decodeURIComponent(c[1]).trim().toLowerCase(); } catch {}
+      // o endereço agora sempre carrega o código: recarregar o evento de sempre não é entrar de novo
+      // (e, se ele sumiu do banco, cai no "Evento não encontrado" com a cópia, não no "Evento novo?")
+      if (saved && saved.code === code && /^[0-9a-f]{64}$/.test(saved.id || '') && DB) return openGroup(saved.code, saved.id);
+      try { return await enterRoom(code); } catch (e) { return showGate(e.message); } }
     if (saved && /^[0-9a-f]{64}$/.test(saved.id || '') && DB && !location.hash.includes('seed=')) return openGroup(saved.code, saved.id);
     ls.del('racha:room');   // resto de versão antiga
     showGate();

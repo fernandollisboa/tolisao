@@ -46,11 +46,12 @@
       if (!el.isConnected) return;   // a tela pode ter trocado enquanto a fonte carregava
       const BASE = 'tô lisa';
       const passos = [];
-      for (let i = 1; i <= BASE.length; i++) passos.push({ t: BASE.slice(0, i), d: 55 });
-      passos.push({ t: BASE + '!', d: 90 }, { t: BASE + '!!', d: 70 }, { t: BASE + '!!!', d: 70 });
-      passos.push({ t: BASE + '!!', d: 260 }, { t: BASE + '!', d: 90 });     // apaga !! (hesita antes)
-      passos.push({ t: BASE + '!?', d: 320 });                              // digita ? e hesita
-      passos.push({ t: BASE + '!', d: 90 }, { t: BASE, d: 90 });             // apaga !?
+      for (let i = 1; i <= BASE.length; i++) passos.push({ t: BASE.slice(0, i), d: 100 });     // cadência certeira
+      passos.push({ t: BASE + '!', d: 700 });                                                  // rapidinho o primeiro ! ... espera
+      passos.push({ t: BASE + '!!', d: 65 }, { t: BASE + '!!!', d: 550 });                     // rapidinho mais dois, olha um instante
+      passos.push({ t: BASE + '!!', d: 90 }, { t: BASE + '!', d: 150 });                       // apaga !!
+      passos.push({ t: BASE + '!?', d: 700 });                                                 // digita ? ... espera um pouquinho
+      passos.push({ t: BASE + '!', d: 100 }, { t: BASE, d: 90 });                              // apaga tudo
       el.textContent = ''; el.classList.add('digitando');
       let i = 0;
       const passo = () => {

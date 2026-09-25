@@ -32,7 +32,13 @@
   const VIU_ACERTO = 'racha:viuAcerto';   // o balão dos botões de Minha conta, uma vez por aparelho
   const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
   // "tô lisa" se digita sozinho só na primeira visita: dinamismo na tela antes do fetch responder
-  if (visitas === 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) { const t = $('#titulo'); if (t) t.classList.add('datilo'); }
+  // não confia só no "forwards" da animação pra ficar visível: em pelo menos um
+  // navegador de verdade o clip-path nunca chegou a se mexer (getAnimations() vazio o
+  // tempo todo, sem repaint suficiente pra andar o relógio da animação) e o título
+  // ficava escondido pra sempre. O setTimeout garante o fim de qualquer jeito.
+  if (visitas === 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const t = $('#titulo'); if (t) { t.classList.add('datilo'); setTimeout(() => t.classList.remove('datilo'), 3400); }
+  }
 
   /** @type {string|null} */ let groupId = null; let roomName = '';
   /** @type {Room|null} */ let state = null;

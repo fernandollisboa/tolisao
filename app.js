@@ -31,6 +31,8 @@
   const VISITAS = 'racha:visitas', CONVIDOU = 'racha:convidou', ABRIU = 'racha:abriuItens';
   const VIU_ACERTO = 'racha:viuAcerto';   // o balão dos botões de Minha conta, uma vez por aparelho
   const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
+  // "tô lisa" se digita sozinho só na primeira visita: dinamismo na tela antes do fetch responder
+  if (visitas === 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) { const t = $('#titulo'); if (t) t.classList.add('datilo'); }
 
   /** @type {string|null} */ let groupId = null; let roomName = '';
   /** @type {Room|null} */ let state = null;

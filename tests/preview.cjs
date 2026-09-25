@@ -46,7 +46,7 @@ async function preview(opts = {}) {
     });
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
-    await p.goto(`http://localhost:${porta}/#c=${dados.name}`);
+    await p.goto(`http://localhost:${porta}/?senha=${dados.name}`);
     await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
     await p.selectOption('#whoSel', { label: quem });
     await p.waitForTimeout(900);

@@ -30,7 +30,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   promptAnswer = '7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d'; await setPix(p1, promptAnswer); await p1.waitForTimeout(400); console.log('aleatória:', await p1.$eval('#toast', e => e.textContent), '|', await p1.$eval('#whoLine', e => e.innerText));
   // Lia tenta sobrescrever a chave do Fernando (outro aparelho) -> negado
   const c2 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));
-  await p2.goto('http://localhost:4182/#c=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Fernando' }); await p2.waitForTimeout(300);
+  await p2.goto('http://localhost:4182/?senha=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Fernando' }); await p2.waitForTimeout(300);
   p2.on('dialog', d => d.type() === 'prompt' ? d.accept('hacker@mal.com') : d.accept());
   // a chave só se cadastra pelo botão âmbar, que some quando já existe chave:
   // no outro aparelho não há por onde sobrescrever pela tela
@@ -39,7 +39,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
     const n = await p2.locator('#whoPix').count(); await p2.click('#overlay', { position: { x: 5, y: 5 } }); await p2.waitForTimeout(200); return n; })());
   // e se tentar escrever direto no banco, a regra nega
   console.log('troca por outro aparelho:', await p2.evaluate(async () => {
-    const sala = location.hash.match(/#c=(.+)/) && (await crypto.subtle.digest('SHA-256', new TextEncoder().encode('bailedamada'))
+    const sala = new URLSearchParams(location.search).get('senha') && (await crypto.subtle.digest('SHA-256', new TextEncoder().encode('bailedamada'))
       .then(h => [...new Uint8Array(h)].map(b => b.toString(16).padStart(2,'0')).join('')));
     const r = await fetch(`https://fake-db.firebaseio.com/pix/${sala}/fernando.json`, { method: 'PUT',
       body: JSON.stringify({ key: 'hacker@mal.com', tok: 'token-de-outro-aparelho' }) });

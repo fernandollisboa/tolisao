@@ -32,7 +32,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   await p1.screenshot({ path: path.join(OUT, 'feat-1.png'), fullPage: true });
   // Lia abre: vê NOVO no item da Júlia, sua linha marcada, resumo dela
   const c2 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));
-  await p2.goto('http://localhost:4183/#c=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.waitForTimeout(400);
+  await p2.goto('http://localhost:4183/?senha=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Lia' }); await p2.waitForTimeout(400);
   console.log('novo tags:', await p2.$$eval('#expenses .tag', l => l.length), '| minha linha:', await p2.$eval('#settle .row.mine .l', e => e.innerText));
   console.log('minha conta Lia:', (await p2.$eval('#mineRows', e => e.innerText)).replace(/\n/g,' | '));
   await p2.screenshot({ path: path.join(OUT, 'feat-2.png'), clip: { x: 0, y: 0, width: 390, height: 900 } });

@@ -196,6 +196,7 @@
   let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, devagar
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
+  let tocouOk = false;      // tocou num dos botões: o convite da piscada já foi respondido
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
@@ -307,7 +308,7 @@
         return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>`; };
       // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
       const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
-        const pi = dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
+        const pi = !tocouOk && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
       const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
       // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
@@ -616,6 +617,21 @@
     $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { const tgt = /** @type {HTMLInputElement} */ (ev.target); if (tgt.matches('#splitChips input')) { tgt.closest('.chip').classList.toggle('on', tgt.checked); updateHint(); } });
+  // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.
+  // Na captura, pra pegar o toque mesmo que alguém pare o evento no caminho
+  document.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse') return;   // no mouse quem responde é o hover
+    const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (ev.target).closest('#mineRows .dupla > button.ico'));
+    if (!b) return;
+    tocouOk = true; b.classList.remove('pisca');
+    // a piscada é montada com `animation-delay` inline, e declaração inline vence a
+    // folha: sem tirar o atraso, o toque nascia adiantado (a piscada correndo) ou
+    // parado no primeiro quadro pelo tempo do atraso que sobrou
+b.style.removeProperty('animation-delay'); b.classList.remove('brota');
+    // tocar de novo antes da anterior acabar recomeça a animação
+    b.classList.remove('tocou'); void b.offsetWidth; b.classList.add('tocou');
+    b.addEventListener('animationend', () => b.classList.remove('tocou'), { once: true });
+  }, true);
   document.addEventListener('click', async ev => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
     /** @returns {HTMLElement|null} */ const near = sel => /** @type {HTMLElement|null} */ (tgt.closest(sel));
@@ -972,7 +988,7 @@
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = itensT = filaT = 0;
+    settleT = riscoT = mineT = itensT = filaT = 0; tocouOk = false;   // nota nova, convite novo
     mineNaTela = itensNaTela = settleNaTela = false;
     const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }

@@ -109,6 +109,26 @@ const CENAS = {
       await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
       await p.waitForSelector('.stain.pousou', { timeout: 8000 }); await p.waitForTimeout(600);
       console.log('chato: a senha desliga a diva, o rodapé liga de volta e a ficha é jogada de novo'); } },
+  toque: { nome: 'o toque preenchendo o ✔ e o copiar pix, que no celular não têm hover', quem: 'Lia', atrasoPix: 900, dados: TRES,
+    acao: async p => {
+      await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));
+      // um dedo de mentira, pra quem assiste ver onde a pessoa toca
+      await p.evaluate(() => { const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;z-index:99;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(255,255,255,.55);border:2px solid rgba(0,0,0,.5);pointer-events:none;left:-50px;top:-50px;transition:transform .12s';
+        document.body.appendChild(d);
+        const põe = e => { d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px'; };
+        addEventListener('pointerdown', e => { põe(e); d.style.transform = 'scale(.7)'; }, true);
+        addEventListener('pointerup', e => { põe(e); d.style.transform = ''; }, true); });
+      await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
+      await p.waitForSelector('#mineRows [data-pix]', { timeout: 9000 });
+      await p.waitForTimeout(3000);   // deixa a piscada acabar: o toque é outra conversa
+      const meio = async sel => { const b = await p.locator(sel).first().boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+      let o = await meio('#mineRows [data-pix]');
+      await p.touchscreen.tap(o.x, o.y); await p.waitForTimeout(2200);
+      o = await meio('#mineRows [data-settle]');
+      await p.touchscreen.tap(o.x, o.y); await p.waitForTimeout(2200);
+      // fecha o cartão de quitar: o vídeo acaba na nota, com o ✔ já de volta ao normal
+      await p.click('#overlay', { position: { x: 5, y: 5 } }); await p.waitForTimeout(1500); } },
   itens: { nome: 'o toquinho na linha dos itens quando ela chega na tela', quem: 'Lia', atrasoPix: 600,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
       await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ behavior: 'smooth', block: 'center' }));

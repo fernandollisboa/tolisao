@@ -62,6 +62,7 @@ Playwright cru, sem framework. Cada script sobe um servidor local, intercepta o 
 | `xss.cjs` | nome e descrição hostis não viram HTML |
 | `ordem.cjs` | a ordem das animações, ouvindo `animationstart` |
 | `pega.cjs` | a ficha pegável e o modo chato |
+| `toque.cjs` | o toque preenchendo o ✔ e o copiar pix, e o mouse fora disso |
 
 Bug que deu na mão vira teste antes do conserto. As dependências são de desenvolvimento e só: o site não carrega nada disso. `preview.cjs` e `video.cjs` não são testes, são os geradores de imagem e vídeo; `icone.cjs` regenera os `ficha-*.png` da PWA e `noar.cjs` confere o que está publicado.
 

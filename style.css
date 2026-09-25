@@ -81,10 +81,15 @@ h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;lette
    tela antes mesmo do fetch responder (não tem muito a ver com nota térmica, mas
    era só isso que a #14 queria ver) */
 #titulo{display:inline-block}
-#titulo.datilo{clip-path:inset(0 100% 0 0);animation:datilografa .85s steps(7,end) forwards}
+/* sem clip-path parado aqui: o Chrome remove animação "forwards" terminada assim que
+   pode (efeito "replaced animation"), e o elemento volta pro que está declarado fora
+   da animação — se fosse inset(0 100% 0 0) igual o 0% do keyframe, o título sumia de
+   vez depois de terminar de digitar. Com nada declarado, o "resto" é clip-path:none
+   (tudo visível), que já é o estado final que a animação persegue */
+#titulo.datilo{animation:datilografa .85s steps(7,end) forwards}
 #titulo.datilo:after{content:"";display:inline-block;width:3px;height:.8em;margin-left:3px;background:var(--ink);vertical-align:-3px;opacity:0;
   animation:cursorEntra 0s .85s forwards,cursorPisca .6s step-end .85s 4 forwards}
-@keyframes datilografa{to{clip-path:inset(0 0 0 0)}}
+@keyframes datilografa{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @keyframes cursorEntra{to{opacity:1}}
 @keyframes cursorPisca{0%,49%{opacity:1}50%,100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){#titulo.datilo{animation:none;clip-path:none}#titulo.datilo:after{animation:none;opacity:0}}

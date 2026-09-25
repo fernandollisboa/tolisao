@@ -17,7 +17,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 2
       - name: Versiona os assets pra furar o cache do navegador
@@ -33,14 +33,14 @@ jobs:
              && ! git diff --quiet HEAD~1 HEAD -- app.js style.css; then
             echo "::warning::app.js/style.css mudaram e o ?v= do index.html não; aqui o SHA cobre, mas suba a versão mesmo assim"
           fi
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
         with:
           enablement: true
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: .
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
       - name: Confere o que ficou no ar
         env:
           URL: ${{ steps.deployment.outputs.page_url }}

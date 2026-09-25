@@ -234,7 +234,7 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
   22%{opacity:1}
   38%,78%,100%{opacity:1;transform:none;background:#fff8e6;color:#9a5b00}
   58%{opacity:1;transform:scale(1.12);background:#9a5b00;color:#fff8e6}}
-@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#pixLine #pixBtn{animation:none}}
+@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#pixLine #pixBtn,#mineRows .dupla>button.ico.tocou{animation:none}}
 /* o fadein do #mine já o deixa num contexto de empilhamento próprio, então o balão
    não conseguia subir acima da linha dos itens por dentro: quem sobe é a seção */
 #mine{position:relative;z-index:2}
@@ -264,6 +264,18 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 /* quem pediu menos movimento continua lendo o recado, e ele continua sumindo sozinho */
 @media (prefers-reduced-motion:reduce){#mineRows .row.sub .dicaok{animation-name:balaoQuieto}
   @keyframes balaoQuieto{0%,88%{opacity:1}100%{opacity:0}}}
+/* no celular não existe hover: o toque preenche o botão com a cor dele e volta, o
+   mesmo vocabulário da piscada, só que curto. A classe vem do JS e não do :active
+   porque no iOS o :active só acorda com um ouvinte de toque, e porque a animação
+   tem que terminar mesmo com o dedo já fora do botão. Como `.tocou` redefine o
+   `animation` inteiro, ela passa por cima da piscada montada sem precisar de
+   !important — e a piscada não volta depois, que o convite já foi respondido */
+#mineRows .dupla>.ok{--tc:var(--green)}
+#mineRows .dupla>button.ico:not(.ok){--tc:var(--ink)}
+#mineRows .dupla>button.ico.tocou{animation:toque .28s ease-out both}
+@keyframes toque{
+  0%,40%{background:var(--tc);color:#fff8e6}
+  100%{background:#fff8e6;color:var(--tc)}}
 /* a linha nasce sem altura: o espaço abre junto com o botão descendo, não antes dele */
 #pixLine{max-height:0;overflow:hidden;margin:0;transition:max-height .42s cubic-bezier(.2,.9,.3,1),margin .42s cubic-bezier(.2,.9,.3,1),opacity .3s ease}
 #pixLine.cheio{max-height:46px;margin:-2px 0 10px}

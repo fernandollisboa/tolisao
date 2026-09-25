@@ -199,6 +199,7 @@
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   const DICA_MS = 5200;   // quanto o balão dos botões fica na tela antes de sumir sozinho
   let dicaT = 0;          // hora marcada pro balão (0 = ainda não entrou, -1 = já dispensado)
+  let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
   const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
@@ -310,7 +311,7 @@
         return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG}${COPY_SVG}</button>`; };
       // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
       const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
-        const pi = dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
+        const pi = !tocouOk && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔</button>`; };
       // os dois botões não dizem o que fazem: um balão conta, uma vez só neste aparelho.
       // Um balão pra dupla, não um pra cada: em 390px dois balões lado a lado não cabem,
@@ -363,7 +364,7 @@
     $('#settleHead').classList.toggle('hidden', vazio);
     { const chama = hasMe && state.expenses.length === 0;
       $('#dica').classList.toggle('hidden', !chama);
-      $('#fab').classList.toggle('chamando', chama); }   // preenchido só enquanto o balão aponta pra ele
+      $('#fab').classList.add('chamando'); }   // o ✎ volta a ficar âmbar o tempo todo
     // nota vazia não tem o que mandar: o zap some e sobra só o "quem é você?"
     $('#waBtn').classList.toggle('hidden', vazio);
     $('#itemsSec').classList.toggle('hidden', vazio);   // quem está quite também quer ver no que gastou
@@ -649,6 +650,21 @@
     $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { const tgt = /** @type {HTMLInputElement} */ (ev.target); if (tgt.matches('#splitChips input')) { tgt.closest('.chip').classList.toggle('on', tgt.checked); updateHint(); } });
+  // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.
+  // Na captura, pra pegar o toque mesmo que alguém pare o evento no caminho
+  document.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse') return;   // no mouse quem responde é o hover
+    const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (ev.target).closest('#mineRows .dupla > button.ico'));
+    if (!b) return;
+    tocouOk = true; b.classList.remove('pisca');
+    // a piscada é montada com `animation-delay` inline, e declaração inline vence a
+    // folha: sem tirar o atraso, o toque nascia adiantado (a piscada correndo) ou
+    // parado no primeiro quadro pelo tempo do atraso que sobrou
+b.style.removeProperty('animation-delay'); b.classList.remove('brota');
+    // tocar de novo antes da anterior acabar recomeça a animação
+    b.classList.remove('tocou'); void b.offsetWidth; b.classList.add('tocou');
+    b.addEventListener('animationend', () => b.classList.remove('tocou'), { once: true });
+  }, true);
   document.addEventListener('click', async ev => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
     /** @returns {HTMLElement|null} */ const near = sel => /** @type {HTMLElement|null} */ (tgt.closest(sel));
@@ -1012,7 +1028,7 @@
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = itensT = filaT = dicaT = 0;
+    settleT = riscoT = mineT = itensT = filaT = dicaT = 0; tocouOk = false;   // nota nova, convite novo
     mineNaTela = itensNaTela = settleNaTela = false;
     const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }

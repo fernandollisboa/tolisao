@@ -144,7 +144,9 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
   datilo: { nome: '"tô lisa" se digitando sozinho, só na primeira visita', quem: 'Lia', atrasoPix: 0,
-    acao: async p => { await p.waitForTimeout(3500); } },
+    // a animação inteira (0.85s de datilografia + 4 piscadas de 0.6s) esticada pelo
+    // vel padrão (0.8x) já passa de 4s. Espera generoso pra não cortar a última piscada.
+    acao: async p => { await p.waitForTimeout(6000); } },
 };
 
 /**
@@ -152,7 +154,7 @@ const CENAS = {
  * @returns {Promise<string>} caminho do vídeo
  */
 async function video(opts = {}) {
-  const { cena = 'pix', vel = 0.5, largura = 390, altura = 844,
+  const { cena = 'pix', vel = 0.8, largura = 390, altura = 844,
           porta = 4500 + Math.floor(Math.random()*200) } = opts;
   const c = CENAS[cena]; if (!c) throw new Error(`cena desconhecida: ${cena} (tem ${Object.keys(CENAS).join(', ')})`);
   const dados = opts.dados || c.dados || DADOS;

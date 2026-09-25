@@ -163,7 +163,7 @@ button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);widt
 /* sem ninguém escolhido não existe o ✎: o zap ocupa a vaga da ponta.
    Quando a pessoa entra, ele escorrega pra dentro e abre espaço pro lápis. */
 #waBtn.wafab.so{right:18px}
-@media (prefers-reduced-motion:reduce){#waBtn.wafab{transition:none}.fab{animation:none}}
+@media (prefers-reduced-motion:reduce){#waBtn.wafab{transition:none}}
 /* balãozinho do primeiro gasto: aponta pro ✎ enquanto o evento não tem nada anotado */
 #dica{position:fixed;z-index:9;right:14px;bottom:92px;max-width:196px;text-align:center;background:#9a5b00;color:#fff;
   border:2px solid var(--ink);border-radius:5px;padding:7px 11px;line-height:1.2;font-size:19px;text-transform:uppercase;letter-spacing:.5px;box-shadow:2px 2px 0 var(--ink)}
@@ -204,10 +204,16 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   /* a linha dos itens não é <button>, então o mouse por cima não tinha nenhum aviso:
      acende a mesma moldura que o toque usa no celular */
   #itemsHead:hover:before{opacity:1}
-  /* pulso levinho o tempo todo, sem trocar de cor; para no hover, que já é o próprio aviso */
+  /* pulso levinho o tempo todo, sem trocar de cor; para no hover, que já é o próprio aviso.
+     cancela (não só pausa) porque pausar no meio do brilho deixava a cor do hover
+     variando conforme a hora exata em que o mouse chegasse */
   .fab{animation:pulsaFab 2.6s ease-in-out infinite}
-  .fab:hover{animation-play-state:paused}
+  .fab:hover{animation:none;filter:none}
 }
+/* o hover:hover acima também bate em quem pede menos movimento (são media features
+   independentes); essa regra precisa vir depois pra ganhar da .fab de lá, mesma
+   especificidade — é a mesma ordem que as outras 11 exceções de reduced-motion usam */
+@media (prefers-reduced-motion:reduce){.fab{animation:none}}
 input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}
 input::placeholder{color:#9a8a6a;text-transform:uppercase}
 form{display:grid;gap:10px}

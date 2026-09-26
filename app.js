@@ -232,10 +232,9 @@
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
   let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
-  // o ✎ se abre em ANOTAR nas duas primeiras visitas; depois pula até a primeira vez que
-  // é apertado, pulsa na segunda e na terceira, e sossega
+  // o ✎ pulsa até ser apertado três vezes, e sossega
   let fabT = 0, souT = 0, cutucas = [];
-  const ANOTA_MS = 1900, ABRE_MS = 3200, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
+  const ANOTA_MS = 1900, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
   /** a classe entra na hora marcada, mas só com o botão na tela; fora dela, espera ele voltar */
   const cutuca = (el, cls, t) => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const vai = () => { const r = el.getBoundingClientRect();
@@ -510,11 +509,7 @@
     const pegaram = (!aVista($('#mine')) || mineNaTela) && (!aVista($('#itemsSec')) || itensNaTela) && (!aVista($('#settle')) || settleNaTela);
     if (pegaram && !$('#app').classList.contains('loading') && hasMe && !fabT && $('#overlay').classList.contains('hidden')) {
       if (!souT) { souT = calmo(SOU_MS, 0); cutuca($('#whoBtn'), 'cutuca', souT); }
-      // nas duas primeiras vezes ele se abre escrito ANOTAR; depois pula até ser apertado
-      const n = +device().fabTaps || 0, vistas = +device().fabSeen || 0;
-      const cls = vistas < 2 ? 'abre' : n === 0 ? 'pula' : n < 3 ? 'pulsa' : '';
-      if (cls) { if (cls === 'abre') setDevice('fabSeen', vistas + 1);
-        fabT = calmo(cls === 'abre' ? ABRE_MS : ANOTA_MS, ANOTA_RESPIRO); cutuca($('#fab'), cls, fabT); } else fabT = -1; }
+      if ((+device().fabTaps || 0) < 3) { fabT = calmo(ANOTA_MS, ANOTA_RESPIRO); cutuca($('#fab'), 'pulsa', fabT); } else fabT = -1; }
     const dtS = settleT ? Date.now() - settleT : Infinity;
     const desenha = dtS < DESENHA_MS + DESENHA_GAP + Math.max(0, nMeus - 1) * VOLTA_GAP;
     let ordem = 0;   // as suas linhas riscam uma atrás da outra, de cima pra baixo

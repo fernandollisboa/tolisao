@@ -1,4 +1,4 @@
-const { defineConfig } = require('@playwright/test');
+const { defineConfig } = require('./_pw.cjs');   // também acha o chromium da máquina
 const { defineBddConfig } = require('playwright-bdd');
 
 const testDir = defineBddConfig({ features: 'features/*.feature', steps: 'passos/*.cjs', language: 'pt', outputDir: '.gerado' });

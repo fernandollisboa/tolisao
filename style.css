@@ -412,3 +412,31 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 #mineRows .cur{width:22px;margin-right:0} #mineRows .num{min-width:52px}
 #settle .cur{width:auto;margin-right:0} #settle .num{min-width:7ch}
 #splitHint{margin-bottom:-4px}
+/* o ✎ se apresenta: pula com uma onda até a primeira vez que é apertado, pulsa na segunda
+   e na terceira. O Sou Fulano engrossa o sublinhado, correndo, depois de tudo */
+#fab{width:52px;height:52px;outline:3px solid transparent}
+#fab svg{width:28px;height:28px}
+/* o ✎ e o zap ficam fixos no canto de baixo, onde o polegar alcança, pra anotar e
+   mandar de qualquer ponto da página; o zap embaixo, centrado sob o ✎ */
+#fab{position:fixed;top:auto;bottom:calc(92px + env(safe-area-inset-bottom))}
+#waBtn.wafab{position:fixed;top:auto;bottom:calc(36px + env(safe-area-inset-bottom));right:calc(max(22px,calc(50% - 216px)) + 4px)}
+#waBtn.wafab.so{top:auto}
+@keyframes pulaOnda{0%,100%{translate:0 0;outline-offset:0;outline-color:rgba(154,91,0,0)}8%{translate:0 2px}18%{translate:0 -14px}28%{translate:0 0;outline-offset:0;outline-color:rgba(154,91,0,.9)}44%{translate:0 -10px;outline-offset:12px;outline-color:rgba(154,91,0,0)}45%{outline-offset:0}54%{translate:0 0;outline-color:rgba(154,91,0,.9)}68%{translate:0 -5px;outline-offset:12px;outline-color:rgba(154,91,0,0)}76%{translate:0 0}}
+@keyframes pulsaAnota{0%,100%{scale:1;outline-offset:0;outline-color:rgba(154,91,0,0)}12%{outline-color:rgba(154,91,0,.9)}25%{scale:1.14}45%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}46%{outline-offset:0}58%{outline-color:rgba(154,91,0,.9)}70%{scale:1.14}90%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}}
+#fab.pula{animation:pulaOnda 1.6s ease-in-out}
+/* abre: cresce de lado num retângulo fofinho e endireita; o lápis corre pro começo e
+   escreve o ANOTAR, que aparece atrás dele; depois fecha de volta no círculo */
+#fab{justify-content:flex-end;padding-right:9px;overflow:hidden;white-space:nowrap}
+#fab:before{content:'anotar';text-transform:uppercase;font-size:24px;line-height:1;margin-right:8px;letter-spacing:1px;opacity:0}
+#fab svg{flex:none;transform-origin:20% 80%}
+@keyframes abreFab{0%,100%{width:52px;border-radius:26px;transform:rotate(-6deg)}10%{width:166px;border-radius:18px;transform:rotate(-1deg)}15%{width:147px}19%,80%{width:152px;border-radius:18px;transform:rotate(-2deg)}}
+@keyframes letreiro{0%,22%{opacity:1;clip-path:inset(0 100% 0 0)}58%,78%{opacity:1;clip-path:inset(0 0 0 0)}88%,100%{opacity:0;clip-path:inset(0 0 0 0)}}
+@keyframes lapis{0%,14%{translate:0 0;rotate:0deg}22%{translate:-88px 2px;rotate:-10deg}28%{translate:-74px 0;rotate:6deg}34%{translate:-60px 2px;rotate:-8deg}40%{translate:-46px 0;rotate:6deg}46%{translate:-32px 2px;rotate:-8deg}52%{translate:-18px 0;rotate:6deg}58%,100%{translate:0 0;rotate:0deg}}
+#fab.abre{animation:abreFab 3.2s ease-out}
+#fab.abre:before{animation:letreiro 3.2s linear}
+#fab.abre svg{animation:lapis 3.2s ease-in-out}
+#fab.pulsa{animation:pulsaAnota 1.9s ease-out}
+@keyframes sublinha{0%{background-size:0 3px}40%,75%{background-size:100% 3px}100%{background-size:100% 1px}}
+#whoBtn:not(.amb){text-decoration:none;background:linear-gradient(currentColor,currentColor) no-repeat 0 100%/100% 1px;padding-bottom:1px}
+#whoBtn.cutuca{animation:sublinha 1.2s ease-out}
+@media (prefers-reduced-motion:reduce){#fab.pula,#fab.pulsa,#fab.abre,#fab.abre:before,#fab.abre svg,#whoBtn.cutuca{animation:none}}

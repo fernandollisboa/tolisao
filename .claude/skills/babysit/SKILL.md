@@ -15,6 +15,7 @@ Abriu o PR, ele é seu até o site estar no ar. O usuário não quer ser chamado
 ## Esperando o check
 
 - O check que importa é o `test` do `tests.yml`. Ele roda em `pull_request` pra `main`, e demora alguns segundos pra aparecer depois do push.
+- Check que não aparece nunca: veja o `mergeable_state` do PR. `dirty` é conflito com a `main`, e com conflito o GitHub nem dispara o workflow. Traga a `main` com merge (sem rebase), resolva, teste e suba.
 - Não fique perguntando de minuto em minuto. Arme um `Monitor` que consulta
   `https://api.github.com/repos/fernandollisboa/tolisao/commits/<sha>/check-runs`
   a cada 30s e sai quando `test` estiver `completed`, com o `conclusion` que vier.

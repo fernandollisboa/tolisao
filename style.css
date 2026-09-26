@@ -255,7 +255,9 @@ form{display:grid;gap:10px}
 /* o pulso desktop (abaixo, em hover:hover) é só de brilho: mexer em transform mudava
    o retângulo do botão a cada quadro, e o Playwright nunca via ele "parado" pra clicar */
 @keyframes pulsaFab{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
-#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto}
+#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto;overscroll-behavior:contain}
+/* com cartão aberto a página de trás não rola: senão ficam duas barras, a dela e a do cartão */
+html:has(#overlay:not(.hidden)),html:has(#sheet:not(.hidden)){overflow:hidden}
 #overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 #sheet .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}

@@ -6,7 +6,7 @@ Divisor de gastos entre amigos, no estilo do Splitwise, sem aplicativo e sem cad
 
 1. Abra o site e digite um nome para o evento. O evento novo recebe um final sorteado no código (`churras-k7f3q9x2`), então compartilhe o link, não só o nome.
 2. Em "quem é você?", escolha seu nome.
-3. Anote os gastos no ✎ âmbar, no canto de baixo da tela: valor, descrição, quem pagou e quem divide. A divisão pode ser igual ou em partes diferentes. Desmarcar quem pagou registra um empréstimo.
+3. Anote os gastos no ✎ âmbar, no canto de cima da tela: valor, descrição, quem pagou e quem divide. A divisão pode ser igual ou em partes diferentes. Desmarcar quem pagou registra um empréstimo.
 4. **Minha conta** mostra quanto você deve ou tem a receber. É ali que você marca um pagamento como feito (✔) e copia o Pix já com o valor. **Falta pagar** mostra o menor número de transferências que zera todo mundo.
 5. O botão de compartilhar, logo abaixo do ✎, gera a imagem da conta e abre o WhatsApp com a lista de quem paga quem e o link do evento.
 

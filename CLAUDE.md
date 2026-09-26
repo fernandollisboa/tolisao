@@ -31,6 +31,8 @@ a `main` é o que tá no ar, exige o check `test` e recusa push direto. quando o
 3. `git checkout main && git pull origin main`.
 4. espere o `pages.yml` terminar verde. só depois diga que tá no ar.
 
+o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
+
 - quem publica é o `.github/workflows/pages.yml`, e só ele (fonte do Pages: GitHub Actions). se alguém voltar pra "deploy from a branch", o Pages publica a branch crua por cima, com `?v=__V__` literal e CSS velho por dias.
 - pushes seguidos cancelam o deploy anterior: espere o último antes de conferir.
 - o `?v=` de `app.js` e `style.css` vira o SHA no deploy. o valor no `index.html` é reserva: suba ele (data + letra) junto com mudança visual.

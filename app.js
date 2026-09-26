@@ -769,8 +769,8 @@
     if (!existing && !seed) {
       if (!(await ask('Evento novo?', `não existe evento com o código "${esc(code)}". criar um agora? o link ganha um final sorteado, pra ninguém adivinhar.`, 'criar evento'))) throw new Error('confira o código');
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
-      // vira "churras-k7f3q9x2", e o nome da tela continua "churras". 36⁸ finais possíveis
-      const nome = code; code = `${code}-${sorteia(8)}`; id = await sha(code);
+      // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
+      const nome = code; code = `${code}-${sorteia(6)}`; id = await sha(code);
       await apiPut(id, fresh(nome));
     } else if (!existing) {   // #seed=: restaura uma cópia com o mesmo código, sem sortear nada
       let data = fresh(code);

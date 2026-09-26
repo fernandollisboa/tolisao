@@ -5,7 +5,6 @@
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
   // ---------- config ----------
-  // Firebase Realtime Database (REST). Ex.: 'https://racha-xxxxx-default-rtdb.firebaseio.com'
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
@@ -846,7 +845,9 @@
       if (sum !== total) return toast(sum < total ? `Faltam ${money((total-sum)/100)} nas partes` : `Sobram ${money((sum-total)/100)} nas partes`);
       exp.shares = {}; for (const id of among) exp.shares[id] = sh[id] || 0; }
     state.expenses.push(exp);
-    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
+    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal';
+    $('#splitChips').innerHTML = ''; $('#sharesBox').innerHTML = ''; delete $('#sharesBox').dataset.k;
+    itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { const tgt = /** @type {HTMLInputElement} */ (ev.target); if (tgt.matches('#splitChips input')) { tgt.closest('.chip').classList.toggle('on', tgt.checked); updateHint(); } });
   // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.

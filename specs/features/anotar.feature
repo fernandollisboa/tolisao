@@ -75,6 +75,18 @@ Funcionalidade: Anotar um gasto
     Quando eu digito "1234567" no valor
     Então o valor fica "5.001.234,56"
 
+  Cenário: depois de anotar, o próximo gasto começa do zero
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu preencho R$ 42,84 de "Janta"
+    E eu divido só entre Lia e Mengla, em partes diferentes
+    E eu ponho R$ 18,87 pra Lia
+    E eu toco na aba igual
+    E eu salvo
+    E eu toco no ✎
+    E eu toco na aba das partes diferentes
+    Então todo mundo divide, com as partes vazias
+
   Cenário: a nota sincronizando não tira o campo de quem digita a parte
     Quando eu abro o evento como Lia
     E eu toco no ✎

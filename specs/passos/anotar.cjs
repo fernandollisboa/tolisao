@@ -67,6 +67,12 @@ When('a nota sincroniza', async ({ mundo }) => {
 Then('o cursor continua na parte do {word}', async ({ mundo }, n) => {
   await expect(mundo.p.locator(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`)).toBeFocused();
 });
+When('eu toco na aba igual', async ({ mundo }) => { await mundo.p.click('#splitSeg [data-modo="equal"]'); });
+Then('todo mundo divide, com as partes vazias', async ({ mundo }) => {
+  const campos = mundo.p.locator('#sharesBox input[data-share]');
+  await expect(campos).toHaveCount(await mundo.p.locator('#splitChips input').count());
+  for (const c of await campos.all()) await expect(c).toHaveValue('');
+});
 When('eu toco na aba das partes diferentes', async ({ mundo }) => { await mundo.p.click('#splitSeg [data-modo="custom"]'); });
 Then('a aba das partes diferentes fica marcada', async ({ mundo }) => {
   const aba = mundo.p.locator('#splitSeg [data-modo="custom"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');

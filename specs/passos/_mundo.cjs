@@ -12,7 +12,7 @@ class Mundo {
   constructor(browser, base) {
     this.browser = browser; this.base = base; this.banco = new Banco();
     this.evento = null; this.sala = ''; this.p = null; this.nota = {};
-    this.erros = []; this.dialogos = []; this.contextos = []; this.antes = null; this.recusasEsperadas = 0;
+    this.erros = []; this.dialogos = []; this.contextos = []; this.antes = null;
   }
   get link() { return `${this.base}/?senha=${this.evento.name}`; }
   pessoa(nome) { const eu = this.evento.people.find(x => x.name === nome); if (!eu) throw new Error(`${nome} não está no evento`); return eu; }
@@ -53,7 +53,6 @@ class Mundo {
     expect(this.erros, 'erros na página').toEqual([]);
     expect(this.dialogos, 'diálogos nativos').toEqual([]);
     expect(this.banco.listagens, 'tentativas de listar eventos').toBe(0);
-    expect(this.banco.recusas, 'salas que o banco recusou pelas regras').toBe(this.recusasEsperadas);
   }
 }
 

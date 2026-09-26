@@ -24,7 +24,7 @@ No celular, o site pode ser instalado pelo botão do rodapé e abre sem internet
 As regras ficam em [`database.rules.json`](database.rules.json) e são coladas no console do Firebase (Realtime Database → Regras). Antes de publicar, teste no simulador de regras com uma sala copiada do banco.
 
 - O `.read` fica dentro de `$room`, nunca em `rooms`. As regras se propagam para baixo e não podem ser revogadas num nível mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixaria o banco inteiro.
-- O `.validate` de `rooms/$room` repete o formato que o `clean()` do `app.js` produz: sem campos extras, textos no tamanho do app, até 1000 pessoas, 10000 itens e 1000 exclusões. Quem mudar o `clean()` precisa mudar as regras e o `specs/_banco.cjs`, que as reproduz nos testes.
+- O `.validate` de `rooms/$room` repete o formato que o `clean()` do `app.js` produz: sem campos extras, textos no tamanho do app, até 1000 pessoas, 10000 itens e 1000 exclusões. Quem mudar o `clean()` precisa mudar as regras também.
 
 ## Desenvolvimento
 

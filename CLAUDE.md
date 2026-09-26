@@ -17,7 +17,7 @@
 - `specs/`: cucumber em português (`playwright-bdd` em cima do `@playwright/test`).
   - `features/*.feature` é a especificação, `passos/*.cjs` os passos.
   - `passos/_mundo.cjs` é o fixture de cada cenário: banco falso, aparelhos, página da vez. no fim ele falha se a página deu erro, abriu diálogo nativo ou tentou listar eventos.
-  - `_banco.cjs` imita o Firebase com as regras do `database.rules.json`. `_serve.cjs` serve o repo na porta 0. `_bonito.cjs` é o reporter, que imprime o `.feature` com os passos em verde e vermelho.
+  - `_banco.cjs` imita o Firebase com as regras de leitura e escrita do `database.rules.json` (o `.validate` fica de fora). `_serve.cjs` serve o repo na porta 0. `_bonito.cjs` é o reporter, que imprime o `.feature` com os passos em verde e vermelho.
   - animação não tem teste automático: confira no vídeo.
   - `preview.cjs` e `video.cjs` não são testes, são geradores de imagem e de `.webm` (cenas `cascata`, `pix`, `piscas`, `troca`, `chave`, `ficha`, `pega`, `chato`, `toque`, `itens`, `risco`; `--css=` e `--js=` pra comparar variações). `_ficha.cjs` tem os gestos da ficha.
 - `.github/workflows/`: `tests.yml` (check `test`, em PR) e `pages.yml` (deploy). leia **deploy** antes de subir.
@@ -62,7 +62,7 @@ armadilhas:
 - sync: `merge()` une por id, exclusão vence, `clean()` em tudo que vem do banco ou do cache, `canon()` pra não regravar à toa.
 - pix: só pelo `#pixBtn` âmbar. `pix/<sala>/<pessoa>/{key, tok}`: `key` todo mundo lê, só quem tem o `tok` troca. só chave aleatória ou e-mail (`validPixKey`).
 - aparelho: duas gavetas de JSON no localStorage, chaves em inglês e camelCase. `tolisa` tem `{visits, installPrompted, itemsOpened, boringMode, lastRoom}` (`device()`/`setDevice()`), `tolisa:<sala>` tem `{me, lastSeen, pixTokens, snapshot}` (`room()`/`setRoom()`). as chaves `racha:*` de antes migram sozinhas na abertura, e o velho só sai depois que o novo gravou (perder o `tok` trava a chave pix).
-- regras no `database.rules.json` (coladas no console do Firebase): leitura e escrita por sala. o `.read` nunca sobe pro nó `rooms`, senão `GET /rooms.json` baixa tudo. o `.validate` de `rooms/$room` é o formato do `clean()`, e o `apiPut` passa tudo pelo `clean()` antes de gravar. mexeu num, mexa no outro e no `specs/_banco.cjs`, que imita as regras (e falha o cenário se recusar uma gravação que ninguém esperava).
+- regras no `database.rules.json` (coladas no console do Firebase): leitura e escrita por sala. o `.read` nunca sobe pro nó `rooms`, senão `GET /rooms.json` baixa tudo. o `.validate` de `rooms/$room` é o formato do `clean()`, e o `apiPut` passa tudo pelo `clean()` antes de gravar. mexeu num, mexa no outro. validação de banco não vira cenário: o cucumber é pra feature.
 
 ## convenções
 

@@ -265,9 +265,10 @@
   let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
   let natal = null;             // pisca-pisca de natal dessa vez: o sorteio de atraso de cada linha, ou null
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, uma linha atrás da outra
-  // pisca-pisca de natal: o cordão corre defasado e o fecho vem pra todas juntas, depois de
-  // uma pausa que conta a partir da última linha. Cada linha sorteia um tico de atraso
-  const NATAL_MS = 2960, FECHO_EM = 3300, FECHO_MS = 1500, NATAL_JIT = 90, FECHO_JIT = 45;
+  // pisca-pisca de natal: o cordão corre defasado linha a linha, em duas ondas (as pares
+  // numa frequência, as ímpares na `.b` do CSS, mais ligeira), e o fecho vem pra todas
+  // juntas depois de uma pausa que conta da última linha. Cada linha sorteia um tico de atraso
+  const FECHO_EM = 3300, FECHO_MS = 1500, NATAL_JIT = 90, FECHO_JIT = 45;
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
@@ -404,7 +405,7 @@
       // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
       const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
         const j = natal && natal[i], fecho = j && (natal.length - 1) * PISCA_GAP + FECHO_EM + j[1];
-        const pi = tocouOk ? '' : j ? (dt < fecho + FECHO_MS ? ` pisca natal" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms` : '')
+        const pi = tocouOk ? '' : j ? (dt < fecho + FECHO_MS ? ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms` : '')
           : dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`; };
       // os botões dizem o que fazem ("paguei", "copiar pix"): um balão explicando ícone

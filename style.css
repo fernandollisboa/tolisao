@@ -281,13 +281,15 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 @keyframes pisca{
   0%,100%{background:#fff8e6;color:var(--green);transform:none}
   45%{background:var(--green);color:#fff8e6;transform:scale(1.14)}}
-/* quem deve pra dois ou mais às vezes ganha o pisca-pisca de natal. Primeiro cada linha
-   pisca cada vez mais curto e mais junto, uma atrás da outra que nem cordão de luz; aí
-   todas juntas fazem o fecho (ligado desligado) (desligado ligado) (ligado ligado)
+/* quem deve pra dois ou mais às vezes ganha o pisca-pisca de natal. Primeiro duas ondas,
+   que nem os dois circuitos do pisca-pisca de verdade: cada linha entra depois da outra,
+   piscando cada vez mais curto e mais junto, as pares numa frequência e as ímpares em
+   outra (a `.b` corre mais ligeira); aí todas juntas fazem o fecho (ligado desligado) (desligado ligado) (ligado ligado)
    (desligado). O fecho vem por cima (`forwards` sem `backwards`: antes de começar ele
    não pinta nada). Os atrasos vêm do JS, com um tico de sorteio por linha. Quadro
    colado no outro é lâmpada acendendo seco */
 #mineRows .dupla>.ok.pisca.natal{animation:natal 2.96s linear both,fecho 1.5s linear forwards}
+#mineRows .dupla>.ok.pisca.natal.b{animation-duration:2.2s,1.5s}
 @keyframes natal{
   0%,10.47%,23.65%,32.77%,42.57%,50.34%,57.43%,63.85%,68.92%,73.99%,77.03%,81.08%,82.77%,86.15%,87.16%,90.2%,90.88%,93.58%,94.26%,96.96%,97.3%,99.66%,100%{
     background:#fff8e6;color:var(--green);box-shadow:2px 2px 0 var(--green),0 0 0 rgba(21,112,58,0)}

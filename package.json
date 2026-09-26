@@ -9,6 +9,7 @@
     "video": "node specs/video.cjs"
   },
   "devDependencies": {
+    "@cucumber/pretty-formatter": "^4.0.2",
     "@playwright/test": "^1.63.0",
     "playwright-bdd": "^9.2.1",
     "typescript": "^7.0.2"

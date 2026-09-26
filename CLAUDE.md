@@ -19,7 +19,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 ## comandos
 
 - rodar: `python3 -m http.server`.
-- testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
+- testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). a saída é pontinho, falhas e os 5 cenários mais lerdos; pra ver passo a passo, `specs/relatorio.html`. o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
 - tipos: `npm run types` (tem que sair limpo). sintaxe: `node --check app.js`.
 
 ## deploy

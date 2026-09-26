@@ -101,15 +101,19 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .row.paid.novo:after{animation:risca .55s ease-out both;animation-delay:var(--rd,0ms)}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}
-/* o ▸ dos itens é o botão que abre e fecha a lista */
+/* a setinha dos itens: triângulo vazado em SVG, no centro. O ▸ não existe na VT323, e
+   cada aparelho desenhava com a fonte que tinha, baixo e torto. Sem caixinha: a linha
+   inteira já é o botão */
 #itemsHead .l{display:flex;align-items:center;gap:9px}
-#itemsCaret{display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border:2px solid var(--ink);border-radius:4px;background:#fff8e6;box-shadow:2px 2px 0 var(--ink);font-size:15px;line-height:1}
+#itemsCaret{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:24px}
 #itemsCaret span{display:block;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
+#itemsCaret svg{display:block;width:16px;height:16px;overflow:visible}
+#itemsCaret path{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
 #itemsCaret.aberto span{transform:rotate(90deg)}
-#itemsHead:active #itemsCaret{transform:translate(2px,2px);box-shadow:none}
+#itemsHead:active #itemsCaret{transform:translate(2px,2px)}
 /* a linha dos itens é um botão com moldura. Quando a seção chega na tela ela convida:
-   o ▸ cresce vazado, a linha afunda uma vez (a sombra da moldura some e volta) e o ▸
-   volta preto. A moldura é um :before com folga, pra não mexer no layout nem encostar
+   a setinha cresce, a linha afunda uma vez (a sombra da moldura some e volta) e a
+   setinha se enche de preto no afundar, voltando vazada. A moldura é um :before com folga, pra não mexer no layout nem encostar
    no texto */
 #itemsHead{isolation:isolate}
 #itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;background:#fff8e6;box-shadow:3px 3px 0 var(--ink);z-index:-1;pointer-events:none}
@@ -119,25 +123,24 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsHead.pisca{animation:apertinho 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca:before{animation:moldura 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca #itemsCaret span{animation:vazado 1.6s ease-in-out var(--ad,0ms) backwards}
+#itemsHead.pisca #itemsCaret path{animation:enche 1.6s ease-in-out var(--ad,0ms) backwards}
 @keyframes apertinho{0%,44%,66%,100%{transform:none}54%{transform:translate(3px,3px)}}
 @keyframes moldura{
   0%,44%,66%,100%{box-shadow:3px 3px 0 var(--ink)}
   54%{box-shadow:0 0 0 var(--ink)}}
-/* vazado e grande enquanto espera o toque; preto quando a linha afunda */
-@keyframes vazado{
-  0%,100%{transform:none;color:var(--ink);-webkit-text-stroke:0 var(--ink)}
-  18%,44%{transform:scale(1.5);color:transparent;-webkit-text-stroke:1.2px var(--ink)}
-  54%{transform:none;color:var(--ink);-webkit-text-stroke:0 var(--ink)}}
+/* grande enquanto espera o toque; cheia de preto quando a linha afunda */
+@keyframes vazado{0%,54%,100%{transform:none}18%,44%{transform:scale(1.5)}}
+@keyframes enche{0%,44%,66%,100%{fill:transparent}54%{fill:currentColor}}
 /* quem já aprendeu (abriu a lista uma vez, ou já veio muitas vezes) ganha só um
-   toquinho de leve na caixinha do ▸ */
+   toquinho de leve na setinha */
 #itemsHead.suave #itemsCaret{animation:toquinho .62s ease-in-out var(--ad,0ms) backwards}
 @keyframes toquinho{
-  0%,46%,100%{transform:none;box-shadow:2px 2px 0 var(--ink)}
-  22%{transform:translate(2px,2px) scale(.94);box-shadow:0 0 0 var(--ink)}
-  72%{transform:translate(1px,1px) scale(.975);box-shadow:1px 1px 0 var(--ink)}}
+  0%,46%,100%{transform:none}
+  22%{transform:translate(2px,2px) scale(.94)}
+  72%{transform:translate(1px,1px) scale(.975)}}
 @keyframes abreLista{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #itemsBody:not(.hidden){animation:abreLista .22s ease-out}
-@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.suave #itemsCaret,#itemsBody:not(.hidden){transition:none;animation:none}}
+@media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody:not(.hidden){transition:none;animation:none}}
 .row.total{font-size:24px;margin-top:10px} .row.total .v{font-size:24px}
 .bars{margin:18px auto 0;height:40px;width:230px} .bars svg{display:block;width:100%;height:100%}
 .empty{color:var(--muted);font-size:17px;text-align:center;padding:4px 0}
@@ -212,13 +215,12 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   #waBtn.wafab:hover{background:var(--ink);color:#fff8e6}
   .fab:hover{box-shadow:1px 1px 0 var(--ink);translate:2px 2px}
   /* a linha dos itens fechada é botão: no hover ela afunda inteira, como uma barra de
-     espaço meio apertada — a linha desce e a sombra da moldura e da caixinha encolhe.
+     espaço meio apertada — a linha desce e a sombra da moldura encolhe.
      Clicando, afunda até o fim */
-  #itemsHead:before,#itemsCaret{transition:box-shadow .12s ease}
+  #itemsHead:before{transition:box-shadow .12s ease}
   #itemsHead{transition:translate .12s ease}
   #itemsHead:not(.aberto):hover{translate:2px 2px}
   #itemsHead:not(.aberto):hover:before{box-shadow:1px 1px 0 var(--ink)}
-  #itemsHead:not(.aberto):hover #itemsCaret{box-shadow:1px 1px 0 var(--ink)}
   #itemsHead:not(.aberto):active{translate:3px 3px}
   #itemsHead:not(.aberto):active:before{box-shadow:0 0 0 var(--ink)}
   /* pulso levinho o tempo todo, sem trocar de cor; para no hover, que já é o próprio aviso.

@@ -502,7 +502,9 @@
     $('#expenseForm button.big').disabled = false;
     if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
     else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
-    else h.innerHTML = `Dividido igualmente entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`;
+    // o "igualmente" continua sendo link, como antes das abas: tocar nele vai pras partes diferentes
+    else { h.innerHTML = `Dividido <a class="link" id="modeToggle" title="dividir em partes diferentes">igualmente</a> entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`;
+      $('#modeToggle').onclick = () => { splitMode = 'custom'; updateHint(); }; }
   }
   /** quanto falta (ou sobra) pras partes fecharem o total, em destaque em cima do botão,
    *  que só libera quando fecha. Só mexe no recado e nos "o resto": refazer as linhas

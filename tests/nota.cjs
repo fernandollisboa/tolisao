@@ -71,7 +71,11 @@ const VAZIO = { name: 'churras', people: DADOS.people.slice(0, 3), expenses: [] 
   for (const t of '1234567') await p.type('#amount', t); valores.push(await p.inputValue('#amount'));
   exige(JSON.stringify(valores) === JSON.stringify(['0,05', '0,50', '5,00', '50,00', '5,00', '5.001.234,56']), `máscara do valor: ${JSON.stringify(valores)}`);
   // partes diferentes: abas, "dividir o resto igual", "o resto", e desmarcar a linha
-  await p.fill('#amount', '12000'); await p.click('#splitSeg [data-modo="custom"]');
+  await p.fill('#amount', '12000');
+  // o "igualmente" da frase também leva pras partes diferentes
+  await p.click('#modeToggle');
+  exige(await p.$eval('#splitSeg [data-modo="custom"]', b => b.classList.contains('on')), 'o "igualmente" não levou pras partes diferentes');
+  await p.click('#splitSeg [data-modo="custom"]');
   exige(await p.$eval('#splitSeg [data-modo="custom"]', b => b.classList.contains('on') && b.getAttribute('aria-selected') === 'true'), 'aba das partes não ficou marcada');
   exige(await p.$eval('#splitChips', e => e.classList.contains('hidden')), 'nas partes diferentes os chips deviam sumir');
   await p.fill('#sharesBox input[data-share="fernando"]', '4000');

@@ -1,95 +1,36 @@
 # tô lisa · quem me deve?
 
-tipo Splitwise, só que sem app e sem cadastro 👍
+Divisor de gastos entre amigos, no estilo do Splitwise, sem aplicativo e sem cadastro. É um site estático (HTML, CSS e JavaScript, sem build) publicado em [tolisa.com.br](https://tolisa.com.br/), com os dados no Firebase Realtime Database.
 
-JavaScript, HTML e CSS. e só 👨‍🎨 https://tolisa.com.br/
+## Como usar
 
-## como usa
+1. Abra o site e digite um nome para o evento. O evento novo recebe um final sorteado no código (`churras-k7f3q9x2`), então compartilhe o link, não só o nome.
+2. Em "quem é você?", escolha seu nome.
+3. Anote os gastos no ✎: valor, descrição, quem pagou e quem divide. A divisão pode ser igual ou em partes diferentes. Desmarcar quem pagou registra um empréstimo.
+4. **Minha conta** mostra quanto você deve ou tem a receber. É ali que você marca um pagamento como feito (✔) e copia o Pix já com o valor. **Falta pagar** mostra o menor número de transferências que zera todo mundo.
+5. **Enviar** gera a imagem da conta e abre o WhatsApp com a lista de quem paga quem e o link do evento.
 
-1. abre o site e digita um nome pro evento. evento novo ganha um final sorteado no código (`churras-k7f3q9x2`): mande o link no zap, que é por ele que o pessoal entra.
-2. diz quem você é em "quem é você?".
-3. anota os gastos no ✎: valor, o quê, quem pagou e quem divide. dá pra dividir em partes diferentes ou emprestar (desmarca o pagador).
-4. **Minha conta** diz quanto você deve ou tem a receber, e é de lá que você age: ✔ quita, copiar pix já vai com o valor. **Falta pagar** só mostra o mínimo de transferências pra zerar todo mundo.
-5. **enviar** gera a imagem da comanda e abre o zap com quem paga quem.
+No celular, o site pode ser instalado pelo botão do rodapé e abre sem internet com a última versão carregada.
 
-pra chamar alguém: o texto do **enviar** já leva o link do evento. no celular dá pra instalar (botão no rodapé), e abre offline com a última versão vista.
+## Dados e segurança
 
-## dados e segurança
+- Cada evento fica em `rooms/<sha256(código)>`. Quem tem o código lê e escreve; ninguém consegue listar os eventos, porque a raiz `rooms` não é legível. O final sorteado (36⁸ possibilidades) impede que um código curto seja adivinhado testando hashes direto no banco. Dentro do evento, todos os dados são visíveis para quem tem o link.
+- A chave Pix fica em `pix/<evento>/<pessoa>/key`. Todos leem; só o aparelho que cadastrou pode trocá-la, porque guarda um segredo (`tok`) no navegador. Se esse aparelho for perdido, apague o nó no console do Firebase.
+- Qualquer pessoa do evento pode cadastrar uma chave em nome de quem ainda não cadastrou. Confira o nome do recebedor no aplicativo do banco antes de confirmar um Pix.
+- Tudo que vem do banco é tratado como não confiável: ids são filtrados, textos são escapados, e o `index.html` tem uma Content-Security-Policy.
 
-- cada evento fica em `rooms/<sha256(código)>`. quem tem o código lê e escreve; quem não tem não acha, porque ninguém lê a raiz `rooms`. o hash sozinho não impede adivinhar um código curto testando direto no banco, por isso o final sorteado (36⁸ possibilidades). mesmo assim, nada sensível: dentro do evento tudo é aberto.
-- a chave pix fica em `pix/<evento>/<pessoa>/key`. todo mundo lê, só o aparelho que cadastrou troca (um segredo `tok` fica no navegador dele). perdeu o aparelho? apaga o nó no console do Firebase.
-- qualquer um cadastra chave em nome de quem ainda não cadastrou. então: **confere o nome do recebedor no banco antes de confirmar o pix.**
-- tudo que vem do banco é hostil: id filtrado, texto escapado.
+### Regras do banco
 
-regras do banco (Realtime Database → Regras):
+As regras ficam em [`database.rules.json`](database.rules.json) e são coladas no console do Firebase (Realtime Database → Regras). Antes de publicar, teste no simulador de regras com uma sala copiada do banco.
 
-o `.validate` de `rooms/$room` é o formato que o `clean()` do `app.js` produz: quem acha o código ainda escreve na sala, mas só uma sala de verdade, sem campo a mais, texto gigante ou lista sem fim (até 1000 pessoas, 10000 itens, 1000 exclusões). mexeu no `clean()`, mexa aqui e no `specs/_banco.cjs`, que imita estas regras nos testes. antes de publicar no console, teste no simulador de regras com uma sala copiada do banco.
+- O `.read` fica dentro de `$room`, nunca em `rooms`. As regras se propagam para baixo e não podem ser revogadas num nível mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixaria o banco inteiro.
+- O `.validate` de `rooms/$room` repete o formato que o `clean()` do `app.js` produz: sem campos extras, textos no tamanho do app, até 1000 pessoas, 10000 itens e 1000 exclusões. Quem mudar o `clean()` precisa mudar as regras e o `specs/_banco.cjs`, que as reproduz nos testes.
 
-> **o `.read` fica dentro do `$room`, nunca em `rooms`.** as regras cascateiam e não dá pra revogar mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixa o banco inteiro e o hash do código não vale mais nada.
+## Desenvolvimento
 
-```json
-{
-  "rules": {
-    "rooms": {
-      "$room": {
-        ".read": true,
-        ".write": true,
-        ".validate": "$room.matches(/^[0-9a-f]{64}$/) && newData.hasChildren(['v', 'updatedAt'])",
-        "v": { ".validate": "newData.val() === 2" },
-        "name": { ".validate": "newData.isString() && newData.val().length <= 40" },
-        "updatedAt": { ".validate": "newData.isNumber()" },
-        "people": {
-          "$i": {
-            ".validate": "$i.matches(/^[0-9]{1,3}$/) && newData.hasChildren(['id', 'name'])",
-            "id": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
-            "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
-            "at": { ".validate": "newData.isNumber()" },
-            "$outro": { ".validate": false }
-          }
-        },
-        "expenses": {
-          "$i": {
-            ".validate": "$i.matches(/^[0-9]{1,4}$/) && newData.hasChildren(['id', 'amount', 'payer', 'among'])",
-            "id": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
-            "desc": { ".validate": "newData.isString() && newData.val().length <= 60" },
-            "amount": { ".validate": "newData.isNumber() && newData.val() > -10000000000 && newData.val() < 10000000000" },
-            "payer": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
-            "among": {
-              "$j": { ".validate": "$j.matches(/^[0-9]{1,2}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" }
-            },
-            "at": { ".validate": "newData.isNumber()" },
-            "kind": { ".validate": "newData.val() === 'payment'" },
-            "by": { ".validate": "newData.isString() && newData.val().length <= 30" },
-            "shares": {
-              "$p": { ".validate": "$p.matches(/^[a-z0-9]{1,32}$/) && newData.isNumber() && newData.val() >= 0" }
-            },
-            "$outro": { ".validate": false }
-          }
-        },
-        "deleted": {
-          "$i": { ".validate": "$i.matches(/^[0-9]{1,3}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" }
-        },
-        "$outro": { ".validate": false }
-      }
-    },
-    "pix": {
-      "$room": {
-        "$person": {
-          ".write": "!data.exists() || data.child('tok').val() === newData.child('tok').val()",
-          ".validate": "newData.hasChildren(['key','tok']) && newData.child('key').isString() && newData.child('key').val().length <= 80 && newData.child('tok').isString()",
-          "key": { ".read": true }
-        }
-      }
-    }
-  }
-}
-```
+Não há build: `python3 -m http.server` na raiz e abra o endereço. A lógica está em `app.js` (verificada por `// @ts-check`, com `npm run types`), o estilo em `style.css`, e a URL do banco é a constante `DB` no topo do `app.js`.
 
-## desenvolver
-
-sem build: `python3 -m http.server` e abre. lógica em `app.js` (`// @ts-check`, `npm run types` confere), estilo em `style.css`, a URL do banco é o `DB` no topo do `app.js`.
-
-testes são cucumber em português, lidos como especificação:
+Os testes são cenários do Cucumber em português, escritos como especificação:
 
 ```sh
 npm ci && npx playwright install chromium
@@ -107,12 +48,10 @@ Cenário: quitar e avisar no zap
     """
 ```
 
-os cenários ficam em `specs/features/`, os passos em `specs/passos/`. mudou a tela? `node specs/preview.cjs '#settle'` tira um recorte com dados de exemplo.
+Os cenários ficam em `specs/features/` e os passos em `specs/passos/`. Para ver uma mudança visual, `node specs/preview.cjs '#settle'` gera um recorte com dados de exemplo.
 
-push na `main` publica no GitHub Pages. antes de mandar mudança, lê o [CONTRIBUTING.md](CONTRIBUTING.md).
+A `main` é publicada no GitHub Pages pelo workflow `pages.yml`. Antes de contribuir, leia o [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## licença
+## Licença
 
-[MIT](LICENSE). pega e usa.
-
-as fontes em `fonts/` não: VT323 é SIL OFL 1.1 e Permanent Marker é Apache 2.0, cada uma com a licença do lado ([fonts/README.md](fonts/README.md)).
+O código é [MIT](LICENSE). As fontes em `fonts/` têm licenças próprias: VT323 é SIL OFL 1.1 e Permanent Marker é Apache 2.0 (detalhes em [fonts/README.md](fonts/README.md)).

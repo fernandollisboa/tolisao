@@ -1,0 +1,55 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[0-9a-f]{64}$/) && newData.hasChildren(['v', 'updatedAt'])",
+        "v": { ".validate": "newData.val() === 2" },
+        "name": { ".validate": "newData.isString() && newData.val().length <= 40" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "people": {
+          "$i": {
+            ".validate": "$i.matches(/^[0-9]{1,3}$/) && newData.hasChildren(['id', 'name'])",
+            "id": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "at": { ".validate": "newData.isNumber()" },
+            "$outro": { ".validate": false }
+          }
+        },
+        "expenses": {
+          "$i": {
+            ".validate": "$i.matches(/^[0-9]{1,4}$/) && newData.hasChildren(['id', 'amount', 'payer', 'among'])",
+            "id": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "desc": { ".validate": "newData.isString() && newData.val().length <= 60" },
+            "amount": { ".validate": "newData.isNumber() && newData.val() > -10000000000 && newData.val() < 10000000000" },
+            "payer": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "among": {
+              "$j": { ".validate": "$j.matches(/^[0-9]{1,2}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" }
+            },
+            "at": { ".validate": "newData.isNumber()" },
+            "kind": { ".validate": "newData.val() === 'payment'" },
+            "by": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "shares": {
+              "$p": { ".validate": "$p.matches(/^[a-z0-9]{1,32}$/) && newData.isNumber() && newData.val() >= 0" }
+            },
+            "$outro": { ".validate": false }
+          }
+        },
+        "deleted": {
+          "$i": { ".validate": "$i.matches(/^[0-9]{1,3}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" }
+        },
+        "$outro": { ".validate": false }
+      }
+    },
+    "pix": {
+      "$room": {
+        "$person": {
+          ".write": "!data.exists() || data.child('tok').val() === newData.child('tok').val()",
+          ".validate": "newData.hasChildren(['key','tok']) && newData.child('key').isString() && newData.child('key').val().length <= 80 && newData.child('tok').isString()",
+          "key": { ".read": true }
+        }
+      }
+    }
+  }
+}

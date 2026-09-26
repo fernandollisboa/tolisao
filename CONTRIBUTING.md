@@ -58,4 +58,4 @@ a `main` é protegida: branch → PR → check `test` verde → merge. quem publ
 
 ## banco
 
-firebase no plano gratuito, por REST direto do navegador. as regras tão no `README.md`, e uma não se negocia: **o `.read` fica dentro do `$room`, nunca em `rooms`**, senão um `GET /rooms.json` baixa o banco inteiro.
+firebase no plano gratuito, por REST direto do navegador. as regras tão no `database.rules.json`, e uma não se negocia: **o `.read` fica dentro do `$room`, nunca em `rooms`**, senão um `GET /rooms.json` baixa o banco inteiro.

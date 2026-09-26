@@ -1,7 +1,7 @@
 # language: pt
 Funcionalidade: O banco só aceita a sala do jeito que o app grava
   Quem tem o código escreve na sala direto no banco, sem passar pelo site.
-  As regras do README deixam, mas só no formato do app: nada de campo a mais,
+  As regras do banco (database.rules.json) deixam, mas só no formato do app: nada de campo a mais,
   texto gigante ou lista sem fim.
 
   Cenário: gravar direto no banco, sem passar pelo site

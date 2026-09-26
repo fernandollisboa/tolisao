@@ -234,7 +234,9 @@
   let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
   // o ✎ pulsa até ser apertado três vezes, e sossega
   let fabT = 0, souT = 0, cutucas = [];
-  const ANOTA_MS = 1900, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
+  // a ficha do rodapé vai cair: o Sou Fulano e o ✎ esperam ela pegar a vez (atribuída lá embaixo)
+  let fichaVem = () => false;
+  const ANOTA_MS = 2200, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
   /** a classe entra na hora marcada, mas só com o botão na tela; fora dela, espera ele voltar */
   const cutuca = (el, cls, t) => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const vai = () => { const r = el.getBoundingClientRect();
@@ -245,8 +247,9 @@
   let itensT = 0, itensSuave = false; /* -1: dispensado, a lista já foi aberta */ const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
   // dur é o que a fila reserva (a entrada do próximo); total é quanto a animação dura
   // de fato. fimT guarda quando a última termina, pra quem precisa da tela parada
-  let fimT = 0;
-  const agenda = (dur, total = dur) => { const t = Math.max(Date.now(), filaT); filaT = t + dur; fimT = Math.max(fimT, t + total); return t; };
+  // notaT é o fim da fila da nota, sem o Sou Fulano e o ✎: a ficha entra logo depois dos riscos
+  let fimT = 0, notaT = 0;
+  const agenda = (dur, total = dur) => { const t = Math.max(Date.now(), filaT); filaT = notaT = t + dur; fimT = Math.max(fimT, t + total); return t; };
   // o ✎ e o Sou Fulano não dividem a tela com ninguém: esperam tudo acabar e um respiro
   const calmo = (dur, respiro) => { const t = Math.max(filaT, Math.max(Date.now(), fimT) + respiro); filaT = fimT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
@@ -507,7 +510,7 @@
     // só depois que cada seção à vista já pegou a vez: senão o ✎ furava a fila
     const aVista = el => { if (el.classList.contains('hidden')) return false; const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; };
     const pegaram = (!aVista($('#mine')) || mineNaTela) && (!aVista($('#itemsSec')) || itensNaTela) && (!aVista($('#settle')) || settleNaTela);
-    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !fabT && $('#overlay').classList.contains('hidden')) {
+    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !fabT && !fichaVem() && $('#overlay').classList.contains('hidden')) {
       if (!souT) { souT = calmo(SOU_MS, 0); cutuca($('#whoBtn'), 'cutuca', souT); }
       if ((+device().fabTaps || 0) < 3) { fabT = calmo(ANOTA_MS, ANOTA_RESPIRO); cutuca($('#fab'), 'pulsa', fabT); } else fabT = -1; }
     const dtS = settleT ? Date.now() - settleT : Infinity;
@@ -1089,10 +1092,11 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // a ficha espera a pessoa chegar no fim da página. Antes bastava o código de barras
     // aparecer, e numa tela alta (o app instalado, sem barra de navegador) ele já estava
     // à vista na abertura: a ficha caía junto com o resto se animando, sem ninguém ver.
-    // E ela entra na fila do agenda(), então é sempre a última coisa a acontecer.
+    // Na fila ela vem logo depois dos riscos, antes do Sou Fulano e do ✎, que esperam ela.
     const DIVA_MS = 1100, FOLGA = 8;
     const noFim = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - FOLGA;
-    let jogada = false, aviso = 0;
+    let jogada = false, marcada = false, aviso = 0;
+    fichaVem = () => { if (!jogada) confere(); return !chato && jogada && !marcada; };
     const confere = () => {
       // ainda carregando, a nota é só o spinner: numa tela alta isso já é o "fim da
       // página" e a ficha caía antes do evento existir
@@ -1102,7 +1106,8 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       // as seções só entram na fila depois que o #app sai do loading e o observador
       // reporta; pegar a vez no mesmo quadro fazia a ficha furar tudo. Um respiro e
       // aí sim ela pega o último lugar.
-      aviso = setTimeout(() => { const t = agenda(DIVA_MS);
+      aviso = setTimeout(() => { const t = Math.max(Date.now(), notaT); notaT = t + DIVA_MS; filaT = Math.max(filaT, notaT);
+        fimT = Math.max(fimT, notaT); marcada = true; render();   // agora o Sou Fulano e o ✎ entram, atrás dela
         aviso = setTimeout(() => { el.classList.add('voou');
           // sem animação (movimento reduzido) não há animationend: já pousa
           if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.classList.remove('voou'); el.classList.add('pousou'); } }, Math.max(0, t - Date.now())); }, 400); };
@@ -1181,7 +1186,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       voo = requestAnimationFrame(passo); };
     el.addEventListener('pointerup', solta);
     el.addEventListener('pointercancel', solta);
-    rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = false; pega = null; toques = 0;
+    rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = marcada = false; pega = null; toques = 0;
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
       el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga');
       confere(); };
@@ -1210,7 +1215,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = itensT = filaT = fimT = fabT = souT = 0; cutucas.forEach(clearTimeout); cutucas = []; viuItens = false; tocouOk = false;   // nota nova, convite novo
+    settleT = riscoT = mineT = itensT = filaT = fimT = notaT = fabT = souT = 0; cutucas.forEach(clearTimeout); cutucas = []; viuItens = false; tocouOk = false;   // nota nova, convite novo
     mineNaTela = itensNaTela = settleNaTela = false;
     const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }

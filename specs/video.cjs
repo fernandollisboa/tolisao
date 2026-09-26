@@ -108,6 +108,13 @@ const CENAS = {
       await etapa('nunca apertou', 'pula'); await p.waitForTimeout(2600);
       await etapa('apertou 1 ou 2 vezes', 'pulsa'); await p.waitForTimeout(2600);
       await etapa('da 3ª em diante: quieto', ''); await p.waitForTimeout(1600); } },
+  ordem: { nome: 'a fila de cima pra baixo e, com a tela parada, o ✎ e o Sou Fulano', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(9000); } },
+  rola: { nome: 'descendo a página inteira e voltando: onde ficam o ✎ e o zap', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click('#itemsHead'); await p.waitForTimeout(1500);
+      for (const y of [420, 900, 'fim', 0]) {
+        await p.evaluate(y => scrollTo({ top: y === 'fim' ? document.documentElement.scrollHeight : y, behavior: 'smooth' }), y);
+        await p.waitForTimeout(2000); } } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

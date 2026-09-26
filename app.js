@@ -459,7 +459,7 @@
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     if (itemsOpen) viuItens = true;
     $('#itemsCount').textContent = `${viuItens ? '' : all.length === 1 ? 'ver ' : 'ver os '}${all.length} ${all.length === 1 ? 'item' : 'itens'}`;
-    $('#itemsHead').classList.toggle('aberto', itemsOpen); $('#itemsCaret').classList.toggle('aberto', itemsOpen);
+    $('#itemsHead').classList.toggle('aberto', itemsOpen); $('#itemsHead').setAttribute('aria-expanded', String(itemsOpen)); $('#itemsCaret').classList.toggle('aberto', itemsOpen);
     // a linha é o mesmo elemento em todo render: mexer no atraso depois reiniciaria a
     // animação, então ele é marcado uma vez só e fica quieto
     { const ih = $('#itemsHead');
@@ -669,6 +669,8 @@
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
   $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; if (itemsOpen) ls.set(ABRIU, '1'); render(); };
+  // é um botão pra quem usa teclado também: Enter e Espaço abrem como o clique
+  $('#itemsHead').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#itemsHead').click(); } });
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
   $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); convidaInstalar(); };

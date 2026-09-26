@@ -36,6 +36,11 @@ const VAZIO = { name: 'churras', people: DADOS.people.slice(0, 3), expenses: [] 
   // outra pessoa é nota nova: convida de novo
   await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: 'Mengla' }); await p.waitForTimeout(300);
   exige(await itens(p) === 'ver os 3 itens', `trocar de pessoa devia convidar de novo: "${await itens(p)}"`);
+  // e pelo teclado: foco na linha, Enter abre, e o leitor de tela sabe que abriu
+  await p.focus('#itemsHead'); await p.keyboard.press('Enter');
+  exige(await p.$eval('#itemsHead', e => e.getAttribute('aria-expanded')) === 'true', 'Enter na linha dos itens não abriu');
+  await p.keyboard.press(' ');
+  exige(await p.$eval('#itemsHead', e => e.getAttribute('aria-expanded')) === 'false', 'Espaço na linha dos itens não fechou');
   console.log('linha dos itens: ver os 3 itens → 3 itens, moldura só fechada, convida de novo com outra pessoa');
 
   await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 });

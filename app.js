@@ -31,7 +31,7 @@
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } }, del: k => { try { localStorage.removeItem(k); } catch {} } };
   // o que fica no aparelho, em duas gavetas de JSON:
   //   tolisa         { visits, installPrompted, itemsOpened, boringMode, lastRoom: {code, id} }
-  //   tolisa:<sala>  { me, lastSeen, pixTokens: {pessoa: tok}, snapshot }
+  //   tolisa:<sala>  { me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa', roomKey = id => `${DEVICE}:${id}`;
   /** @returns {Record<string, any>} */
@@ -279,7 +279,12 @@
   let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const pixVisto = new Map();   // pessoa -> quando as animações da linha dela começam
   let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
-  const PIX_MS = 420, PISCA_MS = 4600, PISCA_GAP = 320;   // o show do pisca-pisca, uma linha atrás da outra
+  let natal = null;             // pisca-pisca de natal dessa vez: o sorteio de atraso de cada linha, ou null
+  const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, uma linha atrás da outra
+  // pisca-pisca de natal: o cordão corre defasado linha a linha, em duas ondas (as pares
+  // numa frequência, as ímpares na `.b` do CSS, mais ligeira), e o fecho vem pra todas
+  // juntas depois de uma pausa que conta da última linha. Cada linha sorteia um tico de atraso
+  const FECHO_EM = 3300, FECHO_MS = 1500, NATAL_JIT = 90, FECHO_JIT = 45;
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
@@ -387,8 +392,8 @@
     if (hasMe && !vazio) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
-      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ faz o
-      // pisca-pisca de natal, um "me pague". As duas saem da mesma hora, guardada uma vez
+      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ pisca
+      // verde, um "me pague". As duas saem da mesma hora, guardada uma vez
       // por pessoa; como o #mineRows é refeito a cada poll, o atraso (negativo depois
       // que a animação começou) retoma de onde estava em vez de recomeçar no meio
       // hora marcada pras animações da seção: o copiar pix brotando de trás do ✔ e a
@@ -398,7 +403,15 @@
       // piscadas, e curto: quem vem depois não precisa esperar tudo acabar
       const meus = bal < 0 ? stMe.filter(t => t.from === me) : [];
       // sem linha nenhuma não há o que reservar: quem vem depois não espera à toa
-      if (mineNaTela && !mineT) mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_MS : 0);
+      if (mineNaTela && !mineT) {
+        // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
+        // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
+        const vistos = room().lightsSeen, ja = Array.isArray(vistos) && vistos.includes(me);
+        natal = meus.length >= 2 && (!ja || Math.random() < .5)
+          ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT]) : null;
+        if (natal && !ja) mexe(roomKey(groupId), o => { o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me]; });
+        const fim = !meus.length ? 0 : (meus.length - 1) * PISCA_GAP + (natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+        mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim); }
       // o copiar pix corre por fora da fila: brota assim que a chave chega do banco,
       // sem esperar as piscadas nem segurar quem vem depois. Nada de spinner: o botão
       // brotando já conta que chegou
@@ -409,7 +422,9 @@
         return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG} copiar pix</button>`; };
       // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
       const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
-        const pi = !tocouOk && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
+        const j = natal && natal[i], fecho = j && (natal.length - 1) * PISCA_GAP + FECHO_EM + j[1];
+        const pi = tocouOk ? '' : j ? (dt < fecho + FECHO_MS ? ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms` : '')
+          : dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`; };
       // os botões dizem o que fazem ("paguei", "copiar pix"): um balão explicando ícone
       // era recado solto, e recado solto a pessoa pula

@@ -109,7 +109,7 @@ const CENAS = {
       await etapa('apertou 1 ou 2 vezes', 'pulsa'); await p.waitForTimeout(2600);
       await etapa('da 3ª em diante: quieto', ''); await p.waitForTimeout(1600); } },
   ordem: { nome: 'a fila de cima pra baixo e, com a tela parada, o ✎ e o Sou Fulano', quem: 'Lia', atrasoPix: 600,
-    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(9000); } },
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(10500); } },
   rola: { nome: 'descendo a página inteira e voltando: onde ficam o ✎ e o zap', quem: 'Lia', atrasoPix: 600,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click('#itemsHead'); await p.waitForTimeout(1500);
       for (const y of [420, 900, 'fim', 0]) {

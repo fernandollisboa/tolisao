@@ -34,7 +34,7 @@
 ## comandos
 
 - rodar: `python3 -m http.server`.
-- testes: `npm ci && npx playwright install chromium`, depois `npm test` (`npm test -- pix` roda um arquivo). se o chromium da máquina for de outra versão, `PW_CHROMIUM=/caminho/do/chrome npm test`.
+- testes: `npm ci && npx playwright install chromium`, depois `npm test` (`npm test -- pix` roda um arquivo). sem o chromium da versão do playwright, o `specs/_pw.cjs` usa o mais novo da pasta dos navegadores (a máquina da nuvem vem com outro); `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
 - tipos: `npm run types`. sintaxe: `node --check app.js`.
 
 ## deploy

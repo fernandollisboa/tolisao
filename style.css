@@ -401,12 +401,23 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
    e na terceira. O Sou Fulano engrossa o sublinhado, correndo, depois de tudo */
 #fab{width:52px;height:52px;outline:3px solid transparent}
 #fab svg{width:28px;height:28px}
-#waBtn.wafab{top:92px;right:calc(max(22px,calc(50% - 216px)) + 4px)}
+/* o ✎ fica fixo no canto de baixo, onde o polegar alcança, pra anotar de qualquer
+   ponto da página; o zap fica sozinho em cima, rolando com a nota */
+#fab{position:fixed;top:auto;bottom:calc(22px + env(safe-area-inset-bottom))}
+#waBtn.wafab{top:30px}
 @keyframes pulaOnda{0%,100%{translate:0 0;outline-offset:0;outline-color:rgba(154,91,0,0)}8%{translate:0 2px}18%{translate:0 -14px}28%{translate:0 0;outline-offset:0;outline-color:rgba(154,91,0,.9)}44%{translate:0 -10px;outline-offset:12px;outline-color:rgba(154,91,0,0)}45%{outline-offset:0}54%{translate:0 0;outline-color:rgba(154,91,0,.9)}68%{translate:0 -5px;outline-offset:12px;outline-color:rgba(154,91,0,0)}76%{translate:0 0}}
 @keyframes pulsaAnota{0%,100%{scale:1;outline-offset:0;outline-color:rgba(154,91,0,0)}12%{outline-color:rgba(154,91,0,.9)}25%{scale:1.14}45%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}46%{outline-offset:0}58%{outline-color:rgba(154,91,0,.9)}70%{scale:1.14}90%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}}
 #fab.pula{animation:pulaOnda 1.6s ease-in-out}
+/* abre: a pílula cresce pra esquerda com ANOTAR escrito e fecha de novo */
+#fab{justify-content:flex-end;padding-right:9px;overflow:hidden;white-space:nowrap}
+#fab:before{content:'anotar';text-transform:uppercase;font-size:24px;line-height:1;margin-right:8px;letter-spacing:1px;opacity:0}
+#fab svg{flex:none}
+@keyframes abreFab{0%,100%{width:52px;border-radius:26px}18%,74%{width:150px;border-radius:26px}}
+@keyframes letreiro{0%,14%,80%,100%{opacity:0}26%,68%{opacity:1}}
+#fab.abre{animation:abreFab 2.8s cubic-bezier(.3,.9,.3,1)}
+#fab.abre:before{animation:letreiro 2.8s linear}
 #fab.pulsa{animation:pulsaAnota 1.9s ease-out}
 @keyframes sublinha{0%{background-size:0 3px}40%,75%{background-size:100% 3px}100%{background-size:100% 1px}}
 #whoBtn:not(.amb){text-decoration:none;background:linear-gradient(currentColor,currentColor) no-repeat 0 100%/100% 1px;padding-bottom:1px}
 #whoBtn.cutuca{animation:sublinha 1.2s ease-out}
-@media (prefers-reduced-motion:reduce){#fab.pula,#fab.pulsa,#whoBtn.cutuca{animation:none}}
+@media (prefers-reduced-motion:reduce){#fab.pula,#fab.pulsa,#fab.abre,#fab.abre:before,#whoBtn.cutuca{animation:none}}

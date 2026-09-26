@@ -35,7 +35,7 @@ When('eu crio o evento', async ({ mundo }) => { await mundo.p.click('#okBtn'); a
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
 Then('o endereço é {string} com um final sorteado', async ({ mundo }, ini) => {
   const esc = ini.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(new RegExp(`^${esc}[a-z0-9]{8}$`));
+  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(new RegExp(`^${esc}[a-z0-9]{6}$`));
 });
 Then('o nome do evento no cabeçalho é {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#roomLabel')).toHaveText(nome); });
 Then('o site não pergunta nada', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeHidden(); });

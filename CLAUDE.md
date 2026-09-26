@@ -44,7 +44,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário.
 - **CSP** no `<meta>` do `index.html`: só o próprio site e `*.firebaseio.com`. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
-- **código do evento** ganha final sorteado (`sorteia(8)`): código curto se adivinha testando o hash no banco.
+- **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.
 - **dinheiro** é centavo inteiro até virar texto.
 - **`og5.jpg`** abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.

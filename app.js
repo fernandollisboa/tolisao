@@ -489,13 +489,14 @@
     $('#splitChips').classList.toggle('hidden', custom);
     $('#sharesBox').classList.toggle('hidden', !custom);
     $('#falta').classList.toggle('hidden', !custom);
-    h.classList.toggle('hidden', custom);
     if (custom) {
       const prev = customShares();
       $('#sharesBox').innerHTML = state.people.map(p => { const on = among.includes(p.id);
         return `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nm(p.id)}</span><span class="d"></span>`
           + (on ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? fmt(prev[p.id]/100) : ''}">` : '<span class="fora">fora</span>')
           + '</div>'; }).join('');
+      // a frase fica nas duas abas, pra nada sumir do nada quando se troca
+      h.innerHTML = !among.length ? 'Marque quem divide esse gasto.' : 'Dividido <u>em partes diferentes</u>.';
       atualizaFalta();
       return;
     }
@@ -520,6 +521,8 @@
       : resta > 0 ? `faltam <b>${money(resta/100)}</b> pra fechar ${money(total/100)}.${vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : ''}`
       : `sobram <b>${money(-resta/100)}</b> além de ${money(total/100)}.`;
     for (const b of inputs('#sharesBox [data-resto]')) b.classList.toggle('hidden', resta <= 0 || sh[b.dataset.resto] > 0);
+    // o campo tem a largura do número: os pontinhos da linha correm até perto do valor
+    for (const i of inputs('#sharesBox input[data-share]')) { const n = Math.max(4, i.value.length) + 1; i.style.width = `calc(${n}ch + ${n}px + 8px)`; }
     $('#expenseForm button.big').disabled = !(total > 0 && resta === 0);
   }
   $('#amount').addEventListener('input', atualizaFalta);

@@ -347,7 +347,7 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .shares .row{font-size:18px;line-height:1.4;align-items:center}
 /* o campo da parte é o mesmo do valor do gasto (a mesma linha de tinta, a mesma letra
    espaçada), só que menor, pra caber na linha da pessoa */
-.shares input[data-share]{width:118px;flex:none;text-align:right;padding:2px 4px;font-size:24px;letter-spacing:1px}
+.shares input[data-share]{width:88px;flex:none;text-align:right;padding:2px 4px;font-size:24px;letter-spacing:1px}
 .shares .lin{gap:10px;min-height:40px}
 .shares .lin .l{font-size:18px}
 /* o ✔ de quem entra na divisão, desenhado como os chips: cheio de tinta quando entra */
@@ -356,7 +356,7 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .shares .ck input:checked{background:var(--ink)}
 .shares .ck input:checked:after{content:"✔";color:#fff8e6;font-size:16px;line-height:1}
 .shares .lin.off .l{opacity:.45;text-decoration:line-through}
-.shares .fora{width:118px;text-align:right;color:var(--muted);font-size:16px}
+.shares .fora{text-align:right;color:var(--muted);font-size:16px}
 .shares .resto{flex:none;font-size:14px;line-height:1.4;color:#9a5b00;border:1.5px solid #9a5b00;border-radius:4px;padding:0 6px;background:transparent;white-space:nowrap}
 /* quanto falta pras partes fecharem: vermelho enquanto não fecha, verde quando fecha */
 .falta{text-align:center;font-size:18px;line-height:1.35;border:2px dashed;border-radius:4px;padding:7px 10px;text-transform:none}

@@ -10,16 +10,21 @@ const passosDe = passos => passos.flatMap(s => s.category === 'test.step' ? [s] 
 const erroDe = s => s.error || (s.steps || []).map(c => c.error).find(Boolean);
 const fonteDe = arq => arq.replace(`${path.sep}.gerado${path.sep}`, path.sep).replace(/\.spec\.js$/, '');
 const tira = t => t.replace(/\x1b\[[0-9;]*m/g, '');
+const seg = ms => (ms / 1000).toFixed(1).replace('.', ',') + 's';
+// no CI, arquivo que passou inteiro vira uma linha; o que falhou sai por extenso
+const CURTO = !!process.env.CI;
+const LERDOS = 5;
 
 class Bonito {
   onBegin(config, suite) {
-    this.ini = Date.now(); this.porArquivo = new Map(); this.falhas = [];
+    this.ini = Date.now(); this.porArquivo = new Map(); this.falhas = []; this.tempos = [];
     this.conta = { cenarios: { ok: 0, falhou: 0, pulou: 0 }, passos: { ok: 0, falhou: 0, pulou: 0 } };
     for (const t of suite.allTests()) { const f = t.location.file; if (!this.porArquivo.has(f)) this.porArquivo.set(f, { faltam: 0, testes: new Map() }); this.porArquivo.get(f).faltam++; }
   }
 
   onTestEnd(test, result) {
     const f = this.porArquivo.get(test.location.file); f.testes.set(test.title, { test, result });
+    this.tempos.push({ test, ms: result.duration });
     if (result.status !== 'passed' && result.status !== 'skipped') this.falhas.push({ test, result });
     if (--f.faltam === 0) this.imprime(test.location.file, f.testes);
   }
@@ -29,26 +34,28 @@ class Bonito {
     const todos = [...testes.values()];
     const doContexto = s => { for (let p = s.parent; p; p = p.parent) if (p.category === 'hook') return true; return false; };
     const contexto = (todos.map(({ result }) => passosDe(result.steps).filter(doContexto)).find(c => c.length)) || [];
-    const saida = ['']; let bloco = null, fila = [], tinta = cinza, pendente = [];
-    const solta = () => { saida.push(...pendente); pendente = []; };
+    const saida = ['']; let cala = false; const poe = (...l) => { if (!cala) saida.push(...l); }; let bloco = null, fila = [], tinta = cinza, pendente = [];
+    const solta = () => { poe(...pendente); pendente = []; };
     const fecha = () => {
       solta();
       if (bloco && bloco !== 'contexto' && bloco.result.status !== 'passed' && !passosDe(bloco.result.steps).some(erroDe)) {
-        saida.push(...this.erro(bloco.result.error || { message: bloco.result.status }, '    ')); }
+        poe(...this.erro(bloco.result.error || { message: bloco.result.status }, '    ')); }
     };
     for (const linha of fonte) {
       if (/^\s*#/.test(linha)) continue;
-      if (/^\s*@/.test(linha)) { saida.push(ciano(linha)); continue; }
+      if (/^\s*@/.test(linha)) { poe(ciano(linha)); continue; }
       const b = linha.match(BLOCO);
       if (b || /^\s*Funcionalidade:/.test(linha)) {
         fecha(); tinta = cinza;
+        cala = false;
         if (b && b[1] === 'Contexto') { bloco = 'contexto'; fila = [...contexto]; }
         else if (b) {
           const t = testes.get(linha.replace(BLOCO, '').trim()); bloco = t || null;
           fila = t ? passosDe(t.result.steps).filter(s => !doContexto(s)) : [];
+          cala = CURTO && !!t && t.result.status === 'passed';
           if (t) this.conta.cenarios[t.result.status === 'passed' ? 'ok' : t.result.status === 'skipped' ? 'pulou' : 'falhou']++;
         }
-        saida.push(negrito(linha)); continue;
+        poe(negrito(linha)); continue;
       }
       if (PASSO.test(linha) && bloco) {
         solta();
@@ -57,12 +64,16 @@ class Bonito {
         if (bloco !== 'contexto') this.conta.passos[estado]++;
         tinta = estado === 'ok' ? verde : estado === 'falhou' ? vermelho : ciano;
         if (e) pendente = this.erro(e, linha);
-        saida.push(tinta(linha)); continue;
+        poe(tinta(linha)); continue;
       }
-      if (!linha.trim()) { solta(); tinta = bloco ? tinta : cinza; saida.push(''); continue; }
-      saida.push(tinta(linha));
+      if (!linha.trim()) { solta(); tinta = bloco ? tinta : cinza; poe(''); continue; }
+      poe(tinta(linha));
     }
     fecha();
+    if (CURTO && todos.every(({ result }) => result.status === 'passed' || result.status === 'skipped')) {
+      const ms = todos.reduce((a, { result }) => a + result.duration, 0);
+      return console.log(`${verde('✔')} ${path.basename(fonteDe(arq))} ${cinza(`· ${todos.length} cenário${todos.length === 1 ? '' : 's'} · ${seg(ms)}`)}`);
+    }
     console.log(saida.join('\n').replace(/\n+$/, ''));
   }
 
@@ -79,6 +90,11 @@ class Bonito {
       const total = o.ok + o.falhou + o.pulou; return `${total} ${total === 1 ? n : n + 's'} (${partes.join(', ') || 'nenhum'})`; };
     const s = Math.round((Date.now() - this.ini) / 1000);
     console.log(`\n${resumo('cenário', c)}\n${resumo('passo', p)}\n${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`);
+    const lerdos = this.tempos.sort((a, b) => b.ms - a.ms).slice(0, LERDOS);
+    if (lerdos.length) {
+      console.log('\n' + cinza('mais lerdos:'));
+      for (const { test, ms } of lerdos) console.log(cinza(`  ${seg(ms).padStart(6)}  ${path.basename(fonteDe(test.location.file))} › ${test.title}`));
+    }
     const falhas = this.falhas;
     if (falhas.length) {
       console.log(vermelho('\nfalharam:'));

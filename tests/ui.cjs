@@ -27,7 +27,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   await p1.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden'));
   await p1.click('#addPerson'); await p1.waitForSelector('#askInput'); await p1.fill('#askInput','Zé'); await p1.click('#askForm button.big'); await p1.waitForTimeout(200); console.log('people:', await p1.$eval('#peopleLine', e => e.innerText));
   // FAB + gasto
-  await p1.click('#fab'); await p1.waitForSelector('#sheet:not(.hidden)'); await p1.fill('#desc','Cerveja'); await p1.fill('#amount','50,00'); await p1.click('#expenseForm button');
+  await p1.click('#fab'); await p1.waitForSelector('#sheet:not(.hidden)'); await p1.fill('#desc','Cerveja'); await p1.fill('#amount','50,00'); await p1.click('#expenseForm button.big');
   await p1.waitForSelector('#sheet', { state: 'hidden' }); console.log('added via fab; top expense:', await p1.$eval('#expenses .row', e => e.innerText.split('\n')[0]));
   if (!await p1.$eval('#fab', e => e.classList.contains('chamando'))) throw new Error('fab deveria continuar chamando depois do primeiro gasto');
   await p1.screenshot({ path: path.join(OUT, 'app-mobile-2.png'), fullPage: true });

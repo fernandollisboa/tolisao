@@ -18,11 +18,12 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   console.log('ordem do form:', await p1.$eval('.two', e => [...e.children].map(c => c.id).join(',')));
   await p1.fill('#amount','42.84'); await p1.fill('#desc','Janta');
   for (const n of ['Fernando','Júlia','Klinsmann']) await p1.click(`#splitChips label:has-text("${n}")`);
-  // o modo agora é a palavra "igualmente" da própria frase
-  await p1.click('#modeToggle'); await p1.waitForSelector('#sharesBox:not(.hidden)');
+  // o jeito de dividir são duas abas; nas partes diferentes a lista de quem divide é uma só
+  await p1.click('#splitSeg [data-modo="custom"]'); await p1.waitForSelector('#sharesBox:not(.hidden)');
   await p1.fill('#sharesBox input[data-share="lia"]','18.87'); await p1.fill('#sharesBox input[data-share="mengla"]','20,00');
-  console.log('hint (sobra/falta):', await p1.$eval('#splitHint', e => e.textContent));
-  await p1.click('#expenseForm button.big'); await p1.waitForTimeout(200); console.log('bloqueado:', await p1.$eval('#toast', e => e.textContent));
+  console.log('quanto falta:', await p1.$eval('#falta', e => e.textContent));
+  if (!(await p1.$eval('#expenseForm button.big', b => b.disabled))) { console.error('FAIL: anotar liberado com as partes sem fechar'); process.exit(1); }
+  console.log('bloqueado: anotar travado até as partes fecharem');
   await p1.fill('#sharesBox input[data-share="mengla"]','23.97'); await p1.click('#expenseForm button.big'); await p1.waitForSelector('#sheet', { state: 'hidden' });
   console.log('item:', await p1.$eval('#expenses .row', e => e.innerText), '|', await p1.$eval('#expenses .small span', e => e.innerText));
   await p1.click('#expenses [data-among]'); console.log('÷ aberto:', await p1.$eval('#expenses [data-among]', e => e.closest('.small').innerText)); await p1.click('#expenses [data-among]'); console.log('÷ fechado:', await p1.$eval('#expenses [data-among]', e => e.closest('.small').innerText));

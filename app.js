@@ -281,9 +281,9 @@
   // costume. Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
   const mascara = el => { const d = el.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
     el.value = d ? fmt(+d / 100) : ''; };
-  // na captura, antes de quem lê o campo (o hint das partes, o somaDasPartes)
+  // na captura, antes de quem lê o campo (o quanto falta das partes)
   document.addEventListener('input', ev => { const t = /** @type {HTMLInputElement} */ (ev.target);
-    if (t.matches && t.matches('#amount, #sharesBox input')) mascara(t); }, true);
+    if (t.matches && t.matches('#amount, #sharesBox input[data-share]')) mascara(t); }, true);
   const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
   const val = n => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
@@ -477,35 +477,70 @@
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
-  const customShares = () => { const o = {}; for (const i of inputs('#sharesBox input')) o[i.dataset.share] = Math.round((numVal(i.value) || 0) * 100); return o; };
+  const customShares = () => { const o = {}; for (const i of inputs('#sharesBox input[data-share]')) o[i.dataset.share] = Math.round((numVal(i.value) || 0) * 100); return o; };
+  const totalDigitado = () => Math.round((numVal($('#amount').value) || 0) * 100);
+  /** o jeito de dividir são duas abas: "igual" (os chips de quem divide) e "partes
+   *  diferentes" (uma linha por pessoa, com o ✔ de quem entra e o valor dela). A lista
+   *  é uma só: nas partes diferentes os chips somem, e marcar a linha marca o chip */
   function updateHint(){
     const among = inputs('#splitChips input:checked').map(i => i.value);
-    const payer = $('#payer').value; const h = $('#splitHint'); const total = Math.round((numVal($('#amount').value) || 0) * 100);
-    $('#sharesBox').classList.toggle('hidden', splitMode !== 'custom');
-    // o modo é a própria palavra da frase: tocar em "igualmente" vira "em partes diferentes"
-    const modo = t => `<a class="link" id="modeToggle" title="trocar o jeito de dividir">${t}</a>`;
-    const armaModo = () => { const m = $('#modeToggle'); if (m) m.onclick = () => { splitMode = splitMode === 'equal' ? 'custom' : 'equal'; updateHint(); }; };
-    if (splitMode === 'custom') {
+    const payer = $('#payer').value; const h = $('#splitHint'); const custom = splitMode === 'custom';
+    for (const b of inputs('#splitSeg button')) { const on = b.dataset.modo === splitMode; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }
+    $('#splitChips').classList.toggle('hidden', custom);
+    $('#sharesBox').classList.toggle('hidden', !custom);
+    $('#falta').classList.toggle('hidden', !custom);
+    h.classList.toggle('hidden', custom);
+    if (custom) {
       const prev = customShares();
-      $('#sharesBox').innerHTML = among.map(id => `<div class="row"><span class="l">${nm(id)}</span><span class="d"></span><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${id}" value="${prev[id] ? fmt(prev[id]/100) : ''}"></div>`).join('');
-      h.innerHTML = `Dividido ${modo('em partes diferentes')}<span id="hintTail">${!among.length ? '.' : ' · ' + somaDasPartes()}</span>`;
-      armaModo();
+      $('#sharesBox').innerHTML = state.people.map(p => { const on = among.includes(p.id);
+        return `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nm(p.id)}</span><span class="d"></span>`
+          + (on ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? fmt(prev[p.id]/100) : ''}">` : '<span class="fora">fora</span>')
+          + '</div>'; }).join('');
+      atualizaFalta();
       return;
     }
+    $('#expenseForm button.big').disabled = false;
     if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
-    else if (!among.includes(payer)) { h.innerHTML = `Empréstimo: ${esc(among.map(nameOf).join(', '))} deve${among.length===1?'':'m'} o valor todo a ${esc(nameOf(payer))}. Ou ${modo('em partes diferentes')}.`; armaModo(); }
-    else { h.innerHTML = `Dividido ${modo('igualmente')} entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`; armaModo(); }
+    else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
+    else h.innerHTML = `Dividido igualmente entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`;
   }
-  /** o que ainda falta (ou sobra) pras partes fecharem o total do gasto */
-  function somaDasPartes(){
-    const total = Math.round((numVal($('#amount').value) || 0) * 100);
-    const sum = Object.values(customShares()).reduce((a, b) => a + b, 0);
-    return sum === total ? '✔' : sum < total ? `faltam ${money((total-sum)/100)}` : `sobram ${money((sum-total)/100)}`;
+  /** quanto falta (ou sobra) pras partes fecharem o total, em destaque em cima do botão,
+   *  que só libera quando fecha. Só mexe no recado e nos "o resto": refazer as linhas
+   *  apagaria o campo em que a pessoa está digitando */
+  function atualizaFalta(){
+    if (splitMode !== 'custom') return;
+    const total = totalDigitado(), sh = customShares();
+    const resta = total - Object.values(sh).reduce((a, b) => a + b, 0);
+    const vazios = inputs('#sharesBox input[data-share]').filter(i => !numVal(i.value));
+    const f = $('#falta');
+    f.className = 'falta ' + (!total ? 'neutro' : resta === 0 ? 'ok' : 'erro');
+    f.innerHTML = !total ? 'digite o valor do gasto lá em cima.'
+      : resta === 0 ? `✔ fechou ${money(total/100)}.`
+      : resta > 0 ? `faltam <b>${money(resta/100)}</b> pra fechar ${money(total/100)}.${vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : ''}`
+      : `sobram <b>${money(-resta/100)}</b> além de ${money(total/100)}.`;
+    for (const b of inputs('#sharesBox [data-resto]')) b.classList.toggle('hidden', resta <= 0 || sh[b.dataset.resto] > 0);
+    $('#expenseForm button.big').disabled = !(total > 0 && resta === 0);
   }
-  $('#amount').addEventListener('input', () => { if (splitMode === 'custom') updateHint(); });
-  // só o rabo da frase muda enquanto se digita: refazer o hint inteiro apagaria o campo em uso
+  $('#amount').addEventListener('input', atualizaFalta);
   document.addEventListener('input', ev => { const tgt = /** @type {HTMLElement} */ (ev.target);
-    if (tgt.matches('#sharesBox input') && $('#hintTail')) $('#hintTail').textContent = ' · ' + somaDasPartes(); });
+    if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta(); });
+  document.addEventListener('click', ev => { const tgt = /** @type {HTMLElement} */ (ev.target);
+    const aba = /** @type {HTMLElement|null} */ (tgt.closest('#splitSeg button'));
+    if (aba) { splitMode = aba.dataset.modo === 'custom' ? 'custom' : 'equal'; updateHint(); return; }
+    // "o resto" joga na linha o que falta; "dividir o resto igual" reparte entre as vazias
+    const resto = /** @type {HTMLElement|null} */ (tgt.closest('[data-resto]'));
+    const falta = () => totalDigitado() - Object.values(customShares()).reduce((a, b) => a + b, 0);
+    if (resto) { const i = /** @type {HTMLInputElement} */ ($(`#sharesBox input[data-share="${resto.dataset.resto}"]`)); const r = falta();
+      if (i && r > 0) { i.value = fmt(r / 100); atualizaFalta(); } return; }
+    if (tgt.closest('#restoIgual')) { const vazios = inputs('#sharesBox input[data-share]').filter(i => !numVal(i.value)); const r = falta();
+      if (vazios.length && r > 0) { const o = shares(r, vazios.map(i => i.dataset.share)); for (const i of vazios) i.value = fmt(o[i.dataset.share] / 100); atualizaFalta(); } }
+  });
+  // marcar ou desmarcar a linha é marcar o chip: a lista de quem divide é uma só
+  document.addEventListener('change', ev => { const tgt = /** @type {HTMLInputElement} */ (ev.target);
+    if (!tgt.matches('#sharesBox [data-quem]')) return;
+    const chip = /** @type {HTMLInputElement|null} */ ($(`#splitChips input[value="${tgt.dataset.quem}"]`));
+    if (chip) { chip.checked = tgt.checked; chip.closest('.chip').classList.toggle('on', tgt.checked); }
+    updateHint(); });
 
   // ---------- telas ----------
   let overlayCancel = null, overlaySticky = false;

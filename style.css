@@ -203,6 +203,8 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   button.ico.okl:hover:not(:disabled){background:#5aa46a;color:#fff}
   button.danger:hover:not(:disabled){background:var(--red);color:var(--paper)}
   button.ghost:hover:not(:disabled){background:transparent;color:var(--ink)}
+  .seg button:not(.on):hover{background:#fff8e6;color:var(--ink)}
+  .shares .resto:hover{background:#9a5b00 !important;color:#fff !important}
   /* o ✎ é âmbar o tempo todo: no hover ele escurece e afunda um tico, como quem aperta */
   #fab:hover{background:#7a4700;color:#fff}
   /* o #waBtn.wafab fixa a cor da tinta e vencia o hover genérico: ficava tinta no fundo
@@ -341,9 +343,35 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
 .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
 #amount{font-size:30px;letter-spacing:1px}
-.shares{display:grid;gap:6px}
+.shares{display:grid;gap:4px}
 .shares .row{font-size:18px;line-height:1.4;align-items:center}
-.shares input{width:110px;text-align:right;padding:4px}
+/* o campo da parte é o mesmo do valor do gasto (a mesma linha de tinta, a mesma letra
+   espaçada), só que menor, pra caber na linha da pessoa */
+.shares input[data-share]{width:118px;flex:none;text-align:right;padding:2px 4px;font-size:24px;letter-spacing:1px}
+.shares .lin{gap:10px;min-height:40px}
+.shares .lin .l{font-size:18px}
+/* o ✔ de quem entra na divisão, desenhado como os chips: cheio de tinta quando entra */
+.shares .ck{flex:none;display:inline-flex}
+.shares .ck input{-webkit-appearance:none;appearance:none;width:26px;height:26px;margin:0;padding:0;border:2px solid var(--ink);border-radius:4px;background:#fff8e6;display:grid;place-content:center;cursor:pointer}
+.shares .ck input:checked{background:var(--ink)}
+.shares .ck input:checked:after{content:"✔";color:#fff8e6;font-size:16px;line-height:1}
+.shares .lin.off .l{opacity:.45;text-decoration:line-through}
+.shares .fora{width:118px;text-align:right;color:var(--muted);font-size:16px}
+.shares .resto{flex:none;font-size:14px;line-height:1.4;color:#9a5b00;border:1.5px solid #9a5b00;border-radius:4px;padding:0 6px;background:transparent;white-space:nowrap}
+/* quanto falta pras partes fecharem: vermelho enquanto não fecha, verde quando fecha */
+.falta{text-align:center;font-size:18px;line-height:1.35;border:2px dashed;border-radius:4px;padding:7px 10px;text-transform:none}
+.falta b{font-weight:400;font-size:22px}
+.falta.erro{color:var(--red);border-color:var(--red)}
+.falta.ok{color:var(--green);border-color:var(--green)}
+.falta.neutro{color:var(--muted);border-color:var(--rule)}
+.falta a{display:block;margin-top:2px;color:var(--ink);font-size:17px}
+/* as duas abas do jeito de dividir: a marcada é cheia de tinta e leva o ✔; a outra fica
+   apagada, só o contorno, pra não parecer que as duas valem */
+.seg{display:flex;border:2px solid var(--ink);border-radius:5px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;box-shadow:none;background:transparent;color:var(--muted);font-size:16px;padding:7px 4px}
+.seg button+button{border-left:2px solid var(--ink)}
+.seg button.on{background:var(--ink);color:#fff8e6}
+.seg button.on:before{content:"✔ "}
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;text-transform:uppercase}
 .toast.show{opacity:1}
 @media (min-width:900px) and (min-height:600px){html{zoom:1.5}}

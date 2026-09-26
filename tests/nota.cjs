@@ -70,6 +70,27 @@ const VAZIO = { name: 'churras', people: DADOS.people.slice(0, 3), expenses: [] 
   // teto de 9 dígitos (9.999.999,99): o que passa disso não entra
   for (const t of '1234567') await p.type('#amount', t); valores.push(await p.inputValue('#amount'));
   exige(JSON.stringify(valores) === JSON.stringify(['0,05', '0,50', '5,00', '50,00', '5,00', '5.001.234,56']), `máscara do valor: ${JSON.stringify(valores)}`);
+  // partes diferentes: abas, "dividir o resto igual", "o resto", e desmarcar a linha
+  await p.fill('#amount', '12000'); await p.click('#splitSeg [data-modo="custom"]');
+  exige(await p.$eval('#splitSeg [data-modo="custom"]', b => b.classList.contains('on') && b.getAttribute('aria-selected') === 'true'), 'aba das partes não ficou marcada');
+  exige(await p.$eval('#splitChips', e => e.classList.contains('hidden')), 'nas partes diferentes os chips deviam sumir');
+  await p.fill('#sharesBox input[data-share="fernando"]', '4000');
+  exige(/faltam R\$\s80,00/.test(await p.$eval('#falta', e => e.textContent)), 'quanto falta errado: ' + await p.$eval('#falta', e => e.textContent));
+  exige(await p.$eval('#expenseForm button.big', b => b.disabled), 'anotar liberado sem fechar');
+  await p.click('#restoIgual');
+  const partes = await p.$$eval('#sharesBox input[data-share]', l => l.map(i => i.value));
+  exige(JSON.stringify(partes) === JSON.stringify(['40,00', '20,00', '20,00', '20,00', '20,00']), 'dividir o resto igual: ' + JSON.stringify(partes));
+  exige(!(await p.$eval('#expenseForm button.big', b => b.disabled)), 'fechou e o anotar continuou travado');
+  await p.click('#sharesBox .lin:last-child .ck');
+  exige(await p.$eval('#splitChips input[value="klinsmann"]', i => !i.checked), 'desmarcar a linha não desmarcou o chip');
+  exige(/faltam R\$\s20,00/.test(await p.$eval('#falta', e => e.textContent)), 'depois de tirar alguém devia faltar 20');
+  // "o resto" só aparece em linha vazia: esvazia a da Júlia e usa nela
+  await p.fill('#sharesBox input[data-share="julia"]', '');
+  await p.click('#sharesBox [data-resto="julia"]:not(.hidden)');
+  exige(await p.inputValue('#sharesBox input[data-share="julia"]') === '40,00', '"o resto" devia pôr 40,00 na Júlia');
+  exige(/fechou/.test(await p.$eval('#falta', e => e.textContent)), '"o resto" não fechou a conta');
+  console.log('partes diferentes: abas, dividir o resto igual, desmarcar e "o resto"');
+  await p.click('#sharesBox .lin:last-child .ck'); await p.click('#splitSeg [data-modo="equal"]');
   await p.fill('#amount', ''); await p.click('#sheetClose');
   console.log('valor digitado pelos centavos:', valores.join(' → '));
 

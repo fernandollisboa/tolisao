@@ -34,6 +34,7 @@ os testes são cucumber em português: a especificação fica em `specs/features
 - dinheiro é centavo inteiro até virar texto em `fmt()`/`money()`/`val()`.
 - cor de gente sai de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe.
 - animação nova entra na fila do `agenda()` e só roda com a seção na tela.
+- teste não pode deixar o CI lento: cenário que precisa esperar animação não entra. animação se confere no vídeo.
 
 ## mudou a tela? manda imagem
 

@@ -51,5 +51,6 @@ a `main` é o que tá no ar, exige o check `test` e recusa push direto. quando o
 ## convenções
 
 - cores de gente saem de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe; nada de amarelo.
-- animação entra na fila do `agenda()`, na ordem da página, e só roda com a seção na tela. animação não tem teste automático: confira no vídeo.
+- animação entra na fila do `agenda()`, na ordem da página, e só roda com a seção na tela.
+- **teste não pode deixar o CI lento.** cenário que precisa esperar animação não existe: animação se confere no vídeo.
 - **mudança visual termina com preview enviado ao usuário**, sem ele pedir (skill `preview`). opções vão numa folha comparativa em tamanho real; animação vai de vídeo.

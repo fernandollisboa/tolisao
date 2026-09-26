@@ -49,3 +49,12 @@ Then('baixa a imagem {string}', async ({ mundo }, nome) => {
   const arq = path.join(os.tmpdir(), 'receipt.png'); await d.saveAs(arq);
   expect(fs.readFileSync(arq).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
 });
+
+const area = p => p.$eval('#mineRows .dupla > button', b => { const a = getComputedStyle(b, '::after'), h = b.getBoundingClientRect().height;
+  return a.content === 'none' ? h : h + parseFloat(a.top) * -2; });
+Then('os botões da minha linha são {string} e {string}', async ({ mundo }, um, outro) => {
+  await mundo.p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 });
+  expect(await mundo.p.$$eval('#mineRows .dupla > button', l => l.map(b => b.textContent.trim()))).toEqual(expect.arrayContaining([um, outro]));
+});
+Then('a área de toque do ✔ tem pelo menos {int}px', async ({ mundo }, n) => { expect(await area(mundo.p)).toBeGreaterThanOrEqual(n); });
+Then('a área do ✔ tem menos de {int}px', async ({ mundo }, n) => { expect(await area(mundo.p)).toBeLessThan(n); });

@@ -44,9 +44,8 @@ Funcionalidade: Anotar um gasto
     Quando eu preencho R$ 42,84 de "Janta"
     E eu divido só entre Lia e Mengla, em partes diferentes
     E eu ponho R$ 18,87 pra Lia e R$ 20,00 pra Mengla
-    Então a frase da divisão diz "Dividido em partes diferentes · faltam R$ 3,97"
-    Quando eu salvo
-    Então aparece o aviso "Faltam R$ 3,97 nas partes"
+    Então o formulário diz que faltam R$ 3,97
+    E ainda não dá pra anotar
     Quando eu ponho R$ 23,97 pra Mengla
     E eu salvo
     Então o primeiro item da lista é "Janta" de 42,84
@@ -61,3 +60,43 @@ Funcionalidade: Anotar um gasto
     Quando eu abro o evento como Lia em outro aparelho
     Então eu devo R$ 136,71 pro Fernando
     E a minha linha no acerto é "Lia → Fernando"
+
+  Cenário: o valor entra pelos centavos, como no app do banco
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu digito no valor, tecla por tecla:
+      | tecla | fica  |
+      | 5     | 0,05  |
+      | 0     | 0,50  |
+      | 0     | 5,00  |
+      | 0     | 50,00 |
+    E eu apago o último dígito
+    Então o valor fica "5,00"
+    Quando eu digito "1234567" no valor
+    Então o valor fica "5.001.234,56"
+
+  Cenário: as ajudas de conta das partes diferentes
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu preencho R$ 120,00 de "Airbnb"
+    E eu toco no "igualmente" da frase
+    Então a aba das partes diferentes fica marcada
+    E os chips de quem divide somem
+    Quando eu ponho R$ 40,00 pra Fernando
+    Então o formulário diz que faltam R$ 80,00
+    E ainda não dá pra anotar
+    Quando eu toco em "dividir o resto igual"
+    Então as partes ficam:
+      | pessoa    | parte |
+      | Fernando  | 40,00 |
+      | Júlia     | 20,00 |
+      | Lia       | 20,00 |
+      | Mengla    | 20,00 |
+      | Klinsmann | 20,00 |
+    E já dá pra anotar
+    Quando eu tiro o Klinsmann da divisão
+    Então o Klinsmann sai também dos chips de quem divide
+    E o formulário diz que faltam R$ 20,00
+    Quando eu apago a parte da Júlia e toco em "o resto" nela
+    Então a parte da Júlia fica "40,00"
+    E o formulário diz que fechou

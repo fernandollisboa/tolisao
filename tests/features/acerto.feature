@@ -83,3 +83,14 @@ Funcionalidade: Acertar as contas
 
       tudo aqui 👉 {link do evento}
       """
+
+  Cenário: os botões dizem o que fazem
+    Dado que o Fernando tem a chave pix "fernando@exemplo.com"
+    Quando eu abro o evento como Lia
+    Então os botões da minha linha são "✔ paguei" e "copiar pix"
+
+  Cenário: no dedo o ✔ é fácil de acertar, no mouse não sobra área
+    Quando eu abro o evento como Lia num celular
+    Então a área de toque do ✔ tem pelo menos 44px
+    Quando eu abro o evento como Lia
+    Então a área do ✔ tem menos de 30px

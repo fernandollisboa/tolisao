@@ -1,6 +1,7 @@
 const { When, Then, expect } = require('./_mundo.cjs');
 
-const dinheiro = v => String(v).replace('.', ',');
+const dinheiro = v => v.toFixed(2).replace('.', ',');
+const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
 const item = (p, nome) => p.locator('#expenses .item').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
 
 Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); });
@@ -34,13 +35,53 @@ When('eu preencho R$ {num} de {string}', async ({ mundo }, valor, desc) => { awa
 When('eu divido só entre {gente}, em partes diferentes', async ({ mundo }, gente) => {
   const quero = new Set(gente.map(n => mundo.pessoa(n).id));
   for (const chip of await mundo.p.locator('#splitChips input').all()) if ((await chip.isChecked()) !== quero.has(await chip.inputValue())) await chip.locator('xpath=..').click();
-  await mundo.p.click('#modeToggle'); await mundo.p.waitForSelector('#sharesBox:not(.hidden)');
+  await mundo.p.click('#splitSeg [data-modo="custom"]'); await mundo.p.waitForSelector('#sharesBox:not(.hidden)');
 });
 When('eu ponho R$ {num} pra {word}', async ({ mundo }, v, n) => { await mundo.p.fill(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`, dinheiro(v)); });
 When('eu ponho R$ {num} pra {word} e R$ {num} pra {word}', async ({ mundo }, v1, n1, v2, n2) => {
   for (const [v, n] of [[v1, n1], [v2, n2]]) await mundo.p.fill(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`, dinheiro(v));
 });
-Then('a frase da divisão diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#splitHint')).toHaveText(txt); });
+Then('o formulário diz que faltam R$ {num}', async ({ mundo }, v) => { await expect(mundo.p.locator('#falta')).toHaveText(new RegExp(`faltam R\\$\\s${dinheiro(v)}`)); });
+Then('o formulário diz que fechou', async ({ mundo }) => { await expect(mundo.p.locator('#falta')).toHaveText(/fechou/); });
+Then('ainda não dá pra anotar', async ({ mundo }) => { await expect(mundo.p.locator('#expenseForm button.big')).toBeDisabled(); });
+Then('já dá pra anotar', async ({ mundo }) => { await expect(mundo.p.locator('#expenseForm button.big')).toBeEnabled(); });
+
+When('eu digito no valor, tecla por tecla:', async ({ mundo }, tabela) => {
+  for (const { tecla, fica } of tabela.hashes()) { await mundo.p.type('#amount', tecla); await expect(mundo.p.locator('#amount')).toHaveValue(fica); }
+});
+When('eu apago o último dígito', async ({ mundo }) => { await mundo.p.press('#amount', 'Backspace'); });
+When('eu digito {string} no valor', async ({ mundo }, txt) => { await mundo.p.type('#amount', txt); });
+Then('o valor fica {string}', async ({ mundo }, v) => { await expect(mundo.p.locator('#amount')).toHaveValue(v); });
+
+When('eu toco no "igualmente" da frase', async ({ mundo }) => { await mundo.p.click('#modeToggle'); });
+Then('a aba das partes diferentes fica marcada', async ({ mundo }) => {
+  const aba = mundo.p.locator('#splitSeg [data-modo="custom"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');
+});
+Then('os chips de quem divide somem', async ({ mundo }) => { await expect(mundo.p.locator('#splitChips')).toHaveClass(/\bhidden\b/); });
+When('eu toco em "dividir o resto igual"', async ({ mundo }) => { await mundo.p.click('#restoIgual'); });
+Then('as partes ficam:', async ({ mundo }, tabela) => {
+  for (const { pessoa, parte } of tabela.hashes()) await expect(mundo.p.locator(`#sharesBox input[data-share="${mundo.pessoa(pessoa).id}"]`)).toHaveValue(parte);
+});
+When('eu tiro o/a {word} da divisão', async ({ mundo }, n) => {
+  await mundo.p.locator('#sharesBox .lin').filter({ has: mundo.p.locator(`input[data-share="${mundo.pessoa(n).id}"]`) }).locator('.ck').click();
+});
+Then('o/a {word} sai também dos chips de quem divide', async ({ mundo }, n) => { await expect(mundo.p.locator(`#splitChips input[value="${mundo.pessoa(n).id}"]`)).not.toBeChecked(); });
+When('eu apago a parte do/da {word} e toco em "o resto" nela', async ({ mundo }, n) => {
+  const id = mundo.pessoa(n).id; await mundo.p.fill(`#sharesBox input[data-share="${id}"]`, ''); await mundo.p.click(`#sharesBox [data-resto="${id}"]:not(.hidden)`);
+});
+Then('a parte do/da {word} fica {string}', async ({ mundo }, n, v) => { await expect(mundo.p.locator(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`)).toHaveValue(v); });
+
+Then('a linha dos itens diz {string}, com moldura', async ({ mundo }, txt) => {
+  await expect(mundo.p.locator('#itemsCount')).toHaveText(txt); expect(await moldura(mundo.p)).not.toBe('none');
+});
+Then('a linha dos itens diz {string}, sem moldura', async ({ mundo }, txt) => {
+  await expect(mundo.p.locator('#itemsCount')).toHaveText(txt); expect(await moldura(mundo.p)).toBe('none');
+});
+When('eu toco na linha dos itens', async ({ mundo }) => { await mundo.p.click('#itemsHead'); });
+When('eu aperto Enter na linha dos itens', async ({ mundo }) => { await mundo.p.focus('#itemsHead'); await mundo.p.keyboard.press('Enter'); });
+When('eu aperto Espaço na linha dos itens', async ({ mundo }) => { await mundo.p.focus('#itemsHead'); await mundo.p.keyboard.press(' '); });
+Then('a lista de itens está aberta', async ({ mundo }) => { await expect(mundo.p.locator('#itemsHead')).toHaveAttribute('aria-expanded', 'true'); });
+Then('a lista de itens está fechada', async ({ mundo }) => { await expect(mundo.p.locator('#itemsHead')).toHaveAttribute('aria-expanded', 'false'); });
 When('eu salvo', async ({ mundo }) => { await mundo.p.click('#expenseForm button.big'); });
 Then('embaixo dele está escrito {string}', async ({ mundo }, txt) => {
   await mundo.p.mouse.move(0, 0);

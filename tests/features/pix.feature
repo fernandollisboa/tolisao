@@ -13,11 +13,14 @@ Funcionalidade: Cadastrar a chave pix
   Cenário: só chave aleatória ou e-mail
     Quando eu abro o evento como Fernando
     E eu cadastro a chave pix "123.456.789-09"
-    Então aparece o aviso "Só chave aleatória ou e-mail"
-    Quando eu cadastro a chave pix "+5583999998888"
-    Então aparece o aviso "Só chave aleatória ou e-mail"
-    Quando eu cadastro a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
+    Então o cartão barra a chave em vermelho
+    Quando eu volto a digitar
+    Então o vermelho sai
+    Quando eu troco a chave por "+5583999998888"
+    Então o cartão barra a chave em vermelho
+    Quando eu troco a chave por "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
     Então aparece o aviso "Chave Pix salva"
+    E o cartão fecha
     E o banco guarda a chave do Fernando "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
     E o cabeçalho diz "sou Fernando"
 

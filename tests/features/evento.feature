@@ -39,11 +39,13 @@ Funcionalidade: Entrar no evento
       bailedamada
       ENTRA QUEM TEM
       a senha
+      VOLTAR
       SAIR DO EVENTO
       """
     E o botão de sair do evento é vermelho
-    Quando eu toco fora do cartão
-    E eu toco no meu nome
+    Quando eu toco em voltar
+    Então o cartão fecha
+    Quando eu toco no meu nome
     Então o cartão de quem é você não tem botão de sair
 
   Cenário: chegar mais gente pela lista do rodapé
@@ -51,3 +53,9 @@ Funcionalidade: Entrar no evento
     Quando eu abro o evento como Lia
     E eu adiciono "Zé" pela lista de gente do rodapé
     Então a lista de gente fica "Fernando, Júlia, Lia, Mengla, Klinsmann, Zé"
+
+  Cenário: no caderno em branco, a caixa abre o anotar
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco na caixa do caderno em branco
+    Então o formulário de anotar abre

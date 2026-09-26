@@ -3,6 +3,13 @@ const { Given, When, Then, expect, idDe } = require('./_mundo.cjs');
 When('eu cadastro a chave pix {string}', async ({ mundo }, chave) => {
   const p = mundo.p; await p.click('#pixBtn'); await p.fill('#askInput', chave); await p.click('#askForm button.big');
 });
+When('eu troco a chave por {string}', async ({ mundo }, chave) => { await mundo.p.fill('#askInput', chave); await mundo.p.click('#askForm button.big'); });
+Then('o cartão barra a chave em vermelho', async ({ mundo }) => {
+  const p = mundo.p; await expect(p.locator('#overlay')).not.toHaveClass(/\bhidden\b/);
+  await expect(p.locator('#askInput')).toHaveClass(/\berro\b/); await expect(p.locator('#askDesc')).toHaveClass(/\berro\b/);
+});
+When('eu volto a digitar', async ({ mundo }) => { await mundo.p.type('#askInput', 'x'); });
+Then('o vermelho sai', async ({ mundo }) => { await expect(mundo.p.locator('#askInput')).not.toHaveClass(/\berro\b/); });
 Then('o banco guarda a chave do/da {word} {string}', async ({ mundo }, nome, chave) => {
   await expect.poll(() => mundo.banco.pega(['pix', mundo.sala, mundo.pessoa(nome).id, 'key'])).toBe(chave);
 });

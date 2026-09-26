@@ -20,6 +20,8 @@ Given('(que )o/a {word} já cadastrou a chave pix {string} em outro aparelho', a
 
 Given('que eu abro o site sem evento', async ({ mundo }) => { await mundo.abre({ semEvento: true }); });
 When('eu abro o evento como {word}', async ({ mundo }, quem) => { await mundo.abre({ quem }); });
+When('eu abro o evento como {word} num celular', async ({ mundo }, quem) => { await mundo.abre({ quem, toque: true }); });
+When('eu troco pra {word}', async ({ mundo }, quem) => { await mundo.souEu(quem); });
 When('eu abro o evento como {word} em outro aparelho', async ({ mundo }, quem) => { await mundo.abre({ quem }); });
 When('eu recarrego a página', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#app:not(.loading)'); });
 
@@ -39,6 +41,10 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.linhas('#overlayBox')).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
 });
 Then('o botão de sair do evento é vermelho', async ({ mundo }) => { await expect(mundo.p.locator('#evLeave')).toHaveCSS('color', 'rgb(155, 28, 28)'); });
+When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
+Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toHaveClass(/\bhidden\b/); });
+When('eu toco na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle .empty.anota'); });
+Then('o formulário de anotar abre', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).not.toHaveClass(/\bhidden\b/); });
 When('eu toco no meu nome', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#whoSel'); });
 Then('o cartão de quem é você não tem botão de sair', async ({ mundo }) => { await expect(mundo.p.locator('#leaveBtn')).toHaveCount(0); });
 

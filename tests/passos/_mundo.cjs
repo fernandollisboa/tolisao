@@ -18,8 +18,8 @@ class Mundo {
   pessoa(nome) { const eu = this.evento.people.find(x => x.name === nome); if (!eu) throw new Error(`${nome} não está no evento`); return eu; }
   criaEvento(dados) { this.evento = dados; this.sala = this.banco.sala(dados); return dados; }
 
-  async abre({ quem, semEvento = false } = {}) {
-    const ctx = await this.browser.newContext({ acceptDownloads: true });
+  async abre({ quem, toque = false, semEvento = false } = {}) {
+    const ctx = await this.browser.newContext({ acceptDownloads: true, hasTouch: toque, isMobile: toque });
     this.contextos.push(ctx);
     await this.banco.liga(ctx);
     await ctx.addInitScript(() => {

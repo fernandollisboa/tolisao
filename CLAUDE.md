@@ -6,12 +6,12 @@
 
 ## estrutura
 
-- `index.html`: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Falta pagar → membros → rodapé. overlays em `#overlay`, formulário em `#sheet`. o nome do evento abre `showRoom()` (recibo com sair e voltar).
+- `index.html`: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Falta pagar → membros → rodapé. overlays em `#overlay`, formulário em `#sheet`. o nome do evento abre `showRoom()`: recibo com voltar como botão (`button.sec`) e o sair em link vermelho embaixo. cartão sem ação principal leva o voltar como botão de verdade, porque tocar fora pra fechar ninguém acha (QA da #35).
 - `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo (`Person`, `Expense`, `Room`, `Transfer`). `npm run types` tem que sair limpo.
 - `style.css`: papel e madeira, fonte VT323.
-- `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva. mudou a estratégia, troque o nome `CACHE`. instalar fica atrás da flag `INSTALAR`: botão âmbar `#instalar` no rodapé (só quando dá pra instalar) e um convite único no ✎ na segunda visita (`convidaInstalar`). no iPhone o botão ensina o Compartilhar do Safari.
+- `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva. mudou a estratégia, troque o nome `CACHE`. instalar fica atrás da flag `INSTALAR`: botão âmbar `#instalar` no rodapé (só quando dá pra instalar) e um convite único no ✎ na segunda visita (`convidaInstalar`). no iPhone não tem API: o botão ensina o caminho do Safari do iOS 26 (••• → Compartilhar → Adicionar à Tela de Início, teclas em `.tecla`).
 - `fonts/`: VT323 (OFL 1.1) e Permanent Marker (Apache 2.0), não são MIT.
-- `ficha-*.png`: ícones, gerados por `node tests/icone.cjs`. `diva.png`: fonte deles e da `.stain`, a ficha que cai no rodapé quando a pessoa chega no fim da página, sempre a última da fila do `agenda()`, uma vez por visita. no toque ela é pegável: dois toques treme, o terceiro agarra; solta devagar volta pro papel, solta com força voa (`PEGA_FICHA` liga no mouse). modo chato: forte, fraco, forte na ficha desliga a diva ("Deus é fiel."); o mesmo no `#signoff` liga. guardado em `racha:chato`. o `body` usa `overflow-x:clip`, não `hidden`.
+- `ficha-*.png`: ícones, gerados por `node tests/icone.cjs`. `diva.png`: fonte deles e da `.stain`, a ficha que cai no rodapé quando a pessoa chega no fim da página, sempre a última da fila do `agenda()`, uma vez por visita. no toque ela é pegável: dois toques treme, o terceiro agarra; solta devagar volta pro papel, solta com força voa (`PEGA_FICHA` liga no mouse). modo chato: forte, fraco, forte na ficha desliga a diva ("Deus é fiel."); o mesmo no `#signoff` liga. guardado em `racha:chato`. no iPhone o toque longo seleciona texto: a ficha pousada cancela o `touchstart`, e com o dedo nela ou no `#signoff` o `body` ganha `segurando` (`user-select:none`). o `body` usa `overflow-x:clip`, não `hidden`.
 - a cor da ficha diz como você tá: vermelho deve, verde recebe, rosa quite, âmbar quem não disse quem é.
 - `og5.jpg`: preview do WhatsApp. abaixo de uns 300 KB, senão o WhatsApp ignora. trocar o nome fura o cache dele.
 - `tests/`: cucumber em português (`playwright-bdd` em cima do `@playwright/test`).
@@ -19,11 +19,14 @@
   - `passos/_mundo.cjs` é o fixture de cada cenário: banco falso, aparelhos, página da vez. no fim ele falha se a página deu erro, abriu diálogo nativo ou tentou listar eventos.
   - `_banco.cjs` imita o Firebase com as regras do README. `_serve.cjs` serve o repo na porta 0. `_bonito.cjs` é o reporter, que imprime o `.feature` com os passos em verde e vermelho.
   - animação não tem teste automático: confira no vídeo.
-  - `preview.cjs` e `video.cjs` não são testes, são geradores de imagem e de `.webm` (cenas `cascata`, `pix`, `piscas`, `troca`, `chave`, `ficha`, `pega`, `chato`, `dica`, `toque`, `itens`, `risco`, `datilo`; `--css=` e `--js=` pra comparar variações). `_ficha.cjs` tem os gestos da ficha. `noar.cjs` confere o que tá publicado.
+  - `preview.cjs` e `video.cjs` não são testes, são geradores de imagem e de `.webm` (cenas `cascata`, `pix`, `piscas`, `troca`, `chave`, `ficha`, `pega`, `chato`, `toque`, `itens`, `risco`; `--css=` e `--js=` pra comparar variações). `_ficha.cjs` tem os gestos da ficha. `noar.cjs` confere o que tá publicado.
 - `.github/workflows/`: `tests.yml` (check `test`, em PR) e `pages.yml` (deploy). leia **deploy** antes de subir.
+- `docs/qa.md`: o roteiro das sessões de QA com gente de verdade e o que cada uma achou.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mexeu em convenção aqui, atualize lá.
 - `package.json`: só ferramenta de desenvolvimento. o site não carrega nada disso.
-- evento novo: nada abre sozinho. o `#whoBtn` leva a `showSetup` (sem gente) ou `showWho`. evento com uma pessoa só já entra como ela. sem gasto o zap some e o balão `#dica` aponta pro ✎.
+- evento novo: nada abre sozinho. o `#whoBtn` leva a `showSetup` (sem gente) ou `showWho`. evento com uma pessoa só já entra como ela. sem gasto o zap some e a caixa tracejada do `#settle` diz "toque aqui pra anotar o primeiro gasto" e abre o anotar (`.empty.anota`), porque é nela que a pessoa toca.
+- ✎ (`#fab`, âmbar) e zap (`#waBtn`) empilhados no canto de cima do papel, `position:absolute`, rolando junto com a nota (fixos, tapavam os valores). sem ✎ o zap sobe (`.so`). o `right` acompanha a borda do papel.
+- "tô lisa" se digita sozinho (`digitaTitulo`) só no cartão do código e só na primeira visita.
 - endereço: `?senha=<código>` (`openGroup` faz `replaceState`). recarregar com o mesmo código abre direto. colar outro link na aba recarrega sozinho. o `ask()` tem voltar, e código errado devolve o cartão com o que foi digitado.
 - `#app` nasce com `loading`. `openGroup` tira depois do primeiro fetch, e um `setTimeout` no HTML tira em 8s.
 
@@ -66,9 +69,11 @@ armadilhas:
 - **animações**: nada anima fora da tela. um `IntersectionObserver` marca `#mine`, `#itemsSec` e `#settle`, e o `agenda()` enfileira na ordem da página: piscadas dos ✔ → toque na linha dos itens → voltas do círculo → riscos dos pagamentos. a fila reserva a entrada do bloco seguinte, não a duração do anterior. bloco vazio reserva zero. as horas são absolutas (atraso positivo espera, negativo retoma), então o poll não atrapalha. o copiar pix corre por fora. o toque grande dos itens só nas primeiras `APERTO_VISITAS`, depois `suave`. sala ou pessoa nova chama `rearmaAnims()`.
 - cifrão em Minha conta, Falta pagar e total; itens sem. quem tá quite vê "tudo quite!" com o emoji de `festeja()`.
 - frase curta de tela leva ponto ou exclamação. emoji só no 👀 do cobrar e na caixinha de quite.
-- o balão `.dicaok` sai uma vez por aparelho, atrás da última piscada, preso na linha e medido pelo ✔. `racha:viuAcerto` só grava no `animationstart`. dispensar é `dicaT = -1`. fechar no toque não chama `render()`, senão o confete sai do canto.
-- ações só em Minha conta: ✔ quita, copiar pix brota de trás dele quando a chave chega. Falta pagar só mostra. `COBRAR`, `DESFAZER` e `MEMBROS` desligados.
+- ações só em Minha conta: `✔ paguei` e `copiar pix` escritos por extenso (ícone sozinho pedia balão, e o `.dicaok` saiu). área de toque passa dos 44px por um `:after` invisível, só no dedo. o copiar pix brota de trás do ✔ quando a chave chega; o ✔ pisca uma vez por linha antes. Falta pagar só mostra. `COBRAR`, `DESFAZER` e `MEMBROS` desligados.
+- linha dos itens: fechada é botão com moldura e convida com verbo ("ver os 3 itens") até a pessoa abrir uma vez (`viuItens`, zerado no `rearmaAnims()`); aberta vira "3 itens", sem moldura (`#itemsHead.aberto`). Enter e Espaço abrem e fecham (`aria-expanded`).
+- dividir: duas abas (`#splitSeg`). no igual valem os chips e a frase do `#splitHint`, cujo "igualmente" leva pras partes. nas partes os chips somem e cada pessoa vira uma linha (`#sharesBox .lin`, o ✔ da linha marca o chip). o `#falta` diz quanto falta ou "✔ fechou", e o anotar só libera quando fecha. linha vazia ganha "o resto", e com mais de uma vazia aparece "dividir o resto igual". o `atualizaFalta()` só mexe no recado e nos botões, senão apaga o campo em que a pessoa digita.
+- pix errado não fecha o cartão: `askText` aceita `valida`, e errar deixa `#askDesc` e a caixa vermelhos com um tranco (`tranco`); voltar a digitar tira.
 - toque: a classe `tocou` vem de `pointerdown` de captura (não `:active`), tira o `animation-delay` inline, e o mouse fica de fora. tocou um, `tocouOk` para as piscadas. no desktop, hover preenche o botão (`!important` no ✔ e no `#pixBtn`).
-- valor digitado passa por `numVal()`. campo é `type="text"` com `inputmode="decimal"`.
+- valor digitado entra como no app do banco (`mascara()`): dígitos pela direita, pelos centavos (5 → 0,05, 5000 → 50,00), teto de 9 dígitos, no `#amount` e nas partes. campo `type="text"` com `inputmode="numeric"`. quem lê usa `numVal()`.
 - edição pequena, sem dependência no site, sem framework, sem build.
 - **mudança visual termina com preview enviado ao usuário**, sem ele pedir (skill `preview`, `tests/preview.cjs`). opções vão numa folha comparativa em tamanho real. **animação vai de vídeo** (`node tests/video.cjs <cena>`).

@@ -65,12 +65,6 @@ const CENAS = {
     acao: async p => { await ficha.desce(p); await ficha.pousa(p);
       await ficha.senha(p, '.stain'); await p.waitForTimeout(2000); await ficha.senha(p, '#signoff'); await p.waitForTimeout(400);
       await ficha.desce(p, true); await ficha.pousa(p, 8000); } },
-  dica: { nome: 'o balão contando o que o ✔ e o copiar pix fazem, na primeira vez', quem: 'Lia', atrasoPix: 900, dados: TRES,
-    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(700);
-      await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ behavior: 'smooth', block: 'center' }));
-      await p.waitForSelector('.dicaok', { timeout: 9000 });
-      await p.waitForFunction(() => !document.querySelector('.dicaok'), null, { timeout: 20000 });
-      await p.waitForTimeout(900); } },
   toque: { nome: 'o toque preenchendo o ✔ e o copiar pix, que no celular não têm hover', quem: 'Lia', atrasoPix: 900, dados: TRES,
     acao: async p => {
       await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));
@@ -96,8 +90,6 @@ const CENAS = {
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
-  datilo: { nome: '"tô lisa" se digitando sozinho, com a hesitação da pontuação no fim', quem: 'Lia', atrasoPix: 0,
-    acao: async p => { await p.waitForTimeout(8600); } },
 };
 
 async function video(opts = {}) {

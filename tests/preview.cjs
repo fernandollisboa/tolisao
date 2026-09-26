@@ -1,15 +1,8 @@
-// Gera preview do app com dados falsos. Uso como módulo ou pela linha de comando:
-//   node tests/preview.cjs '#settle'                      -> um recorte
-//   node tests/preview.cjs '#mine' --quem=Lia --saida=/tmp/x.png
-//   node tests/preview.cjs '#settle' --variantes=arq.cjs  -> folha comparativa A/B/C
-//   node tests/preview.cjs --recorte=0,0,390,240            -> recorte por coordenadas
-// O arquivo de variantes exporta { A: { nome, css, js }, B: {...} }.
 const { chromium } = require('./_pw.cjs');
 const path = require('path'), fs = require('fs'), os = require('os');
 const servir = require('./_serve.cjs');
 
 const HOJE = Date.now();
-/** evento de exemplo: gente com nomes de tamanhos diferentes, item dividido, uma quitação */
 const DADOS = {
   name: 'bailedamada',
   people: [
@@ -24,18 +17,12 @@ const DADOS = {
   ],
 };
 
-/**
- * @param {{alvo?:string, quem?:string, pix?:boolean, largura?:number, altura?:number,
- *          dados?:any, variantes?:Record<string,{nome?:string,css?:string,js?:string}>, recorte?:{x:number,y:number,width:number,height:number},
- *          saida?:string, porta?:number}} opts
- * @returns {Promise<string>} caminho da imagem
- */
 async function preview(opts = {}) {
   const { alvo = null, quem = 'Lia', pix = true, largura = 390, altura = 900,
-          dados = DADOS, variantes = null, recorte = null, porta = 4300 + Math.floor(Math.random()*200) } = opts;
+          dados = DADOS, variantes = null, recorte = null } = opts;
   const saida = opts.saida || path.join(os.tmpdir(), 'preview.png');
-  const srv = servir(porta);
-  const b = await chromium.launch();
+  const { srv, porta } = await servir();
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
   try {
     const ctx = await b.newContext({ viewport: { width: largura, height: altura }, deviceScaleFactor: 2 });
     await ctx.route(/fake-db/, r => {
@@ -65,7 +52,6 @@ async function preview(opts = {}) {
         await tirar(arq); imgs.push({ chave, nome: v.nome || '', arq });
         if (tag) await tag.evaluate(e => e.remove());
       }
-      // folha comparativa em tamanho real (encolher deixa o preview mentiroso)
       const b64 = f => 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
       const larg = Math.min(2, imgs.length) * (largura + 24) + 24;
       const m = await b.newPage({ viewport: { width: larg, height: 10 } });

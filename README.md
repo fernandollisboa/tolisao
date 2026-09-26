@@ -4,28 +4,26 @@ tipo Splitwise, só que sem app e sem cadastro 👍
 
 JavaScript, HTML e CSS. e só 👨‍🎨 https://tolisa.com.br/
 
-## Como usa
+## como usa
 
-1. Abra o site e digite o **código do evento** combinado no zap. Código novo cria um evento (a página pergunta antes).
-2. Diga quem você é em "Quem é você?". Ali também dá pra cadastrar sua **chave Pix** (aleatória ou e-mail).
-3. Anote os gastos pelo ✎: valor, o quê, quem pagou e quem divide. Dá pra dividir em partes diferentes ou marcar como empréstimo (desmarque o pagador).
-4. **Minha conta** mostra quanto você deve ou tem a receber, e é de onde você age: em cada linha de quem você deve ficam o ✔ de quitar e o copiar pix já com o valor. **Falta pagar** é só leitura, mostra o mínimo de transferências pra zerar todo mundo.
-5. **Enviar** gera a imagem da comanda e abre o WhatsApp com o resumo de quem paga quem.
+1. abre o site e digita o **código do evento** combinado no zap. código novo cria evento (a página pergunta antes).
+2. diz quem você é em "quem é você?".
+3. anota os gastos no ✎: valor, o quê, quem pagou e quem divide. dá pra dividir em partes diferentes ou emprestar (desmarca o pagador).
+4. **Minha conta** diz quanto você deve ou tem a receber, e é de lá que você age: ✔ quita, copiar pix já vai com o valor. **Falta pagar** só mostra o mínimo de transferências pra zerar todo mundo.
+5. **enviar** gera a imagem da comanda e abre o zap com quem paga quem.
 
-Pra convidar alguém: o texto do **Enviar** já vai com o link do evento; ou manda o site e o código. No celular dá pra "adicionar à tela inicial": o site é instalável (PWA) e abre offline com a última versão vista.
+pra chamar alguém: o texto do **enviar** já leva o link do evento. no celular dá pra instalar (botão no rodapé), e abre offline com a última versão vista.
 
-## Dados e segurança
+## dados e segurança
 
-- Cada evento fica em `rooms/<sha256(código)>`, e o código só existe como hash. Quem tem o código (ou o link) lê e escreve; quem não tem não descobre os eventos, porque as regras abaixo não deixam ler a raiz `rooms`. Ainda assim, não guarde nada sensível: dentro do evento tudo é aberto.
-- A chave Pix fica em `pix/<evento>/<pessoa>/key`, legível por todos, mas só o aparelho que cadastrou consegue trocar (um segredo `tok` fica no navegador dele e nas regras). Se perder o aparelho, apague o nó no console do Firebase.
-- Qualquer pessoa pode cadastrar uma chave em nome de quem ainda não cadastrou. A proteção é a de sempre: **confira o nome do recebedor na tela do banco antes de confirmar o Pix.**
-- Tudo que vem do banco é tratado como hostil (ids filtrados, textos escapados).
+- cada evento fica em `rooms/<sha256(código)>`. quem tem o código lê e escreve; quem não tem não acha, porque ninguém lê a raiz `rooms`. mesmo assim, nada sensível: dentro do evento tudo é aberto.
+- a chave pix fica em `pix/<evento>/<pessoa>/key`. todo mundo lê, só o aparelho que cadastrou troca (um segredo `tok` fica no navegador dele). perdeu o aparelho? apaga o nó no console do Firebase.
+- qualquer um cadastra chave em nome de quem ainda não cadastrou. então: **confere o nome do recebedor no banco antes de confirmar o pix.**
+- tudo que vem do banco é hostil: id filtrado, texto escapado.
 
-Pra instalar no celular, o botão **instalar no celular** fica no rodapé do evento. No Android ele usa o `beforeinstallprompt` do Chrome (que já não mostra banner sozinho); no iPhone ele ensina o caminho do Safari, que é o único jeito lá.
+regras do banco (Realtime Database → Regras):
 
-Regras do banco (Realtime Database → Regras):
-
-> **O `.read` fica dentro do `$room`, nunca em `rooms`.** As regras cascateiam pra baixo e não dá pra revogar mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixa todos os eventos do banco de uma vez, e o hash do código deixa de valer de nada.
+> **o `.read` fica dentro do `$room`, nunca em `rooms`.** as regras cascateiam e não dá pra revogar mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixa o banco inteiro e o hash do código não vale mais nada.
 
 ```json
 {
@@ -44,27 +42,34 @@ Regras do banco (Realtime Database → Regras):
 }
 ```
 
-## Desenvolver
+## desenvolver
 
-Não tem build. Sirva a pasta com qualquer servidor estático (`python3 -m http.server`) e abra `index.html`. A lógica fica em `app.js` (com `// @ts-check` e tipos em JSDoc; `npm run types` checa), estilos em `style.css`. A URL do banco é a constante `DB` no topo do `app.js`.
+sem build: `python3 -m http.server` e abre. lógica em `app.js` (`// @ts-check`, `npm run types` confere), estilo em `style.css`, a URL do banco é o `DB` no topo do `app.js`.
 
-Testes (Playwright, sem framework):
+testes são cucumber em português, lidos como especificação:
 
 ```sh
 npm ci && npx playwright install chromium
 npm test
 ```
 
-Cada script sobe um servidor local, simula o Firebase e imprime o que checou. Screenshots vão pra pasta temporária do sistema.
+```gherkin
+Cenário: quitar e avisar no zap
+  Quando eu abro o evento como Lia
+  E eu quito a primeira linha de Minha conta e aviso no zap
+  Então o zap abre com a mensagem:
+    """
+    ✅ Fernando, te paguei R$ 117,84 do *bailedamada* 👍
+    {link do evento}
+    """
+```
 
-Pra ver o resultado de uma mudança visual: `node tests/preview.cjs '#settle'` gera um recorte da tela com dados de exemplo.
+os cenários ficam em `tests/features/`, os passos em `tests/passos/`. mudou a tela? `node tests/preview.cjs '#settle'` tira um recorte com dados de exemplo.
 
-Deploy: push na `main` publica via GitHub Pages (`.github/workflows/pages.yml`). Em pull request, `tests.yml` roda os testes.
+push na `main` publica no GitHub Pages. antes de mandar mudança, lê o [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Antes de mandar mudança, leia o [CONTRIBUTING.md](CONTRIBUTING.md): o que o projeto não aceita, o estilo do código, como gerar preview e como conferir o deploy.
+## licença
 
-## Licença
+[MIT](LICENSE). pega e usa.
 
-[MIT](LICENSE). Pega e usa.
-
-As fontes em `fonts/` não entram nisso: VT323 é SIL OFL 1.1 e Permanent Marker é Apache 2.0, cada uma com a licença ao lado ([fonts/README.md](fonts/README.md)).
+as fontes em `fonts/` não: VT323 é SIL OFL 1.1 e Permanent Marker é Apache 2.0, cada uma com a licença do lado ([fonts/README.md](fonts/README.md)).

@@ -1,2 +1,5 @@
 node_modules/
 tests/node_modules/
+tests/.gerado/
+tests/.resultados/
+playwright-report/

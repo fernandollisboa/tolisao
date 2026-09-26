@@ -1,10 +1,8 @@
 # tô lisa · quem me deve?
 
-Tipo Splitwise, só que sem app e sem cadastro 👍
+tipo Splitwise, só que sem app e sem cadastro 👍
 
-**Site:** https://tolisa.com.br/
-
-JavaScript, HTML e CSS. e só 👨‍🎨
+JavaScript, HTML e CSS. e só 👨‍🎨 https://tolisa.com.br/
 
 ## Como usa
 

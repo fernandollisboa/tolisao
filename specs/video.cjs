@@ -87,6 +87,11 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
       await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ behavior: 'smooth', block: 'center' }));
       await p.waitForTimeout(5000); } },
+  sou: { nome: 'o Sou Fulano dando um sinal de botão depois que a fila acaba', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(3500);
+      const cutuca = () => p.evaluate(() => { const b = document.querySelector('#whoBtn');
+        b.classList.remove('cutuca'); void b.offsetWidth; b.classList.add('cutuca'); });
+      await cutuca(); await p.waitForTimeout(2600); await cutuca(); await p.waitForTimeout(2600); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

@@ -173,12 +173,12 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 /* passo a passo do instalar: as teclas do Safari desenhadas como tecla */
 .passos{text-transform:none;font-size:18px;line-height:2.1;max-width:310px;margin:0 auto}
 .tecla{display:inline-block;border:2px solid var(--ink);border-radius:6px;padding:0 7px;background:#fff8e6;box-shadow:2px 2px 0 var(--ink);line-height:1.2}
-/* errou a chave: o recado e a caixa ficam vermelhos e levam uma batidinha de pinball */
+/* errou a chave: o recado e a caixa ficam vermelhos e levam um tranco pro lado, que vai morrendo */
 #askDesc,#askInput{transition:color .2s,border-color .2s,box-shadow .2s}
 #askDesc.erro{color:var(--red);-webkit-text-stroke:.5px var(--red)}
 #askInput.erro{border-color:var(--red);box-shadow:0 2px 0 var(--red)}
-#askDesc.erro,#askInput.erro{animation:poin .6s linear}
-@keyframes poin{0%{transform:scale(1)}14%{transform:scale(1.05)}34%{transform:scale(.985)}54%{transform:scale(1.015)}74%{transform:scale(.996)}100%{transform:none}}
+#askDesc.erro,#askInput.erro{animation:tranco .5s ease-out}
+@keyframes tranco{0%,100%{transform:none}15%{transform:translateX(-6px)}35%{transform:translateX(4px)}55%{transform:translateX(-2px)}75%{transform:translateX(1px)}}
 @media (prefers-reduced-motion:reduce){#askDesc.erro,#askInput.erro{animation:none}}
 /* segurando a ficha (ou o rodapé) o iPhone não pode achar que é pra selecionar texto */
 body.segurando{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}

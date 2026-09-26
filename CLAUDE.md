@@ -23,7 +23,7 @@ Site: https://tolisa.com.br/. Tudo em pt-BR.
 - Botões flutuantes: o ✎ (`#fab`, âmbar) e o zap (`#waBtn`) ficam empilhados no canto de cima à direita, o ✎ a 52px do topo e o zap logo abaixo (sem ✎, o zap sobe pra vaga dele, `.so`). Embaixo, num iPhone grande, a usuária da QA não achou nenhum dos dois.
 - Ficha e texto selecionado: no iPhone o toque longo seleciona texto, e o `preventDefault` do `pointerdown` não segura isso. Por isso a ficha pousada cancela o `touchstart` (não-passivo), e enquanto o dedo está nela ou no `#signoff` o `body` ganha `segurando` (`user-select:none`).
 - Título: "tô lisa" se digita sozinho (`digitaTitulo`) só no cartão do código, a tela de estreia, e só na primeira visita. No cabeçalho do evento ele fica quieto.
-- Pix com CPF ou telefone não fecha o cartão: `askText` aceita um `valida`, e errar deixa o recado (`#askDesc`) e a caixa vermelhos com uma batidinha de pinball (`poin`); voltar a digitar tira o vermelho. O toast no pé da tela a pessoa nem via.
+- Pix com CPF ou telefone não fecha o cartão: `askText` aceita um `valida`, e errar deixa o recado (`#askDesc`) e a caixa vermelhos com um tranco pro lado que vai morrendo (`tranco`); voltar a digitar tira o vermelho. O toast no pé da tela a pessoa nem via.
 - Estado inicial: `#app` nasce com a classe `loading` (só título e spinner); `openGroup` tira depois do primeiro fetch, e um `setTimeout` inline no HTML tira em 8s como salvaguarda.
 
 ## Comandos

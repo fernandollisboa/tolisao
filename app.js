@@ -512,7 +512,7 @@
       $('#cancelBtn').onclick = () => { overlayCancel = null; closeOverlay(); res(false); };
     });
   }
-  /** `valida` barra o que não serve sem fechar o cartão: o recado e a caixa dão um tranco em vermelho */
+  /** `valida` barra o que não serve sem fechar o cartão: o recado e a caixa ficam vermelhos e dão um tranco pro lado */
   function askText(title, desc, placeholder, value = '', okLabel = 'confirmar', valida = null){
     return new Promise(res => {
       overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" id="askDesc" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);

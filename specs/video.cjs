@@ -34,7 +34,7 @@ const CENAS = {
       await p.waitForTimeout(5500);
       await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ behavior: 'smooth', block: 'center' }));
       await p.waitForTimeout(6000); } },
-  piscas: { nome: 'três ✔ fazendo o pisca-pisca de natal um atrás do outro', quem: 'Lia', atrasoPix: 2000, dados: TRES,
+  piscas: { nome: 'três ✔ devendo pra três: o pisca-pisca de natal da primeira vez', quem: 'Lia', atrasoPix: 2000, dados: TRES,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(7500); } },
   troca: { nome: 'trocar de pessoa refaz a nota inteira', quem: 'Klinsmann', atrasoPix: 800, dados: DOIS,

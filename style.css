@@ -276,14 +276,20 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
   0%{opacity:0;max-width:0;overflow:hidden;transform:translateX(calc(-100% - 6px)) scale(.6)}
   30%{opacity:1}
   100%{opacity:1;max-width:140px;overflow:hidden;transform:none}}
-/* o ✔ faz o show do pisca-pisca de natal: piscadas cada vez mais curtas e juntinhas,
-   aí apaga, acende firme e esmaece. Depois fica normal. Linear entre os quadros, que
-   quadro colado no outro é lâmpada acendendo seco; o esmaecer é o trecho longo do fim */
-#mineRows .dupla>.ok.pisca{animation:pisca 4.6s linear both}
+/* assim que o copiar pix termina de sair, o ✔ vazado se enche de verde uma vez: "me pague" */
+#mineRows .dupla>.ok.pisca{animation:pisca .9s ease-in-out both}
 @keyframes pisca{
-  0%,6.74%,15.22%,21.09%,27.39%,32.39%,36.96%,41.09%,44.35%,47.61%,49.57%,52.17%,53.26%,55.43%,56.09%,58.04%,58.48%,60.22%,60.65%,62.39%,62.61%,64.13%,71.74%,100%{
+  0%,100%{background:#fff8e6;color:var(--green);transform:none}
+  45%{background:var(--green);color:#fff8e6;transform:scale(1.14)}}
+/* quem deve pra dois ou mais às vezes ganha o pisca-pisca de natal: piscadas cada vez
+   mais curtas e juntinhas, uma pausa, e o fecho (ligado desligado) (desligado ligado)
+   (ligado ligado) (desligado). Depois fica normal. Quadro colado no outro é lâmpada
+   acendendo seco */
+#mineRows .dupla>.ok.pisca.natal{animation:natal 4.8s linear both}
+@keyframes natal{
+  0%,6.46%,14.58%,20.21%,26.25%,31.04%,35.42%,39.38%,42.5%,45.63%,47.5%,50%,51.04%,53.13%,53.75%,55.63%,56.04%,57.71%,58.13%,59.79%,60%,61.46%,68.75%,74.38%,83.75%,99.38%,100%{
     background:#fff8e6;color:var(--green);box-shadow:2px 2px 0 var(--green),0 0 0 rgba(21,112,58,0)}
-  .65%,6.09%,15.87%,20.43%,28.04%,31.74%,37.61%,40.43%,45%,46.96%,50.22%,51.52%,53.91%,54.78%,56.74%,57.39%,59.13%,59.57%,61.3%,61.74%,63.26%,63.48%,72.39%,80.43%{
+  .63%,5.83%,15.21%,19.58%,26.88%,30.42%,36.04%,38.75%,43.13%,45%,48.13%,49.38%,51.67%,52.5%,54.37%,55%,56.67%,57.08%,58.75%,59.17%,60.62%,60.83%,69.38%,73.75%,84.38%,98.75%{
     background:var(--green);color:#fff8e6;box-shadow:2px 2px 0 var(--green),0 0 12px rgba(21,112,58,.55)}}
 /* o cadastrar chave pix desce de debaixo do "minha conta" e pisca uma vez */
 #pixLine #pixBtn{animation:desceEPisca 1.25s cubic-bezier(.2,.9,.3,1.1) both}
@@ -292,7 +298,7 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
   22%{opacity:1}
   38%,78%,100%{opacity:1;transform:none;background:#fff8e6;color:#9a5b00}
   58%{opacity:1;transform:scale(1.12);background:#9a5b00;color:#fff8e6}}
-@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#pixLine #pixBtn,#mineRows .dupla>button.ico.tocou{animation:none}}
+@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#mineRows .dupla>.ok.pisca.natal,#pixLine #pixBtn,#mineRows .dupla>button.ico.tocou{animation:none}}
 /* o dedo acerta mais que 26px: a área de toque dos botões do acerto passa dos 44px
    que a Apple pede, sem mudar o desenho. Na horizontal quase nada, que os dois são vizinhos */
 #mineRows .dupla>button.ico{position:relative}

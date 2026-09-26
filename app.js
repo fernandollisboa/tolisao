@@ -31,7 +31,7 @@
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } }, del: k => { try { localStorage.removeItem(k); } catch {} } };
   // o que fica no aparelho, em duas gavetas de JSON:
   //   tolisa         { visits, installPrompted, itemsOpened, boringMode, lastRoom: {code, id} }
-  //   tolisa:<sala>  { me, lastSeen, pixTokens: {pessoa: tok}, snapshot }
+  //   tolisa:<sala>  { me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa', roomKey = id => `${DEVICE}:${id}`;
   /** @returns {Record<string, any>} */
@@ -263,7 +263,8 @@
   let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const pixVisto = new Map();   // pessoa -> quando as animações da linha dela começam
   let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
-  const PIX_MS = 420, PISCA_MS = 4600, PISCA_GAP = 320;   // o show do pisca-pisca, uma linha atrás da outra
+  let natal = false;            // essa vez é de pisca-pisca de natal (sorteado quando a Minha conta entra na fila)
+  const PIX_MS = 420, PISCA_MS = 900, NATAL_MS = 4800, PISCA_GAP = 320;   // uma piscada só, ou o pisca-pisca de natal
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
@@ -371,8 +372,8 @@
     if (hasMe && !vazio) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
-      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ faz o
-      // pisca-pisca de natal, um "me pague". As duas saem da mesma hora, guardada uma vez
+      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ pisca
+      // verde, um "me pague". As duas saem da mesma hora, guardada uma vez
       // por pessoa; como o #mineRows é refeito a cada poll, o atraso (negativo depois
       // que a animação começou) retoma de onde estava em vez de recomeçar no meio
       // hora marcada pras animações da seção: o copiar pix brotando de trás do ✔ e a
@@ -382,7 +383,12 @@
       // piscadas, e curto: quem vem depois não precisa esperar tudo acabar
       const meus = bal < 0 ? stMe.filter(t => t.from === me) : [];
       // sem linha nenhuma não há o que reservar: quem vem depois não espera à toa
-      if (mineNaTela && !mineT) mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0);
+      if (mineNaTela && !mineT) { mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0);
+        // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
+        // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
+        const vistos = room().lightsSeen, ja = Array.isArray(vistos) && vistos.includes(me);
+        natal = meus.length >= 2 && (!ja || Math.random() < .5);
+        if (natal && !ja) mexe(roomKey(groupId), o => { o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me]; }); }
       // o copiar pix corre por fora da fila: brota assim que a chave chega do banco,
       // sem esperar as piscadas nem segurar quem vem depois. Nada de spinner: o botão
       // brotando já conta que chegou
@@ -393,7 +399,7 @@
         return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG} copiar pix</button>`; };
       // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
       const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
-        const pi = !tocouOk && dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
+        const pi = !tocouOk && dt < esp + (natal ? NATAL_MS : PISCA_MS) ? ` pisca${natal ? ' natal' : ''}" style="animation-delay:${esp - dt}ms` : '';
         return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`; };
       // os botões dizem o que fazem ("paguei", "copiar pix"): um balão explicando ícone
       // era recado solto, e recado solto a pessoa pula

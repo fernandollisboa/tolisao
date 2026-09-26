@@ -811,6 +811,9 @@
   $('#itemsHead').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#itemsHead').click(); } });
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
+  // rolou a nota, o ✎ e o zap já estão por cima do texto: ficam meio transparentes
+  const rolou = () => document.body.classList.toggle('rolou', scrollY > 8);
+  addEventListener('scroll', rolou, { passive: true }); rolou();
   $('#fab').onclick = () => { setDevice('fabTaps', (+device().fabTaps || 0) + 1);
     if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); convidaInstalar(); };
   $('#sheetClose').onclick = closeSheet;

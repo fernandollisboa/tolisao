@@ -57,13 +57,13 @@ Playwright cru, sem framework. Cada script sobe um servidor local, intercepta o 
 |---|---|
 | `ui.cjs` | anotar pelo ✎, quitar, o ver todos, e a página não estourar a largura |
 | `feat.cjs` | Minha conta, a ordem do formulário, o hint de falta/sobra das partes |
-| `pix.cjs` | só chave aleatória ou e-mail, o `tok` de um aparelho só, o copia e cola |
+| `pix.cjs` | só chave aleatória ou e-mail (CPF e telefone barrados no próprio cartão), o `tok` de um aparelho só, o copia e cola |
 | `img.cjs` | o png da comanda sai do canvas e o texto do zap fecha |
 | `xss.cjs` | nome e descrição hostis não viram HTML |
 | `ordem.cjs` | a ordem das animações, ouvindo `animationstart` |
 | `pega.cjs` | a ficha pegável e o modo chato |
-| `dica.cjs` | o balão dos botões do acerto: uma vez por aparelho, some no toque |
 | `toque.cjs` | o toque preenchendo o ✔ e o copiar pix, e o mouse fora disso |
+| `nota.cjs` | o que a QA da #35 pediu: "ver os 3 itens", botões do acerto com nome, a caixa vazia que abre o anotar, o voltar do evento |
 
 Bug que deu na mão vira teste antes do conserto. As dependências são de desenvolvimento e só: o site não carrega nada disso. `preview.cjs` e `video.cjs` não são testes, são os geradores de imagem e vídeo; `icone.cjs` regenera os `ficha-*.png` da PWA e `noar.cjs` confere o que está publicado.
 

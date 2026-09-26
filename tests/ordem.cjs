@@ -33,8 +33,11 @@ const ESPERADO = [
     await p.addInitScript(() => { window.__ev = [];
       addEventListener('animationstart', e => { const t = /** @type {any} */ (e.target);
         const row = t.closest && t.closest('.row');
+        // a linha é identificada pelo texto dela sem os botões: o copiar pix brotando muda o
+        // texto da linha, e a mesma piscada re-renderizada parecia outra
+        const semBotao = row && /** @type {HTMLElement} */ (row.cloneNode(true)); if (semBotao) semBotao.querySelectorAll('button').forEach(b => b.remove());
         window.__ev.push({ nome: e.animationName, t: Math.round(performance.now()), pseudo: e.pseudoElement || '',
-          alvo: row ? (row.textContent || '').trim().slice(0, 24) : (t.id || '') }); }, true); });
+          alvo: semBotao ? (semBotao.textContent || '').trim().slice(0, 24) : (t.id || '') }); }, true); });
 
     await p.goto(`http://localhost:${PORTA}/?senha=${dados.name}`);
     await p.click('#whoBtn'); await p.waitForSelector('#whoSel');

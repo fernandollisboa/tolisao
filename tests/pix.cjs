@@ -24,10 +24,21 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   let promptAnswer = '123.456.789-09'; p1.on('dialog', d => d.type() === 'prompt' ? d.accept(promptAnswer) : d.accept());
   await p1.goto('http://localhost:4182/#seed=' + seed); await p1.fill('#gateCode','bailedamada'); await p1.click('#gateForm button');
   await p1.click('#whoBtn'); await p1.waitForSelector('#whoSel'); await p1.selectOption('#whoSel', { label: 'Fernando' }); await p1.waitForTimeout(300);
-  const setPix = async (pg, v) => { await pg.click('#pixBtn'); await pg.waitForSelector('#askInput'); await pg.fill('#askInput', v); await pg.click('#askForm button.big'); };
-  await setPix(p1, promptAnswer); await p1.waitForTimeout(200); console.log('CPF recusado, toast:', await p1.$eval('#toast', e => e.textContent));
-  promptAnswer = '+5583999998888'; await setPix(p1, promptAnswer); await p1.waitForTimeout(200); console.log('telefone recusado, toast:', await p1.$eval('#toast', e => e.textContent));
+  const setPix = async (pg, v) => { if (!(await pg.$('#askInput'))) { await pg.click('#pixBtn'); await pg.waitForSelector('#askInput'); }
+    await pg.fill('#askInput', v); await pg.click('#askForm button.big'); };
+  // chave errada não fecha o cartão: o recado e a caixa ficam vermelhos ali mesmo
+  const barrou = async (pg, oque) => { await pg.waitForTimeout(200);
+    const e = await pg.evaluate(() => ({ aberto: !document.querySelector('#overlay').classList.contains('hidden'),
+      caixa: document.querySelector('#askInput')?.classList.contains('erro'), recado: document.querySelector('#askDesc')?.classList.contains('erro'),
+      texto: document.querySelector('#askDesc')?.textContent }));
+    if (!e.aberto || !e.caixa || !e.recado) errs.push(`${oque} não foi barrado no cartão: ${JSON.stringify(e)}`);
+    console.log(`${oque} barrado no cartão:`, e.aberto && e.caixa && e.recado ? 'ok' : 'FALHOU', '|', e.texto); };
+  await setPix(p1, promptAnswer); await barrou(p1, 'CPF');
+  // voltou a digitar: o vermelho sai
+  await p1.type('#askInput', 'x'); if (await p1.$eval('#askInput', e => e.classList.contains('erro'))) errs.push('o vermelho não saiu ao digitar');
+  promptAnswer = '+5583999998888'; await setPix(p1, promptAnswer); await barrou(p1, 'telefone');
   promptAnswer = '7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d'; await setPix(p1, promptAnswer); await p1.waitForTimeout(400); console.log('aleatória:', await p1.$eval('#toast', e => e.textContent), '|', await p1.$eval('#whoLine', e => e.innerText));
+  if (!(await p1.$eval('#overlay', e => e.classList.contains('hidden')))) errs.push('chave boa não fechou o cartão');
   // Lia tenta sobrescrever a chave do Fernando (outro aparelho) -> negado
   const c2 = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); await mock(c2); const p2 = await c2.newPage(); p2.on('pageerror', e => errs.push('p2 '+e.message));
   await p2.goto('http://localhost:4182/?senha=bailedamada'); await p2.click('#whoBtn'); await p2.waitForSelector('#whoSel'); await p2.selectOption('#whoSel', { label: 'Fernando' }); await p2.waitForTimeout(300);

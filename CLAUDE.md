@@ -11,7 +11,7 @@
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva. mudou a estratégia, troque o nome `CACHE`. instalar fica atrás da flag `INSTALAR`: botão âmbar `#instalar` no rodapé (só quando dá pra instalar) e um convite único no ✎ na segunda visita (`convidaInstalar`). no iPhone não tem API: o botão ensina o caminho do Safari do iOS 26 (••• → Compartilhar → Adicionar à Tela de Início, teclas em `.tecla`).
 - `fonts/`: VT323 (OFL 1.1) e Permanent Marker (Apache 2.0), não são MIT.
-- `ficha-*.png`: ícones, gerados por `node tests/icone.cjs`. `diva.png`: fonte deles e da `.stain`, a ficha que cai no rodapé quando a pessoa chega no fim da página, sempre a última da fila do `agenda()`, uma vez por visita. no toque ela é pegável: dois toques treme, o terceiro agarra; solta devagar volta pro papel, solta com força voa (`PEGA_FICHA` liga no mouse). modo chato: forte, fraco, forte na ficha desliga a diva ("Deus é fiel."); o mesmo no `#signoff` liga. guardado em `racha:chato`. no iPhone o toque longo seleciona texto: a ficha pousada cancela o `touchstart`, e com o dedo nela ou no `#signoff` o `body` ganha `segurando` (`user-select:none`). o `body` usa `overflow-x:clip`, não `hidden`.
+- `ficha-*.png`: ícones, gerados por `node tests/icone.cjs`. `diva.png`: fonte deles e da `.stain`, a ficha que cai no rodapé quando a pessoa chega no fim da página, sempre a última da fila do `agenda()`, uma vez por visita. no toque ela é pegável: dois toques treme, o terceiro agarra; solta devagar volta pro papel, solta com força voa (`PEGA_FICHA` liga no mouse). modo chato: forte, fraco, forte na ficha desliga a diva ("Deus é fiel."); o mesmo no `#signoff` liga. guardado em `boringMode`. no iPhone o toque longo seleciona texto: a ficha pousada cancela o `touchstart`, e com o dedo nela ou no `#signoff` o `body` ganha `segurando` (`user-select:none`). o `body` usa `overflow-x:clip`, não `hidden`.
 - a cor da ficha diz como você tá: vermelho deve, verde recebe, rosa quite, âmbar quem não disse quem é.
 - `og5.jpg`: preview do WhatsApp. abaixo de uns 300 KB, senão o WhatsApp ignora. trocar o nome fura o cache dele.
 - `tests/`: cucumber em português (`playwright-bdd` em cima do `@playwright/test`).
@@ -60,6 +60,7 @@ armadilhas:
 - sala: `rooms/<sha256(código)>` com `{v, name, people[], expenses[], deleted[], updatedAt}`. ids de `uid()`. `kind:'payment'` é quitação. `shares` (centavos) só em divisão desigual. pagador fora de `among` é empréstimo.
 - sync: `merge()` une por id, exclusão vence, `clean()` em tudo que vem do banco ou do cache, `canon()` pra não regravar à toa.
 - pix: só pelo `#pixBtn` âmbar. `pix/<sala>/<pessoa>/{key, tok}`: `key` todo mundo lê, só quem tem o `tok` troca. só chave aleatória ou e-mail (`validPixKey`).
+- aparelho: duas gavetas de JSON no localStorage, chaves em inglês e camelCase. `tolisa` tem `{visits, installPrompted, itemsOpened, boringMode, lastRoom}` (`device()`/`setDevice()`), `tolisa:<sala>` tem `{me, lastSeen, pixTokens, snapshot}` (`room()`/`setRoom()`). as chaves `racha:*` de antes migram sozinhas na abertura, e o velho só sai depois que o novo gravou (perder o `tok` trava a chave pix).
 - regras no README: leitura e escrita por sala. o `.read` nunca sobe pro nó `rooms`, senão `GET /rooms.json` baixa tudo.
 
 ## convenções

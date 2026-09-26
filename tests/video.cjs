@@ -114,9 +114,9 @@ async function video(opts = {}) {
     const erros = []; p.on('pageerror', e => erros.push(e.message));
     const sala = await sha256(dados.name);
     await p.addInitScript(([sala, code, quem, gente]) => {
-      try { localStorage.setItem('racha:room', JSON.stringify({ code, id: sala }));
+      try { localStorage.setItem('tolisa', JSON.stringify({ lastRoom: { code, id: sala } }));
         const eu = gente.find(x => x.name === quem);
-        if (eu) localStorage.setItem(`racha:${sala}:me`, eu.id); } catch {}
+        if (eu) localStorage.setItem(`tolisa:${sala}`, JSON.stringify({ me: eu.id })); } catch {}
     }, [sala, dados.name, c.quem, dados.people]);
     if (opts.js) await p.addInitScript(opts.js);
     const cdp = await ctx.newCDPSession(p);

@@ -72,9 +72,8 @@ const VAZIO = { name: 'churras', people: DADOS.people.slice(0, 3), expenses: [] 
   exige(JSON.stringify(valores) === JSON.stringify(['0,05', '0,50', '5,00', '50,00', '5,00', '5.001.234,56']), `máscara do valor: ${JSON.stringify(valores)}`);
   // partes diferentes: abas, "dividir o resto igual", "o resto", e desmarcar a linha
   await p.fill('#amount', '12000');
-  // o "igualmente" da frase também leva pras partes diferentes
-  await p.click('#modeToggle');
-  exige(await p.$eval('#splitSeg [data-modo="custom"]', b => b.classList.contains('on')), 'o "igualmente" não levou pras partes diferentes');
+  // a frase de como está dividido fica em cima das abas
+  exige(await p.$eval('#splitHint', h => !!(h.compareDocumentPosition(document.querySelector('#splitSeg')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'a frase devia vir antes das abas');
   await p.click('#splitSeg [data-modo="custom"]');
   exige(await p.$eval('#splitSeg [data-modo="custom"]', b => b.classList.contains('on') && b.getAttribute('aria-selected') === 'true'), 'aba das partes não ficou marcada');
   exige(await p.$eval('#splitChips', e => e.classList.contains('hidden')), 'nas partes diferentes os chips deviam sumir');

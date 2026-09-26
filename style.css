@@ -178,6 +178,27 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 /* passo a passo do instalar: as teclas do Safari desenhadas como tecla */
 .passos{text-transform:none;font-size:18px;line-height:2.1;max-width:310px;margin:0 auto}
 .tecla{display:inline-block;border:2px solid var(--ink);border-radius:6px;padding:0 7px;background:#fff8e6;box-shadow:2px 2px 0 var(--ink);line-height:1.2}
+/* instalar no iPhone: quadrinhos do Safari, com o que tocar pintado de âmbar, e a seta
+   pulando em cima do botão de verdade, que fica fora da página */
+.passo{display:flex;gap:12px;align-items:center;margin:10px 0}
+.passo p{margin:0;text-transform:none;font-size:18px;line-height:1.25}
+.passo .tela{flex:none;width:118px;box-sizing:border-box;border:2px solid var(--ink);border-radius:10px;background:#f2f2f7;padding:6px;font:12px -apple-system,Helvetica,sans-serif;color:#111;display:grid;gap:3px}
+.passo .tela span{background:#fff;border-radius:6px;padding:3px 6px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.passo .tela .barra{display:flex;gap:4px;justify-content:center}
+.passo .tela .barra span:first-child:not(.toca){flex:1;color:#111}
+.passo .tela .toca{background:#9a5b00;color:#fff;box-shadow:0 0 0 2px var(--ink);flex:none}
+#overlay.ensina{align-items:flex-start}
+#overlay.ensina .paper{margin:20px auto 0}
+#overlay.ensina.cima{align-items:flex-end}
+#overlay.ensina.cima .paper{margin:0 auto 20px}
+.seta{position:fixed;z-index:11;pointer-events:none;overflow:visible;fill:none;stroke:#fff8e6;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;animation:setaPula 1.1s ease-in-out infinite}
+.seta.canto{right:8px;bottom:calc(2px + env(safe-area-inset-bottom))}
+.seta.meio{left:calc(50% - 128px);bottom:calc(2px + env(safe-area-inset-bottom))}
+.seta.cima{right:8px;top:2px;scale:1 -1}
+@keyframes setaPula{0%,100%{translate:0 0}50%{translate:5px 7px}}
+.seta.cima{animation-name:setaSobe}
+@keyframes setaSobe{0%,100%{translate:0 0}50%{translate:5px -7px}}
+@media (prefers-reduced-motion:reduce){.seta{animation:none}}
 /* errou a chave: o recado e a caixa ficam vermelhos e levam um tranco pro lado, que vai morrendo */
 #askDesc,#askInput{transition:color .2s,border-color .2s,box-shadow .2s}
 #askDesc.erro{color:var(--red);-webkit-text-stroke:.5px var(--red)}

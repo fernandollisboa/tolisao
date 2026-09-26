@@ -1,7 +1,7 @@
 const { createHash } = require('crypto');
 const sha256 = t => createHash('sha256').update(t).digest('hex');
 
-// o .validate de rooms/$room do README, em js. O Firebase guarda lista como objeto de
+// o .validate de rooms/$room do database.rules.json, em js. O Firebase guarda lista como objeto de
 // índices e some com lista vazia: aqui a lista do JSON passa pelo mesmo Object.entries
 const ID = /^[a-z0-9]{1,32}$/;
 const obj = x => x !== null && typeof x === 'object';

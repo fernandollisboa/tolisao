@@ -235,7 +235,7 @@
   // o ✎ se abre em ANOTAR nas duas primeiras visitas; depois pula até a primeira vez que
   // é apertado, pulsa na segunda e na terceira, e sossega
   let fabT = 0, souT = 0, cutucas = [];
-  const ANOTA_MS = 1900, ABRE_MS = 2800, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
+  const ANOTA_MS = 1900, ABRE_MS = 3200, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
   /** a classe entra na hora marcada, mas só com o botão na tela; fora dela, espera ele voltar */
   const cutuca = (el, cls, t) => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const vai = () => { const r = el.getBoundingClientRect();

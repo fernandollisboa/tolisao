@@ -153,12 +153,12 @@ button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:
 button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);width:100%;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:10px}
 .wa,button.big svg{flex:none;position:relative;top:-1px}
 /* o zap é a segunda bolinha flutuante, logo abaixo do anotar */
-#waBtn.wafab{top:116px;width:52px;height:52px;border-radius:50%;transform:rotate(5deg);color:var(--ink);transition:top .4s cubic-bezier(.2,.9,.25,1)}
+#waBtn.wafab{top:84px;width:44px;height:44px;border-radius:50%;transform:rotate(5deg);color:var(--ink);transition:top .4s cubic-bezier(.2,.9,.25,1)}
 #waBtn.wafab .wa-lbl{display:flex;align-items:center;justify-content:center}
-#waBtn.wafab .wa{width:25px;height:25px;top:0}
+#waBtn.wafab .wa{width:21px;height:21px;top:0}
 /* sem ninguém escolhido não existe o ✎: o zap sobe pra vaga dele.
    Quando a pessoa entra, ele escorrega pra baixo e abre espaço pro lápis. */
-#waBtn.wafab.so{top:52px}
+#waBtn.wafab.so{top:30px}
 @media (prefers-reduced-motion:reduce){#waBtn.wafab{transition:none}}
 /* o ✎ fica preenchido de âmbar: é a ação principal da nota */
 #fab.chamando{background:#9a5b00;color:#fff;border-color:var(--ink)}
@@ -227,7 +227,12 @@ form{display:grid;gap:10px}
 .status:empty{display:none}
 .status.err{color:var(--red)}
 .hidden{display:none !important}
-.fab{position:fixed;right:14px;top:52px;z-index:8;width:52px;height:52px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--ink);font-size:28px;box-shadow:4px 4px 0 var(--ink);transform:rotate(-6deg)}
+/* o ✎ e o zap moram no canto de cima do papel e rolam junto com a nota: fixos na
+   tela eles tapavam a ponta direita das linhas (os valores) no celular, e no desktop
+   ficavam soltos na borda da janela, longe do papel. O right acompanha a borda do
+   papel (460px no meio da página), e no celular fica dentro da margem dele */
+.fab{position:absolute;right:max(22px,calc(50% - 216px));top:30px;z-index:8;width:44px;height:44px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--ink);font-size:28px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-6deg)}
+#fab svg{width:24px;height:24px}
 /* o pulso desktop (abaixo, em hover:hover) é só de brilho: mexer em transform mudava
    o retângulo do botão a cada quadro, e o Playwright nunca via ele "parado" pra clicar */
 @keyframes pulsaFab{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}

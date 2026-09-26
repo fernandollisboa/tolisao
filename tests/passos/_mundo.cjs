@@ -25,6 +25,8 @@ class Mundo {
     await ctx.addInitScript(() => {
       const w = window;
       w.open = u => { w.__aberto = u; return null; };
+      // a CSP do index.html barrou alguma coisa do próprio site: vira erro do cenário
+      document.addEventListener('securitypolicyviolation', e => setTimeout(() => { throw new Error(`CSP barrou ${e.violatedDirective}: ${e.blockedURI || 'inline'}`); }));
       Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { w.__copiado = t; } } });
     });
     // o que o aparelho já tinha guardado antes desta visita (só na primeira carga da aba)

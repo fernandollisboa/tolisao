@@ -1077,6 +1077,8 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // no aparelho de toque o dedo vai junto com a ficha; com mouse o gesto não fecha
     const pegavel = PEGA_FICHA || navigator.maxTouchPoints > 0;
     if (pegavel) document.body.classList.add('pegavel');
+    // graus por px: uma volta a cada perímetro da ficha (70px de diâmetro)
+    const ROLA = 360 / (Math.PI * 70);
     let toques = 0, zera = 0, pega = null, voo = 0;
     el.addEventListener('animationend', e => { if (e.animationName === 'treme') el.classList.remove('treme');
       // pousada, larga as classes do voo: a cambalhota vence o pousou no CSS e rejogava a cada toque
@@ -1098,10 +1100,14 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       const cx = b.left + (b.width - el.offsetWidth) / 2, cy = b.top + (b.height - el.offsetHeight) / 2;
       el.style.left = cx + 'px'; el.style.top = cy + 'px';
       el.classList.remove('voando'); el.classList.add('segura');
-      pega = { dx: e.clientX - cx, dy: e.clientY - cy, rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
+      pega = { dx: e.clientX - cx, dy: e.clientY - cy, x: e.clientX, rot: parseFloat(el.style.getPropertyValue('--rot')) || -16,
+        rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
       el.setPointerCapture(e.pointerId); });
     el.addEventListener('pointermove', e => { if (!pega) return;
       el.style.left = (e.clientX - pega.dx) + 'px'; el.style.top = (e.clientY - pega.dy) + 'px';
+      // rola com o dedo, que nem moeda na mesa: cada px pro lado gira o que a borda andou
+      pega.rot += (e.clientX - pega.x) * ROLA; pega.x = e.clientX;
+      el.style.setProperty('--rot', pega.rot.toFixed(1) + 'deg');
       pega.rastro.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
       while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift(); });
     // largada devagar, a ficha volta pro papel no ponto em que parou: presa na tela ela
@@ -1119,10 +1125,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       let vx = (e.clientX - p0.x) / dt, vy = (e.clientY - p0.y) / dt;   // px por ms
       pega = null; el.classList.remove('segura');
       if (Math.hypot(vx, vy) < 0.7) return assenta();                  // devagar: assenta onde parou
-      // arremesso: segue reto com gravidade e giro até sair da tela
+      // arremesso: sai mais rápido que a mão e segue reto com gravidade, girando no
+      // mesmo sentido em que rolava, até sair da tela
+      vx *= 1.8; vy *= 1.8;
       el.classList.add('voando');
       let x = parseFloat(el.style.left), y = parseFloat(el.style.top), rot = parseFloat(el.style.getPropertyValue('--rot')) || 0, t = performance.now();
-      const giro = vx * 0.6;
+      const giro = vx * ROLA;
       const passo = agora => { const d = Math.min(40, agora - t); t = agora;
         vy += 0.0025 * d; x += vx * d; y += vy * d; rot += giro * d;
         el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.setProperty('--rot', rot.toFixed(1) + 'deg');

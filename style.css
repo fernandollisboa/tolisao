@@ -68,7 +68,9 @@ body.pegavel .stain.pousou{cursor:grab}
 /* largada devagar: volta pro papel e fica no lugar em que parou, rolando junto com a nota */
 .stain.largada{z-index:5;transition:transform .15s}
 .stain.solta{position:fixed;z-index:60;touch-action:none;transform:rotate(var(--rot)) scale(var(--esc,1));transition:transform .15s,filter .15s}
-.stain.solta.segura{--esc:1.18;cursor:grabbing;transition:transform .15s,filter .15s;filter:drop-shadow(6px 14px 10px rgba(0,0,0,.4))}
+/* segura, ela rola com o dedo: a sombra gira ao contrário pra ficar sempre embaixo e à direita */
+.stain.solta.segura{--esc:1.18;cursor:grabbing;transition:transform .08s,filter .15s;
+  filter:drop-shadow(calc(6px * cos(var(--rot)) + 14px * sin(var(--rot))) calc(14px * cos(var(--rot)) - 6px * sin(var(--rot))) 10px rgba(0,0,0,.4))}
 .stain.solta.voando{transition:none}
 .stain.fora{display:none}
 /* modo chato (easter egg): a diva apaga, desbota e some; o subtítulo vai junto */

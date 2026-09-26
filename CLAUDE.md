@@ -66,6 +66,7 @@ armadilhas:
 ## convenções
 
 - o banco é hostil: id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()`.
+- CSP no `<meta>` do `index.html`: só o próprio site, `connect-src` só pro `*.firebaseio.com`, estilo inline liberado. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule. o `_mundo.cjs` falha o cenário se a CSP barrar algo.
 - cores: `PALETTE` por índice, sem vermelho/verde. marca-texto é `MARKR`, os mesmos matizes mais firmes. nada de amarelo.
 - **animações**: nada anima fora da tela. um `IntersectionObserver` marca `#mine`, `#itemsSec` e `#settle`, e o `agenda()` enfileira na ordem da página: piscadas dos ✔ → toque na linha dos itens → voltas do círculo → riscos dos pagamentos. a fila reserva a entrada do bloco seguinte, não a duração do anterior. bloco vazio reserva zero. as horas são absolutas (atraso positivo espera, negativo retoma), então o poll não atrapalha. o copiar pix corre por fora. o toque grande dos itens só nas primeiras `APERTO_VISITAS`, depois `suave`. sala ou pessoa nova chama `rearmaAnims()`.
 - cifrão em Minha conta, Falta pagar e total; itens sem. quem tá quite vê "tudo quite!" com o emoji de `festeja()`.

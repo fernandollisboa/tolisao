@@ -6,8 +6,7 @@
     "test": "bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
     "types": "tsc -p jsconfig.json",
     "preview": "node specs/preview.cjs",
-    "video": "node specs/video.cjs",
-    "noar": "node specs/noar.cjs"
+    "video": "node specs/video.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

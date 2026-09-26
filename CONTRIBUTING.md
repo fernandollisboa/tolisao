@@ -54,7 +54,7 @@ A ficha tem a cor da sua situação
 
 ## deploy
 
-a `main` é protegida: branch → PR → check `test` verde → merge. quem publica é o `.github/workflows/pages.yml`, e só ele (a fonte do Pages é GitHub Actions; mexer nisso em Settings faz o site servir CSS velho por dias). depois do merge, `node specs/noar.cjs` confere se o que tá no ar bate com o repositório.
+a `main` é protegida: branch → PR → check `test` verde → merge. quem publica é o `.github/workflows/pages.yml`, e só ele (a fonte do Pages é GitHub Actions; mexer nisso em Settings faz o site servir CSS velho por dias). depois do merge, o site tá no ar quando o `pages.yml` termina verde.
 
 ## banco
 

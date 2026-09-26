@@ -19,7 +19,7 @@
   - `passos/_mundo.cjs` é o fixture de cada cenário: banco falso, aparelhos, página da vez. no fim ele falha se a página deu erro, abriu diálogo nativo ou tentou listar eventos.
   - `_banco.cjs` imita o Firebase com as regras do README. `_serve.cjs` serve o repo na porta 0. `_bonito.cjs` é o reporter, que imprime o `.feature` com os passos em verde e vermelho.
   - animação não tem teste automático: confira no vídeo.
-  - `preview.cjs` e `video.cjs` não são testes, são geradores de imagem e de `.webm` (cenas `cascata`, `pix`, `piscas`, `troca`, `chave`, `ficha`, `pega`, `chato`, `toque`, `itens`, `risco`; `--css=` e `--js=` pra comparar variações). `_ficha.cjs` tem os gestos da ficha. `noar.cjs` confere o que tá publicado.
+  - `preview.cjs` e `video.cjs` não são testes, são geradores de imagem e de `.webm` (cenas `cascata`, `pix`, `piscas`, `troca`, `chave`, `ficha`, `pega`, `chato`, `toque`, `itens`, `risco`; `--css=` e `--js=` pra comparar variações). `_ficha.cjs` tem os gestos da ficha.
 - `.github/workflows/`: `tests.yml` (check `test`, em PR) e `pages.yml` (deploy). leia **deploy** antes de subir.
 - `docs/qa.md`: o roteiro das sessões de QA com gente de verdade e o que cada uma achou.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mexeu em convenção aqui, atualize lá.
@@ -48,7 +48,7 @@ a `main` exige o check `test` e recusa push direto. então:
 1. `npm run types` limpo e `npm test` verde.
 2. branch, PR, espera o check verde, merge (`--merge --delete-branch`). check verde basta, sem pedir confirmação.
 3. `git checkout main && git pull origin main`.
-4. espera o deploy e roda **`node specs/noar.cjs`**. só depois diga que tá no ar.
+4. espera o `pages.yml` terminar verde. só depois diga que tá no ar.
 
 o `?v=` de `app.js` e `style.css` vira o SHA do commit no deploy. o valor escrito no `index.html` é reserva: suba ele (data + letra) junto com mudança visual; o workflow avisa se esquecer.
 

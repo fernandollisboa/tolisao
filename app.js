@@ -23,7 +23,9 @@
   const $ = s => document.querySelector(s);
   /** @returns {HTMLInputElement[]} */
   const inputs = s => /** @type {HTMLInputElement[]} */ ([...document.querySelectorAll(s)]);
-  const uid = () => Math.random().toString(36).slice(2, 10);
+  /** n letras de [a-z0-9] tiradas do crypto: o que protege (tok do pix, final do código) não pode vir do Math.random */
+  const sorteia = n => [...crypto.getRandomValues(new Uint8Array(n))].map(b => '0123456789abcdefghijklmnopqrstuvwxyz'[b % 36]).join('');
+  const uid = () => sorteia(8);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } }, del: k => { try { localStorage.removeItem(k); } catch {} } };
@@ -93,7 +95,9 @@
     });
   }
 
-  /** @type {string|null} */ let groupId = null; let roomName = '';
+  /** @type {string|null} */ let groupId = null; let roomName = '';   // roomName é o código inteiro, com o final sorteado
+  /** o nome que aparece: o que a pessoa digitou quando criou (evento antigo: o próprio código) */
+  const evento = () => (state && state.name) || roomName;
   /** @type {Room|null} */ let state = null;
   /** @type {string|null} */ let me = null;
   let pollTimer = null, saving = false;
@@ -283,7 +287,7 @@
   }
   async function putPix(pid, key){
     let tok = (room().pixTokens || {})[pid];
-    if (typeof tok !== 'string' || !tok) { const novo = tok = uid() + uid() + uid() + uid(); mexe(roomKey(groupId), o => { (o.pixTokens ||= {})[pid] = novo; }); }
+    if (typeof tok !== 'string' || !tok) { const novo = tok = sorteia(32); mexe(roomKey(groupId), o => { (o.pixTokens ||= {})[pid] = novo; }); }
     try {
       const r = await fetch(pixUrl(pid), { method:'PUT', body: JSON.stringify({ key, tok }) });
       if (r.status === 401 || r.status === 403) return toast('Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)');
@@ -346,8 +350,8 @@
       zera = setTimeout(() => { ritmo = []; }, 1600); }); }
   function render(){
     if (!state) return;
-    $('#roomLabel').textContent = roomName || '—';
-    document.title = roomName ? `${roomName} · tô lisa` : 'tô lisa · quem me deve?';
+    $('#roomLabel').textContent = evento() || '—';
+    document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
     { const wl = $('#whoLine');
@@ -685,16 +689,20 @@
   async function enterRoom(code){
     if (!code) throw new Error('Digite um código.');
     if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
-    const id = await sha(code);
-    let existing = null;
+    let id = await sha(code), existing = null;
     try { existing = await apiGet(id); } catch (e) { if (!e.notFound) throw new Error('Sem conexão com o banco: ' + e.message); }
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    if (!existing) {
-      if (!seed && !(await ask('Evento novo?', `não existe evento com o código "${esc(code)}". criar um agora?`, 'criar evento'))) throw new Error('confira o código');
+    if (!existing && !seed) {
+      if (!(await ask('Evento novo?', `não existe evento com o código "${esc(code)}". criar um agora? o link ganha um final sorteado, pra ninguém adivinhar.`, 'criar evento'))) throw new Error('confira o código');
+      // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
+      // vira "churras-k7f3q9x2", e o nome da tela continua "churras". 36⁸ finais possíveis
+      const nome = code; code = `${code}-${sorteia(8)}`; id = await sha(code);
+      await apiPut(id, fresh(nome));
+    } else if (!existing) {   // #seed=: restaura uma cópia com o mesmo código, sem sortear nada
       let data = fresh(code);
-      if (seed) { try { data = { ...fresh(code), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), name: code, updatedAt: Date.now() }; } catch {} }
+      try { data = { ...fresh(code), ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g,'+').replace(/_/g,'/'))))), name: code, updatedAt: Date.now() }; } catch {}
       await apiPut(id, data);
-      if (seed) history.replaceState(null, '', location.pathname);
+      history.replaceState(null, '', location.pathname);
     }
     setDevice('lastRoom', { code, id });
     await openGroup(code, id);
@@ -722,7 +730,7 @@
     const fecha = () => { closeOverlay(); seguraRisco = false; render(); };   // solta o risco da linha nova
     $('#quitOk').onclick = fecha;
     overlayCancel = fecha;
-    $('#waAviso').onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${roomName}* 👍\n${shareUrl()}`), '_blank', 'noopener'); fecha(); };
+    $('#waAviso').onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${evento()}* 👍\n${shareUrl()}`), '_blank', 'noopener'); fecha(); };
   }
   function showRoom(){
     overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
@@ -788,7 +796,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }
     const cb = near('[data-cobrar]');
     if (cb) { const [from, cents] = cb.dataset.cobrar.split('|'); const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
-      window.open('https://wa.me/?text=' + encodeURIComponent(`👀 ${nameOf(from)}, tá faltando ${money(+cents/100)} do *${roomName}*${pix}\n${shareUrl()}`), '_blank', 'noopener'); return; }
+      window.open('https://wa.me/?text=' + encodeURIComponent(`👀 ${nameOf(from)}, tá faltando ${money(+cents/100)} do *${evento()}*${pix}\n${shareUrl()}`), '_blank', 'noopener'); return; }
     const un = near('[data-undo]');
     if (un) { const id = un.dataset.undo; const e = state.expenses.find(x => x.id === id); if (!e) return;
       if (!(await ask('Desfazer o pagamento?', `${nm(e.payer)} → ${nm(e.among[0])} · ${money(e.amount)}`, 'desfazer'))) return;
@@ -813,7 +821,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   $('#shareBtn').onclick = async () => { const url = shareUrl();
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { showCopy('Link do evento', url); } };
   function summaryText(){
-    const st = settlements(balances()); const ev = roomName || 'acerto';
+    const st = settlements(balances()); const ev = evento() || 'acerto';
     if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl()}`;
     return [`🧾 acerto do *${ev}*`, '', ...st.map(t => `💸 ${nameOf(t.from)} paga ${money(t.cents/100)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`), '', `tudo aqui 👉 ${shareUrl()}`].join('\n');
   }
@@ -846,7 +854,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
 
     center(`*** TÔ LISA ***`);
-    center(fit(`${up(roomName)} · ${d2} ${hm}`, COLS)); blank(); dash();
+    center(fit(`${up(evento())} · ${d2} ${hm}`, COLS)); blank(); dash();
 
 
     const VW = 10;
@@ -900,7 +908,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   $('#waBtn').onclick = async () => {
     const btn = $('#waBtn'); btn.disabled = true; toast('Gerando a imagem…');
     try {
-      const blob = await renderReceipt(); const file = new File([blob], `evento-${roomName || 'grupo'}.png`, { type: 'image/png' });
+      const blob = await renderReceipt(); const file = new File([blob], `evento-${evento() || 'grupo'}.png`, { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try { await navigator.share({ files: [file], text: summaryText() }); return; } catch (e) { if (e.name === 'AbortError') return; }
       }

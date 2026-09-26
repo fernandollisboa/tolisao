@@ -281,16 +281,21 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 @keyframes pisca{
   0%,100%{background:#fff8e6;color:var(--green);transform:none}
   45%{background:var(--green);color:#fff8e6;transform:scale(1.14)}}
-/* quem deve pra dois ou mais às vezes ganha o pisca-pisca de natal: piscadas cada vez
-   mais curtas e juntinhas, uma pausa, e o fecho (ligado desligado) (desligado ligado)
-   (ligado ligado) (desligado). Depois fica normal. Quadro colado no outro é lâmpada
-   acendendo seco */
-#mineRows .dupla>.ok.pisca.natal{animation:natal 4.8s linear both}
+/* quem deve pra dois ou mais às vezes ganha o pisca-pisca de natal. Primeiro cada linha
+   pisca cada vez mais curto e mais junto, uma atrás da outra que nem cordão de luz; aí
+   todas juntas fazem o fecho (ligado desligado) (desligado ligado) (ligado ligado)
+   (desligado). O fecho vem por cima (`forwards` sem `backwards`: antes de começar ele
+   não pinta nada). Os atrasos vêm do JS, com um tico de sorteio por linha. Quadro
+   colado no outro é lâmpada acendendo seco */
+#mineRows .dupla>.ok.pisca.natal{animation:natal 2.96s linear both,fecho 1.5s linear forwards}
 @keyframes natal{
-  0%,6.46%,14.58%,20.21%,26.25%,31.04%,35.42%,39.38%,42.5%,45.63%,47.5%,50%,51.04%,53.13%,53.75%,55.63%,56.04%,57.71%,58.13%,59.79%,60%,61.46%,68.75%,74.38%,83.75%,99.38%,100%{
+  0%,10.47%,23.65%,32.77%,42.57%,50.34%,57.43%,63.85%,68.92%,73.99%,77.03%,81.08%,82.77%,86.15%,87.16%,90.2%,90.88%,93.58%,94.26%,96.96%,97.3%,99.66%,100%{
     background:#fff8e6;color:var(--green);box-shadow:2px 2px 0 var(--green),0 0 0 rgba(21,112,58,0)}
-  .63%,5.83%,15.21%,19.58%,26.88%,30.42%,36.04%,38.75%,43.13%,45%,48.13%,49.38%,51.67%,52.5%,54.37%,55%,56.67%,57.08%,58.75%,59.17%,60.62%,60.83%,69.38%,73.75%,84.38%,98.75%{
+  1.01%,9.46%,24.66%,31.76%,43.58%,49.32%,58.45%,62.84%,69.93%,72.97%,78.04%,80.07%,83.78%,85.14%,88.18%,89.19%,91.89%,92.57%,95.27%,95.95%,98.31%,98.65%{
     background:var(--green);color:#fff8e6;box-shadow:2px 2px 0 var(--green),0 0 12px rgba(21,112,58,.55)}}
+@keyframes fecho{
+  0%,18%,48%,98%,100%{background:#fff8e6;color:var(--green);box-shadow:2px 2px 0 var(--green),0 0 0 rgba(21,112,58,0)}
+  2%,16%,50%,96%{background:var(--green);color:#fff8e6;box-shadow:2px 2px 0 var(--green),0 0 12px rgba(21,112,58,.55)}}
 /* o cadastrar chave pix desce de debaixo do "minha conta" e pisca uma vez */
 #pixLine #pixBtn{animation:desceEPisca 1.25s cubic-bezier(.2,.9,.3,1.1) both}
 @keyframes desceEPisca{

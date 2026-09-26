@@ -805,12 +805,14 @@
   }
   function showRoom(){
     overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
-      <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v">${esc(roomName)}</span></div>
+      <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
       <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
       <div class="hr"></div>
       <button id="evBack" class="sec">voltar</button>
       <div class="c" style="margin-top:12px"><button id="evLeave" class="ghost" style="color:var(--red)">sair do evento</button></div>`);
     $('#evBack').onclick = closeOverlay;
+    // o código é o que se manda no zap: um toque copia
+    $('#evCode').onclick = () => navigator.clipboard.writeText(roomName).then(() => toast('Código copiado.'), () => showCopy('Código do evento', roomName));
     $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
   }
   function leave(){ setDevice('lastRoom', undefined); location.href = location.pathname; }

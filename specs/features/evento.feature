@@ -59,6 +59,14 @@ Funcionalidade: Entrar no evento
     Quando eu toco no meu nome
     Então o cartão de quem é você não tem botão de sair
 
+  Cenário: tocar no código do cartão do evento copia ele
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco no nome do evento
+    E eu toco no código do evento
+    Então fica copiado "bailedamada"
+    E aparece o aviso "Código copiado."
+
   Cenário: chegar mais gente pela lista do rodapé
     Dado o evento "bailedamada" com Fernando, Júlia, Lia, Mengla e Klinsmann
     Quando eu abro o evento como Lia

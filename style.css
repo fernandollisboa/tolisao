@@ -425,7 +425,7 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 #mineRows .cur{width:22px;margin-right:0} #mineRows .num{min-width:52px}
 #settle .cur{width:auto;margin-right:0} #settle .num{min-width:7ch}
 #splitHint{margin-bottom:-4px}
-/* o ✎ se apresenta: pulsa até ser apertado três vezes. O Sou Fulano engrossa o
+/* o ✎ se apresenta: um pulsinho de tamanho e de borda, duas vezes, até ser apertado três vezes. O Sou Fulano engrossa o
    sublinhado, correndo, depois de tudo */
 #fab{width:52px;height:52px;outline:3px solid transparent}
 #fab svg{width:28px;height:28px}
@@ -440,8 +440,8 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 body.rolou .fab:not(:hover):not(:active){border-color:rgba(34,34,34,.7);box-shadow:3px 3px 0 rgba(34,34,34,.35);transition:background .2s,border-color .2s,box-shadow .2s}
 body.rolou #fab.chamando:not(:hover):not(:active){background:rgba(154,91,0,.5)}
 body.rolou #waBtn.wafab:not(:hover):not(:active){background:rgba(255,248,230,.45)}
-@keyframes pulsaAnota{0%,100%{scale:1;outline-offset:0;outline-color:rgba(154,91,0,0)}12%{outline-color:rgba(154,91,0,.9)}25%{scale:1.14}45%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}46%{outline-offset:0}58%{outline-color:rgba(154,91,0,.9)}70%{scale:1.14}90%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}}
-#fab.pulsa{animation:pulsaAnota 1.9s ease-out}
+@keyframes pulsaAnota{0%,50%,100%{scale:1;outline-offset:0;outline-color:rgba(154,91,0,0)}18%,68%{scale:1.06;outline-offset:2px;outline-color:rgba(154,91,0,.45)}40%,90%{outline-offset:6px;outline-color:rgba(154,91,0,0)}}
+#fab.pulsa{animation:pulsaAnota 2.2s ease-in-out}
 @keyframes sublinha{0%{background-size:0 3px}40%,75%{background-size:100% 3px}100%{background-size:100% 1px}}
 #whoBtn:not(.amb){text-decoration:none;background:linear-gradient(currentColor,currentColor) no-repeat 0 100%/100% 1px;padding-bottom:1px}
 #whoBtn.cutuca{animation:sublinha 1.2s ease-out}

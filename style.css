@@ -68,7 +68,9 @@ body.pegavel .stain.pousou{cursor:grab}
 /* largada devagar: volta pro papel e fica no lugar em que parou, rolando junto com a nota */
 .stain.largada{z-index:5;transition:transform .15s}
 .stain.solta{position:fixed;z-index:60;touch-action:none;transform:rotate(var(--rot)) scale(var(--esc,1));transition:transform .15s,filter .15s}
-.stain.solta.segura{--esc:1.18;cursor:grabbing;transition:transform .15s,filter .15s;filter:drop-shadow(6px 14px 10px rgba(0,0,0,.4))}
+/* segura, ela rola com o dedo: a sombra gira ao contrário pra ficar sempre embaixo e à direita */
+.stain.solta.segura{--esc:1.18;cursor:grabbing;transition:transform .08s,filter .15s;
+  filter:drop-shadow(calc(6px * cos(var(--rot)) + 14px * sin(var(--rot))) calc(14px * cos(var(--rot)) - 6px * sin(var(--rot))) 10px rgba(0,0,0,.4))}
 .stain.solta.voando{transition:none}
 .stain.fora{display:none}
 /* modo chato (easter egg): a diva apaga, desbota e some; o subtítulo vai junto */
@@ -255,7 +257,9 @@ form{display:grid;gap:10px}
 /* o pulso desktop (abaixo, em hover:hover) é só de brilho: mexer em transform mudava
    o retângulo do botão a cada quadro, e o Playwright nunca via ele "parado" pra clicar */
 @keyframes pulsaFab{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
-#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto}
+#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto;overscroll-behavior:contain}
+/* com cartão aberto a página de trás não rola: senão ficam duas barras, a dela e a do cartão */
+html:has(#overlay:not(.hidden)),html:has(#sheet:not(.hidden)){overflow:hidden}
 #overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 #sheet .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
@@ -369,11 +373,18 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .falta a{display:block;margin-top:2px;color:var(--ink);font-size:17px}
 /* as duas abas do jeito de dividir: a marcada é cheia de tinta e leva o ✔; a outra fica
    apagada, só o contorno, pra não parecer que as duas valem */
-.seg{display:flex;border:2px solid var(--ink);border-radius:5px;overflow:hidden}
-.seg button{flex:1;border:0;border-radius:0;box-shadow:none;background:transparent;color:var(--muted);font-size:16px;padding:7px 4px}
+/* o preto das abas é um :before só, que desliza de uma pra outra; o ✔ abre espaço
+   devagar em vez de empurrar o texto de uma vez */
+.seg{display:flex;position:relative;isolation:isolate;border:2px solid var(--ink);border-radius:5px;overflow:hidden}
+.seg:before{content:"";position:absolute;inset:0 50% 0 0;background:var(--ink);z-index:-1;transition:transform .3s cubic-bezier(.3,.9,.4,1)}
+.seg.direita:before{transform:translateX(100%)}
+.seg button{flex:1;border:0;border-radius:0;box-shadow:none;background:transparent;color:var(--muted);font-size:16px;padding:7px 4px;transition:color .25s}
 .seg button+button{border-left:2px solid var(--ink)}
-.seg button.on{background:var(--ink);color:#fff8e6}
-.seg button.on:before{content:"✔ "}
+.seg button.on{color:#fff8e6}
+.seg button:before{content:"✔";display:inline-block;overflow:hidden;vertical-align:top;max-width:0;margin-right:0;opacity:0;transition:max-width .3s,margin-right .3s,opacity .25s}
+.seg button.on:before{max-width:1em;margin-right:.35em;opacity:1}
+#splitArea{display:grid;gap:10px}
+@media (prefers-reduced-motion:reduce){.seg:before,.seg button,.seg button:before{transition:none}}
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;text-transform:uppercase}
 .toast.show{opacity:1}
 @media (min-width:900px) and (min-height:600px){html{zoom:1.5}}

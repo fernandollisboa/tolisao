@@ -546,6 +546,7 @@
     const among = inputs('#splitChips input:checked').map(i => i.value);
     const payer = $('#payer').value; const h = $('#splitHint'); const custom = splitMode === 'custom';
     for (const b of inputs('#splitSeg button')) { const on = b.dataset.modo === splitMode; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }
+    $('#splitSeg').classList.toggle('direita', custom);
     $('#splitChips').classList.toggle('hidden', custom);
     $('#sharesBox').classList.toggle('hidden', !custom);
     $('#falta').classList.toggle('hidden', !custom);
@@ -565,6 +566,17 @@
     else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
     // a frase fica em cima das abas e só conta como está dividido: quem troca são as abas
     else h.innerHTML = `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`;
+  }
+  /** trocar de aba sem tranco: a área de baixo muda de altura devagar (o papel, centrado,
+   *  cresce pros dois lados junto) e o que entra aparece deslizando de leve */
+  function trocaAba(modo){
+    const area = $('#splitArea'), antes = area.offsetHeight;
+    splitMode = modo; updateHint();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const depois = area.offsetHeight, curva = 'cubic-bezier(.3,.9,.4,1)';
+    area.animate([{ height: antes + 'px', overflow: 'hidden' }, { height: depois + 'px', overflow: 'hidden' }], { duration: 300, easing: curva });
+    const entra = [...area.children].filter(e => !e.classList.contains('hidden'));
+    for (const e of entra) e.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 260, delay: 60, easing: 'ease-out', fill: 'backwards' });
   }
   /** quanto falta (ou sobra) pras partes fecharem o total, em destaque em cima do botão,
    *  que só libera quando fecha. Só mexe no recado e nos "o resto": refazer as linhas
@@ -590,7 +602,7 @@
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta(); });
   document.addEventListener('click', ev => { const tgt = /** @type {HTMLElement} */ (ev.target);
     const aba = /** @type {HTMLElement|null} */ (tgt.closest('#splitSeg button'));
-    if (aba) { splitMode = aba.dataset.modo === 'custom' ? 'custom' : 'equal'; updateHint(); return; }
+    if (aba) { const modo = aba.dataset.modo === 'custom' ? 'custom' : 'equal'; if (modo !== splitMode) trocaAba(modo); return; }
     // "o resto" joga na linha o que falta; "dividir o resto igual" reparte entre as vazias
     const resto = /** @type {HTMLElement|null} */ (tgt.closest('[data-resto]'));
     const falta = () => totalDigitado() - Object.values(customShares()).reduce((a, b) => a + b, 0);
@@ -1094,6 +1106,8 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // no aparelho de toque o dedo vai junto com a ficha; com mouse o gesto não fecha
     const pegavel = PEGA_FICHA || navigator.maxTouchPoints > 0;
     if (pegavel) document.body.classList.add('pegavel');
+    // graus por px: uma volta a cada perímetro da ficha (70px de diâmetro)
+    const ROLA = 360 / (Math.PI * 70);
     let toques = 0, zera = 0, pega = null, voo = 0;
     el.addEventListener('animationend', e => { if (e.animationName === 'treme') el.classList.remove('treme');
       // pousada, larga as classes do voo: a cambalhota vence o pousou no CSS e rejogava a cada toque
@@ -1115,10 +1129,14 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       const cx = b.left + (b.width - el.offsetWidth) / 2, cy = b.top + (b.height - el.offsetHeight) / 2;
       el.style.left = cx + 'px'; el.style.top = cy + 'px';
       el.classList.remove('voando'); el.classList.add('segura');
-      pega = { dx: e.clientX - cx, dy: e.clientY - cy, rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
+      pega = { dx: e.clientX - cx, dy: e.clientY - cy, x: e.clientX, rot: parseFloat(el.style.getPropertyValue('--rot')) || -16,
+        rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
       el.setPointerCapture(e.pointerId); });
     el.addEventListener('pointermove', e => { if (!pega) return;
       el.style.left = (e.clientX - pega.dx) + 'px'; el.style.top = (e.clientY - pega.dy) + 'px';
+      // rola com o dedo, que nem moeda na mesa: cada px pro lado gira o que a borda andou
+      pega.rot += (e.clientX - pega.x) * ROLA; pega.x = e.clientX;
+      el.style.setProperty('--rot', pega.rot.toFixed(1) + 'deg');
       pega.rastro.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
       while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift(); });
     // largada devagar, a ficha volta pro papel no ponto em que parou: presa na tela ela
@@ -1136,10 +1154,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       let vx = (e.clientX - p0.x) / dt, vy = (e.clientY - p0.y) / dt;   // px por ms
       pega = null; el.classList.remove('segura');
       if (Math.hypot(vx, vy) < 0.7) return assenta();                  // devagar: assenta onde parou
-      // arremesso: segue reto com gravidade e giro até sair da tela
+      // arremesso: sai mais rápido que a mão e segue reto com gravidade, girando no
+      // mesmo sentido em que rolava, até sair da tela
+      vx *= 1.8; vy *= 1.8;
       el.classList.add('voando');
       let x = parseFloat(el.style.left), y = parseFloat(el.style.top), rot = parseFloat(el.style.getPropertyValue('--rot')) || 0, t = performance.now();
-      const giro = vx * 0.6;
+      const giro = vx * ROLA;
       const passo = agora => { const d = Math.min(40, agora - t); t = agora;
         vy += 0.0025 * d; x += vx * d; y += vy * d; rot += giro * d;
         el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.setProperty('--rot', rot.toFixed(1) + 'deg');

@@ -115,6 +115,10 @@ const CENAS = {
       for (const y of [420, 900, 'fim', 0]) {
         await p.evaluate(y => scrollTo({ top: y === 'fim' ? document.documentElement.scrollHeight : y, behavior: 'smooth' }), y);
         await p.waitForTimeout(2000); } } },
+  abas: { nome: 'trocar entre igual e partes diferentes no anotar', quem: 'Lia', atrasoPix: 0,
+    acao: async p => { await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+      await p.type('#amount', '12000'); await p.fill('#desc', 'Janta'); await p.waitForTimeout(900);
+      for (const modo of ['custom', 'equal', 'custom']) { await p.click(`#splitSeg [data-modo="${modo}"]`); await p.waitForTimeout(1600); } } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

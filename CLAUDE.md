@@ -27,6 +27,7 @@
 - evento novo: nada abre sozinho. o `#whoBtn` leva a `showSetup` (sem gente) ou `showWho`. evento com uma pessoa só já entra como ela. sem gasto o zap some e a caixa tracejada do `#settle` diz "toque aqui pra anotar o primeiro gasto" e abre o anotar (`.empty.anota`), porque é nela que a pessoa toca.
 - ✎ (`#fab`, âmbar) e zap (`#waBtn`) empilhados no canto de cima do papel, `position:absolute`, rolando junto com a nota (fixos, tapavam os valores). sem ✎ o zap sobe (`.so`). o `right` acompanha a borda do papel.
 - "tô lisa" se digita sozinho (`digitaTitulo`) só no cartão do código e só na primeira visita.
+- código: evento novo ganha um final sorteado (`churras-k7f3q9x2`, `sorteia(8)` do `crypto`), porque código curto se adivinha testando o hash direto no banco. o `name` guarda o que a pessoa digitou e é o que aparece (`evento()`); `roomName` é o código inteiro, que vai no link e no cartão do evento. evento antigo, sem final, abre como sempre. o `#seed=` restaura com o mesmo código, sem sortear.
 - endereço: `?senha=<código>` (`openGroup` faz `replaceState`). recarregar com o mesmo código abre direto. colar outro link na aba recarrega sozinho. o `ask()` tem voltar, e código errado devolve o cartão com o que foi digitado.
 - `#app` nasce com `loading`. `openGroup` tira depois do primeiro fetch, e um `setTimeout` no HTML tira em 8s.
 

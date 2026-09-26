@@ -50,8 +50,9 @@ Then('baixa a imagem {string}', async ({ mundo }, nome) => {
   expect(fs.readFileSync(arq).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
 });
 
-const area = p => p.$eval('#mineRows .dupla > button', b => { const a = getComputedStyle(b, '::after'), h = b.getBoundingClientRect().height;
-  return a.content === 'none' ? h : h + parseFloat(a.top) * -2; });
+// espera o ✔ aparecer: medido ainda escondido, ele tem altura 0 e estilo vazio (NaN)
+const area = async p => { await p.locator('#mineRows .dupla > button').first().waitFor({ state: 'visible' }); return p.$eval('#mineRows .dupla > button', b => { const a = getComputedStyle(b, '::after'), h = b.getBoundingClientRect().height;
+  return a.content === 'none' ? h : h + parseFloat(a.top) * -2; }); };
 Then('os botões da minha linha são {string} e {string}', async ({ mundo }, um, outro) => {
   await mundo.p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 });
   expect(await mundo.p.$$eval('#mineRows .dupla > button', l => l.map(b => b.textContent.trim()))).toEqual(expect.arrayContaining([um, outro]));

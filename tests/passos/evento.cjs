@@ -33,6 +33,11 @@ Then('aparece o recado {string}', async ({ mundo }, txt) => { await expect(mundo
 When('eu toco fora do cartão', async ({ mundo }) => { await mundo.p.mouse.click(5, 5); await mundo.p.waitForTimeout(200); });
 When('eu crio o evento', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#app:not(.loading)'); });
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
+Then('o endereço é {string} com um final sorteado', async ({ mundo }, ini) => {
+  const esc = ini.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(new RegExp(`^${esc}[a-z0-9]{8}$`));
+});
+Then('o nome do evento no cabeçalho é {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#roomLabel')).toHaveText(nome); });
 Then('o site não pergunta nada', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeHidden(); });
 When('eu colo o link {string} na mesma aba', async ({ mundo }, q) => { await mundo.p.evaluate(q => { location.search = q; }, q); });
 

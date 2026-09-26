@@ -18,15 +18,26 @@ Funcionalidade: Entrar no evento
     Quando eu toco fora do cartão
     Então o cartão do código volta com "bailedamda" escrito
 
-  Cenário: o código fica no endereço
+  Cenário: o código fica no endereço, com um final sorteado
+    Código curto se adivinha testando direto no banco. O evento novo ganha um
+    final sorteado no link, e a tela continua com o nome que a pessoa digitou.
     Dado que eu abro o site sem evento
     Quando eu digito o código "Bailedamada"
     E eu crio o evento
-    Então o endereço termina em "?senha=bailedamada"
+    Então o endereço é "?senha=bailedamada-" com um final sorteado
+    E o nome do evento no cabeçalho é "bailedamada"
     Quando eu recarrego a página
     Então o site não pergunta nada
-    Quando eu colo o link "?senha=outroevento" na mesma aba
+    Quando eu colo o link "?senha=bailedamada" na mesma aba
     Então o site pergunta se é um evento novo
+
+  Cenário: evento que já existe abre pelo código de sempre
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    E que eu abro o site sem evento
+    Quando eu digito o código "churras"
+    Então o site não pergunta nada
+    E o endereço termina em "?senha=churras"
+    E o nome do evento no cabeçalho é "churras"
 
   Cenário: o cartão do evento
     Dado o evento "bailedamada" com Fernando, Júlia e Lia

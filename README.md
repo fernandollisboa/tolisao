@@ -6,7 +6,7 @@ JavaScript, HTML e CSS. e só 👨‍🎨 https://tolisa.com.br/
 
 ## como usa
 
-1. abre o site e digita o **código do evento** combinado no zap. código novo cria evento (a página pergunta antes).
+1. abre o site e digita um nome pro evento. evento novo ganha um final sorteado no código (`churras-k7f3q9x2`): mande o link no zap, que é por ele que o pessoal entra.
 2. diz quem você é em "quem é você?".
 3. anota os gastos no ✎: valor, o quê, quem pagou e quem divide. dá pra dividir em partes diferentes ou emprestar (desmarca o pagador).
 4. **Minha conta** diz quanto você deve ou tem a receber, e é de lá que você age: ✔ quita, copiar pix já vai com o valor. **Falta pagar** só mostra o mínimo de transferências pra zerar todo mundo.
@@ -16,7 +16,7 @@ pra chamar alguém: o texto do **enviar** já leva o link do evento. no celular 
 
 ## dados e segurança
 
-- cada evento fica em `rooms/<sha256(código)>`. quem tem o código lê e escreve; quem não tem não acha, porque ninguém lê a raiz `rooms`. mesmo assim, nada sensível: dentro do evento tudo é aberto.
+- cada evento fica em `rooms/<sha256(código)>`. quem tem o código lê e escreve; quem não tem não acha, porque ninguém lê a raiz `rooms`. o hash sozinho não impede adivinhar um código curto testando direto no banco, por isso o final sorteado (36⁸ possibilidades). mesmo assim, nada sensível: dentro do evento tudo é aberto.
 - a chave pix fica em `pix/<evento>/<pessoa>/key`. todo mundo lê, só o aparelho que cadastrou troca (um segredo `tok` fica no navegador dele). perdeu o aparelho? apaga o nó no console do Firebase.
 - qualquer um cadastra chave em nome de quem ainda não cadastrou. então: **confere o nome do recebedor no banco antes de confirmar o pix.**
 - tudo que vem do banco é hostil: id filtrado, texto escapado.

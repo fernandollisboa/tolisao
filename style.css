@@ -209,10 +209,16 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
      de tinta, uma bola preta sem ícone */
   #waBtn.wafab:hover{background:var(--ink);color:#fff8e6}
   .fab:hover{box-shadow:1px 1px 0 var(--ink);translate:2px 2px}
-  /* a linha dos itens fechada é botão: no hover a moldura clareia e a caixinha do ▸
-     se enche de tinta, o mesmo vocabulário dos outros botões */
-  #itemsHead:not(.aberto):hover:before{background:#fff}
-  #itemsHead:not(.aberto):hover #itemsCaret{background:var(--ink);color:#fff8e6}
+  /* a linha dos itens fechada é botão: no hover ela afunda inteira, como uma barra de
+     espaço meio apertada — a linha desce e a sombra da moldura e da caixinha encolhe.
+     Clicando, afunda até o fim */
+  #itemsHead:before,#itemsCaret{transition:box-shadow .12s ease}
+  #itemsHead{transition:translate .12s ease}
+  #itemsHead:not(.aberto):hover{translate:2px 2px}
+  #itemsHead:not(.aberto):hover:before{box-shadow:1px 1px 0 var(--ink)}
+  #itemsHead:not(.aberto):hover #itemsCaret{box-shadow:1px 1px 0 var(--ink)}
+  #itemsHead:not(.aberto):active{translate:3px 3px}
+  #itemsHead:not(.aberto):active:before{box-shadow:0 0 0 var(--ink)}
   /* pulso levinho o tempo todo, sem trocar de cor; para no hover, que já é o próprio aviso.
      cancela (não só pausa) porque pausar no meio do brilho deixava a cor do hover
      variando conforme a hora exata em que o mouse chegasse */

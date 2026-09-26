@@ -2,9 +2,9 @@
 
 Tipo Splitwise, só que sem app e sem cadastro 👍
 
-**Site:** https://tolisa.com.br/
+https://tolisa.com.br/
 
-Três arquivos estáticos (HTML, CSS e JS), sem build e sem backend pra manter. Os dados ficam num Firebase Realtime Database (plano gratuito) acessado direto do navegador.
+JS, HTML e CSS. sem build e sem backend. Os dados ficam num Firebase acessado direto do navegador.
 
 ## Como usa
 

@@ -424,7 +424,7 @@
     // lista aberta (quem acabou de anotar cai nela assim) já sabe que a linha abre:
     // nada de convite, e o bloco não reserva vez na fila
     // quem já abriu a lista na mão, ou já veio mais de APERTO_VISITAS vezes, também
-    // aprendeu: esse ganha só o toquinho de leve na caixinha do ▸
+    // aprendeu: esse ganha só o toquinho de leve na setinha
     if (!itensT && itemsOpen) itensT = -1;
     if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
         && !$('#itemsSec').classList.contains('hidden')) {

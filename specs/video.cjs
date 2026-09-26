@@ -92,6 +92,12 @@ const CENAS = {
       const cutuca = () => p.evaluate(() => { const b = document.querySelector('#whoBtn');
         b.classList.remove('cutuca'); void b.offsetWidth; b.classList.add('cutuca'); });
       await cutuca(); await p.waitForTimeout(2600); await cutuca(); await p.waitForTimeout(2600); } },
+  anota: { nome: 'o ✎ se apresentando pra quem nunca anotou, e no fim o Sou Fulano', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0));
+      const cutuca = sel => p.evaluate(sel => { const b = document.querySelector(sel);
+        b.classList.remove('cutuca'); void b.offsetWidth; b.classList.add('cutuca'); }, sel);
+      await p.waitForTimeout(900); await cutuca('#fab'); await p.waitForTimeout(3600);
+      await cutuca('#whoBtn'); await p.waitForTimeout(2200); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

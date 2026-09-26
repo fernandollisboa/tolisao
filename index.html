@@ -2,6 +2,10 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<!-- o que a página pode carregar: só o próprio site, e fetch só pro Firebase. Se um texto do banco
+     escapasse do esc(), um <script> ou <img onerror> injetado não roda, e o tok do pix não sai pra fora.
+     o sha256 é o do <script> do fim da página: mexeu nele, recalcule (o teste avisa) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-oxbEjb+xxby40MEJoNHmRKshdtbnpLu077ybyDW74OA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.firebaseio.com; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>tô lisa · quem me deve?</title>

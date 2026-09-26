@@ -12,7 +12,7 @@ class Mundo {
   constructor(browser, base) {
     this.browser = browser; this.base = base; this.banco = new Banco();
     this.evento = null; this.sala = ''; this.p = null; this.nota = {};
-    this.erros = []; this.dialogos = []; this.contextos = [];
+    this.erros = []; this.dialogos = []; this.contextos = []; this.antes = null;
   }
   get link() { return `${this.base}/?senha=${this.evento.name}`; }
   pessoa(nome) { const eu = this.evento.people.find(x => x.name === nome); if (!eu) throw new Error(`${nome} não está no evento`); return eu; }
@@ -27,6 +27,9 @@ class Mundo {
       w.open = u => { w.__aberto = u; return null; };
       Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { w.__copiado = t; } } });
     });
+    // o que o aparelho já tinha guardado antes desta visita (só na primeira carga da aba)
+    if (this.antes) await ctx.addInitScript(antes => { if (sessionStorage.getItem('__antes')) return; sessionStorage.setItem('__antes', '1');
+      for (const [k, v] of Object.entries(antes)) localStorage.setItem(k, v); }, this.antes);
     const p = await ctx.newPage(); this.p = p;
     p.on('pageerror', e => this.erros.push(e.message));
     p.on('dialog', d => { this.dialogos.push(d.message()); d.accept(); });

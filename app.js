@@ -26,10 +26,38 @@
   const uid = () => Math.random().toString(36).slice(2, 10);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
-  const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: k => { try { localStorage.removeItem(k); } catch {} } };
+  const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } }, del: k => { try { localStorage.removeItem(k); } catch {} } };
+  // o que fica no aparelho, em duas gavetas de JSON:
+  //   tolisa         { visits, installPrompted, itemsOpened, boringMode, lastRoom: {code, id} }
+  //   tolisa:<sala>  { me, lastSeen, pixTokens: {pessoa: tok}, snapshot }
+  // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
+  const DEVICE = 'tolisa', roomKey = id => `${DEVICE}:${id}`;
+  /** @returns {Record<string, any>} */
+  const gaveta = k => { try { const o = JSON.parse(ls.get(k) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch { return {}; } };
+  /** @param {string} k @param {(o: Record<string, any>) => void} f */
+  const mexe = (k, f) => { const o = gaveta(k); f(o); return ls.set(k, JSON.stringify(o)); };
+  const device = () => gaveta(DEVICE), setDevice = (campo, v) => mexe(DEVICE, o => { if (v === undefined) delete o[campo]; else o[campo] = v; });
+  // as chaves antigas (racha:visitas, racha:<sala>:pixtok:<pessoa>…) mudam pras gavetas uma vez.
+  // O tok do pix não pode se perder: sem ele a pessoa nunca mais troca a chave, então
+  // o velho só sai depois que o novo gravou
+  (() => { let velhas = []; try { velhas = Object.keys(localStorage).filter(k => k.startsWith('racha:')); } catch {} if (!velhas.length) return;
+    const dev = gaveta(DEVICE), salas = {}, sala = id => (salas[id] ||= gaveta(roomKey(id)));
+    for (const k of velhas) { const v = ls.get(k) || '', [, a, b, c] = k.split(':'), json = () => { try { return JSON.parse(v); } catch { return undefined; } };
+      if (a === 'visitas') dev.visits = Math.max(+v || 0, dev.visits || 0);
+      else if (a === 'convidou') dev.installPrompted = true;
+      else if (a === 'abriuItens') dev.itemsOpened = true;
+      else if (a === 'chato') dev.boringMode = true;
+      else if (a === 'room') dev.lastRoom ??= json();
+      else if (/^[0-9a-f]{64}$/.test(a)) {
+        if (!b) sala(a).snapshot ??= json();
+        else if (b === 'me') sala(a).me ??= v;
+        else if (b === 'seen') sala(a).lastSeen ??= +v || 0;
+        else if (b === 'pixtok' && c) (sala(a).pixTokens ||= {})[c] ??= v; } }
+    const ok = [[DEVICE, dev], ...Object.entries(salas).map(([id, o]) => [roomKey(id), o])].every(([k, o]) => ls.set(k, JSON.stringify(o)));
+    if (ok) velhas.forEach(ls.del);
+  })();
   // visitas contadas neste aparelho: o convite de instalar e o aperto dos itens leem daqui
-  const VISITAS = 'racha:visitas', CONVIDOU = 'racha:convidou', ABRIU = 'racha:abriuItens';
-  const visitas = (+(ls.get(VISITAS) || 0)) + 1; ls.set(VISITAS, String(visitas));
+  const visitas = (+device().visits || 0) + 1; setDevice('visits', visitas);
   // "tô lisa" se digita sozinho no cartão do código, a tela de estreia — só na primeira
   // visita deste aparelho, e uma vez só. No cabeçalho do evento ele fica quieto: ali
   // a pessoa veio ver a conta, não o título.
@@ -72,10 +100,9 @@
 
   /** @returns {Room} */
   const fresh = (name = '') => ({ v:2, name, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
-  const cacheKey = () => `racha:${groupId}`;
-  const cacheSave = () => ls.set(cacheKey(), JSON.stringify(state));
-  const cacheLoad = () => { try { return clean(JSON.parse(ls.get(cacheKey()))); } catch { return null; } };
-  const meKey = () => `racha:${groupId}:me`;
+  const room = () => gaveta(roomKey(groupId)), setRoom = (campo, v) => mexe(roomKey(groupId), o => { o[campo] = v; });
+  const cacheSave = () => setRoom('snapshot', state);
+  const cacheLoad = () => { try { return clean(room().snapshot); } catch { return null; } };
 
   // ---------- merge (união por id; exclusões vencem) ----------
   // dados do banco/cache são de terceiros: só ids [a-z0-9] entram em atributos HTML, tudo o mais vira string curta ou número
@@ -221,8 +248,8 @@
     return `--mk:${color};--mka:${g(0, 177.8, 1.2).toFixed(1)}deg;--mkb:${g(4, 181, 1.2).toFixed(1)}deg;`
       + `--mkt:${g(8, 17, 5).toFixed(0)}%;--mke:${g(12, 78, 5).toFixed(0)}%;--mku:${g(16, 22, 5).toFixed(0)}%;--mkf:${g(20, 73, 5).toFixed(0)}%;`
       + `--mkw:${g(24, 95, 5).toFixed(0)}%;--mkv:${g(2, 92, 6).toFixed(0)}%;--mkx:${g(6, 0, 4).toFixed(0)}%;--mky:${g(10, 2, 6).toFixed(0)}%;--mkz:${g(14, -2, 4).toFixed(0)}px`; };
-  let lastSeen = 0; const seenKey = () => `racha:${groupId}:seen`;
-  const markSeen = () => { if (groupId) ls.set(seenKey(), String(Date.now())); };
+  let lastSeen = 0;
+  const markSeen = () => { if (groupId) setRoom('lastSeen', Date.now()); };
   window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
   // ---------- pix ----------
   const KEY_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12.65 10A6 6 0 0 0 1 12a6 6 0 0 0 11.65 2H18v3h4v-7h-9.35zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
@@ -233,7 +260,6 @@
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, devagar
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
-  const pixTokKey = pid => `racha:${groupId}:pixtok:${pid}`;
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
     const out = {};
@@ -256,7 +282,8 @@
     await putPix(me, key);
   }
   async function putPix(pid, key){
-    let tok = ls.get(pixTokKey(pid)); if (!tok) { tok = uid() + uid() + uid() + uid(); ls.set(pixTokKey(pid), tok); }
+    let tok = (room().pixTokens || {})[pid];
+    if (typeof tok !== 'string' || !tok) { const novo = tok = uid() + uid() + uid() + uid(); mexe(roomKey(groupId), o => { (o.pixTokens ||= {})[pid] = novo; }); }
     try {
       const r = await fetch(pixUrl(pid), { method:'PUT', body: JSON.stringify({ key, tok }) });
       if (r.status === 401 || r.status === 403) return toast('Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)');
@@ -300,8 +327,7 @@
   // easter egg: segurar, tocar, segurar na ficha desliga a diva (modo chato). Some a
   // ficha, some o subtítulo e o rodapé vira "Deus é fiel.". O mesmo toque no rodapé
   // liga de novo. Fica guardado no aparelho.
-  const CHATO = 'racha:chato';
-  let chato = ls.get(CHATO) === '1';
+  let chato = !!device().boringMode;
   document.body.classList.toggle('chato', chato);
   /** forte (segurou) e fraco (tocou) em sequência; três seguidos formam a senha */
   function senha(alvo, ok){ let ritmo = [], ini = 0, x0 = 0, y0 = 0, longe = false, zera = 0;
@@ -402,7 +428,7 @@
     if (!itensT && itemsOpen) itensT = -1;
     if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
         && !$('#itemsSec').classList.contains('hidden')) {
-      itensSuave = !!ls.get(ABRIU) || visitas > APERTO_VISITAS; itensT = agenda(APERTO_LEAD); }
+      itensSuave = !!device().itemsOpened || visitas > APERTO_VISITAS; itensT = agenda(APERTO_LEAD); }
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     // sem spinner aqui também: a linha fica vazia e o botão desce de debaixo do título
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
@@ -626,7 +652,7 @@
   }
   // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
   // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
-  function souEu(v){ me = v; ls.set(meKey(), me); rearmaAnims();
+  function souEu(v){ me = v; setRoom('me', me); rearmaAnims();
     closeOverlay(); render(); $('#payer').value = me; updateHint(); rejogaDiva(); }
   function showWho(){
     const opts = state.people.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
@@ -670,13 +696,13 @@
       await apiPut(id, data);
       if (seed) history.replaceState(null, '', location.pathname);
     }
-    ls.set('racha:room', JSON.stringify({ code, id }));
+    setDevice('lastRoom', { code, id });
     await openGroup(code, id);
   }
   async function openGroup(code, id){
     // o código fica no endereço: copiar a URL da barra já manda o evento
     if (code && location.search !== '?senha=' + encodeURIComponent(code)) history.replaceState(null, '', location.pathname + '?senha=' + encodeURIComponent(code) + location.hash);
-    roomName = code; groupId = id; me = ls.get(meKey()); lastSeen = +ls.get(seenKey()) || 0; showAll = false;
+    roomName = code; groupId = id; { const r = room(); me = typeof r.me === 'string' ? r.me : null; lastSeen = +r.lastSeen || 0; } showAll = false;
     $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
@@ -708,14 +734,14 @@
     $('#evBack').onclick = closeOverlay;
     $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
   }
-  function leave(){ ls.del('racha:room'); location.href = location.pathname; }
+  function leave(){ setDevice('lastRoom', undefined); location.href = location.pathname; }
 
   // ---------- eventos ----------
   $('#addPerson').onclick = async () => { const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim(); if (!name) return;
     if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
-  $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; if (itemsOpen) ls.set(ABRIU, '1'); render(); };
+  $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; if (itemsOpen) setDevice('itemsOpened', true); render(); };
   // é um botão pra quem usa teclado também: Enter e Espaço abrem como o clique
   $('#itemsHead').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#itemsHead').click(); } });
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
@@ -896,11 +922,11 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPad se passa por Mac
   const mostraInstalar = () => $('#instalar').classList.toggle('hidden', !INSTALAR || jaInstalado() || !(convite || ehIOS()));
   window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); convite = ev; mostraInstalar(); });
-  window.addEventListener('appinstalled', () => { convite = null; ls.set(CONVIDOU, '1'); mostraInstalar(); toast('Instalado! 🎉'); });
+  window.addEventListener('appinstalled', () => { convite = null; setDevice('installPrompted', true); mostraInstalar(); toast('Instalado! 🎉'); });
   $('#instalar').onclick = async () => {
     // o evento só serve pra um prompt(): depois some, e o navegador manda outro quando quiser
     if (convite) { const c = convite; convite = null; c.prompt(); const r = await c.userChoice;
-      ls.set(CONVIDOU, '1'); mostraInstalar(); if (r.outcome !== 'accepted') toast('Deixa pra próxima, meu bem.'); return; }
+      setDevice('installPrompted', true); mostraInstalar(); if (r.outcome !== 'accepted') toast('Deixa pra próxima, meu bem.'); return; }
     overlay(`<h2 style="margin-top:0">Instalar</h2>
       <p class="muted" style="margin:0 0 14px;text-align:center;text-transform:none">no iPhone é pelo Safari, em três toques:</p>
       <div class="passos">1. toque no <span class="tecla">•••</span> ao lado do endereço.<br>2. toque em <span class="tecla">${SHARE_SVG} Compartilhar</span>.<br>3. desça e escolha <b>Adicionar à Tela de Início</b>.</div>
@@ -910,9 +936,9 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   };
   mostraInstalar();
   function convidaInstalar(){
-    if (!INSTALAR || !convite || ls.get(CONVIDOU) || jaInstalado()) return;
+    if (!INSTALAR || !convite || device().installPrompted || jaInstalado()) return;
     if (visitas < 2 || !state || !state.expenses.length) return;
-    ls.set(CONVIDOU, '1');   // aceite ou recuse, o ✎ não pergunta de novo
+    setDevice('installPrompted', true);   // aceite ou recuse, o ✎ não pergunta de novo
     const c = convite; convite = null; mostraInstalar(); c.prompt();
   }
   // o Compartilhar do Safari: quadrado aberto com a seta saindo pra cima
@@ -1088,12 +1114,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga');
       confere(); };
     // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
-    senha(el, () => { chato = true; ls.set(CHATO, '1'); pega = null; cancelAnimationFrame(voo);
+    senha(el, () => { chato = true; setDevice('boringMode', true); pega = null; cancelAnimationFrame(voo);
       el.classList.remove('segura', 'treme'); el.classList.add('apaga');
       setTimeout(() => { document.body.classList.add('chato'); render(); }, 700); });
     // e no "Deus é fiel." do rodapé, liga de novo: ela volta falando e é jogada outra vez
     const frase = $('#signoff');
-    if (frase) senha(frase, () => { if (!chato) return; chato = false; ls.del(CHATO);
+    if (frase) senha(frase, () => { if (!chato) return; chato = false; setDevice('boringMode', undefined);
       document.body.classList.remove('chato'); render(); rejogaDiva(); });
   })();
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
@@ -1136,14 +1162,14 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   // ---------- início ----------
   (async () => {
     const c = new URLSearchParams(location.search).get('senha');
-    let saved = null; try { saved = JSON.parse(ls.get('racha:room')); } catch {}
+    const saved = device().lastRoom;
     if (c) { const code = c.trim().toLowerCase();
       // o endereço agora sempre carrega o código: recarregar o evento de sempre não é entrar de novo
       // (e, se ele sumiu do banco, cai no "Evento não encontrado" com a cópia, não no "Evento novo?")
       if (saved && saved.code === code && /^[0-9a-f]{64}$/.test(saved.id || '') && DB) return openGroup(saved.code, saved.id);
       try { return await enterRoom(code); } catch (e) { return showGate(e.message); } }
     if (saved && /^[0-9a-f]{64}$/.test(saved.id || '') && DB && !location.hash.includes('seed=')) return openGroup(saved.code, saved.id);
-    ls.del('racha:room');   // resto de versão antiga
+    setDevice('lastRoom', undefined);   // resto de versão antiga
     showGate();
   })();
 })();

@@ -58,5 +58,5 @@ Cada variante pode ter `css` e `js`; a folha sai rotulada com a letra e o nome. 
 - **Celular primeiro.** Padrão é 390 de largura. Se a mudança afeta desktop, mande também com `--largura=1440`.
 - **Estado que importa.** Escolha `--quem` de quem enxerga o que você mexeu: quem deve vê os botões de quitar e copiar pix, quem recebe vê a lista de quem deve.
 - **Antes e depois.** Em ajuste de espaçamento, alinhamento ou cor, mostre as duas versões lado a lado usando uma variante com o CSS antigo.
-- **Recibo.** Pra imagem do WhatsApp, use `tests/img.cjs`, que baixa o PNG gerado pelo canvas; o preview do navegador não cobre isso.
+- **Recibo.** Pra imagem do WhatsApp, rode `npm test -- acerto`: o cenário "mandar a comanda pro zap" baixa o PNG gerado pelo canvas em `<tmp>/receipt.png`; o preview do navegador não cobre isso.
 - **Legenda curta.** Ao enviar, diga em uma linha o que olhar na imagem.

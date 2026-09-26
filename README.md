@@ -64,7 +64,7 @@ Cenário: quitar e avisar no zap
     """
 ```
 
-os cenários ficam em `tests/features/`, os passos em `tests/passos/`. mudou a tela? `node tests/preview.cjs '#settle'` tira um recorte com dados de exemplo.
+os cenários ficam em `specs/features/`, os passos em `specs/passos/`. mudou a tela? `node specs/preview.cjs '#settle'` tira um recorte com dados de exemplo.
 
 push na `main` publica no GitHub Pages. antes de mandar mudança, lê o [CONTRIBUTING.md](CONTRIBUTING.md).
 

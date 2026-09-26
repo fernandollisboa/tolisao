@@ -9,14 +9,14 @@ O usuário não lê diff, ele olha. Toda mudança visual termina com uma imagem 
 
 ## Como gerar
 
-O gerador fica em `tests/preview.cjs` e sobe o app com dados falsos (cinco pessoas com nomes de tamanhos diferentes, item dividido em partes desiguais, uma quitação já feita).
+O gerador fica em `specs/preview.cjs` e sobe o app com dados falsos (cinco pessoas com nomes de tamanhos diferentes, item dividido em partes desiguais, uma quitação já feita).
 
 ```sh
-node tests/preview.cjs '#mine'                      # recorte de uma seção
-node tests/preview.cjs '#settle' --quem=Fernando    # quem você está vendo como
-node tests/preview.cjs --saida=/tmp/tudo.png        # página inteira
-node tests/preview.cjs --recorte=0,0,390,240        # pedaço por coordenadas (cabeçalho, rodapé)
-node tests/preview.cjs '#settle' --variantes=/tmp/v.cjs --saida=/tmp/opts.png
+node specs/preview.cjs '#mine'                      # recorte de uma seção
+node specs/preview.cjs '#settle' --quem=Fernando    # quem você está vendo como
+node specs/preview.cjs --saida=/tmp/tudo.png        # página inteira
+node specs/preview.cjs --recorte=0,0,390,240        # pedaço por coordenadas (cabeçalho, rodapé)
+node specs/preview.cjs '#settle' --variantes=/tmp/v.cjs --saida=/tmp/opts.png
 ```
 
 Seletores úteis: `#mine`, `#itemsSec`, `#settle`, `#app`, `#overlay .paper`.
@@ -27,13 +27,13 @@ Como módulo, `preview({ alvo, quem, pix, dados, variantes, saida })` aceita dad
 Quadro congelado não mostra movimento. Pra qualquer coisa que se mexe (risco, ficha, botão que brota, fade), grave:
 
 ```sh
-node tests/video.cjs cascata                    # a nota se preenchendo de cima pra baixo
-node tests/video.cjs pix                        # o copiar pix saindo de trás do ✔
-node tests/video.cjs piscas                     # três ✔ piscando um atrás do outro
-node tests/video.cjs troca                      # trocar de pessoa refaz a nota inteira
-node tests/video.cjs chave                      # o cadastrar chave pix descendo do título
-node tests/video.cjs ficha --saida=/tmp/f.webm  # a ficha caindo no rodapé
-node tests/video.cjs risco --vel=0.35           # o risco correndo nas linhas pagas
+node specs/video.cjs cascata                    # a nota se preenchendo de cima pra baixo
+node specs/video.cjs pix                        # o copiar pix saindo de trás do ✔
+node specs/video.cjs piscas                     # três ✔ piscando um atrás do outro
+node specs/video.cjs troca                      # trocar de pessoa refaz a nota inteira
+node specs/video.cjs chave                      # o cadastrar chave pix descendo do título
+node specs/video.cjs ficha --saida=/tmp/f.webm  # a ficha caindo no rodapé
+node specs/video.cjs risco --vel=0.35           # o risco correndo nas linhas pagas
 ```
 
 `--vel` é a velocidade das animações (0.35 = bem devagar). `--css=arq.css` injeta uma folha depois da do app: como o `@keyframes` de mesmo nome vence o anterior, dá pra gravar uma variação da animação sem tocar no `style.css` — é assim que se oferecem opções de movimento, um vídeo por letra. Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é, quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.

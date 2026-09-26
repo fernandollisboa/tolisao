@@ -8,8 +8,8 @@
 
 ## Imagem ou vídeo
 
-<!-- Mudança visual termina em imagem (`node tests/preview.cjs '#mine'`) e
-     animação vai de vídeo (`node tests/video.cjs <cena>`). Diff não mostra layout.
+<!-- Mudança visual termina em imagem (`node specs/preview.cjs '#mine'`) e
+     animação vai de vídeo (`node specs/video.cjs <cena>`). Diff não mostra layout.
      Se não mexe na tela, escreva "não mexe na tela" e apague o resto. -->
 
 ---

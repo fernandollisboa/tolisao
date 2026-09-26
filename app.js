@@ -249,7 +249,10 @@
   // de fato. fimT guarda quando a última termina, pra quem precisa da tela parada
   // notaT é o fim da fila da nota, sem o Sou Fulano e o ✎: a ficha entra logo depois dos riscos
   let fimT = 0, notaT = 0;
-  const agenda = (dur, total = dur) => { const t = Math.max(Date.now(), filaT); filaT = notaT = t + dur; fimT = Math.max(fimT, t + total); return t; };
+  // a seção que chega na tela depois (o Falta pagar abaixo da dobra) entra atrás das outras
+  // seções, não atrás do ✎ e do Sou Fulano: eles reservam a vez pra depois do pisca-pisca de
+  // natal acabar, e os riscos esperavam a árvore inteira e mais o respiro deles
+  const agenda = (dur, total = dur) => { const t = Math.max(Date.now(), notaT); notaT = t + dur; filaT = Math.max(filaT, notaT); fimT = Math.max(fimT, t + total); return t; };
   // o ✎ e o Sou Fulano não dividem a tela com ninguém: esperam tudo acabar e um respiro
   const calmo = (dur, respiro) => { const t = Math.max(filaT, Math.max(Date.now(), fimT) + respiro); filaT = fimT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
@@ -1116,6 +1119,8 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       // página" e a ficha caía antes do evento existir
       if (chato || jogada || $('#app').classList.contains('loading')) return;
       if (el.classList.contains('hidden') || !noFim()) return;   // nota sem gasto: a ficha espera
+      // com cartão ou o anotar abertos ela cairia por trás, sem ninguém ver: espera fechar
+      if (!$('#overlay').classList.contains('hidden') || !$('#sheet').classList.contains('hidden')) return;
       jogada = true; sorteia(); clearTimeout(aviso);
       // as seções só entram na fila depois que o #app sai do loading e o observador
       // reporta; pegar a vez no mesmo quadro fazia a ficha furar tudo. Um respiro e
@@ -1128,6 +1133,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     window.addEventListener('scroll', confere, { passive: true });
     window.addEventListener('resize', confere);
     if ('ResizeObserver' in window) new ResizeObserver(confere).observe($('#app'));
+    for (const q of ['#overlay', '#sheet']) new MutationObserver(confere).observe($(q), { attributes: true, attributeFilter: ['class'] });
     // uma jogada só: chegar no fim de novo não traz outra. Recomeça quando a pessoa
     // troca de nome, aí sim vale outra ficha
     // pousou: a ficha passa a ser pegável. Dois toques ela treme; o terceiro já agarra,
@@ -1141,6 +1147,50 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // graus por px: uma volta a cada perímetro da ficha (70px de diâmetro)
     const ROLA = 360 / (Math.PI * 70);
     let toques = 0, zera = 0, pega = null, voo = 0;
+    // soltar a ficha em cima de um botão aperta ele, que nem ficha em fenda de máquina: no
+    // ▸ dos itens abre a lista, no ✔ quita (que já pergunta antes), no copiar pix copia.
+    // Vale o centro da ficha, não a ponta do dedo, e só depois de arrastar de verdade:
+    // agarrar e soltar no lugar, ou um arremesso que passa voando por cima, não aperta nada
+    const ALVOS = '#itemsHead, [data-settle], [data-pix], [data-copy-value], #fab, #waBtn, #shareBtn, #whoBtn, #roomLabel, #toggleAll';
+    const ARRASTO = 24;   // px do dedo até a ficha passar a mirar
+    /** @returns {HTMLElement|null} o botão debaixo do centro da ficha */
+    const mirado = () => { const b = el.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height / 2;
+      const n = document.elementsFromPoint(x, y).find(n => n !== el);
+      const a = /** @type {HTMLElement|null} */ (n && n.closest(ALVOS));
+      if (!a || a.classList.contains('hidden') || /** @type {HTMLButtonElement} */ (a).disabled) return null;
+      // o centro tem que cair no botão mesmo: a folga que o ✔ ganha pro dedo não vale pra ficha
+      const r = a.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom ? a : null; };
+    // o botão mirado acende, e a ficha fica meio transparente pra ele aparecer por baixo
+    let mira = null;
+    const aponta = a => { if (a === mira) return; if (mira) mira.classList.remove('mira');
+      mira = a; if (a) a.classList.add('mira'); el.classList.toggle('mirando', !!a); };
+    // segurada perto da borda de cima ou de baixo, a página rola por baixo dela: da ficha
+    // no rodapé até o ✔ lá em cima, numa nota comprida, sem ter outro dedo pra rolar
+    const BORDA = 80, RAPIDO = 16;   // px da borda onde começa a rolar; px por quadro, no talo
+    let rola = 0;
+    const rolaBorda = () => { if (!pega) return;
+      const y = pega.y, v = !pega.andou ? 0 : y < BORDA ? -(BORDA - y) / BORDA : y > innerHeight - BORDA ? (y - innerHeight + BORDA) / BORDA : 0;
+      if (v) { const antes = scrollY; scrollBy(0, Math.round(Math.max(-1, Math.min(1, v)) * RAPIDO)); if (scrollY !== antes) aponta(mirado()); }
+      rola = requestAnimationFrame(rolaBorda); };
+    // nada de ler layout entre tirar o segura e pôr o engole: a leitura fixaria a ficha
+    // opaca no meio do caminho e ela piscava inteira antes de sumir
+    const engole = alvo => {
+      const r = alvo.getBoundingClientRect(), tranco = alvo.matches('#mineRows .dupla > button.ico') ? 'tocou' : 'engoliu';
+      el.classList.remove('segura'); aponta(null);
+      el.style.left = (r.left + r.width / 2 - D / 2) + 'px'; el.style.top = (r.top + r.height / 2 - D / 2) + 'px';
+      el.style.setProperty('--rot', ((parseFloat(el.style.getPropertyValue('--rot')) || 0) + 160).toFixed(1) + 'deg');
+      el.classList.add('engole');
+      // o clique vem já, ainda dentro do gesto: copiar pro clipboard e abrir o zap só valem com o dedo acabando de sair
+      alvo.click();
+      // o botão dá o tranco de quem recebeu: o ✔ e o copiar pix com o toque deles, o resto um pulinho
+      alvo.classList.remove(tranco); void alvo.offsetWidth; alvo.classList.add(tranco);
+      alvo.addEventListener('animationend', () => alvo.classList.remove(tranco), { once: true });
+      // entrou, some; volta a cair da próxima vez que a pessoa chegar no fim da página.
+      // O relógio de reserva é pra quando a transição não roda (aba escondida)
+      const some = () => { el.removeEventListener('transitionend', apagou); clearTimeout(reserva); el.classList.add('fora'); rejogaDiva(); };
+      const apagou = e => { if (e.propertyName === 'opacity') some(); };
+      el.addEventListener('transitionend', apagou); const reserva = setTimeout(some, 900); };
     el.addEventListener('animationend', e => { if (e.animationName === 'treme') el.classList.remove('treme');
       // pousada, larga as classes do voo: a cambalhota vence o pousou no CSS e rejogava a cada toque
       else if (el.classList.contains('voou')) { el.classList.remove('voou', 'cambalhota', 'requica'); el.classList.add('pousou'); } });
@@ -1161,16 +1211,18 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       const cx = b.left + (b.width - el.offsetWidth) / 2, cy = b.top + (b.height - el.offsetHeight) / 2;
       el.style.left = cx + 'px'; el.style.top = cy + 'px';
       el.classList.remove('voando'); el.classList.add('segura');
-      pega = { dx: e.clientX - cx, dy: e.clientY - cy, x: e.clientX, rot: parseFloat(el.style.getPropertyValue('--rot')) || -16,
+      pega = { dx: e.clientX - cx, dy: e.clientY - cy, x: e.clientX, x0: e.clientX, y0: e.clientY, y: e.clientY, andou: false, rot: parseFloat(el.style.getPropertyValue('--rot')) || -16,
         rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
-      el.setPointerCapture(e.pointerId); });
+      el.setPointerCapture(e.pointerId); cancelAnimationFrame(rola); rola = requestAnimationFrame(rolaBorda); });
     el.addEventListener('pointermove', e => { if (!pega) return;
       el.style.left = (e.clientX - pega.dx) + 'px'; el.style.top = (e.clientY - pega.dy) + 'px';
       // rola com o dedo, que nem moeda na mesa: cada px pro lado gira o que a borda andou
-      pega.rot += (e.clientX - pega.x) * ROLA; pega.x = e.clientX;
+      pega.rot += (e.clientX - pega.x) * ROLA; pega.x = e.clientX; pega.y = e.clientY;
       el.style.setProperty('--rot', pega.rot.toFixed(1) + 'deg');
       pega.rastro.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
-      while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift(); });
+      while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift();
+      if (!pega.andou) pega.andou = Math.hypot(e.clientX - pega.x0, e.clientY - pega.y0) > ARRASTO;
+      if (pega.andou) aponta(mirado()); });
     // largada devagar, a ficha volta pro papel no ponto em que parou: presa na tela ela
     // ficava boiando por cima de tudo, andando junto com a rolagem
     const assenta = () => {
@@ -1184,7 +1236,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     const solta = e => { if (!pega) return;
       const p0 = pega.rastro[0], dt = Math.max(16, e.timeStamp - p0.t);
       let vx = (e.clientX - p0.x) / dt, vy = (e.clientY - p0.y) / dt;   // px por ms
-      pega = null; el.classList.remove('segura');
+      // pointercancel é o sistema tomando o gesto, não a pessoa soltando: não aperta nada
+      const alvo = e.type === 'pointerup' && pega.andou ? mirado() : null;
+      pega = null;
+      // em cima de um botão, a mão que desacelera mirando ainda conta como largar
+      if (alvo && Math.hypot(vx, vy) < 1.2) return engole(alvo);
+      el.classList.remove('segura'); aponta(null);
       if (Math.hypot(vx, vy) < 0.7) return assenta();                  // devagar: assenta onde parou
       // arremesso: sai mais rápido que a mão e segue reto com gravidade, girando no
       // mesmo sentido em que rolava, até sair da tela
@@ -1200,12 +1257,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       voo = requestAnimationFrame(passo); };
     el.addEventListener('pointerup', solta);
     el.addEventListener('pointercancel', solta);
-    rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = marcada = false; pega = null; toques = 0;
+    rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = marcada = false; pega = null; toques = 0; aponta(null);
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga');
+      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga', 'engole');
       confere(); };
     // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
-    senha(el, () => { chato = true; setDevice('boringMode', true); pega = null; cancelAnimationFrame(voo);
+    senha(el, () => { chato = true; setDevice('boringMode', true); pega = null; cancelAnimationFrame(voo); aponta(null);
       el.classList.remove('segura', 'treme'); el.classList.add('apaga');
       setTimeout(() => { document.body.classList.add('chato'); render(); }, 700); });
     // e no "Deus é fiel." do rodapé, liga de novo: ela volta falando e é jogada outra vez

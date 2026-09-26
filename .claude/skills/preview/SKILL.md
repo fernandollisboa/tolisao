@@ -34,6 +34,8 @@ node specs/video.cjs troca                      # trocar de pessoa refaz a nota 
 node specs/video.cjs chave                      # o cadastrar chave pix descendo do título
 node specs/video.cjs ficha --saida=/tmp/f.webm  # a ficha caindo no rodapé
 node specs/video.cjs risco --vel=0.35           # o risco correndo nas linhas pagas
+node specs/video.cjs mira --altura=640          # a ficha levada pela borda até o ▸ e o ✔, e apertando eles
+node specs/video.cjs dobra --altura=400         # Falta pagar abaixo da dobra: os riscos não esperam o natal
 ```
 
 `--vel` é a velocidade das animações (0.35 = bem devagar). `--css=arq.css` injeta uma folha depois da do app: como o `@keyframes` de mesmo nome vence o anterior, dá pra gravar uma variação da animação sem tocar no `style.css` — é assim que se oferecem opções de movimento, um vídeo por letra. Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é, quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.

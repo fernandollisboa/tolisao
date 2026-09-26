@@ -23,12 +23,55 @@ pra chamar alguém: o texto do **enviar** já leva o link do evento. no celular 
 
 regras do banco (Realtime Database → Regras):
 
+o `.validate` de `rooms/$room` é o formato que o `clean()` do `app.js` produz: quem acha o código ainda escreve na sala, mas só uma sala de verdade, sem campo a mais, texto gigante ou lista sem fim (até 1000 pessoas, 10000 itens, 1000 exclusões). mexeu no `clean()`, mexa aqui e no `specs/_banco.cjs`, que imita estas regras nos testes. antes de publicar no console, teste no simulador de regras com uma sala copiada do banco.
+
 > **o `.read` fica dentro do `$room`, nunca em `rooms`.** as regras cascateiam e não dá pra revogar mais fundo: com `.read` em `rooms`, um `GET /rooms.json` baixa o banco inteiro e o hash do código não vale mais nada.
 
 ```json
 {
   "rules": {
-    "rooms": { "$room": { ".read": true, ".write": true } },
+    "rooms": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[0-9a-f]{64}$/) && newData.hasChildren(['v', 'updatedAt'])",
+        "v": { ".validate": "newData.val() === 2" },
+        "name": { ".validate": "newData.isString() && newData.val().length <= 40" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "people": {
+          "$i": {
+            ".validate": "$i.matches(/^[0-9]{1,3}$/) && newData.hasChildren(['id', 'name'])",
+            "id": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "at": { ".validate": "newData.isNumber()" },
+            "$outro": { ".validate": false }
+          }
+        },
+        "expenses": {
+          "$i": {
+            ".validate": "$i.matches(/^[0-9]{1,4}$/) && newData.hasChildren(['id', 'amount', 'payer', 'among'])",
+            "id": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "desc": { ".validate": "newData.isString() && newData.val().length <= 60" },
+            "amount": { ".validate": "newData.isNumber() && newData.val() > -10000000000 && newData.val() < 10000000000" },
+            "payer": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "among": {
+              "$j": { ".validate": "$j.matches(/^[0-9]{1,2}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" }
+            },
+            "at": { ".validate": "newData.isNumber()" },
+            "kind": { ".validate": "newData.val() === 'payment'" },
+            "by": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "shares": {
+              "$p": { ".validate": "$p.matches(/^[a-z0-9]{1,32}$/) && newData.isNumber() && newData.val() >= 0" }
+            },
+            "$outro": { ".validate": false }
+          }
+        },
+        "deleted": {
+          "$i": { ".validate": "$i.matches(/^[0-9]{1,3}$/) && newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" }
+        },
+        "$outro": { ".validate": false }
+      }
+    },
     "pix": {
       "$room": {
         "$person": {

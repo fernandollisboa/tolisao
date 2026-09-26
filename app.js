@@ -150,7 +150,9 @@
     return data;
   }
   async function apiPut(id, data){
-    const r = await fetch(roomUrl(id), { method:'PUT', body: JSON.stringify(data) });
+    // passa pelo clean() na ida também: as regras do banco só aceitam a sala nesse formato
+    // (nome até 40, pessoa até 30, item até 60…), e um campo a mais recusaria a gravação inteira
+    const r = await fetch(roomUrl(id), { method:'PUT', body: JSON.stringify(clean(data)) });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
   }
 

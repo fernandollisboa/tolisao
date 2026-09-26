@@ -1,8 +1,3 @@
-// Confere se o site no ar bate com o repositório. Não é teste de navegador: baixa os
-// arquivos publicados e compara byte a byte, que é o que engana a gente quando o
-// deploy "passou" mas o navegador serve outra coisa.
-//   node tests/noar.cjs            -> confere o site oficial
-//   node tests/noar.cjs <url base> -> confere outro endereço
 const fs = require('fs'), path = require('path'), https = require('https');
 const BASE = (process.argv[2] || 'https://tolisa.com.br/').replace(/\/?$/, '/');
 const RAIZ = path.join(__dirname, '..');
@@ -22,8 +17,6 @@ const baixar = url => new Promise((ok, erro) => {
   if (html.includes('__V__')) falhas.push('index.html no ar ainda tem o placeholder __V__');
   const versao = (html.match(/app\.js\?v=([^"]*)/) || [])[1];
   console.log('versão no ar:', versao, '| reserva no repo:', (local.match(/app\.js\?v=([^"]*)/) || [])[1]);
-  // o deploy troca o ?v= pelo SHA do commit, então a versão em si pode diferir do repo;
-  // o que não pode diferir é o resto do HTML nem o conteúdo dos arquivos
   const semVersao = t => t.replace(/\?v=[^"]*/g, '?v=');
   if (semVersao(html) !== semVersao(local)) falhas.push('index.html no ar difere do repo (fora o ?v=)');
 

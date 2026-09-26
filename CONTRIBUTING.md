@@ -18,7 +18,7 @@ npm run types                               # limpo
 npm test                                    # verde
 ```
 
-os testes são cucumber em português: a especificação fica em `tests/features/*.feature` e os passos em `tests/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo, e o fim da saída diz como abrir o trace.
+os testes são cucumber em português: a especificação fica em `specs/features/*.feature` e os passos em `specs/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo, e o fim da saída diz como abrir o trace.
 
 ## não rola
 
@@ -38,8 +38,8 @@ os testes são cucumber em português: a especificação fica em `tests/features
 ## mudou a tela? manda imagem
 
 ```sh
-node tests/preview.cjs '#mine'
-node tests/video.cjs pega --vel=0.35   # animação vai de vídeo
+node specs/preview.cjs '#mine'
+node specs/video.cjs pega --vel=0.35   # animação vai de vídeo
 ```
 
 tamanho real, 390 de largura. detalhes em `.claude/skills/preview/SKILL.md`.
@@ -54,7 +54,7 @@ A ficha tem a cor da sua situação
 
 ## deploy
 
-a `main` é protegida: branch → PR → check `test` verde → merge. quem publica é o `.github/workflows/pages.yml`, e só ele (a fonte do Pages é GitHub Actions; mexer nisso em Settings faz o site servir CSS velho por dias). depois do merge, `node tests/noar.cjs` confere se o que tá no ar bate com o repositório.
+a `main` é protegida: branch → PR → check `test` verde → merge. quem publica é o `.github/workflows/pages.yml`, e só ele (a fonte do Pages é GitHub Actions; mexer nisso em Settings faz o site servir CSS velho por dias). depois do merge, `node specs/noar.cjs` confere se o que tá no ar bate com o repositório.
 
 ## banco
 

@@ -3,11 +3,11 @@
   "private": true,
   "description": "Ferramentas de desenvolvimento do tô lisa. O site é estático e não depende de nada disso.",
   "scripts": {
-    "test": "bddgen -c tests/playwright.config.cjs && playwright test -c tests/playwright.config.cjs",
+    "test": "bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
     "types": "tsc -p jsconfig.json",
-    "preview": "node tests/preview.cjs",
-    "video": "node tests/video.cjs",
-    "noar": "node tests/noar.cjs"
+    "preview": "node specs/preview.cjs",
+    "video": "node specs/video.cjs",
+    "noar": "node specs/noar.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

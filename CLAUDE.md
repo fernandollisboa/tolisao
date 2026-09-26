@@ -11,10 +11,10 @@
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva. mudou a estratégia, troque o nome `CACHE`. instalar fica atrás da flag `INSTALAR`: botão âmbar `#instalar` no rodapé (só quando dá pra instalar) e um convite único no ✎ na segunda visita (`convidaInstalar`). no iPhone não tem API: o botão ensina o caminho do Safari do iOS 26 (••• → Compartilhar → Adicionar à Tela de Início, teclas em `.tecla`).
 - `fonts/`: VT323 (OFL 1.1) e Permanent Marker (Apache 2.0), não são MIT.
-- `ficha-*.png`: ícones, gerados por `node tests/icone.cjs`. `diva.png`: fonte deles e da `.stain`, a ficha que cai no rodapé quando a pessoa chega no fim da página, sempre a última da fila do `agenda()`, uma vez por visita. no toque ela é pegável: dois toques treme, o terceiro agarra; solta devagar volta pro papel, solta com força voa (`PEGA_FICHA` liga no mouse). modo chato: forte, fraco, forte na ficha desliga a diva ("Deus é fiel."); o mesmo no `#signoff` liga. guardado em `boringMode`. no iPhone o toque longo seleciona texto: a ficha pousada cancela o `touchstart`, e com o dedo nela ou no `#signoff` o `body` ganha `segurando` (`user-select:none`). o `body` usa `overflow-x:clip`, não `hidden`.
+- `ficha-*.png`: ícones, gerados por `node specs/icone.cjs`. `diva.png`: fonte deles e da `.stain`, a ficha que cai no rodapé quando a pessoa chega no fim da página, sempre a última da fila do `agenda()`, uma vez por visita. no toque ela é pegável: dois toques treme, o terceiro agarra; solta devagar volta pro papel, solta com força voa (`PEGA_FICHA` liga no mouse). modo chato: forte, fraco, forte na ficha desliga a diva ("Deus é fiel."); o mesmo no `#signoff` liga. guardado em `boringMode`. no iPhone o toque longo seleciona texto: a ficha pousada cancela o `touchstart`, e com o dedo nela ou no `#signoff` o `body` ganha `segurando` (`user-select:none`). o `body` usa `overflow-x:clip`, não `hidden`.
 - a cor da ficha diz como você tá: vermelho deve, verde recebe, rosa quite, âmbar quem não disse quem é.
 - `og5.jpg`: preview do WhatsApp. abaixo de uns 300 KB, senão o WhatsApp ignora. trocar o nome fura o cache dele.
-- `tests/`: cucumber em português (`playwright-bdd` em cima do `@playwright/test`).
+- `specs/`: cucumber em português (`playwright-bdd` em cima do `@playwright/test`).
   - `features/*.feature` é a especificação, `passos/*.cjs` os passos.
   - `passos/_mundo.cjs` é o fixture de cada cenário: banco falso, aparelhos, página da vez. no fim ele falha se a página deu erro, abriu diálogo nativo ou tentou listar eventos.
   - `_banco.cjs` imita o Firebase com as regras do README. `_serve.cjs` serve o repo na porta 0. `_bonito.cjs` é o reporter, que imprime o `.feature` com os passos em verde e vermelho.
@@ -48,7 +48,7 @@ a `main` exige o check `test` e recusa push direto. então:
 1. `npm run types` limpo e `npm test` verde.
 2. branch, PR, espera o check verde, merge (`--merge --delete-branch`). check verde basta, sem pedir confirmação.
 3. `git checkout main && git pull origin main`.
-4. espera o deploy e roda **`node tests/noar.cjs`**. só depois diga que tá no ar.
+4. espera o deploy e roda **`node specs/noar.cjs`**. só depois diga que tá no ar.
 
 o `?v=` de `app.js` e `style.css` vira o SHA do commit no deploy. o valor escrito no `index.html` é reserva: suba ele (data + letra) junto com mudança visual; o workflow avisa se esquecer.
 
@@ -79,4 +79,4 @@ armadilhas:
 - toque: a classe `tocou` vem de `pointerdown` de captura (não `:active`), tira o `animation-delay` inline, e o mouse fica de fora. tocou um, `tocouOk` para as piscadas. no desktop, hover preenche o botão (`!important` no ✔ e no `#pixBtn`).
 - valor digitado entra como no app do banco (`mascara()`): dígitos pela direita, pelos centavos (5 → 0,05, 5000 → 50,00), teto de 9 dígitos, no `#amount` e nas partes. campo `type="text"` com `inputmode="numeric"`. quem lê usa `numVal()`.
 - edição pequena, sem dependência no site, sem framework, sem build.
-- **mudança visual termina com preview enviado ao usuário**, sem ele pedir (skill `preview`, `tests/preview.cjs`). opções vão numa folha comparativa em tamanho real. **animação vai de vídeo** (`node tests/video.cjs <cena>`).
+- **mudança visual termina com preview enviado ao usuário**, sem ele pedir (skill `preview`, `specs/preview.cjs`). opções vão numa folha comparativa em tamanho real. **animação vai de vídeo** (`node specs/video.cjs <cena>`).

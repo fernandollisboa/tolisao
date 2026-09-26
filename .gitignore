@@ -1,5 +1,5 @@
 node_modules/
-tests/node_modules/
-tests/.gerado/
-tests/.resultados/
+specs/node_modules/
+specs/.gerado/
+specs/.resultados/
 playwright-report/

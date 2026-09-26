@@ -13,7 +13,7 @@ salvou, recarregou, tá valendo.
 ## antes de subir
 
 ```sh
-npm ci && npx playwright install chromium   # uma vez
+npm ci && npx playwright install chromium   # uma vez (se já tiver um chromium, o teste acha)
 npm run types                               # limpo
 npm test                                    # verde
 ```

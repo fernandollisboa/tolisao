@@ -2,81 +2,54 @@
 
 ## o que é
 
-"tô lisa · quem me deve?": divisor de gastos entre amigos, tipo Splitwise, sem app e sem cadastro. `index.html`, `style.css` e `app.js`, sem build, no GitHub Pages, com Firebase Realtime Database via REST. site: https://tolisa.com.br/. tudo em pt-BR.
+"tô lisa · quem me deve?": divisor de gastos entre amigos, tipo Splitwise, sem app e sem cadastro. `index.html`, `style.css` e `app.js`, sem build, no GitHub Pages, com Firebase Realtime Database via REST. site: https://tolisa.com.br/. tudo em pt-BR, tela e código.
 
-## estrutura
+este arquivo é o mapa e as regras que não se quebram. como cada feature se comporta está no código e nos `.feature`: não precisa vir pra cá.
 
-- `index.html`: header (evento · sou fulano) → Minha conta → Itens (recolhido) → Falta pagar → membros → rodapé. overlays em `#overlay`, formulário em `#sheet`. o nome do evento abre `showRoom()`: recibo com voltar como botão (`button.sec`) e o sair em link vermelho embaixo. cartão sem ação principal leva o voltar como botão de verdade, porque tocar fora pra fechar ninguém acha (QA da #35).
-- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo (`Person`, `Expense`, `Room`, `Transfer`). `npm run types` tem que sair limpo.
+## onde fica o quê
+
+- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. flags em maiúscula no topo ligam e desligam coisa meio pronta.
 - `style.css`: papel e madeira, fonte VT323.
-- `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva. mudou a estratégia, troque o nome `CACHE`. instalar fica atrás da flag `INSTALAR`: botão âmbar `#instalar` no rodapé (só quando dá pra instalar) e um convite único no ✎ na segunda visita (`convidaInstalar`). no iPhone não tem API: o botão ensina o caminho do Safari do iOS 26 (••• → Compartilhar → Adicionar à Tela de Início, teclas em `.tecla`).
-- `fonts/`: VT323 (OFL 1.1) e Permanent Marker (Apache 2.0), não são MIT.
-- `ficha-*.png`: ícones, gerados por `node specs/icone.cjs`. `diva.png`: fonte deles e da `.stain`, a ficha que cai no rodapé quando a pessoa chega no fim da página, sempre a última da fila do `agenda()`, uma vez por visita. no toque ela é pegável: dois toques treme, o terceiro agarra; solta devagar volta pro papel, solta com força voa (`PEGA_FICHA` liga no mouse). modo chato: forte, fraco, forte na ficha desliga a diva ("Deus é fiel."); o mesmo no `#signoff` liga. guardado em `boringMode`. no iPhone o toque longo seleciona texto: a ficha pousada cancela o `touchstart`, e com o dedo nela ou no `#signoff` o `body` ganha `segurando` (`user-select:none`). o `body` usa `overflow-x:clip`, não `hidden`.
-- a cor da ficha diz como você tá: vermelho deve, verde recebe, rosa quite, âmbar quem não disse quem é.
-- `og5.jpg`: preview do WhatsApp. abaixo de uns 300 KB, senão o WhatsApp ignora. trocar o nome fura o cache dele.
-- `specs/`: cucumber em português (`playwright-bdd` em cima do `@playwright/test`).
-  - `features/*.feature` é a especificação, `passos/*.cjs` os passos.
-  - `passos/_mundo.cjs` é o fixture de cada cenário: banco falso, aparelhos, página da vez. no fim ele falha se a página deu erro, abriu diálogo nativo ou tentou listar eventos.
-  - `_banco.cjs` imita o Firebase com as regras de leitura e escrita do `database.rules.json` (o `.validate` fica de fora). `_serve.cjs` serve o repo na porta 0. `_bonito.cjs` é o reporter, que imprime o `.feature` com os passos em verde e vermelho.
-  - animação não tem teste automático: confira no vídeo.
-  - `preview.cjs` e `video.cjs` não são testes, são geradores de imagem e de `.webm` (cenas `cascata`, `pix`, `piscas`, `troca`, `chave`, `ficha`, `pega`, `chato`, `toque`, `itens`, `risco`; `--css=` e `--js=` pra comparar variações). `_ficha.cjs` tem os gestos da ficha.
-- `.github/workflows/`: `tests.yml` (check `test`, em PR) e `pages.yml` (deploy). leia **deploy** antes de subir.
-- `docs/qa.md`: o roteiro das sessões de QA com gente de verdade e o que cada uma achou.
-- `CONTRIBUTING.md`: as mesmas regras pra gente. mexeu em convenção aqui, atualize lá.
-- `package.json`: só ferramenta de desenvolvimento. o site não carrega nada disso.
-- evento novo: nada abre sozinho. o `#whoBtn` leva a `showSetup` (sem gente) ou `showWho`. evento com uma pessoa só já entra como ela. sem gasto o zap some e a caixa tracejada do `#settle` diz "toque aqui pra anotar o primeiro gasto" e abre o anotar (`.empty.anota`), porque é nela que a pessoa toca.
-- ✎ (`#fab`, âmbar) e zap (`#waBtn`) empilhados no canto de cima do papel, `position:absolute`, rolando junto com a nota (fixos, tapavam os valores). sem ✎ o zap sobe (`.so`). o `right` acompanha a borda do papel.
-- "tô lisa" se digita sozinho (`digitaTitulo`) só no cartão do código e só na primeira visita.
-- código: evento novo ganha um final sorteado (`churras-k7f3q9x2`, `sorteia(8)` do `crypto`), porque código curto se adivinha testando o hash direto no banco. o `name` guarda o que a pessoa digitou e é o que aparece (`evento()`); `roomName` é o código inteiro, que vai no link e no cartão do evento. evento antigo, sem final, abre como sempre. o `#seed=` restaura com o mesmo código, sem sortear.
-- endereço: `?senha=<código>` (`openGroup` faz `replaceState`). recarregar com o mesmo código abre direto. colar outro link na aba recarrega sozinho. o `ask()` tem voltar, e código errado devolve o cartão com o que foi digitado.
-- `#app` nasce com `loading`. `openGroup` tira depois do primeiro fetch, e um `setTimeout` no HTML tira em 8s.
+- `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
+- `database.rules.json`: regras do Firebase (coladas no console).
+- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras. `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
+- `docs/qa.md`: roteiro e achados das sessões de QA.
+- `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
 
 ## comandos
 
 - rodar: `python3 -m http.server`.
-- testes: `npm ci && npx playwright install chromium`, depois `npm test` (`npm test -- pix` roda um arquivo). sem o chromium da versão do playwright, o `specs/_pw.cjs` usa o mais novo da pasta dos navegadores (a máquina da nuvem vem com outro); `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
-- tipos: `npm run types`. sintaxe: `node --check app.js`.
+- testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
+- tipos: `npm run types` (tem que sair limpo). sintaxe: `node --check app.js`.
 
 ## deploy
 
-a `main` é o que tá no ar. quem publica é o `.github/workflows/pages.yml`, e só ele (fonte do Pages: GitHub Actions).
-
-quando o usuário escolhe uma opção que você ofereceu, isso já é o aval: commite, mergeie e suba sem perguntar de novo.
-
-a `main` exige o check `test` e recusa push direto. então:
+a `main` é o que tá no ar, exige o check `test` e recusa push direto. quando o usuário escolhe uma opção que você ofereceu, isso já é o aval: commite, mergeie e suba sem perguntar de novo.
 
 1. `npm run types` limpo e `npm test` verde.
-2. branch, PR, espera o check verde, merge (`--merge --delete-branch`). check verde basta, sem pedir confirmação.
+2. branch, PR, check verde, merge (`--merge --delete-branch`). check verde basta.
 3. `git checkout main && git pull origin main`.
-4. espera o `pages.yml` terminar verde. só depois diga que tá no ar.
+4. espere o `pages.yml` terminar verde. só depois diga que tá no ar.
 
-o `?v=` de `app.js` e `style.css` vira o SHA do commit no deploy. o valor escrito no `index.html` é reserva: suba ele (data + letra) junto com mudança visual; o workflow avisa se esquecer.
+- quem publica é o `.github/workflows/pages.yml`, e só ele (fonte do Pages: GitHub Actions). se alguém voltar pra "deploy from a branch", o Pages publica a branch crua por cima, com `?v=__V__` literal e CSS velho por dias.
+- pushes seguidos cancelam o deploy anterior: espere o último antes de conferir.
+- o `?v=` de `app.js` e `style.css` vira o SHA no deploy. o valor no `index.html` é reserva: suba ele (data + letra) junto com mudança visual.
 
-armadilhas:
-- **o Pages já publicou duas vezes.** com a fonte em "deploy from a branch", o "pages build and deployment" publicava a branch crua depois e ganhava, com `?v=__V__` literal e CSS velho por dias. se alguém mexer em Settings → Pages, isso volta.
-- **pushes seguidos cancelam o deploy anterior.** espere o último antes de conferir.
+## regras que não se quebram
 
-## dados
-
-- sala: `rooms/<sha256(código)>` com `{v, name, people[], expenses[], deleted[], updatedAt}`. ids de `uid()`. `kind:'payment'` é quitação. `shares` (centavos) só em divisão desigual. pagador fora de `among` é empréstimo.
-- sync: `merge()` une por id, exclusão vence, `clean()` em tudo que vem do banco ou do cache, `canon()` pra não regravar à toa.
-- pix: só pelo `#pixBtn` âmbar. `pix/<sala>/<pessoa>/{key, tok}`: `key` todo mundo lê, só quem tem o `tok` troca. só chave aleatória ou e-mail (`validPixKey`).
-- aparelho: duas gavetas de JSON no localStorage, chaves em inglês e camelCase. `tolisa` tem `{visits, installPrompted, itemsOpened, boringMode, lastRoom}` (`device()`/`setDevice()`), `tolisa:<sala>` tem `{me, lastSeen, pixTokens, snapshot}` (`room()`/`setRoom()`). as chaves `racha:*` de antes migram sozinhas na abertura, e o velho só sai depois que o novo gravou (perder o `tok` trava a chave pix).
-- regras no `database.rules.json` (coladas no console do Firebase): leitura e escrita por sala. o `.read` nunca sobe pro nó `rooms`, senão `GET /rooms.json` baixa tudo. o `.validate` de `rooms/$room` é o formato do `clean()`, e o `apiPut` passa tudo pelo `clean()` antes de gravar. mexeu num, mexa no outro. validação de banco não vira cenário: o cucumber é pra feature.
+- **sem dependência no site, sem framework, sem build.** `package.json` é só ferramenta. edição pequena.
+- **o banco é hostil.** id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`, tudo que vem do banco ou do cache passa por `clean()`.
+- **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário.
+- **CSP** no `<meta>` do `index.html`: só o próprio site e `*.firebaseio.com`. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
+- **service worker:** mudou a estratégia, troque o nome `CACHE`.
+- **código do evento** ganha final sorteado (`sorteia(8)`): código curto se adivinha testando o hash no banco.
+- **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.
+- **dinheiro** é centavo inteiro até virar texto.
+- **`og5.jpg`** abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.
+- **fontes** em `fonts/` são OFL 1.1 e Apache 2.0, não MIT.
 
 ## convenções
 
-- o banco é hostil: id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()`.
-- CSP no `<meta>` do `index.html`: só o próprio site, `connect-src` só pro `*.firebaseio.com`, estilo inline liberado. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule. o `_mundo.cjs` falha o cenário se a CSP barrar algo.
-- cores: `PALETTE` por índice, sem vermelho/verde. marca-texto é `MARKR`, os mesmos matizes mais firmes. nada de amarelo.
-- **animações**: nada anima fora da tela. um `IntersectionObserver` marca `#mine`, `#itemsSec` e `#settle`, e o `agenda()` enfileira na ordem da página: piscadas dos ✔ → toque na linha dos itens → voltas do círculo → riscos dos pagamentos. a fila reserva a entrada do bloco seguinte, não a duração do anterior. bloco vazio reserva zero. as horas são absolutas (atraso positivo espera, negativo retoma), então o poll não atrapalha. o copiar pix corre por fora. o toque grande dos itens só nas primeiras `APERTO_VISITAS`, depois `suave`. sala ou pessoa nova chama `rearmaAnims()`.
-- cifrão em Minha conta, Falta pagar e total; itens sem. quem tá quite vê "tudo quite!" com o emoji de `festeja()`.
-- frase curta de tela leva ponto ou exclamação. emoji só no 👀 do cobrar e na caixinha de quite.
-- ações só em Minha conta: `✔ paguei` e `copiar pix` escritos por extenso (ícone sozinho pedia balão, e o `.dicaok` saiu). área de toque passa dos 44px por um `:after` invisível, só no dedo. o copiar pix brota de trás do ✔ quando a chave chega; o ✔ pisca uma vez por linha antes. Falta pagar só mostra. `COBRAR`, `DESFAZER` e `MEMBROS` desligados.
-- linha dos itens: fechada é botão com moldura e convida com verbo ("ver os 3 itens") até a pessoa abrir uma vez (`viuItens`, zerado no `rearmaAnims()`); aberta vira "3 itens", sem moldura (`#itemsHead.aberto`). Enter e Espaço abrem e fecham (`aria-expanded`). a setinha é um triângulo vazado em SVG, sem caixinha (o `▸` não existe na VT323 e cada aparelho desenhava de um jeito).
-- dividir: duas abas (`#splitSeg`). no igual valem os chips. a frase do `#splitHint` fica em cima das abas, nas duas, e só conta como está dividido (quem troca são as abas). nas partes os chips somem e cada pessoa vira uma linha (`#sharesBox .lin`, o ✔ da linha marca o chip), com o campo na largura do número (o `atualizaFalta()` mede) pros pontinhos irem até perto do valor. o `#falta` diz quanto falta ou "✔ fechou", e o anotar só libera quando fecha. linha vazia ganha "o resto", e com mais de uma vazia aparece "dividir o resto igual". o `atualizaFalta()` só mexe no recado e nos botões, senão apaga o campo em que a pessoa digita.
-- pix errado não fecha o cartão: `askText` aceita `valida`, e errar deixa `#askDesc` e a caixa vermelhos com um tranco (`tranco`); voltar a digitar tira.
-- toque: a classe `tocou` vem de `pointerdown` de captura (não `:active`), tira o `animation-delay` inline, e o mouse fica de fora. tocou um, `tocouOk` para as piscadas. no desktop, hover preenche o botão (`!important` no ✔ e no `#pixBtn`).
-- valor digitado entra como no app do banco (`mascara()`): dígitos pela direita, pelos centavos (5 → 0,05, 5000 → 50,00), teto de 9 dígitos, no `#amount` e nas partes. campo `type="text"` com `inputmode="numeric"`. quem lê usa `numVal()`.
-- edição pequena, sem dependência no site, sem framework, sem build.
-- **mudança visual termina com preview enviado ao usuário**, sem ele pedir (skill `preview`, `specs/preview.cjs`). opções vão numa folha comparativa em tamanho real. **animação vai de vídeo** (`node specs/video.cjs <cena>`).
+- cores de gente saem de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe; nada de amarelo.
+- animação entra na fila do `agenda()`, na ordem da página, e só roda com a seção na tela. animação não tem teste automático: confira no vídeo.
+- **mudança visual termina com preview enviado ao usuário**, sem ele pedir (skill `preview`). opções vão numa folha comparativa em tamanho real; animação vai de vídeo.

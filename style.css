@@ -401,10 +401,11 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
    e na terceira. O Sou Fulano engrossa o sublinhado, correndo, depois de tudo */
 #fab{width:52px;height:52px;outline:3px solid transparent}
 #fab svg{width:28px;height:28px}
-/* o ✎ fica fixo no canto de baixo, onde o polegar alcança, pra anotar de qualquer
-   ponto da página; o zap fica sozinho em cima, rolando com a nota */
-#fab{position:fixed;top:auto;bottom:calc(22px + env(safe-area-inset-bottom))}
-#waBtn.wafab{top:30px}
+/* o ✎ e o zap ficam fixos no canto de baixo, onde o polegar alcança, pra anotar e
+   mandar de qualquer ponto da página; o zap embaixo, centrado sob o ✎ */
+#fab{position:fixed;top:auto;bottom:calc(92px + env(safe-area-inset-bottom))}
+#waBtn.wafab{position:fixed;top:auto;bottom:calc(36px + env(safe-area-inset-bottom));right:calc(max(22px,calc(50% - 216px)) + 4px)}
+#waBtn.wafab.so{top:auto}
 @keyframes pulaOnda{0%,100%{translate:0 0;outline-offset:0;outline-color:rgba(154,91,0,0)}8%{translate:0 2px}18%{translate:0 -14px}28%{translate:0 0;outline-offset:0;outline-color:rgba(154,91,0,.9)}44%{translate:0 -10px;outline-offset:12px;outline-color:rgba(154,91,0,0)}45%{outline-offset:0}54%{translate:0 0;outline-color:rgba(154,91,0,.9)}68%{translate:0 -5px;outline-offset:12px;outline-color:rgba(154,91,0,0)}76%{translate:0 0}}
 @keyframes pulsaAnota{0%,100%{scale:1;outline-offset:0;outline-color:rgba(154,91,0,0)}12%{outline-color:rgba(154,91,0,.9)}25%{scale:1.14}45%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}46%{outline-offset:0}58%{outline-color:rgba(154,91,0,.9)}70%{scale:1.14}90%{scale:1;outline-offset:12px;outline-color:rgba(154,91,0,0)}}
 #fab.pula{animation:pulaOnda 1.6s ease-in-out}

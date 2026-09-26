@@ -72,6 +72,19 @@ body.pegavel .stain.pousou{cursor:grab}
 .stain.solta.segura{--esc:1.18;cursor:grabbing;transition:transform .08s,filter .15s;
   filter:drop-shadow(calc(6px * cos(var(--rot)) + 14px * sin(var(--rot))) calc(14px * cos(var(--rot)) - 6px * sin(var(--rot))) 10px rgba(0,0,0,.4))}
 .stain.solta.voando{transition:none}
+/* mirando um botão ela desbota pra ele aparecer por baixo; solta, entra nele que nem ficha em fenda */
+.stain.solta.segura.mirando{--esc:.92;opacity:.45}
+.stain.solta.engole{--esc:.15;opacity:0;pointer-events:none;transition:left .24s ease-in,top .24s ease-in,transform .24s ease-in,opacity .24s ease-in}
+/* o botão debaixo da ficha acende como no toque, e quem arrasta sabe que soltar ali aperta */
+.mira{outline:3px dashed var(--ink);outline-offset:4px;border-radius:6px}
+button.mira,a.link.mira{background:var(--ink) !important;color:var(--paper) !important}
+button.ico.ok.mira{background:var(--green) !important}
+#fab.mira{background:#7a4700 !important;color:#fff !important}
+#itemsHead.mira{outline-offset:8px;translate:2px 2px}
+#itemsHead.mira:before{box-shadow:1px 1px 0 var(--ink)}
+.engoliu{animation:engoliu .3s ease-out}
+@keyframes engoliu{40%{scale:1.12}}
+@media (prefers-reduced-motion:reduce){.engoliu{animation:none}}
 .stain.fora{display:none}
 /* modo chato (easter egg): a diva apaga, desbota e some; o subtítulo vai junto */
 .stain.apaga{animation:apaga .7s ease-in forwards;pointer-events:none}

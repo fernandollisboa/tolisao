@@ -153,7 +153,7 @@ button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:
 button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);width:100%;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:10px}
 .wa,button.big svg{flex:none;position:relative;top:-1px}
 /* o zap é a segunda bolinha flutuante, logo abaixo do anotar */
-#waBtn.wafab{top:84px;width:44px;height:44px;border-radius:50%;transform:rotate(5deg);color:var(--ink);transition:top .4s cubic-bezier(.2,.9,.25,1)}
+#waBtn.wafab{top:84px;width:44px;height:44px;border-radius:50%;transform:rotate(5deg);color:var(--ink);transition:top .4s cubic-bezier(.2,.9,.25,1),background .12s ease,color .12s ease,translate .12s ease,box-shadow .12s ease}
 #waBtn.wafab .wa-lbl{display:flex;align-items:center;justify-content:center}
 #waBtn.wafab .wa{width:21px;height:21px;top:0}
 /* sem ninguém escolhido não existe o ✎: o zap sobe pra vaga dele.
@@ -203,7 +203,16 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   button.ico.okl:hover:not(:disabled){background:#5aa46a;color:#fff}
   button.danger:hover:not(:disabled){background:var(--red);color:var(--paper)}
   button.ghost:hover:not(:disabled){background:transparent;color:var(--ink)}
-  #fab:not(.chamando):hover{background:var(--ink);color:var(--paper)}
+  /* o ✎ é âmbar o tempo todo: no hover ele escurece e afunda um tico, como quem aperta */
+  #fab:hover{background:#7a4700;color:#fff}
+  /* o #waBtn.wafab fixa a cor da tinta e vencia o hover genérico: ficava tinta no fundo
+     de tinta, uma bola preta sem ícone */
+  #waBtn.wafab:hover{background:var(--ink);color:#fff8e6}
+  .fab:hover{box-shadow:1px 1px 0 var(--ink);translate:2px 2px}
+  /* a linha dos itens fechada é botão: no hover a moldura clareia e a caixinha do ▸
+     se enche de tinta, o mesmo vocabulário dos outros botões */
+  #itemsHead:not(.aberto):hover:before{background:#fff}
+  #itemsHead:not(.aberto):hover #itemsCaret{background:var(--ink);color:#fff8e6}
   /* pulso levinho o tempo todo, sem trocar de cor; para no hover, que já é o próprio aviso.
      cancela (não só pausa) porque pausar no meio do brilho deixava a cor do hover
      variando conforme a hora exata em que o mouse chegasse */
@@ -269,7 +278,8 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 /* o dedo acerta mais que 26px: a área de toque dos botões do acerto passa dos 44px
    que a Apple pede, sem mudar o desenho. Na horizontal quase nada, que os dois são vizinhos */
 #mineRows .dupla>button.ico{position:relative}
-#mineRows .dupla>button.ico:after{content:"";position:absolute;inset:-10px -1px}
+/* só no dedo: no mouse a área maior acendia o hover a 10px do botão, em cima da linha vizinha */
+@media (pointer:coarse){#mineRows .dupla>button.ico:after{content:"";position:absolute;inset:-10px -1px}}
 /* com nome escrito os dois botões precisam caber ao lado do nome em 390px: letra um
    tico menor e a coluna do nome mais larga (o valor à direita cabe em menos) */
 #mineRows .dupla>button.ico{white-space:nowrap;font-size:15px;padding:0 5px}

@@ -11,8 +11,8 @@ const VAZIO = { name: 'churras', people: DADOS.people.slice(0, 3), expenses: [] 
 (async () => {
   const srv = servir(PORTA); const b = await chromium.launch(); const erros = [];
   const exige = (ok, msg) => { if (!ok) erros.push(msg); return ok; };
-  const abre = async (d, quem) => {
-    const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  const abre = async (d, quem, toque = false) => {
+    const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: toque, isMobile: toque });
     await ctx.route(/fake-db/, r => { const u = r.request().url();
       if (u.includes('/pix/')) return r.fulfill({ json: u.includes('/fernando/') ? 'fernando@exemplo.com' : null });
       if (r.request().method() !== 'GET') return r.fulfill({ json: {} });
@@ -47,8 +47,12 @@ const VAZIO = { name: 'churras', people: DADOS.people.slice(0, 3), expenses: [] 
   const botoes = await p.$$eval('#mineRows .dupla > button', l => l.map(b => b.textContent.trim()));
   exige(botoes.includes('✔ paguei') && botoes.includes('copiar pix'), `botões do acerto sem nome: ${JSON.stringify(botoes)}`);
   exige(await p.locator('.dicaok').count() === 0, 'o balão do acerto devia ter saído');
-  const alvo = await p.$eval('#mineRows .dupla > button', b => { const a = getComputedStyle(b, '::after'); return b.getBoundingClientRect().height + parseFloat(a.top) * -2; });
+  // a área de toque maior é só do dedo: no mouse ela acendia o hover longe do botão
+  const area = pg => pg.$eval('#mineRows .dupla > button', b => { const a = getComputedStyle(b, '::after'); return a.content === 'none' ? b.getBoundingClientRect().height : b.getBoundingClientRect().height + parseFloat(a.top) * -2; });
+  const dedo = await abre(DADOS, 'Lia', true); await dedo.waitForSelector('#mineRows .dupla > button');
+  const alvo = await area(dedo), mouse = await area(p);
   exige(alvo >= 44, `área de toque do ✔ com ${alvo}px, menos que 44`);
+  exige(mouse < 30, `no mouse a área do ✔ devia ser a do botão, veio ${mouse}px`);
   console.log('botões do acerto:', botoes.join(' · '), `| área de toque ${alvo}px`);
 
   await p.click('#roomLabel'); await p.waitForSelector('#evBack');

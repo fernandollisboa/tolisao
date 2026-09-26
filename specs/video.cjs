@@ -98,6 +98,16 @@ const CENAS = {
         b.classList.remove('cutuca'); void b.offsetWidth; b.classList.add('cutuca'); }, sel);
       await p.waitForTimeout(900); await cutuca('#fab'); await p.waitForTimeout(3600);
       await cutuca('#whoBtn'); await p.waitForTimeout(2200); } },
+  etapas: { nome: 'o ✎ muda de chamada conforme a pessoa já apertou: pula, pulsa, sossega', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => { window.scrollTo(0, 0); const d = document.createElement('div'); d.id = 'rotulo';
+        d.style.cssText = 'position:fixed;left:0;right:0;bottom:24px;text-align:center;font:22px monospace;color:#fff;background:rgba(0,0,0,.72);padding:10px;z-index:99';
+        document.body.appendChild(d); });
+      const etapa = (txt, cls) => p.evaluate(([txt, cls]) => { document.querySelector('#rotulo').textContent = txt;
+        const b = document.querySelector('#fab'); b.classList.remove('pula', 'pulsa'); void b.offsetWidth; if (cls) b.classList.add(cls); }, [txt, cls]);
+      await p.waitForTimeout(600);
+      await etapa('nunca apertou', 'pula'); await p.waitForTimeout(2600);
+      await etapa('apertou 1 ou 2 vezes', 'pulsa'); await p.waitForTimeout(2600);
+      await etapa('da 3ª em diante: quieto', ''); await p.waitForTimeout(1600); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

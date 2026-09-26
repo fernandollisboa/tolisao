@@ -263,7 +263,7 @@
   let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const pixVisto = new Map();   // pessoa -> quando as animações da linha dela começam
   let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
-  const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, devagar
+  const PIX_MS = 420, PISCA_MS = 4600, PISCA_GAP = 320;   // o show do pisca-pisca, uma linha atrás da outra
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
   let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
@@ -371,8 +371,8 @@
     if (hasMe && !vazio) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
       $('#mine').classList.remove('hidden');
       const stMe = settlements(balances());
-      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ pisca
-      // verde duas vezes, um "me pague". As duas saem da mesma hora, guardada uma vez
+      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ faz o
+      // pisca-pisca de natal, um "me pague". As duas saem da mesma hora, guardada uma vez
       // por pessoa; como o #mineRows é refeito a cada poll, o atraso (negativo depois
       // que a animação começou) retoma de onde estava em vez de recomeçar no meio
       // hora marcada pras animações da seção: o copiar pix brotando de trás do ✔ e a

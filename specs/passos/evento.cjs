@@ -47,6 +47,8 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
 });
 Then('o botão de sair do evento é vermelho', async ({ mundo }) => { await expect(mundo.p.locator('#evLeave')).toHaveCSS('color', 'rgb(155, 28, 28)'); });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
+When('eu toco em sair do evento', async ({ mundo }) => { await mundo.p.click('#evLeave'); await mundo.p.waitForSelector('#okBtn'); });
+Then('o botão de sair é vermelho', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toHaveText(/sair/i); await expect(mundo.p.locator('#okBtn')).toHaveCSS('background-color', 'rgb(155, 28, 28)'); });
 When('eu toco no código do evento', async ({ mundo }) => { await mundo.p.click('#evCode'); });
 Then('fica copiado {string}', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt); });
 Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toHaveClass(/\bhidden\b/); });

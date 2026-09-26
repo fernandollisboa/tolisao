@@ -59,6 +59,13 @@ Funcionalidade: Entrar no evento
     Quando eu toco no meu nome
     Então o cartão de quem é você não tem botão de sair
 
+  Cenário: confirmar a saída é vermelho, não mais um voltar
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco no nome do evento
+    E eu toco em sair do evento
+    Então o botão de sair é vermelho
+
   Cenário: tocar no código do cartão do evento copia ele
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia

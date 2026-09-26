@@ -56,6 +56,17 @@ Then('o valor fica {string}', async ({ mundo }, v) => { await expect(mundo.p.loc
 Then('a frase de como está dividido vem antes das abas', async ({ mundo }) => {
   expect(await mundo.p.$eval('#splitHint', h => !!(h.compareDocumentPosition(document.querySelector('#splitSeg')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
 });
+When('eu começo a digitar a parte do {word}', async ({ mundo }, n) => { await mundo.p.focus(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`); });
+When('a nota sincroniza', async ({ mundo }) => {
+  // o sync reescreve o #status mesmo quando o texto é igual: é assim que se sabe que ele passou
+  await mundo.p.evaluate(() => new Promise(ok => {
+    const o = new MutationObserver(() => { o.disconnect(); ok(); });
+    o.observe(document.querySelector('#status'), { childList: true });
+    document.dispatchEvent(new Event('visibilitychange')); }));
+});
+Then('o cursor continua na parte do {word}', async ({ mundo }, n) => {
+  await expect(mundo.p.locator(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`)).toBeFocused();
+});
 When('eu toco na aba das partes diferentes', async ({ mundo }) => { await mundo.p.click('#splitSeg [data-modo="custom"]'); });
 Then('a aba das partes diferentes fica marcada', async ({ mundo }) => {
   const aba = mundo.p.locator('#splitSeg [data-modo="custom"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');

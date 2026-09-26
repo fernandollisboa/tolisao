@@ -580,11 +580,14 @@
     $('#sharesBox').classList.toggle('hidden', !custom);
     $('#falta').classList.toggle('hidden', !custom);
     if (custom) {
-      const prev = customShares();
-      $('#sharesBox').innerHTML = state.people.map(p => { const on = among.includes(p.id);
+      // as linhas só se refazem quando muda quem aparece nelas: todo sync passa por aqui, e
+      // refazer a cada um tirava o campo (e o teclado) de quem estava digitando a parte
+      const box = $('#sharesBox'), k = JSON.stringify(state.people.map(p => [p.id, p.name, among.includes(p.id)]));
+      if (box.dataset.k !== k) { box.dataset.k = k; const prev = customShares();
+        box.innerHTML = state.people.map(p => { const on = among.includes(p.id);
         return `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nm(p.id)}</span><span class="d"></span>`
           + (on ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? fmt(prev[p.id]/100) : ''}">` : '<span class="fora">fora</span>')
-          + '</div>'; }).join('');
+          + '</div>'; }).join(''); }
       // a frase fica nas duas abas, pra nada sumir do nada quando se troca
       h.innerHTML = !among.length ? 'Marque quem divide esse gasto.' : 'Dividido <u>em partes diferentes</u>.';
       atualizaFalta();
@@ -653,9 +656,10 @@
   const closeOverlay = () => { $('#overlay').classList.add('hidden'); $('#overlay').classList.remove('ensina', 'canto', 'meio', 'cima'); };
   $('#overlay').addEventListener('click', ev => { if (ev.target.id !== 'overlay' || overlaySticky) return; const c = overlayCancel; overlayCancel = null; closeOverlay(); if (c) c(); });
 
-  function ask(title, desc, okLabel = 'confirmar'){
+  /** `perigo` pinta o botão de vermelho: o que não tem volta não pode parecer um voltar */
+  function ask(title, desc, okLabel = 'confirmar', perigo = false){
     return new Promise(res => {
-      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
+      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big${perigo ? ' perigo' : ''}">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
       overlayCancel = () => res(false); $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#okBtn').focus();
       $('#cancelBtn').onclick = () => { overlayCancel = null; closeOverlay(); res(false); };
     });
@@ -722,7 +726,7 @@
     $('#setupGo').onclick = () => { if (!state.people.length) return;
       if (state.people.length === 1) return souEu(state.people[0].id);
       closeOverlay(); showWho(); };
-    $('#setupLeave').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
+    $('#setupLeave').onclick = async () => { if (await ask('Sair do evento?', '', 'sair', true)) leave(); };
     $('#setupName').focus();
   }
   // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
@@ -813,7 +817,7 @@
     $('#evBack').onclick = closeOverlay;
     // o código é o que se manda no zap: um toque copia
     $('#evCode').onclick = () => navigator.clipboard.writeText(roomName).then(() => toast('Código copiado.'), () => showCopy('Código do evento', roomName));
-    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
+    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair', true)) leave(); };
   }
   function leave(){ setDevice('lastRoom', undefined); location.href = location.pathname; }
 

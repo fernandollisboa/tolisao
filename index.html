@@ -25,7 +25,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Colagem de figurinhas com o texto: tipo splitwise, só que sem app e sem cadastro 👍">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="style.css?v=20260926f">
+<link rel="stylesheet" href="style.css?v=20260926g">
 </head>
 <body>
 <div id="overlay" class="hidden"><div class="paper" id="overlayBox"></div></div>
@@ -75,10 +75,10 @@
   <form id="expenseForm">
     <div class="two"><input id="amount" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0,00" required><input id="desc" placeholder="O quê?" required maxlength="60" enterkeyhint="done" autocomplete="off" autocapitalize="sentences"></div>
     <select id="payer" required></select>
+    <div class="muted" id="splitHint"></div>
     <div class="seg" id="splitSeg" role="tablist" aria-label="jeito de dividir"><button type="button" role="tab" data-modo="equal">igual</button><button type="button" role="tab" data-modo="custom">partes diferentes</button></div>
     <div class="chips" id="splitChips"></div>
     <div id="sharesBox" class="shares hidden"></div>
-    <div class="muted" id="splitHint"></div>
     <div id="falta" class="falta hidden" aria-live="polite"></div>
     <button class="big">Anotar</button>
   </form>
@@ -86,7 +86,7 @@
 </div></div>
 <div id="toast" class="toast"></div>
 
-<script src="app.js?v=20260926f"></script>
+<script src="app.js?v=20260926g"></script>
 <script>setTimeout(function(){var a=document.getElementById("app");if(a&&!a.classList.contains("nospin"))a.classList.remove("loading")},8000)</script>
 </body>
 </html>

@@ -79,7 +79,8 @@ Funcionalidade: Anotar um gasto
     Quando eu abro o evento como Lia
     E eu toco no ✎
     E eu preencho R$ 120,00 de "Airbnb"
-    E eu toco no "igualmente" da frase
+    Então a frase de como está dividido vem antes das abas
+    Quando eu toco na aba das partes diferentes
     Então a aba das partes diferentes fica marcada
     E os chips de quem divide somem
     Quando eu ponho R$ 40,00 pra Fernando

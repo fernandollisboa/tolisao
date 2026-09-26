@@ -394,4 +394,4 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
    Minha conta mistura corpos de texto, então lá a coluna é em px; no Falta pagar, em ch */
 #mineRows .cur{width:22px;margin-right:0} #mineRows .num{min-width:52px}
 #settle .cur{width:auto;margin-right:0} #settle .num{min-width:7ch}
-#splitHint{margin-bottom:-6px}
+#splitHint{margin-bottom:-4px}

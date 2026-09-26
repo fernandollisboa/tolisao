@@ -53,7 +53,10 @@ When('eu apago o último dígito', async ({ mundo }) => { await mundo.p.press('#
 When('eu digito {string} no valor', async ({ mundo }, txt) => { await mundo.p.type('#amount', txt); });
 Then('o valor fica {string}', async ({ mundo }, v) => { await expect(mundo.p.locator('#amount')).toHaveValue(v); });
 
-When('eu toco no "igualmente" da frase', async ({ mundo }) => { await mundo.p.click('#modeToggle'); });
+Then('a frase de como está dividido vem antes das abas', async ({ mundo }) => {
+  expect(await mundo.p.$eval('#splitHint', h => !!(h.compareDocumentPosition(document.querySelector('#splitSeg')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+});
+When('eu toco na aba das partes diferentes', async ({ mundo }) => { await mundo.p.click('#splitSeg [data-modo="custom"]'); });
 Then('a aba das partes diferentes fica marcada', async ({ mundo }) => {
   const aba = mundo.p.locator('#splitSeg [data-modo="custom"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');
 });

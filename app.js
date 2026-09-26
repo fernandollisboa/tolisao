@@ -276,6 +276,14 @@
   const numVal = v => { let s = String(v).trim().replace(/\s/g, ''); if (!s) return NaN;
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); return parseFloat(s); };
   const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
+  // valor digitado como no app do banco: os dígitos entram pela direita, pelos centavos
+  // (5 → 0,05, 50 → 0,50, 5000 → 50,00). A usuária da QA digitava o 00 do fim por
+  // costume. Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
+  const mascara = el => { const d = el.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
+    el.value = d ? fmt(+d / 100) : ''; };
+  // na captura, antes de quem lê o campo (o hint das partes, o somaDasPartes)
+  document.addEventListener('input', ev => { const t = /** @type {HTMLInputElement} */ (ev.target);
+    if (t.matches && t.matches('#amount, #sharesBox input')) mascara(t); }, true);
   const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
   const val = n => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
   const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
@@ -479,7 +487,7 @@
     const armaModo = () => { const m = $('#modeToggle'); if (m) m.onclick = () => { splitMode = splitMode === 'equal' ? 'custom' : 'equal'; updateHint(); }; };
     if (splitMode === 'custom') {
       const prev = customShares();
-      $('#sharesBox').innerHTML = among.map(id => `<div class="row"><span class="l">${nm(id)}</span><span class="d"></span><input type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" data-share="${id}" value="${prev[id] ? (prev[id]/100).toFixed(2) : ''}"></div>`).join('');
+      $('#sharesBox').innerHTML = among.map(id => `<div class="row"><span class="l">${nm(id)}</span><span class="d"></span><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${id}" value="${prev[id] ? fmt(prev[id]/100) : ''}"></div>`).join('');
       h.innerHTML = `Dividido ${modo('em partes diferentes')}<span id="hintTail">${!among.length ? '.' : ' · ' + somaDasPartes()}</span>`;
       armaModo();
       return;

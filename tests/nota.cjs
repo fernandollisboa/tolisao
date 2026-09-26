@@ -62,6 +62,17 @@ const VAZIO = { name: 'churras', people: DADOS.people.slice(0, 3), expenses: [] 
   exige(await p.$eval('#overlay', e => e.classList.contains('hidden')), 'o voltar do cartão do evento não fechou');
   console.log('cartão do evento: voltar em cima do sair, e fecha');
 
+  // valor como no app do banco: os dígitos entram pelos centavos, e apagar tira o último
+  await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+  const valores = [];
+  for (const t of ['5', '0', '0', '0']) { await p.type('#amount', t); valores.push(await p.inputValue('#amount')); }
+  await p.press('#amount', 'Backspace'); valores.push(await p.inputValue('#amount'));
+  // teto de 9 dígitos (9.999.999,99): o que passa disso não entra
+  for (const t of '1234567') await p.type('#amount', t); valores.push(await p.inputValue('#amount'));
+  exige(JSON.stringify(valores) === JSON.stringify(['0,05', '0,50', '5,00', '50,00', '5,00', '5.001.234,56']), `máscara do valor: ${JSON.stringify(valores)}`);
+  await p.fill('#amount', ''); await p.click('#sheetClose');
+  console.log('valor digitado pelos centavos:', valores.join(' → '));
+
   const v = await abre(VAZIO, 'Lia');
   exige(await v.locator('#dica').count() === 0, 'o balão do ✎ devia ter saído (ele tapava o cabeçalho)');
   await v.click('#settle .empty.anota');

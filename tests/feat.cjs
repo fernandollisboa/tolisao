@@ -20,7 +20,7 @@ async function mock(ctx){ await ctx.route('https://fake-db.firebaseio.com/**', r
   for (const n of ['Fernando','Júlia','Klinsmann']) await p1.click(`#splitChips label:has-text("${n}")`);
   // o modo agora é a palavra "igualmente" da própria frase
   await p1.click('#modeToggle'); await p1.waitForSelector('#sharesBox:not(.hidden)');
-  await p1.fill('#sharesBox input[data-share="lia"]','18.87'); await p1.fill('#sharesBox input[data-share="mengla"]','20');
+  await p1.fill('#sharesBox input[data-share="lia"]','18.87'); await p1.fill('#sharesBox input[data-share="mengla"]','20,00');
   console.log('hint (sobra/falta):', await p1.$eval('#splitHint', e => e.textContent));
   await p1.click('#expenseForm button.big'); await p1.waitForTimeout(200); console.log('bloqueado:', await p1.$eval('#toast', e => e.textContent));
   await p1.fill('#sharesBox input[data-share="mengla"]','23.97'); await p1.click('#expenseForm button.big'); await p1.waitForSelector('#sheet', { state: 'hidden' });

@@ -187,6 +187,9 @@ button.danger{border-color:transparent;background:transparent;color:var(--red);p
 button.ghost{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 4px}
 /* o voltar dos cartões sem ação principal: botão de verdade, não link — tocar fora
    pra fechar não é óbvio pra ninguém */
+/* confirmar o que não tem volta (sair do evento): preenchido de vermelho, pra não
+   parecer o voltar do cartão de antes */
+button.big.perigo{background:var(--red);color:#fff}
 button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3px 3px 0 var(--ink)}
 /* passo a passo do instalar: as teclas do Safari desenhadas como tecla */
 .passos{text-transform:none;font-size:18px;line-height:2.1;max-width:310px;margin:0 auto}
@@ -241,6 +244,7 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   button.ico.amb:hover:not(:disabled),#whoNewBox button:hover:not(:disabled){background:#9a5b00 !important;color:#fff !important}
   button.ico.okl:hover:not(:disabled){background:#5aa46a;color:#fff}
   button.danger:hover:not(:disabled){background:var(--red);color:var(--paper)}
+  button.big.perigo:hover:not(:disabled){background:#7a1414;color:#fff}
   button.ghost:hover:not(:disabled){background:transparent;color:var(--ink)}
   .seg button:not(.on):hover{background:#fff8e6;color:var(--ink)}
   .shares .resto:hover{background:#9a5b00 !important;color:#fff !important}

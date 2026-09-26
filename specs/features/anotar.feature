@@ -75,6 +75,15 @@ Funcionalidade: Anotar um gasto
     Quando eu digito "1234567" no valor
     Então o valor fica "5.001.234,56"
 
+  Cenário: a nota sincronizando não tira o campo de quem digita a parte
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu preencho R$ 120,00 de "Airbnb"
+    E eu toco na aba das partes diferentes
+    E eu começo a digitar a parte do Fernando
+    E a nota sincroniza
+    Então o cursor continua na parte do Fernando
+
   Cenário: as ajudas de conta das partes diferentes
     Quando eu abro o evento como Lia
     E eu toco no ✎

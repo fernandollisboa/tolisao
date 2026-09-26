@@ -522,7 +522,7 @@
       : `sobram <b>${money(-resta/100)}</b> além de ${money(total/100)}.`;
     for (const b of inputs('#sharesBox [data-resto]')) b.classList.toggle('hidden', resta <= 0 || sh[b.dataset.resto] > 0);
     // o campo tem a largura do número: os pontinhos da linha correm até perto do valor
-    for (const i of inputs('#sharesBox input[data-share]')) { const n = Math.max(4, i.value.length) + 1; i.style.width = `calc(${n}ch + ${n}px + 8px)`; }
+    for (const i of inputs('#sharesBox input[data-share]')) { const n = Math.max(5, i.value.length) + 1; /* cabe a dezena (00,00) antes de crescer */ i.style.width = `calc(${n}ch + ${n}px + 8px)`; }
     $('#expenseForm button.big').disabled = !(total > 0 && resta === 0);
   }
   $('#amount').addEventListener('input', atualizaFalta);

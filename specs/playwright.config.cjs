@@ -13,7 +13,7 @@ module.exports = defineConfig({
   reporter: [
     cucumberReporter('./_pontos.cjs', { summarise: true }),
     ['./_lerdos.cjs'],
-    cucumberReporter('html', { outputFile: 'relatorio.html' }),   // pra gente ver: specs/relatorio.html
+    ...(process.env.HTML ? [cucumberReporter('html', { outputFile: 'relatorio.html' })] : []),
     ...(process.env.CI ? [['github']] : []),
   ],
   use: {

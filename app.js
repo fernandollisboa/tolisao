@@ -232,8 +232,24 @@
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria
   let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
+  // o ✎ se abre em ANOTAR nas duas primeiras visitas; depois pula até a primeira vez que
+  // é apertado, pulsa na segunda e na terceira, e sossega
+  let fabT = 0, souT = 0, cutucas = [];
+  const ANOTA_MS = 1900, ABRE_MS = 3200, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
+  /** a classe entra na hora marcada, mas só com o botão na tela; fora dela, espera ele voltar */
+  const cutuca = (el, cls, t) => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const vai = () => { const r = el.getBoundingClientRect();
+      if (r.bottom <= 0 || r.top >= innerHeight) return false;
+      el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); return true; };
+    const olha = () => { if (vai()) removeEventListener('scroll', olha); };
+    cutucas.push(setTimeout(() => { if (!vai()) addEventListener('scroll', olha, { passive: true }); }, Math.max(0, t - Date.now()))); };
   let itensT = 0, itensSuave = false; /* -1: dispensado, a lista já foi aberta */ const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
-  const agenda = dur => { const t = Math.max(Date.now(), filaT); filaT = t + dur; return t; };
+  // dur é o que a fila reserva (a entrada do próximo); total é quanto a animação dura
+  // de fato. fimT guarda quando a última termina, pra quem precisa da tela parada
+  let fimT = 0;
+  const agenda = (dur, total = dur) => { const t = Math.max(Date.now(), filaT); filaT = t + dur; fimT = Math.max(fimT, t + total); return t; };
+  // o ✎ e o Sou Fulano não dividem a tela com ninguém: esperam tudo acabar e um respiro
+  const calmo = (dur, respiro) => { const t = Math.max(filaT, Math.max(Date.now(), fimT) + respiro); filaT = fimT = t + dur; return t; };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
@@ -387,13 +403,15 @@
       // piscadas, e curto: quem vem depois não precisa esperar tudo acabar
       const meus = bal < 0 ? stMe.filter(t => t.from === me) : [];
       // sem linha nenhuma não há o que reservar: quem vem depois não espera à toa
-      if (mineNaTela && !mineT) { mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0);
+      if (mineNaTela && !mineT) {
         // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
         // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
         const vistos = room().lightsSeen, ja = Array.isArray(vistos) && vistos.includes(me);
         natal = meus.length >= 2 && (!ja || Math.random() < .5)
           ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT]) : null;
-        if (natal && !ja) mexe(roomKey(groupId), o => { o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me]; }); }
+        if (natal && !ja) mexe(roomKey(groupId), o => { o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me]; });
+        const fim = !meus.length ? 0 : (meus.length - 1) * PISCA_GAP + (natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+        mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim); }
       // o copiar pix corre por fora da fila: brota assim que a chave chega do banco,
       // sem esperar as piscadas nem segurar quem vem depois. Nada de spinner: o botão
       // brotando já conta que chegou
@@ -447,7 +465,7 @@
     if (!itensT && itemsOpen) itensT = -1;
     if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
         && !$('#itemsSec').classList.contains('hidden')) {
-      itensSuave = !!device().itemsOpened || visitas > APERTO_VISITAS; itensT = agenda(APERTO_LEAD); }
+      itensSuave = !!device().itemsOpened || visitas > APERTO_VISITAS; itensT = agenda(APERTO_LEAD, APERTO_MS); }
     const myBal = hasMe ? (balances()[me] || 0) : 0;
     // sem spinner aqui também: a linha fica vazia e o botão desce de debaixo do título
     const pixWant = !hasMe || myBal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
@@ -485,6 +503,18 @@
       settleT = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
       riscoT = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
       pays.forEach((e, i) => vistos.set(e.id, riscoT + i * RISCO_GAP)); }   // de cima pra baixo
+    // depois de tudo que estava na tela: o Sou Fulano sublinha assim que o último risco
+    // acaba e, com a tela parada um tempo, o ✎ se apresenta
+    // só depois que cada seção à vista já pegou a vez: senão o ✎ furava a fila
+    const aVista = el => { if (el.classList.contains('hidden')) return false; const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; };
+    const pegaram = (!aVista($('#mine')) || mineNaTela) && (!aVista($('#itemsSec')) || itensNaTela) && (!aVista($('#settle')) || settleNaTela);
+    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !fabT && $('#overlay').classList.contains('hidden')) {
+      if (!souT) { souT = calmo(SOU_MS, 0); cutuca($('#whoBtn'), 'cutuca', souT); }
+      // nas duas primeiras vezes ele se abre escrito ANOTAR; depois pula até ser apertado
+      const n = +device().fabTaps || 0, vistas = +device().fabSeen || 0;
+      const cls = vistas < 2 ? 'abre' : n === 0 ? 'pula' : n < 3 ? 'pulsa' : '';
+      if (cls) { if (cls === 'abre') setDevice('fabSeen', vistas + 1);
+        fabT = calmo(cls === 'abre' ? ABRE_MS : ANOTA_MS, ANOTA_RESPIRO); cutuca($('#fab'), cls, fabT); } else fabT = -1; }
     const dtS = settleT ? Date.now() - settleT : Infinity;
     const desenha = dtS < DESENHA_MS + DESENHA_GAP + Math.max(0, nMeus - 1) * VOLTA_GAP;
     let ordem = 0;   // as suas linhas riscam uma atrás da outra, de cima pra baixo
@@ -781,7 +811,8 @@
   $('#itemsHead').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#itemsHead').click(); } });
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
   const closeSheet = () => $('#sheet').classList.add('hidden');
-  $('#fab').onclick = () => { if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); convidaInstalar(); };
+  $('#fab').onclick = () => { setDevice('fabTaps', (+device().fabTaps || 0) + 1);
+    if (!state.people.length) return toast('Adicione pessoas primeiro'); openSheet(); convidaInstalar(); };
   $('#sheetClose').onclick = closeSheet;
   $('#sheet').addEventListener('click', ev => { if (ev.target.id === 'sheet') closeSheet(); });
   $('#expenseForm').onsubmit = ev => { ev.preventDefault();
@@ -1181,7 +1212,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
   function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = itensT = filaT = 0; viuItens = false; tocouOk = false;   // nota nova, convite novo
+    settleT = riscoT = mineT = itensT = filaT = fimT = fabT = souT = 0; cutucas.forEach(clearTimeout); cutucas = []; viuItens = false; tocouOk = false;   // nota nova, convite novo
     mineNaTela = itensNaTela = settleNaTela = false;
     const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }

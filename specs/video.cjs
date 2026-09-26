@@ -87,6 +87,34 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
       await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ behavior: 'smooth', block: 'center' }));
       await p.waitForTimeout(5000); } },
+  sou: { nome: 'o Sou Fulano dando um sinal de botão depois que a fila acaba', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(3500);
+      const cutuca = () => p.evaluate(() => { const b = document.querySelector('#whoBtn');
+        b.classList.remove('cutuca'); void b.offsetWidth; b.classList.add('cutuca'); });
+      await cutuca(); await p.waitForTimeout(2600); await cutuca(); await p.waitForTimeout(2600); } },
+  anota: { nome: 'o ✎ se apresentando pra quem nunca anotou, e no fim o Sou Fulano', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0));
+      const cutuca = sel => p.evaluate(sel => { const b = document.querySelector(sel);
+        b.classList.remove('cutuca'); void b.offsetWidth; b.classList.add('cutuca'); }, sel);
+      await p.waitForTimeout(900); await cutuca('#fab'); await p.waitForTimeout(3600);
+      await cutuca('#whoBtn'); await p.waitForTimeout(2200); } },
+  etapas: { nome: 'o ✎ muda de chamada conforme a pessoa já apertou: pula, pulsa, sossega', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => { window.scrollTo(0, 0); const d = document.createElement('div'); d.id = 'rotulo';
+        d.style.cssText = 'position:fixed;left:0;right:0;bottom:24px;text-align:center;font:22px monospace;color:#fff;background:rgba(0,0,0,.72);padding:10px;z-index:99';
+        document.body.appendChild(d); });
+      const etapa = (txt, cls) => p.evaluate(([txt, cls]) => { document.querySelector('#rotulo').textContent = txt;
+        const b = document.querySelector('#fab'); b.classList.remove('pula', 'pulsa'); void b.offsetWidth; if (cls) b.classList.add(cls); }, [txt, cls]);
+      await p.waitForTimeout(600);
+      await etapa('nunca apertou', 'pula'); await p.waitForTimeout(2600);
+      await etapa('apertou 1 ou 2 vezes', 'pulsa'); await p.waitForTimeout(2600);
+      await etapa('da 3ª em diante: quieto', ''); await p.waitForTimeout(1600); } },
+  ordem: { nome: 'a fila de cima pra baixo e, com a tela parada, o ✎ e o Sou Fulano', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(10500); } },
+  rola: { nome: 'descendo a página inteira e voltando: onde ficam o ✎ e o zap', quem: 'Lia', atrasoPix: 600,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.click('#itemsHead'); await p.waitForTimeout(1500);
+      for (const y of [420, 900, 'fim', 0]) {
+        await p.evaluate(y => scrollTo({ top: y === 'fim' ? document.documentElement.scrollHeight : y, behavior: 'smooth' }), y);
+        await p.waitForTimeout(2000); } } },
   abas: { nome: 'trocar entre igual e partes diferentes no anotar', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
       await p.type('#amount', '12000'); await p.fill('#desc', 'Janta'); await p.waitForTimeout(900);

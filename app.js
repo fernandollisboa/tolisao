@@ -518,6 +518,7 @@
     const among = inputs('#splitChips input:checked').map(i => i.value);
     const payer = $('#payer').value; const h = $('#splitHint'); const custom = splitMode === 'custom';
     for (const b of inputs('#splitSeg button')) { const on = b.dataset.modo === splitMode; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); }
+    $('#splitSeg').classList.toggle('direita', custom);
     $('#splitChips').classList.toggle('hidden', custom);
     $('#sharesBox').classList.toggle('hidden', !custom);
     $('#falta').classList.toggle('hidden', !custom);
@@ -537,6 +538,17 @@
     else if (!among.includes(payer)) h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length===1?'':'m'} o valor todo a ${nameOf(payer)}.`;
     // a frase fica em cima das abas e só conta como está dividido: quem troca são as abas
     else h.innerHTML = `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length===1?'':'s'}</u>.`;
+  }
+  /** trocar de aba sem tranco: a área de baixo muda de altura devagar (o papel, centrado,
+   *  cresce pros dois lados junto) e o que entra aparece deslizando de leve */
+  function trocaAba(modo){
+    const area = $('#splitArea'), antes = area.offsetHeight;
+    splitMode = modo; updateHint();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const depois = area.offsetHeight, curva = 'cubic-bezier(.3,.9,.4,1)';
+    area.animate([{ height: antes + 'px', overflow: 'hidden' }, { height: depois + 'px', overflow: 'hidden' }], { duration: 300, easing: curva });
+    const entra = [...area.children].filter(e => !e.classList.contains('hidden'));
+    for (const e of entra) e.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 260, delay: 60, easing: 'ease-out', fill: 'backwards' });
   }
   /** quanto falta (ou sobra) pras partes fecharem o total, em destaque em cima do botão,
    *  que só libera quando fecha. Só mexe no recado e nos "o resto": refazer as linhas
@@ -562,7 +574,7 @@
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta(); });
   document.addEventListener('click', ev => { const tgt = /** @type {HTMLElement} */ (ev.target);
     const aba = /** @type {HTMLElement|null} */ (tgt.closest('#splitSeg button'));
-    if (aba) { splitMode = aba.dataset.modo === 'custom' ? 'custom' : 'equal'; updateHint(); return; }
+    if (aba) { const modo = aba.dataset.modo === 'custom' ? 'custom' : 'equal'; if (modo !== splitMode) trocaAba(modo); return; }
     // "o resto" joga na linha o que falta; "dividir o resto igual" reparte entre as vazias
     const resto = /** @type {HTMLElement|null} */ (tgt.closest('[data-resto]'));
     const falta = () => totalDigitado() - Object.values(customShares()).reduce((a, b) => a + b, 0);

@@ -87,6 +87,10 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
       await p.evaluate(() => document.querySelector('#itemsSec').scrollIntoView({ behavior: 'smooth', block: 'center' }));
       await p.waitForTimeout(5000); } },
+  abas: { nome: 'trocar entre igual e partes diferentes no anotar', quem: 'Lia', atrasoPix: 0,
+    acao: async p => { await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+      await p.type('#amount', '12000'); await p.fill('#desc', 'Janta'); await p.waitForTimeout(900);
+      for (const modo of ['custom', 'equal', 'custom']) { await p.click(`#splitSeg [data-modo="${modo}"]`); await p.waitForTimeout(1600); } } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

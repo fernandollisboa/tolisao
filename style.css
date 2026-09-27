@@ -357,6 +357,8 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .row.sub .v{flex-shrink:0} #mineRows .row.sub .num{min-width:0} #mineRows .row.sub .d{margin:0 4px 5px;min-width:8px}
 /* os botões redondos ficam por cima do canto direito do papel: a linha do evento não passa por baixo deles */
 #eventLine{padding:0 48px}
+/* celular estreito: evento numa linha, quem é você na outra, sem o ponto no meio */
+@media (max-width:389px){#eventLine>span{display:block} #eventLine>.sep{display:none}}
 /* a caixa do caderno em branco também abre o anotar */
 #settle .empty.anota{cursor:pointer}
 /* no celular não existe hover: o toque preenche o botão com a cor dele e volta, o

@@ -22,7 +22,8 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). a saída é pontinho, falhas e os 5 cenários mais lerdos; `npm run relatorio` gera o passo a passo em `specs/relatorio.html`. o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
 - cobertura: `npm run cobertura` (aceita `-- pix`) diz o % de linhas do `app.js` que os cenários executam e os trechos sem cenário. é lanterna, não meta nem check.
 - tipos: `npm run types` (tem que sair limpo). sintaxe: `node --check app.js`.
-- regras: `npm run regras`. tudo junto (sintaxe, tipos, regras, testes): `npm run qualidade`, o mesmo que o CI cobra.
+- formato: `npm run formata` (prettier no `app.js`, aspas simples, 120 colunas; o CI cobra). o commit que formatou tudo está no `.git-blame-ignore-revs`.
+- regras: `npm run regras`. tudo junto (sintaxe, formato, tipos, regras, testes): `npm run qualidade`, o mesmo que o CI cobra.
 - o hook em `.claude/settings.json` roda sintaxe e tipos a cada edição no `app.js`.
 
 ## deploy
@@ -42,7 +43,8 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 
 ## regras que não se quebram
 
-- **sem dependência no site, sem framework, sem build.** `package.json` é só ferramenta. edição pequena.
+- **sem dependência no site, sem framework, sem build.** `package.json` é só ferramenta. edição pequena (a única exceção foi a formatação do prettier).
+- **aspas simples no `const DB = '...'`:** o `specs/_serve.cjs` troca essa linha pelo banco falso, e sem ela o `app.js` nem sai pros testes.
 - **o banco é hostil.** id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`, tudo que vem do banco ou do cache passa por `clean()`.
 - **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário.
 - **CSP** no `<meta>` do `index.html`: só o próprio site e `*.firebaseio.com`. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.

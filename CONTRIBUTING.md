@@ -14,7 +14,8 @@ salvou, recarregou, tá valendo.
 
 ```sh
 npm ci && npx playwright install chromium   # uma vez (se já tiver um chromium, o teste acha)
-npm run qualidade                           # sintaxe, tipos, regras e testes: verde
+npm run formata                             # prettier no app.js
+npm run qualidade                           # sintaxe, formato, tipos, regras e testes: verde
 ```
 
 os testes são cucumber em português: a especificação fica em `specs/features/*.feature` e os passos em `specs/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo, e o fim da saída diz como abrir o trace.
@@ -27,7 +28,7 @@ os testes são cucumber em português: a especificação fica em `specs/features
 
 - **dependência nova no site.** o navegador não tem? a gente escreve (por isso existem `crc16`, `code128Widths` e o recibo em canvas). ferramenta de desenvolvimento pode.
 - **build, bundler, framework.** tipo é JSDoc com `// @ts-check`.
-- **reescrita grande.** edição pequena em `app.js`/`style.css`.
+- **reescrita grande.** edição pequena em `app.js`/`style.css`. o formato é do prettier (`npm run formata`), não se discute.
 - **inglês na tela.** o rodapé fala como dona de boteco baiana.
 
 ## estilo

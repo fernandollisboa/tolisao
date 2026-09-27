@@ -20,9 +20,10 @@ Funcionalidade: Cadastrar a chave pix
     Então o cartão fecha
 
     Exemplos:
-      | tipo     | chave          |
-      | CPF      | 123.456.789-09 |
-      | telefone | +5583999998888 |
+      | tipo               | chave            |
+      | CPF                | 123.456.789-09   |
+      | telefone           | +5583999998888   |
+      | e-mail sem o ponto | fernando@exemplo |
 
   Esquema do Cenário: <tipo> passa
     Quando eu abro o evento como Fernando

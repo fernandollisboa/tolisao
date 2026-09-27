@@ -1,18 +1,31 @@
 const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
 
+const festa = require('../_festa.cjs');
+
 const centavos = v => Math.round(Number(v.replace(/\./g, '').replace(',', '.')) * 100);
 
-Given('o evento {string} com {gente}', async ({ mundo }, nome, gente) => {
+const poeGente = (mundo, nome, gente) =>
   mundo.criaEvento({ name: nome, people: gente.map((n, i) => ({ id: idDe(n), name: n, at: i + 1 })), expenses: [], deleted: [] });
-});
 
-Given('os gastos:', async ({ mundo }, tabela) => {
+const poeGastos = (mundo, linhas) => {
   const id = n => mundo.pessoa(n).id;
-  tabela.hashes().forEach((g, i) => {
+  linhas.forEach((g, i) => {
     const e = { id: 'g' + (mundo.evento.expenses.length + 1), desc: g['o quê'], amount: centavos(g.valor) / 100,
       payer: id(g.pagou), among: g['divide entre'].split(/\s*,\s*/).map(id), at: AGORA - 7 * 86400000 + i * 60000 };
     mundo.evento.expenses.push(e);
   });
+};
+
+Given('o evento {string} com {gente}', async ({ mundo }, nome, gente) => { poeGente(mundo, nome, gente); });
+
+Given('os gastos:', async ({ mundo }, tabela) => { poeGastos(mundo, tabela.hashes()); });
+
+// a mesma festa que o acerto e o anotar usam, de specs/_festa.cjs
+Given('o evento de exemplo {string}', async ({ mundo }, nome) => {
+  const f = festa[nome];
+  if (!f) throw new Error(`não tem festa de exemplo "${nome}" em specs/_festa.cjs`);
+  poeGente(mundo, nome, f.gente);
+  poeGastos(mundo, f.gastos);
 });
 
 Given('(que )o/a {word} tem a chave pix {string}', async ({ mundo }, quem, chave) => { mundo.banco.pix(mundo.sala, mundo.pessoa(quem).id, chave); });

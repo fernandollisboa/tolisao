@@ -3,3 +3,4 @@ specs/node_modules/
 specs/.gerado/
 specs/.resultados/
 playwright-report/
+specs/.cobertura/

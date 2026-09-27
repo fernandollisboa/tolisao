@@ -2,6 +2,7 @@ const { test: base, createBdd, defineParameterType } = require('playwright-bdd')
 const { expect } = require('@playwright/test');
 const servir = require('../_serve.cjs');
 const { Banco } = require('../_banco.cjs');
+const cobertura = require('../_cobertura.cjs');
 
 defineParameterType({ name: 'num', regexp: /\d+(?:\.\d{3})*(?:,\d+)?/, transformer: s => Number(s.replace(/\./g, '').replace(',', '.')) });
 defineParameterType({ name: 'gente', regexp: /[^"]+?/, transformer: s => s.split(/\s*,\s*|\s+e\s+/).filter(Boolean) });
@@ -32,7 +33,7 @@ class Mundo {
     // o que o aparelho já tinha guardado antes desta visita (só na primeira carga da aba)
     if (this.antes) await ctx.addInitScript(antes => { if (sessionStorage.getItem('__antes')) return; sessionStorage.setItem('__antes', '1');
       for (const [k, v] of Object.entries(antes)) localStorage.setItem(k, v); }, this.antes);
-    const p = await ctx.newPage(); this.p = p;
+    const p = await ctx.newPage(); this.p = p; await cobertura.liga(p);
     p.on('pageerror', e => this.erros.push(e.message));
     p.on('dialog', d => { this.dialogos.push(d.message()); d.accept(); });
     await p.goto(semEvento ? this.base + '/' : this.link);
@@ -49,6 +50,7 @@ class Mundo {
   linhas(sel) { return this.p.$eval(sel, e => e.innerText.split('\n').map(l => l.trim()).filter(Boolean)); }
 
   async fecha() {
+    await cobertura.guarda(this.contextos);
     for (const c of this.contextos) await c.close().catch(() => {});
     expect(this.erros, 'erros na página').toEqual([]);
     expect(this.dialogos, 'diálogos nativos').toEqual([]);

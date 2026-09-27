@@ -1,0 +1,13 @@
+# as actions estão pinadas por SHA: sem isso, ninguém atualiza.
+# o site não tem dependência npm, e as ferramentas o `npm audit` do CI vigia
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "Atualiza as actions"

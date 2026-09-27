@@ -30,8 +30,9 @@ class Mundo {
     await ctx.addInitScript(() => {
       const w = window;
       w.open = u => { w.__aberto = u; return null; };
-      // a CSP do index.html barrou alguma coisa do próprio site: vira erro do cenário
-      document.addEventListener('securitypolicyviolation', e => setTimeout(() => { throw new Error(`CSP barrou ${e.violatedDirective}: ${e.blockedURI || 'inline'}`); }));
+      // a CSP do index.html barrou alguma coisa do próprio site: vira erro do cenário.
+      // microtask e não setTimeout: o relógio é falso e o timer nunca disparava
+      document.addEventListener('securitypolicyviolation', e => queueMicrotask(() => { throw new Error(`CSP barrou ${e.violatedDirective}: ${e.blockedURI || 'inline'} (mexeu no <script> do fim? recalcule o sha256)`); }));
       Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { w.__copiado = t; } } });
       // animação CSS termina na hora: o playwright não clica em nada que ainda se mexe, e cada
       // entrada (a nota subindo, o pix descendo, o aperto dos itens) custava de 0,4 a 1,5s de

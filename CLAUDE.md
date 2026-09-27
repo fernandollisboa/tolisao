@@ -12,7 +12,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
-- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam. `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
+- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, `og5.jpg`). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `docs/qa.md`: roteiro e achados das sessões de QA.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
 
@@ -22,12 +22,14 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). a saída é pontinho, falhas e os 5 cenários mais lerdos; `npm run relatorio` gera o passo a passo em `specs/relatorio.html`. o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
 - cobertura: `npm run cobertura` (aceita `-- pix`) diz o % de linhas do `app.js` que os cenários executam e os trechos sem cenário. é lanterna, não meta nem check.
 - tipos: `npm run types` (tem que sair limpo). sintaxe: `node --check app.js`.
+- regras: `npm run regras`. tudo junto (sintaxe, tipos, regras, testes): `npm run qualidade`, o mesmo que o CI cobra.
+- o hook em `.claude/settings.json` roda sintaxe e tipos a cada edição no `app.js`.
 
 ## deploy
 
 a `main` é o que tá no ar, exige o check `test` e recusa push direto. quando o usuário escolhe uma opção que você ofereceu, isso já é o aval: commite, mergeie e suba sem perguntar de novo.
 
-1. `npm run types` limpo e `npm test` verde.
+1. `npm run qualidade` verde.
 2. branch, PR, check verde, merge (`--merge --delete-branch`). check verde basta.
 3. `git checkout main && git pull origin main`.
 4. espere o `pages.yml` terminar verde. só depois diga que tá no ar.

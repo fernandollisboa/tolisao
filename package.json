@@ -7,6 +7,8 @@
     "relatorio": "HTML=1 npm test",
     "cobertura": "node specs/_cobertura.cjs",
     "types": "tsc -p jsconfig.json",
+    "regras": "node specs/_regras.cjs",
+    "qualidade": "node --check app.js && npm run types && npm run regras && npm test",
     "preview": "node specs/preview.cjs",
     "video": "node specs/video.cjs"
   },

@@ -14,11 +14,12 @@ salvou, recarregou, tá valendo.
 
 ```sh
 npm ci && npx playwright install chromium   # uma vez (se já tiver um chromium, o teste acha)
-npm run types                               # limpo
-npm test                                    # verde
+npm run qualidade                           # sintaxe, tipos, regras e testes: verde
 ```
 
 os testes são cucumber em português: a especificação fica em `specs/features/*.feature` e os passos em `specs/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo, e o fim da saída diz como abrir o trace.
+
+`npm run regras` confere, sem navegador, o que nenhum cenário pega: o hash da CSP bate com o `<script>` do fim, o banco não deixa listar salas, o `clean()` corta no tamanho que o banco valida e o `og5.jpg` cabe no WhatsApp. falhou, ele diz o que trocar.
 
 `npm run cobertura` roda os mesmos testes e diz quanto do `app.js` eles executam, com os trechos que nenhum cenário alcança. serve pra achar fluxo sem cenário, não é meta: animação e gesto se conferem no vídeo.
 

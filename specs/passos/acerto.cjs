@@ -33,6 +33,14 @@ Then('a página não fica mais larga que a tela', async ({ mundo }) => {
 const quita = async (p, fecha) => { await p.click('#mineRows [data-settle]'); await p.click('#okBtn'); await p.click(fecha); };
 When('eu quito a primeira linha de Minha conta', async ({ mundo }) => { await quita(mundo.p, '#quitOk'); });
 When('eu quito a primeira linha de Minha conta e aviso no zap', async ({ mundo }) => { await quita(mundo.p, '#waAviso'); });
+const pago = (p, txt) => p.locator('#settle .row.paid').filter({ has: p.locator('.n', { hasText: txt }) });
+const desfaz = async (p, txt) => { await pago(p, txt).locator('[data-undo]').click(); await p.waitForSelector('#okBtn'); };
+When('eu começo a desfazer o pagamento {string} e volto atrás', async ({ mundo }, txt) => {
+  await desfaz(mundo.p, txt); await mundo.p.click('#cancelBtn'); await mundo.p.waitForSelector('#overlay', { state: 'hidden' });
+});
+When('eu desfaço o pagamento {string}', async ({ mundo }, txt) => { await desfaz(mundo.p, txt); await mundo.p.click('#okBtn'); });
+Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => { await expect(pago(mundo.p, txt).locator('.stamp')).toHaveText('PAGO'); });
+Then('nenhum pagamento está carimbado', async ({ mundo }) => { await expect(mundo.p.locator('#settle .row.paid')).toHaveCount(0); });
 Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/\u00a0/g, ' ').trim() : null))
     .toBe(txt.replace('{link do evento}', mundo.link).trim());

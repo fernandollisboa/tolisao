@@ -28,7 +28,15 @@ Then('o banco recusa', async ({ mundo }) => { expect(mundo.nota.status).toBe(401
 Given('que alguém gravou no banco o evento:', async ({ mundo }, json) => { mundo.criaEvento(JSON.parse(json)); mundo.banco.congelado = true; });
 Given('a chave pix da/do {word} é {string}', async ({ mundo }, nome, chave) => { mundo.banco.pix(mundo.sala, idDe(nome), chave); });
 When('a lista de gente do rodapé aparece', async ({ mundo }) => { await mundo.p.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden')); });
-Then('nenhum script rodou', async ({ mundo }) => { await mundo.p.waitForTimeout(800); expect(await mundo.p.evaluate(() => window.__xss)).toBeUndefined(); });
+// sem relógio: um onerror dispara quando a imagem falha, e esperar por ele é chutar um prazo.
+// Em vez disso confere que o código não tem onde morar: nenhum atributo on* nem link javascript:
+// no DOM. Sem isso nada roda, nem agora nem depois
+Then('nenhum script rodou', async ({ mundo }) => {
+  const achados = await mundo.p.evaluate(() => [...document.querySelectorAll('*')].flatMap(e => [...e.attributes]
+    .filter(a => /^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)).map(a => `<${e.tagName.toLowerCase()} ${a.name}="${a.value}">`)));
+  expect(achados, 'código vindo do banco no DOM').toEqual([]);
+  expect(await mundo.p.evaluate(() => window.__xss)).toBeUndefined();
+});
 Then('a lista de gente tem {int} pessoas', async ({ mundo }, n) => { await expect(mundo.p.locator('#peopleLine .nm')).toHaveCount(n); });
 Then('a lista tem {int} item, com o {string} escrito como texto', async ({ mundo }, n, txt) => {
   await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); await expect(mundo.p.locator('#expenses .item .l').first()).toContainText(txt);

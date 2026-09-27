@@ -3,16 +3,9 @@ Funcionalidade: Acertar as contas
   Minha conta diz quanto eu devo ou tenho a receber, e é de lá que eu ajo:
   o ✔ quita e o copiar pix já vai com o valor. Falta pagar só mostra.
 
+  # quem é e quanto gastou cada um está em specs/_festa.cjs, na forma desta tabela
   Contexto:
-    Dado o evento "bailedamada" com Fernando, Júlia, Lia, Mengla e Klinsmann
-    E os gastos:
-      | o quê                   | valor  | pagou    | divide entre                            |
-      | Uber ida                | 18,98  | Lia      | Klinsmann, Mengla, Lia                  |
-      | Janta (parte da Lia)    | 18,87  | Júlia    | Lia                                     |
-      | Janta (parte da Mengla) | 23,97  | Júlia    | Mengla                                  |
-      | Gasolina ida            | 136,00 | Júlia    | Mengla, Lia, Fernando, Júlia            |
-      | Airbnb                  | 510,00 | Fernando | Mengla, Lia, Fernando, Júlia, Klinsmann |
-      | Uber volta              | 32,50  | Lia      | Lia, Mengla, Fernando, Júlia            |
+    Dado o evento de exemplo "bailedamada"
 
   Cenário: o acerto é o mínimo de transferências
     Quando eu abro o evento como Lia

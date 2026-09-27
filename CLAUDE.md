@@ -12,7 +12,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
-- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras. `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
+- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam. `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `docs/qa.md`: roteiro e achados das sessões de QA.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
 
@@ -20,6 +20,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 
 - rodar: `python3 -m http.server`.
 - testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). a saída é pontinho, falhas e os 5 cenários mais lerdos; `npm run relatorio` gera o passo a passo em `specs/relatorio.html`. o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
+- cobertura: `npm run cobertura` (aceita `-- pix`) diz o % de linhas do `app.js` que os cenários executam e os trechos sem cenário. é lanterna, não meta nem check.
 - tipos: `npm run types` (tem que sair limpo). sintaxe: `node --check app.js`.
 
 ## deploy

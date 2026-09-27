@@ -68,3 +68,43 @@ When('eu adiciono {string} pela lista de gente do rodapé', async ({ mundo }, no
 });
 Then('a lista de gente fica {string}', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.$eval('#peopleLine', e => e.innerText)).toBe(txt); });
 Then('aparece o aviso {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#toast')).toHaveText(txt); });
+
+// evento sem ninguém: o "quem é você?" vira a lista de gente
+const salaAberta = mundo => mundo.p.evaluate(() => JSON.parse(localStorage.getItem('tolisa') || '{}').lastRoom?.id);
+When('eu toco em quem é você', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#overlayBox h2'); });
+When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
+  for (const n of gente) { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); await expect(mundo.p.locator('#setupName')).toHaveValue(''); }
+});
+When('eu tento pôr {word} na lista de novo', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); });
+When('eu tiro o/a {word} da lista', async ({ mundo }, nome) => {
+  await mundo.p.locator('#overlayBox .row', { hasText: nome }).locator('[data-drop]').click();
+  await expect(mundo.p.locator('#overlayBox .row', { hasText: nome })).toHaveCount(0);
+});
+When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
+Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });
+When('eu escolho {word}', async ({ mundo }, quem) => { await mundo.p.selectOption('#whoSel', { label: quem }); });
+Then('o evento no banco tem {gente}', async ({ mundo }, gente) => {
+  const sala = await salaAberta(mundo);
+  await expect.poll(() => (mundo.banco.pega(['rooms', sala, 'people']) || []).map(p => p.name)).toEqual(gente);
+});
+
+// o evento some do banco com o aparelho ainda guardando a cópia
+When('o evento some do banco', async ({ mundo }) => {
+  await mundo.p.waitForSelector('#app:not(.loading)');
+  await expect.poll(() => mundo.p.evaluate(k => !!JSON.parse(localStorage.getItem(k) || '{}').snapshot, `tolisa:${mundo.sala}`)).toBe(true);
+  delete mundo.banco.arvore.rooms[mundo.sala];
+});
+When('eu abro o site de novo', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#overlayBox h2'); });
+When('eu restauro da minha cópia', async ({ mundo }) => {
+  await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#restoreBtn')]);
+  await mundo.p.waitForSelector('#app:not(.loading)');
+});
+Then('o evento volta pro banco com o/a {word}', async ({ mundo }, desc) => {
+  expect((mundo.banco.pega(['rooms', mundo.sala, 'expenses']) || []).map(e => e.desc)).toEqual([desc]);
+});
+When('eu desisto do evento', async ({ mundo }) => { await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#lostBack')]); });
+Then('aparece o cartão do código', async ({ mundo }) => { await expect(mundo.p.locator('#gateCode')).toBeVisible(); });
+Then('o aparelho esquece o evento', async ({ mundo }) => {
+  expect(await mundo.p.evaluate(() => location.search)).toBe('');
+  expect(await salaAberta(mundo)).toBeUndefined();
+});

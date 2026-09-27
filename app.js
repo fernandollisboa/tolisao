@@ -719,8 +719,9 @@
       const name = $('#setupName').value.trim(); if (!name) return;
       if (nomeExiste(name)) return toast('Já existe alguém com esse nome');
       state.people.push({ id: uid(), name, at: Date.now() }); commit(); showSetup(); };
+    // o ✕ vai pro deleted também: senão o merge() traz a pessoa de volta do banco no próximo sync
     for (const b of inputs('#overlayBox [data-drop]'))
-      b.onclick = () => { state.people = state.people.filter(p => p.id !== b.dataset.drop); commit(); showSetup(); };
+      b.onclick = () => { state.people = state.people.filter(p => p.id !== b.dataset.drop); state.deleted.push(b.dataset.drop); commit(); showSetup(); };
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela
     $('#setupGo').onclick = () => { if (!state.people.length) return;
       if (state.people.length === 1) return souEu(state.people[0].id);

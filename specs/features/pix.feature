@@ -10,39 +10,33 @@ Funcionalidade: Cadastrar a chave pix
       | Airbnb       | 510,00 | Fernando | Mengla, Lia, Fernando, Júlia, Klinsmann |
       | Gasolina ida | 136,00 | Júlia    | Mengla, Lia, Fernando, Júlia            |
 
-  Esquema do Cenário: o cartão barra o que não é chave aleatória nem e-mail
+  Esquema do Cenário: <tipo> não passa
     Quando eu abro o evento como Fernando
     E eu cadastro a chave pix "<chave>"
     Então o cartão barra a chave em vermelho
-
-    Exemplos:
-      | o que é            | chave             |
-      | CPF                | 123.456.789-09    |
-      | telefone           | +5583999998888    |
-      | e-mail pela metade | fernando@exemplo  |
-      | recado             | me paga no pix    |
-
-  Cenário: voltar a digitar tira o vermelho
-    Quando eu abro o evento como Fernando
-    E eu cadastro a chave pix "123.456.789-09"
-    Então o cartão barra a chave em vermelho
     Quando eu volto a digitar
     Então o vermelho sai
+    Quando eu troco a chave por "fernando@exemplo.com"
+    Então o cartão fecha
 
-  Esquema do Cenário: chave aleatória e e-mail entram, sempre em minúsculas
+    Exemplos:
+      | tipo               | chave            |
+      | CPF                | 123.456.789-09   |
+      | telefone           | +5583999998888   |
+      | e-mail sem o ponto | fernando@exemplo |
+
+  Esquema do Cenário: <tipo> passa
     Quando eu abro o evento como Fernando
     E eu cadastro a chave pix "<chave>"
     Então aparece o aviso "Chave Pix salva"
     E o cartão fecha
-    E o banco guarda a chave do Fernando "<guardada>"
+    E o banco guarda a chave do Fernando "<fica>"
     E o cabeçalho diz "sou Fernando"
 
     Exemplos:
-      | o que é              | chave                                | guardada                             |
-      | chave aleatória      | 7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d | 7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d |
-      | e-mail               | fernando@exemplo.com                 | fernando@exemplo.com                 |
-      | chave em maiúsculas  | 7D9F2A1C-3B4E-4F5A-8C6D-0E1F2A3B4C5D | 7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d |
-      | e-mail em maiúsculas | Fernando@Exemplo.com                 | fernando@exemplo.com                 |
+      | tipo            | chave                                | fica                                 |
+      | chave aleatória | 7D9F2A1C-3B4E-4F5A-8C6D-0E1F2A3B4C5D | 7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d |
+      | e-mail          | Fernando@Exemplo.com                 | fernando@exemplo.com                 |
 
   Cenário: outro aparelho não troca a chave
     Dado que o Fernando já cadastrou a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d" em outro aparelho

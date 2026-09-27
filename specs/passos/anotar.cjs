@@ -126,3 +126,8 @@ Then('o formulário vem vazio, pra anotar', async ({ mundo }) => {
   await expect(mundo.p.locator('#amount')).toHaveValue(''); await expect(mundo.p.locator('#desc')).toHaveValue('');
   await expect(mundo.p.locator('#sheet h2')).toHaveText('Anotar'); await expect(mundo.p.locator('#expenseForm button.big')).toHaveText('Anotar');
 });
+
+const excluir = async (p, nome) => { const it = item(p, nome); await it.locator('.row .l').click(); await it.locator('[data-del-expense]').click(); await p.waitForSelector('#okBtn'); };
+When('eu começo a excluir o {string} e volto atrás', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#cancelBtn'); await mundo.p.waitForSelector('#overlay', { state: 'hidden' }); });
+When('eu excluo o {string}', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#okBtn'); });
+Then('o {string} não está na lista', async ({ mundo }, nome) => { await expect(item(mundo.p, nome)).toHaveCount(0); });

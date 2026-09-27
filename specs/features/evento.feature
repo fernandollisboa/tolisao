@@ -50,21 +50,20 @@ Funcionalidade: Entrar no evento
       bailedamada
       ENTRA QUEM TEM
       a senha
+      *** MEUS EVENTOS ***
+      BAILEDAMADA
+      quite
+      ✕
+      sou Lia · 3 pessoas
+      agora
+      o ✕ tira da lista só neste aparelho
+      + entrar em outro evento
       VOLTAR
-      SAIR DO EVENTO
       """
-    E o botão de sair do evento é vermelho
     Quando eu toco em voltar
     Então o cartão fecha
     Quando eu toco no meu nome
     Então o cartão de quem é você não tem botão de sair
-
-  Cenário: confirmar a saída é vermelho, não mais um voltar
-    Dado o evento "bailedamada" com Fernando, Júlia e Lia
-    Quando eu abro o evento como Lia
-    E eu toco no nome do evento
-    E eu toco em sair do evento
-    Então o botão de sair é vermelho
 
   Cenário: tocar no código do cartão do evento copia ele
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
@@ -138,6 +137,7 @@ Funcionalidade: Entrar no evento
     E o cabeçalho diz "sou Lia"
 
   Cenário: o evento sumiu do banco e eu desisto dele
+    Ele sai da lista de eventos, mas a gaveta fica: é nela que mora a cópia.
     Dado o evento "churras" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia
     E o evento some do banco

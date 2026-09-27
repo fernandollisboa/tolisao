@@ -24,3 +24,19 @@ Funcionalidade: O que fica guardado no aparelho
     E o segredo que o banco guarda pra Júlia é o que ficou no aparelho
     Quando eu recarrego a página
     Então o cabeçalho diz "sou Júlia"
+
+  Cenário: o último evento de antes da lista aparece nela
+    Dado que este aparelho guardou o "bailedamada" como o último evento, do jeito de antes da lista
+    E que eu abro o site sem evento
+    Então o cartão mostra:
+      """
+      TÔ LISA
+      *** MEUS EVENTOS ***
+      BAILEDAMADA
+      R$ 100,00
+      sou Lia · 3 pessoas
+      agora
+      OUTRO EVENTO
+      ENTRAR
+      """
+    E o aparelho não guarda mais o último evento na gaveta dele

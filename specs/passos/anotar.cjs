@@ -2,7 +2,7 @@ const { When, Then, expect } = require('./_mundo.cjs');
 
 const dinheiro = v => v.toFixed(2).replace('.', ',');
 const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
-const item = (p, nome) => p.locator('#expenses .item').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
+const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
 
 Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); });
 Then('o primeiro item da lista é {string} de {word}', async ({ mundo }, nome, valor) => {
@@ -108,3 +108,29 @@ Then('embaixo dele está escrito {string}', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.locator('#expenses .item').first().locator('.small > span').evaluate(e => e.innerText.replace(/\u00a0/g, ' ').trim())).toBe(txt);
 });
 Then('a lista fica separada em {int} dias', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .day')).toHaveCount(n); });
+
+When('eu apago o {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('[data-del-expense]').click(); await mundo.p.click('#okBtn'); });
+Then('o {string} aparece riscado, apagado por {word}', async ({ mundo }, nome, quem) => {
+  const r = mundo.p.locator('#expenses .item.apagado').filter({ hasText: nome });
+  await expect(r.locator('.row .l')).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(r.locator('.small')).toContainText(`apagado por ${quem}`);
+});
+Then('nenhum item aparece riscado', async ({ mundo }) => { await expect(mundo.p.locator('#expenses .item.apagado')).toHaveCount(0); });
+Then('o total dos itens fica {word}', async ({ mundo }, v) => { await expect(mundo.p.locator('#total')).toContainText(v); });
+When('eu edito o {string}', async ({ mundo }, nome) => {
+  const it = item(mundo.p, nome); await it.locator('.row .l').click(); await it.locator('[data-edit-expense]').click();
+  await mundo.p.waitForSelector('#sheet:not(.hidden)');
+});
+Then('o formulário vem com R$ {num} de {string}', async ({ mundo }, v, desc) => {
+  await expect(mundo.p.locator('#amount')).toHaveValue(dinheiro(v)); await expect(mundo.p.locator('#desc')).toHaveValue(desc);
+  await expect(mundo.p.locator('#sheet h2')).toHaveText('Editar');
+});
+When('eu troco o valor pra R$ {num} e salvo', async ({ mundo }, v) => {
+  await mundo.p.fill('#amount', dinheiro(v)); await mundo.p.click('#expenseForm button.big'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' });
+});
+Then('o {string} fica de {word}', async ({ mundo }, nome, v) => { await expect(item(mundo.p, nome).locator('.row .v')).toHaveText(v); });
+When('eu fecho o anotar', async ({ mundo }) => { await mundo.p.click('#sheetClose'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' }); });
+Then('o formulário vem vazio, pra anotar', async ({ mundo }) => {
+  await expect(mundo.p.locator('#amount')).toHaveValue(''); await expect(mundo.p.locator('#desc')).toHaveValue('');
+  await expect(mundo.p.locator('#sheet h2')).toHaveText('Anotar'); await expect(mundo.p.locator('#expenseForm button.big')).toHaveText('Anotar');
+});

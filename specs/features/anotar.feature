@@ -75,6 +75,50 @@ Funcionalidade: Anotar um gasto
     Quando eu digito "1234567" no valor
     Então o valor fica "5.001.234,56"
 
+  Cenário: apagar um item deixa ele riscado, com quem apagou
+    Quando eu abro o evento como Lia
+    E eu abro a lista de itens
+    E eu apago o "Uber ida"
+    Então o "Uber ida" aparece riscado, apagado por Lia
+    E o total dos itens fica 721,34
+    Quando eu abro o evento como Fernando em outro aparelho
+    E eu abro a lista de itens
+    Então o "Uber ida" aparece riscado, apagado por Lia
+
+  Cenário: editar um item
+    Quando eu abro o evento como Lia
+    E eu abro a lista de itens
+    E eu edito o "Uber volta"
+    Então o formulário vem com R$ 32,50 de "Uber volta"
+    Quando eu troco o valor pra R$ 40,00 e salvo
+    Então o "Uber volta" fica de 40,00
+    E nenhum item aparece riscado
+    Quando eu abro o evento como Fernando em outro aparelho
+    E eu abro a lista de itens
+    Então o "Uber volta" fica de 40,00
+
+  Cenário: desistir da edição não suja o próximo anotar
+    Quando eu abro o evento como Lia
+    E eu abro a lista de itens
+    E eu edito o "Uber volta"
+    E eu fecho o anotar
+    E eu toco no ✎
+    Então o formulário vem vazio, pra anotar
+
+  Cenário: editar um item de partes diferentes volta com as partes
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu preencho R$ 42,84 de "Pizza"
+    E eu divido só entre Lia e Mengla, em partes diferentes
+    E eu ponho R$ 18,87 pra Lia e R$ 23,97 pra Mengla
+    E eu salvo
+    E eu edito o "Pizza"
+    Então as partes ficam:
+      | pessoa | parte |
+      | Lia    | 18,87 |
+      | Mengla | 23,97 |
+    E o formulário diz que fechou
+
   Cenário: depois de anotar, o próximo gasto começa do zero
     Quando eu abro o evento como Lia
     E eu toco no ✎

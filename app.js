@@ -1,7 +1,8 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
 /** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', by?: string, shares?: Record<string, number> }} Expense */
-/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[] }} Room */
+/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, goneAt: number, to?: string }} Gone */
+/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
   // ---------- config ----------
@@ -104,7 +105,7 @@
   let pollTimer = null, saving = false;
 
   /** @returns {Room} */
-  const fresh = (name = '') => ({ v:2, name, updatedAt: Date.now(), people:[], expenses:[], deleted:[] });
+  const fresh = (name = '') => ({ v:2, name, updatedAt: Date.now(), people:[], expenses:[], deleted:[], gone:[] });
   const room = () => gaveta(roomKey(groupId)), setRoom = (campo, v) => mexe(roomKey(groupId), o => { o[campo] = v; });
   const cacheSave = () => setRoom('snapshot', state);
   const cacheLoad = () => { try { return clean(room().snapshot); } catch { return null; } };
@@ -122,7 +123,11 @@
       if (e.kind === 'payment') o.kind = 'payment'; if (typeof e.by === 'string') o.by = e.by.slice(0, 30);
       if (e.shares && typeof e.shares === 'object') { o.shares = {}; for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0)); }
       return o; });
-    return { v:2, name: str(d.name, 40), updatedAt: +d.updatedAt || 0, people, expenses, deleted: (Array.isArray(d.deleted) ? d.deleted : []).filter(okId) };
+    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição
+    const gone = (Array.isArray(d.gone) ? d.gone : []).filter(g => g && okId(g.id) && Number.isFinite(+g.amount)).map(g => {
+      const o = { id: g.id, desc: str(g.desc, 60), amount: Math.round(+g.amount*100)/100, at: +g.at || 0, by: str(g.by, 30), goneAt: +g.goneAt || 0 };
+      if (okId(g.to)) o.to = g.to; return o; });
+    return { v:2, name: str(d.name, 40), updatedAt: +d.updatedAt || 0, people, expenses, deleted: (Array.isArray(d.deleted) ? d.deleted : []).filter(okId), gone };
   }
   // Firebase devolve chaves em ordem alfabética; compara sem depender da ordem
   const canon = o => JSON.stringify(o, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(x => [x, v[x]])) : v);
@@ -134,10 +139,11 @@
     const byId = list => { const m = new Map(); for (const x of list||[]) if (!deleted.has(x.id)) m.set(x.id, x); return m; };
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
+    const gone = new Map(); for (const g of [...a.gone, ...b.gone]) if (deleted.has(g.id) && !gone.has(g.id)) gone.set(g.id, g);
     return { v:2, name: a.name || b.name || '', updatedAt: Math.max(a.updatedAt||0, b.updatedAt||0),
       people:[...people.values()].sort((x,y)=>(x.at||0)-(y.at||0)),
       expenses:[...expenses.values()].sort((x,y)=>x.at-y.at),
-      deleted:[...deleted].slice(-500) };
+      deleted:[...deleted].slice(-500), gone:[...gone.values()].sort((x,y)=>x.goneAt-y.goneAt).slice(-50) };
   }
 
   // ---------- remoto ----------
@@ -539,19 +545,22 @@
   /** a lista dos itens, do mais novo pro mais velho, separada por dia quando tem mais de um */
   function renderItens(){
     const items = state.expenses.filter(e => e.kind !== 'payment');
-    const all = [...items].reverse(), list = showAll ? all : all.slice(0, 10);
+    const all = [...items].reverse();
+    const linhas = [...all, ...state.gone.filter(g => !g.to)].sort((x, y) => y.at - x.at), list = showAll ? linhas : linhas.slice(0, 10);
     const dayOf = e => new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
-    const days = new Set(all.map(dayOf)); let lastDay = null;
+    const days = new Set(linhas.map(dayOf)); let lastDay = null;
     $('#expenses').innerHTML = list.map(e => {
       let head = ''; if (days.size > 1) { const d = dayOf(e); if (d !== lastDay) { head = `<div class="day">${esc(d)}</div>`; lastDay = d; } }
+      if ('goneAt' in e) return head + `<div class="item apagado" data-gone="${e.id}">` + linha(esc(e.desc), num(Math.round(e.amount*100)))
+        + `<div class="small"><span>apagado${e.by ? ` por ${nmByName(e.by)}` : ''} · ${new Date(e.goneAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span></div></div>`;
       const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
       const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
-      const apaga = meu ? `<button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : '';
+      const mexe = meu ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : '';
       return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">`
         + linha(`${tagNovo(e)}${esc(e.desc)}`, num(Math.round(e.amount*100)))
-        + `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${apaga}</div></div>`; }).join('')
+        + `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${mexe}</div></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
-    const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
+    const tg = $('#toggleAll'); tg.classList.toggle('hidden', linhas.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     if (itemsOpen) anim.viuItens = true;
     $('#itemsCount').textContent = `${anim.viuItens ? '' : all.length === 1 ? 'ver ' : 'ver os '}${all.length} ${all.length === 1 ? 'item' : 'itens'}`;
     const ih = $('#itemsHead');
@@ -829,7 +838,24 @@
   // é um botão pra quem usa teclado também: Enter e Espaço abrem como o clique
   $('#itemsHead').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#itemsHead').click(); } });
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
-  const closeSheet = () => $('#sheet').classList.add('hidden');
+  /** @type {string|null} */ let editando = null;
+  const limpaForm = () => { editando = null; $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal';
+    $('#splitChips').innerHTML = ''; $('#sharesBox').innerHTML = ''; delete $('#sharesBox').dataset.k;
+    $('#sheet h2').textContent = 'Anotar'; $('#expenseForm button.big').textContent = 'Anotar'; };
+  // fechar no meio de uma edição joga ela fora: o próximo anotar começa limpo
+  const closeSheet = () => { $('#sheet').classList.add('hidden'); if (editando) { limpaForm(); render(); } };
+  /** o anotar abre com o item preenchido; salvar troca ele por um novo no mesmo lugar */
+  function editaItem(e){
+    limpaForm(); editando = e.id; render();
+    $('#amount').value = fmt(e.amount); $('#desc').value = e.desc; $('#payer').value = e.payer;
+    for (const c of inputs('#splitChips input')) { c.checked = e.among.includes(c.value); c.closest('.chip').classList.toggle('on', c.checked); }
+    splitMode = e.shares ? 'custom' : 'equal'; updateHint();
+    if (e.shares) { for (const i of inputs('#sharesBox input[data-share]')) i.value = fmt((e.shares[i.dataset.share] || 0) / 100); atualizaFalta(); }
+    $('#sheet h2').textContent = 'Editar'; $('#expenseForm button.big').textContent = 'Salvar'; openSheet();
+  }
+  /** o item sai da conta e fica riscado na lista com quem apagou; `to` é quem tomou o lugar dele */
+  const apagaItem = (e, to) => { state.expenses = state.expenses.filter(x => x.id !== e.id); state.deleted.push(e.id);
+    state.gone.push({ id: e.id, desc: e.desc, amount: e.amount, at: e.at, by: me ? nameOf(me) : '', goneAt: Date.now(), ...(to ? { to } : {}) }); };
   // rolou a nota, o ✎ e o zap já estão por cima do texto: ficam meio transparentes
   const rolou = () => document.body.classList.toggle('rolou', scrollY > 8);
   addEventListener('scroll', rolou, { passive: true }); rolou();
@@ -844,10 +870,10 @@
     if (splitMode === 'custom') { const sh = customShares(); const total = Math.round(amount*100); const sum = among.reduce((a, id) => a + (sh[id] || 0), 0);
       if (sum !== total) return toast(sum < total ? `Faltam ${money((total-sum)/100)} nas partes` : `Sobram ${money((sum-total)/100)} nas partes`);
       exp.shares = {}; for (const id of among) exp.shares[id] = sh[id] || 0; }
-    state.expenses.push(exp);
-    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal';
-    $('#splitChips').innerHTML = ''; $('#sharesBox').innerHTML = ''; delete $('#sharesBox').dataset.k;
-    itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
+    const velho = editando && state.expenses.find(x => x.id === editando);
+    if (velho) { exp.at = velho.at; apagaItem(velho, exp.id); }
+    state.expenses.push(exp); state.expenses.sort((x, y) => x.at - y.at);
+    limpaForm(); itemsOpen = true; closeSheet(); commit(); toast(velho ? 'Editado!' : 'Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { const tgt = /** @type {HTMLInputElement} */ (ev.target); if (tgt.matches('#splitChips input')) { tgt.closest('.chip').classList.toggle('on', tgt.checked); updateHint(); } });
   // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.
@@ -869,7 +895,7 @@
     const tgt = /** @type {HTMLElement} */ (ev.target);
     /** @returns {HTMLElement|null} */ const near = sel => /** @type {HTMLElement|null} */ (tgt.closest(sel));
     const abreItem = it => { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); };
-    if (!near('a,button,input,label')) { const it = near('.item'); if (it) abreItem(it); }
+    if (!near('a,button,input,label')) { const it = near('.item[data-item]'); if (it) abreItem(it); }
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
     if (near('#settle .empty.anota')) return $('#fab').click();
     const am = near('[data-among]');
@@ -896,7 +922,9 @@
     const de = near('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!e) return;
       if (!(await ask('Excluir item?', `${esc(e.desc)} · ${money(e.amount)}`, 'excluir'))) return;
-      state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
+      apagaItem(e); commit(); }
+    const ed = near('[data-edit-expense]');
+    if (ed) { const e = state.expenses.find(x => x.id === ed.dataset.editExpense); if (e) editaItem(e); }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
   const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : 'https://tolisa.com.br/';

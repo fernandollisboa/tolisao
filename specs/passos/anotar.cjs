@@ -4,7 +4,8 @@ const dinheiro = v => v.toFixed(2).replace('.', ',');
 const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
 const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
 
-Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); });
+// item apagado fica riscado na lista (data-gone), mas não conta como item
+Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item[data-item]')).toHaveCount(n); });
 Then('o primeiro item da lista é {string} de {word}', async ({ mundo }, nome, valor) => {
   const r = mundo.p.locator('#expenses .item').first().locator('.row');
   await expect(r.locator('.l')).toHaveText(nome); await expect(r.locator('.v')).toHaveText(valor);

@@ -481,19 +481,13 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 #fab{position:fixed;top:calc(30px + env(safe-area-inset-top))}
 #waBtn.wafab{position:fixed;top:calc(92px + env(safe-area-inset-top));right:calc(max(22px,calc(50% - 216px)) + 4px)}
 #waBtn.wafab.so{top:calc(30px + env(safe-area-inset-top))}
-/* rolou a nota, eles ficam por cima do texto: o fundo e a sombra vazam pro número
-   aparecer, e o ícone e a borda seguem firmes pra continuar lendo como botão. Vazam
-   devagar e em cadência: primeiro o ✎, depois o zap; voltando pro topo, o zap firma antes */
-body .fab:not(:hover):not(:active){transition:background .7s ease,border-color .7s ease,box-shadow .7s ease}
-body:not(.rolou) #fab:not(:hover):not(:active){transition-delay:.35s}
-body #waBtn.wafab:not(:hover):not(:active){transition:top .4s cubic-bezier(.2,.9,.25,1),background .7s ease,border-color .7s ease,box-shadow .7s ease}
-body.rolou #waBtn.wafab:not(:hover):not(:active){transition-delay:0s,.35s,.35s,.35s}
-body.rolou .fab:not(:hover):not(:active){border-color:rgba(34,34,34,.7);box-shadow:3px 3px 0 rgba(34,34,34,.35)}
-/* o #fab.chamando fixa a borda de tinta e vencia o vazado: vazava um e o outro não */
-body.rolou #fab.chamando:not(:hover):not(:active){background:rgba(154,91,0,.5);border-color:rgba(34,34,34,.7)}
+/* a nota passou por baixo deles (a classe .vaza, um de cada vez): o fundo e a sombra
+   vazam pro número aparecer, e o ícone e a borda seguem firmes pra continuar lendo como botão */
+.fab.vaza:not(:hover):not(:active){border-color:rgba(34,34,34,.7);box-shadow:3px 3px 0 rgba(34,34,34,.35);transition:background .2s,border-color .2s,box-shadow .2s}
+/* o #fab.chamando fixa a borda de tinta e vencia o vazado */
+#fab.chamando.vaza:not(:hover):not(:active){background:rgba(154,91,0,.5);border-color:rgba(34,34,34,.7)}
 /* âmbar claro em cima do papel quase não muda a .45: vaza mais pra ler igual ao ✎ */
-body.rolou #waBtn.wafab:not(:hover):not(:active){background:rgba(242,194,107,.2)}
-@media (prefers-reduced-motion:reduce){body .fab:not(:hover):not(:active){transition:none !important}}
+#waBtn.wafab.vaza:not(:hover):not(:active){background:rgba(242,194,107,.2);transition:top .4s cubic-bezier(.2,.9,.25,1),background .2s,border-color .2s,box-shadow .2s}
 @keyframes pulsaAnota{0%,50%,100%{scale:1;outline-offset:0;outline-color:rgba(154,91,0,0)}18%,68%{scale:1.06;outline-offset:2px;outline-color:rgba(154,91,0,.45)}40%,90%{outline-offset:6px;outline-color:rgba(154,91,0,0)}}
 #fab.pulsa{animation:pulsaAnota 2.2s ease-in-out}
 @keyframes sublinha{0%{background-size:0 3px}40%,75%{background-size:100% 3px}100%{background-size:100% 1px}}

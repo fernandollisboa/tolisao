@@ -4,11 +4,13 @@
   "description": "Ferramentas de desenvolvimento do tô lisa. O site é estático e não depende de nada disso.",
   "scripts": {
     "test": "bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
+    "relatorio": "HTML=1 npm test",
     "types": "tsc -p jsconfig.json",
     "preview": "node specs/preview.cjs",
     "video": "node specs/video.cjs"
   },
   "devDependencies": {
+    "@cucumber/pretty-formatter": "^4.0.2",
     "@playwright/test": "^1.63.0",
     "playwright-bdd": "^9.2.1",
     "typescript": "^7.0.2"

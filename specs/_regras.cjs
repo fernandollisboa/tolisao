@@ -51,7 +51,7 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     ['nome do evento', limite(sala.name), /str\(d\.name, (\d+)\)/],
     ['nome da pessoa', limite(pessoa.name), /str\(p\.name, (\d+)\)/],
     ['descrição do item', limite(item.desc), /str\(e\.desc, (\d+)\)/],
-    ['quem anotou', limite(item.by), /e\.by\.slice\(0, (\d+)\)/],
+    ['quem anotou', limite(item.by), /str\(e\.by, (\d+)\)/],
   ];
   const errados = pares.map(([nome, banco, re]) => {
     const cod = +(corpo.match(re)?.[1] ?? NaN);

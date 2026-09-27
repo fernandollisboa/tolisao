@@ -130,7 +130,7 @@
     const people = (Array.isArray(d.people) ? d.people : []).filter(p => p && okId(p.id) && str(p.name, 30).trim()).map(p => ({ id: p.id, name: str(p.name, 30), at: +p.at || 0 }));
     const expenses = (Array.isArray(d.expenses) ? d.expenses : []).filter(e => e && okId(e.id) && okId(e.payer) && Array.isArray(e.among) && e.among.length && e.among.every(okId) && Number.isFinite(+e.amount)).map(e => {
       const o = { id: e.id, desc: str(e.desc, 60), amount: Math.round(+e.amount*100)/100, payer: e.payer, among: e.among.slice(0, 50), at: +e.at || 0 };
-      if (e.kind === 'payment') o.kind = 'payment'; if (typeof e.by === 'string') o.by = e.by.slice(0, 30);
+      if (e.kind === 'payment') o.kind = 'payment'; if (typeof e.by === 'string') o.by = str(e.by, 30);
       if (e.shares && typeof e.shares === 'object') { o.shares = {}; for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0)); }
       return o; });
     return { v:2, name: str(d.name, 40), updatedAt: +d.updatedAt || 0, people, expenses, deleted: (Array.isArray(d.deleted) ? d.deleted : []).filter(okId) };

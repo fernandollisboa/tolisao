@@ -546,10 +546,10 @@
       let head = ''; if (days.size > 1) { const d = dayOf(e); if (d !== lastDay) { head = `<div class="day">${esc(d)}</div>`; lastDay = d; } }
       const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
       const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
-      const apaga = meu ? `<button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : '';
+      const mexe = meu ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : '';
       return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">`
         + linha(`${tagNovo(e)}${esc(e.desc)}`, num(Math.round(e.amount*100)))
-        + `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${apaga}</div></div>`; }).join('')
+        + `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${mexe}</div></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     if (itemsOpen) anim.viuItens = true;
@@ -829,7 +829,22 @@
   // é um botão pra quem usa teclado também: Enter e Espaço abrem como o clique
   $('#itemsHead').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#itemsHead').click(); } });
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
-  const closeSheet = () => $('#sheet').classList.add('hidden');
+  /** @type {string|null} */ let editando = null;
+  const limpaForm = () => { editando = null; $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal';
+    $('#splitChips').innerHTML = ''; $('#sharesBox').innerHTML = ''; delete $('#sharesBox').dataset.k;
+    $('#sheet h2').textContent = 'Anotar'; $('#expenseForm button.big').textContent = 'Anotar'; };
+  // fechar no meio de uma edição joga ela fora: o próximo anotar começa limpo
+  const closeSheet = () => { $('#sheet').classList.add('hidden'); if (editando) { limpaForm(); render(); } };
+  /** o anotar abre com o item preenchido; salvar troca ele por um novo no mesmo lugar */
+  function editaItem(e){
+    limpaForm(); editando = e.id; render();
+    $('#amount').value = fmt(e.amount); $('#desc').value = e.desc; $('#payer').value = e.payer;
+    for (const c of inputs('#splitChips input')) { c.checked = e.among.includes(c.value); c.closest('.chip').classList.toggle('on', c.checked); }
+    splitMode = e.shares ? 'custom' : 'equal'; updateHint();
+    if (e.shares) { for (const i of inputs('#sharesBox input[data-share]')) i.value = fmt((e.shares[i.dataset.share] || 0) / 100); atualizaFalta(); }
+    $('#sheet h2').textContent = 'Editar'; $('#expenseForm button.big').textContent = 'Salvar'; openSheet();
+  }
+  const apagaItem = e => { state.expenses = state.expenses.filter(x => x.id !== e.id); state.deleted.push(e.id); };
   // rolou a nota, o ✎ e o zap já estão por cima do texto: ficam meio transparentes
   const rolou = () => document.body.classList.toggle('rolou', scrollY > 8);
   addEventListener('scroll', rolou, { passive: true }); rolou();
@@ -844,10 +859,10 @@
     if (splitMode === 'custom') { const sh = customShares(); const total = Math.round(amount*100); const sum = among.reduce((a, id) => a + (sh[id] || 0), 0);
       if (sum !== total) return toast(sum < total ? `Faltam ${money((total-sum)/100)} nas partes` : `Sobram ${money((sum-total)/100)} nas partes`);
       exp.shares = {}; for (const id of among) exp.shares[id] = sh[id] || 0; }
-    state.expenses.push(exp);
-    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal';
-    $('#splitChips').innerHTML = ''; $('#sharesBox').innerHTML = ''; delete $('#sharesBox').dataset.k;
-    itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
+    const velho = editando && state.expenses.find(x => x.id === editando);
+    if (velho) { exp.at = velho.at; apagaItem(velho); }
+    state.expenses.push(exp); state.expenses.sort((x, y) => x.at - y.at);
+    limpaForm(); itemsOpen = true; closeSheet(); commit(); toast(velho ? 'Editado!' : 'Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { const tgt = /** @type {HTMLInputElement} */ (ev.target); if (tgt.matches('#splitChips input')) { tgt.closest('.chip').classList.toggle('on', tgt.checked); updateHint(); } });
   // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.
@@ -896,7 +911,9 @@
     const de = near('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!e) return;
       if (!(await ask('Excluir item?', `${esc(e.desc)} · ${money(e.amount)}`, 'excluir'))) return;
-      state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
+      apagaItem(e); commit(); }
+    const ed = near('[data-edit-expense]');
+    if (ed) { const e = state.expenses.find(x => x.id === ed.dataset.editExpense); if (e) editaItem(e); }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
   const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : 'https://tolisa.com.br/';

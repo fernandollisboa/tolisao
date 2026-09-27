@@ -171,7 +171,7 @@ button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:
 button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);width:100%;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:10px}
 .wa,button.big svg{flex:none;position:relative;top:-1px}
 /* o zap é a segunda bolinha flutuante, logo abaixo do anotar */
-#waBtn.wafab{top:84px;width:44px;height:44px;border-radius:50%;transform:rotate(5deg);color:var(--ink);transition:top .4s cubic-bezier(.2,.9,.25,1),background .12s ease,color .12s ease,translate .12s ease,box-shadow .12s ease}
+#waBtn.wafab{top:84px;width:44px;height:44px;border-radius:50%;transform:rotate(5deg);color:var(--ink);background:#f2c26b;transition:top .4s cubic-bezier(.2,.9,.25,1),background .12s ease,color .12s ease,translate .12s ease,box-shadow .12s ease}
 #waBtn.wafab .wa-lbl{display:flex;align-items:center;justify-content:center}
 #waBtn.wafab .wa{width:21px;height:21px;top:0}
 /* sem ninguém escolhido não existe o ✎: o zap sobe pra vaga dele.
@@ -349,10 +349,16 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .dupla>button.ico{position:relative}
 /* só no dedo: no mouse a área maior acendia o hover a 10px do botão, em cima da linha vizinha */
 @media (pointer:coarse){#mineRows .dupla>button.ico:after{content:"";position:absolute;inset:-10px -1px}}
-/* com nome escrito os dois botões precisam caber ao lado do nome em 390px: letra um
-   tico menor e a coluna do nome mais larga (o valor à direita cabe em menos) */
-#mineRows .dupla>button.ico{white-space:nowrap;font-size:15px;padding:0 5px}
-#mineRows .row.sub .l{max-width:78%;flex-shrink:0;column-gap:6px}
+/* com nome escrito os dois botões precisam caber ao lado do nome em 360px: letra um
+   tico menor, o valor sem folga à esquerda e, se ainda faltar, os botões descem pra baixo
+   do nome em vez de empurrar o valor pra fora do papel */
+#mineRows .dupla>button.ico{white-space:nowrap;font-size:15px;padding:0 4px}
+#mineRows .row.sub .l{max-width:78%;flex-shrink:1;min-width:0;column-gap:4px}
+#mineRows .row.sub .v{flex-shrink:0} #mineRows .row.sub .num{min-width:0} #mineRows .row.sub .d{margin:0 4px 5px;min-width:8px}
+/* os botões redondos ficam por cima do canto direito do papel: a linha do evento não passa por baixo deles */
+#eventLine{padding:0 48px}
+/* celular estreito: evento numa linha, quem é você na outra, sem o ponto no meio */
+@media (max-width:389px){#eventLine>span{display:block} #eventLine>.sep{display:none}}
 /* a caixa do caderno em branco também abre o anotar */
 #settle .empty.anota{cursor:pointer}
 /* no celular não existe hover: o toque preenche o botão com a cor dele e volta, o

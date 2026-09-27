@@ -33,6 +33,12 @@ class Mundo {
       // a CSP do index.html barrou alguma coisa do próprio site: vira erro do cenário
       document.addEventListener('securitypolicyviolation', e => setTimeout(() => { throw new Error(`CSP barrou ${e.violatedDirective}: ${e.blockedURI || 'inline'}`); }));
       Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { w.__copiado = t; } } });
+      // animação CSS termina na hora: o playwright não clica em nada que ainda se mexe, e cada
+      // entrada (a nota subindo, o pix descendo, o aperto dos itens) custava de 0,4 a 1,5s de
+      // espera por clique. As classes entram nas mesmas horas e o animationend dispara igual, só
+      // que já no quadro final. Animação se confere no vídeo, não aqui
+      addEventListener('DOMContentLoaded', () => document.head.append(Object.assign(document.createElement('style'),
+        { textContent: '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important}' })));
     });
     // o que o aparelho já tinha guardado antes desta visita (só na primeira carga da aba)
     if (this.antes) await ctx.addInitScript(antes => { if (sessionStorage.getItem('__antes')) return; sessionStorage.setItem('__antes', '1');

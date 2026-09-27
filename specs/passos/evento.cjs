@@ -1,4 +1,4 @@
-const { Given, When, Then, expect, idDe } = require('./_mundo.cjs');
+const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
 
 const centavos = v => Math.round(Number(v.replace(/\./g, '').replace(',', '.')) * 100);
 
@@ -10,7 +10,7 @@ Given('os gastos:', async ({ mundo }, tabela) => {
   const id = n => mundo.pessoa(n).id;
   tabela.hashes().forEach((g, i) => {
     const e = { id: 'g' + (mundo.evento.expenses.length + 1), desc: g['o quê'], amount: centavos(g.valor) / 100,
-      payer: id(g.pagou), among: g['divide entre'].split(/\s*,\s*/).map(id), at: Date.now() - 7 * 86400000 + i * 60000 };
+      payer: id(g.pagou), among: g['divide entre'].split(/\s*,\s*/).map(id), at: AGORA - 7 * 86400000 + i * 60000 };
     mundo.evento.expenses.push(e);
   });
 });

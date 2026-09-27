@@ -1,4 +1,4 @@
-const { Given, When, Then, expect, idDe } = require('./_mundo.cjs');
+const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
 
 const centavos = v => Math.round(Number(v.replace(/\./g, '').replace(',', '.')) * 100);
 
@@ -10,7 +10,7 @@ Given('os gastos:', async ({ mundo }, tabela) => {
   const id = n => mundo.pessoa(n).id;
   tabela.hashes().forEach((g, i) => {
     const e = { id: 'g' + (mundo.evento.expenses.length + 1), desc: g['o quê'], amount: centavos(g.valor) / 100,
-      payer: id(g.pagou), among: g['divide entre'].split(/\s*,\s*/).map(id), at: Date.now() - 7 * 86400000 + i * 60000 };
+      payer: id(g.pagou), among: g['divide entre'].split(/\s*,\s*/).map(id), at: AGORA - 7 * 86400000 + i * 60000 };
     mundo.evento.expenses.push(e);
   });
 });
@@ -35,7 +35,7 @@ When('eu crio o evento', async ({ mundo }) => { await mundo.p.click('#okBtn'); a
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
 Then('o endereço é {string} com um final sorteado', async ({ mundo }, ini) => {
   const esc = ini.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(new RegExp(`^${esc}[a-z0-9]{8}$`));
+  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(new RegExp(`^${esc}[a-z0-9]{6}$`));
 });
 Then('o nome do evento no cabeçalho é {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#roomLabel')).toHaveText(nome); });
 Then('o site não pergunta nada', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeHidden(); });
@@ -47,6 +47,10 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
 });
 Then('o botão de sair do evento é vermelho', async ({ mundo }) => { await expect(mundo.p.locator('#evLeave')).toHaveCSS('color', 'rgb(155, 28, 28)'); });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
+When('eu toco em sair do evento', async ({ mundo }) => { await mundo.p.click('#evLeave'); await mundo.p.waitForSelector('#okBtn'); });
+Then('o botão de sair é vermelho', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toHaveText(/sair/i); await expect(mundo.p.locator('#okBtn')).toHaveCSS('background-color', 'rgb(155, 28, 28)'); });
+When('eu toco no código do evento', async ({ mundo }) => { await mundo.p.click('#evCode'); });
+Then('fica copiado {string}', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt); });
 Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toHaveClass(/\bhidden\b/); });
 When('eu toco na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle .empty.anota'); });
 Then('o formulário de anotar abre', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).not.toHaveClass(/\bhidden\b/); });

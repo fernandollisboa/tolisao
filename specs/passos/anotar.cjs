@@ -56,6 +56,23 @@ Then('o valor fica {string}', async ({ mundo }, v) => { await expect(mundo.p.loc
 Then('a frase de como está dividido vem antes das abas', async ({ mundo }) => {
   expect(await mundo.p.$eval('#splitHint', h => !!(h.compareDocumentPosition(document.querySelector('#splitSeg')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
 });
+When('eu começo a digitar a parte do {word}', async ({ mundo }, n) => { await mundo.p.focus(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`); });
+When('a nota sincroniza', async ({ mundo }) => {
+  // o sync reescreve o #status mesmo quando o texto é igual: é assim que se sabe que ele passou
+  await mundo.p.evaluate(() => new Promise(ok => {
+    const o = new MutationObserver(() => { o.disconnect(); ok(); });
+    o.observe(document.querySelector('#status'), { childList: true });
+    document.dispatchEvent(new Event('visibilitychange')); }));
+});
+Then('o cursor continua na parte do {word}', async ({ mundo }, n) => {
+  await expect(mundo.p.locator(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`)).toBeFocused();
+});
+When('eu toco na aba igual', async ({ mundo }) => { await mundo.p.click('#splitSeg [data-modo="equal"]'); });
+Then('todo mundo divide, com as partes vazias', async ({ mundo }) => {
+  const campos = mundo.p.locator('#sharesBox input[data-share]');
+  await expect(campos).toHaveCount(await mundo.p.locator('#splitChips input').count());
+  for (const c of await campos.all()) await expect(c).toHaveValue('');
+});
 When('eu toco na aba das partes diferentes', async ({ mundo }) => { await mundo.p.click('#splitSeg [data-modo="custom"]'); });
 Then('a aba das partes diferentes fica marcada', async ({ mundo }) => {
   const aba = mundo.p.locator('#splitSeg [data-modo="custom"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');
@@ -91,3 +108,21 @@ Then('embaixo dele está escrito {string}', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.locator('#expenses .item').first().locator('.small > span').evaluate(e => e.innerText.replace(/\u00a0/g, ' ').trim())).toBe(txt);
 });
 Then('a lista fica separada em {int} dias', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .day')).toHaveCount(n); });
+
+When('eu edito o {string}', async ({ mundo }, nome) => {
+  const it = item(mundo.p, nome); await it.locator('.row .l').click(); await it.locator('[data-edit-expense]').click();
+  await mundo.p.waitForSelector('#sheet:not(.hidden)');
+});
+Then('o formulário vem com R$ {num} de {string}', async ({ mundo }, v, desc) => {
+  await expect(mundo.p.locator('#amount')).toHaveValue(dinheiro(v)); await expect(mundo.p.locator('#desc')).toHaveValue(desc);
+  await expect(mundo.p.locator('#sheet h2')).toHaveText('Editar');
+});
+When('eu troco o valor pra R$ {num} e salvo', async ({ mundo }, v) => {
+  await mundo.p.fill('#amount', dinheiro(v)); await mundo.p.click('#expenseForm button.big'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' });
+});
+Then('o {string} fica de {word}', async ({ mundo }, nome, v) => { await expect(item(mundo.p, nome).locator('.row .v')).toHaveText(v); });
+When('eu fecho o anotar', async ({ mundo }) => { await mundo.p.click('#sheetClose'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' }); });
+Then('o formulário vem vazio, pra anotar', async ({ mundo }) => {
+  await expect(mundo.p.locator('#amount')).toHaveValue(''); await expect(mundo.p.locator('#desc')).toHaveValue('');
+  await expect(mundo.p.locator('#sheet h2')).toHaveText('Anotar'); await expect(mundo.p.locator('#expenseForm button.big')).toHaveText('Anotar');
+});

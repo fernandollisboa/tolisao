@@ -4,7 +4,7 @@ Divisor de gastos entre amigos, no estilo do Splitwise, sem aplicativo e sem cad
 
 ## Como usar
 
-1. Abra o site e digite um nome para o evento. O evento novo recebe um final sorteado no código (`churras-k7f3q9x2`), então compartilhe o link, não só o nome.
+1. Abra o site e digite um nome para o evento. O evento novo recebe um final sorteado no código (`churras-k7f3q9`), então compartilhe o link, não só o nome.
 2. Em "quem é você?", escolha seu nome.
 3. Anote os gastos no ✎ âmbar, no canto de cima da tela: valor, descrição, quem pagou e quem divide. A divisão pode ser igual ou em partes diferentes. Desmarcar quem pagou registra um empréstimo.
 4. **Minha conta** mostra quanto você deve ou tem a receber. É ali que você marca um pagamento como feito (✔) e copia o Pix já com o valor. **Falta pagar** mostra o menor número de transferências que zera todo mundo.
@@ -14,7 +14,7 @@ No celular, o site pode ser instalado pelo botão do rodapé e abre sem internet
 
 ## Dados e segurança
 
-- Cada evento fica em `rooms/<sha256(código)>`. Quem tem o código lê e escreve; ninguém consegue listar os eventos, porque a raiz `rooms` não é legível. O final sorteado (36⁸ possibilidades) impede que um código curto seja adivinhado testando hashes direto no banco. Dentro do evento, todos os dados são visíveis para quem tem o link.
+- Cada evento fica em `rooms/<sha256(código)>`. Quem tem o código lê e escreve; ninguém consegue listar os eventos, porque a raiz `rooms` não é legível. O final sorteado (36⁶ possibilidades) impede que um código curto seja adivinhado testando hashes direto no banco. Dentro do evento, todos os dados são visíveis para quem tem o link.
 - A chave Pix fica em `pix/<evento>/<pessoa>/key` e só pode ser aleatória ou e-mail. Todos leem; só o aparelho que cadastrou pode trocá-la, porque guarda um segredo (`tok`) no navegador. Se esse aparelho for perdido, apague o nó no console do Firebase.
 - Qualquer pessoa do evento pode cadastrar uma chave em nome de quem ainda não cadastrou. Confira o nome do recebedor no aplicativo do banco antes de confirmar um Pix.
 - Tudo que vem do banco é tratado como não confiável: ids são filtrados, textos são escapados, e o `index.html` tem uma Content-Security-Policy.

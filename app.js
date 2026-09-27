@@ -5,7 +5,6 @@
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
   // ---------- config ----------
-  // Firebase Realtime Database (REST). Ex.: 'https://racha-xxxxx-default-rtdb.firebaseio.com'
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
   const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
@@ -28,6 +27,8 @@
   const uid = () => sorteia(8);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+  const semMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const semCartao = () => document.querySelector('#overlay').classList.contains('hidden');
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } }, del: k => { try { localStorage.removeItem(k); } catch {} } };
   // o que fica no aparelho, em duas gavetas de JSON:
   //   tolisa         { visits, installPrompted, itemsOpened, boringMode, lastRoom: {code, id} }
@@ -69,7 +70,7 @@
   // nenhum relógio de animação, só do event loop normal.
   let tituloJaAnimou = false;
   function digitaTitulo(el){
-    if (!el || tituloJaAnimou || visitas !== 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
     tituloJaAnimou = true;
     document.fonts.ready.then(() => {
       if (!el.isConnected) return;   // a tela pode ter trocado enquanto a fonte carregava
@@ -177,6 +178,15 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
 
   // ---------- contas ----------
+  const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
+  const num = c => fmt(c/100);
+  const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
+  const val = n => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
+  // no teclado do celular o separador é vírgula; aceita 12,50 e 1.234,56 além de 12.50
+  const numVal = v => { let s = String(v).trim().replace(/\s/g, ''); if (!s) return NaN;
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); return parseFloat(s); };
+  const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
+  const nomeExiste = n => state.people.some(p => p.name.toLowerCase() === n.toLowerCase());
   function shares(cents, ids){ const base = Math.floor(cents/ids.length), rem = cents - base*ids.length; const o={}; ids.forEach((id,i)=>o[id]=base+(i<rem?1:0)); return o; }
   const shareOf = (e, ids) => { if (e.shares) { const o = {}; for (const id of ids) o[id] = e.shares[id] || 0; return o; } return shares(Math.round(e.amount*100), ids); };
   const howText = (e, name = nameOf, html = false) => { const loan = !e.among.includes(e.payer);
@@ -215,53 +225,60 @@
   const nm = id => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nmByName = name => { const p = state.people.find(q => q.name === name); return p ? nm(p.id) : esc(name); };
   let showAll = false, itemsOpen = false; const openItems = new Set();
-  // a linha dos itens convida com um verbo ("ver os 3 itens") até a pessoa abrir uma vez;
-  // depois é só a contagem. Vale pra sessão e pra pessoa: trocar de nome convida de novo
-  let viuItens = false;
-  // carimbo: ângulo fixo por pagamento (não pula entre renders); o risco da linha corre
-  // uma vez só por pagamento — o #settle é refeito a cada render e, por tempo, um
-  // render no meio do caminho recomeçava a animação do zero
-  // quando cada pagamento apareceu na tela; 0 = já estava pago quando a página abriu
-  const vistos = new Map();        // pagamento -> quando o risco dele deve começar (pode ser no futuro)
+  // ---------- fila das animações ----------
+  // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
+  // preenche de cima pra baixo, na ordem em que a pessoa leria. Tudo que a fila guarda
+  // mora em `anim`, e nota nova (outro evento, outra pessoa) começa de um `anim` zerado.
+  // As horas são Date.now(): 0 = ainda não pegou a vez, -1 = dispensado
+  const novaNota = () => ({
+    nota: 0,      // fim da fila das seções (Minha conta, itens, Falta pagar e a ficha)
+    fila: 0,      // fim da fila inteira, com o Sou Fulano e o ✎ depois das seções
+    fim: 0,       // quando a última animação acaba de fato, pra quem quer a tela parada
+    mine: 0, itens: 0, settle: 0, risco: 0, sou: 0, fab: 0,   // a vez de cada bloco
+    naTela: { mine: false, itens: false, settle: false },
+    riscos: new Map(),   // pagamento -> quando o risco dele começa (pode ser no futuro)
+    pix: new Map(),      // pessoa -> quando o copiar pix dela brota
+    cutucas: [],         // timers do Sou Fulano e do ✎
+    viuItens: false,     // a linha dos itens convida com um verbo ("ver os 3 itens") até a pessoa abrir
+    tocouOk: false,      // tocou num ✔ ou copiar pix: o convite da piscada já foi respondido
+    natal: null,         // pisca-pisca de natal dessa vez: o sorteio de atraso de cada linha, ou null
+    suave: false,        // quem já conhece a linha dos itens ganha só um toquinho na setinha
+  });
+  let anim = novaNota();
   const RISCO_MS = 550, RISCO_GAP = 130;
-  let settleT = 0, riscoT = 0;     // hora marcada pras voltas do círculo e pros riscos
   // a caneta é rápida, mas não escreve dois traços ao mesmo tempo: cada volta começa
   // quando a anterior fecha, dentro da linha e de uma linha pra outra
   const DESENHA_MS = 180, DESENHA_GAP = 180, VOLTA_GAP = 360;
+  const ANOTA_MS = 2200, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
+  const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha dos itens vira botão e afunda uma vez
   let seguraRisco = false;   // quitação acabou de sair: espera o cartão de 'quitado!' fechar
-  // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
-  // preenche de cima pra baixo, na ordem em que a pessoa leria
-  let mineNaTela = false, itensNaTela = false, settleNaTela = false, filaT = 0;
-  // o ✎ pulsa até ser apertado três vezes, e sossega
-  let fabT = 0, souT = 0, cutucas = [];
-  const ANOTA_MS = 1900, ANOTA_RESPIRO = 2500, SOU_MS = 1200;
+  // a ficha do rodapé vai cair: o Sou Fulano e o ✎ esperam ela pegar a vez (atribuída lá embaixo)
+  let fichaVem = () => false;
+  /** uma seção pega a vez atrás da anterior. `dur` é o quanto ela segura a fila (a entrada
+   *  do próximo), `total` é quanto ela dura de fato. Seção que chega na tela atrasada (o
+   *  Falta pagar abaixo da dobra) entra atrás das seções, não atrás do Sou Fulano e do ✎ */
+  const agenda = (dur, total = dur) => { const t = Math.max(Date.now(), anim.nota);
+    anim.nota = t + dur; anim.fila = Math.max(anim.fila, anim.nota); anim.fim = Math.max(anim.fim, t + total); return t; };
+  /** o ✎ e o Sou Fulano não dividem a tela com ninguém: esperam tudo acabar e um respiro */
+  const calmo = (dur, respiro) => { const t = Math.max(anim.fila, Math.max(Date.now(), anim.fim) + respiro);
+    anim.fila = anim.fim = t + dur; return t; };
   /** a classe entra na hora marcada, mas só com o botão na tela; fora dela, espera ele voltar */
-  const cutuca = (el, cls, t) => { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cutuca = (el, cls, t) => { if (semMovimento()) return;
     const vai = () => { const r = el.getBoundingClientRect();
       if (r.bottom <= 0 || r.top >= innerHeight) return false;
       el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); return true; };
     const olha = () => { if (vai()) removeEventListener('scroll', olha); };
-    cutucas.push(setTimeout(() => { if (!vai()) addEventListener('scroll', olha, { passive: true }); }, Math.max(0, t - Date.now()))); };
-  let itensT = 0, itensSuave = false; /* -1: dispensado, a lista já foi aberta */ const APERTO_MS = 1600, APERTO_LEAD = 300;   // a linha vira botão e afunda uma vez
-  // dur é o que a fila reserva (a entrada do próximo); total é quanto a animação dura
-  // de fato. fimT guarda quando a última termina, pra quem precisa da tela parada
-  let fimT = 0;
-  const agenda = (dur, total = dur) => { const t = Math.max(Date.now(), filaT); filaT = t + dur; fimT = Math.max(fimT, t + total); return t; };
-  // o ✎ e o Sou Fulano não dividem a tela com ninguém: esperam tudo acabar e um respiro
-  const calmo = (dur, respiro) => { const t = Math.max(filaT, Math.max(Date.now(), fimT) + respiro); filaT = fimT = t + dur; return t; };
+    anim.cutucas.push(setTimeout(() => { if (!vai()) addEventListener('scroll', olha, { passive: true }); }, Math.max(0, t - Date.now()))); };
   const hash32 = txt => { let h = 2166136261; for (const ch of txt) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h ^ (h >>> 15)) >>> 0; };
   const stampStyle = id => { const h = hash32(id);
     const rot = (h % 15) - 10, dy = ((h >>> 8) % 5) - 2;
-    // com um cartão por cima a animação acabava escondida e a pessoa só via o resultado.
-    // uma quitação recém-feita entra na hora; as da carga inicial saem do riscoT, em cascata
-    // só entra aqui uma quitação feita agora: as da carga inicial são carimbadas em
-    // bloco quando o #settle pega a vez na fila. Sem o riscoT, o primeiro render
-    // marcava todas com a hora de agora e elas riscavam antes de tudo, fora de ordem.
-    if (!vistos.has(id) && riscoT && !seguraRisco && $('#overlay').classList.contains('hidden'))
-      vistos.set(id, Date.now());
-    // o #settle é refeito a cada render: sem o atraso, um render no meio do caminho
-    // recomeçaria o risco do zero. Positivo = ainda vai começar, negativo = retoma.
-    const t = vistos.get(id), dt = t === undefined ? Infinity : Date.now() - t;
+    // as quitações que já estavam na nota ganham a hora delas em cascata quando o #settle
+    // pega a vez na fila. Aqui só entra uma quitação feita agora, e só sem cartão por
+    // cima: escondida, a pessoa só veria o resultado
+    if (!anim.riscos.has(id) && anim.risco && !seguraRisco && semCartao())
+      anim.riscos.set(id, Date.now());
+    // o #settle é refeito a cada render: o atraso negativo retoma o risco de onde estava
+    const t = anim.riscos.get(id), dt = t === undefined ? Infinity : Date.now() - t;
     return { cls: dt < RISCO_MS ? ' novo' : '', css: `--rot:${rot}deg;--dy:${dy}px`,
              rd: dt < RISCO_MS ? `--rd:${-dt}ms` : '' }; };
   /** traço de marca-texto feito à mão: ângulo, altura e pontas tortas, fixos por linha */
@@ -272,20 +289,23 @@
   let lastSeen = 0;
   const markSeen = () => { if (groupId) setRoom('lastSeen', Date.now()); };
   window.addEventListener('pagehide', markSeen); document.addEventListener('visibilitychange', () => { if (document.hidden) markSeen(); });
-  // ---------- pix ----------
+  // ---------- desenhos ----------
   const KEY_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12.65 10A6 6 0 0 0 1 12a6 6 0 0 0 11.65 2H18v3h4v-7h-9.35zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
   const PIX_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M11.917 11.71a2.046 2.046 0 0 1-1.454-.602l-2.1-2.1a.4.4 0 0 0-.551 0l-2.108 2.108a2.044 2.044 0 0 1-1.454.602h-.414l2.66 2.66c.83.83 2.177.83 3.007 0l2.667-2.668h-.253zM4.25 4.282c.55 0 1.066.214 1.454.602l2.108 2.108a.39.39 0 0 0 .552 0l2.1-2.1a2.044 2.044 0 0 1 1.453-.602h.253L9.503 1.623a2.127 2.127 0 0 0-3.007 0l-2.66 2.66h.414zM14.377 6.496l-1.612-1.612a.307.307 0 0 1-.114.023h-.733c-.379 0-.75.154-1.017.422l-2.1 2.1a1.005 1.005 0 0 1-1.425 0L5.268 5.32a1.448 1.448 0 0 0-1.018-.422h-.9a.306.306 0 0 1-.109-.021L1.623 6.496c-.83.83-.83 2.177 0 3.008l1.618 1.618a.305.305 0 0 1 .108-.022h.901c.38 0 .75-.153 1.018-.421L7.375 8.57a1.034 1.034 0 0 1 1.426 0l2.1 2.1c.267.268.638.421 1.017.421h.733c.04 0 .079.01.114.024l1.612-1.612c.83-.83.83-2.178 0-3.008z"/></svg>';
+  // o Compartilhar do Safari: quadrado aberto com a seta saindo pra cima
+  const SHARE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px"><path d="M12 3v12M7 8l5-5 5 5M5 12v8h14v-8"/></svg>';
+  // o Adicionar à Tela de Início: quadrado arredondado com um mais
+  const MAIS_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  const LAPIS_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg>';
+  const WA_SVG = '<svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
+  // ---------- pix ----------
   let pixKeys = {}, pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
-  const pixVisto = new Map();   // pessoa -> quando as animações da linha dela começam
-  let mineT = 0;                // hora marcada pra Minha conta (0 = ainda não entrou na fila)
-  let natal = null;             // pisca-pisca de natal dessa vez: o sorteio de atraso de cada linha, ou null
   const PIX_MS = 420, PISCA_MS = 900, PISCA_GAP = 320;   // uma piscada só, uma linha atrás da outra
   // pisca-pisca de natal: o cordão corre defasado linha a linha, em duas ondas (as pares
   // numa frequência, as ímpares na `.b` do CSS, mais ligeira), e o fecho vem pra todas
   // juntas depois de uma pausa que conta da última linha. Cada linha sorteia um tico de atraso
   const FECHO_EM = 3300, FECHO_MS = 1500, NATAL_JIT = 90, FECHO_JIT = 45;
   const PISCA_LEAD = 420;   // o quanto a fila reserva além da última piscada começar
-  let tocouOk = false;    // tocou num dos botões: o convite da piscada já foi respondido
   const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
   async function loadPixKeys(){
     const out = {};
@@ -325,10 +345,6 @@
     const p = tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('01', key)) + tlv('52', '0000') + tlv('53', '986') + tlv('54', (cents/100).toFixed(2)) + tlv('58', 'BR') + tlv('59', nm) + tlv('60', 'BRASIL') + tlv('62', tlv('05', '***')) + '6304';
     return p + crc16(p);
   }
-  // no teclado do celular o separador é vírgula; aceita 12,50 e 1.234,56 além de 12.50
-  const numVal = v => { let s = String(v).trim().replace(/\s/g, ''); if (!s) return NaN;
-    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); return parseFloat(s); };
-  const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
   // valor digitado como no app do banco: os dígitos entram pela direita, pelos centavos
   // (5 → 0,05, 50 → 0,50, 5000 → 50,00). A usuária da QA digitava o 00 do fim por
   // costume. Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
@@ -337,9 +353,6 @@
   // na captura, antes de quem lê o campo (o quanto falta das partes)
   document.addEventListener('input', ev => { const t = /** @type {HTMLInputElement} */ (ev.target);
     if (t.matches && t.matches('#amount, #sharesBox input[data-share]')) mascara(t); }, true);
-  const money = n => `${CURRENCY}\u00a0${fmt(n)}`;
-  const val = n => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
-  const nameOf = id => (state.people.find(p => p.id === id) || {name:'?'}).name;
   // frases de boteco: sorteadas uma vez por abertura, escolhidas pelo estado da conta
   const SIGNOFF = {
     owe: ['Paga logo, meu bem.', 'Fiado só amanhã, meu amor.', 'Não aceito cheque, viu?', 'A conta não se paga sozinha, meu anjo.', 'Bebeu, pagou, minha flor.'],
@@ -370,180 +383,185 @@
       ritmo = [...ritmo, dur >= 450 ? 'F' : 'f'].slice(-3);
       if (ritmo.join('') === 'FfF') { ritmo = []; ok(); }
       zera = setTimeout(() => { ritmo = []; }, 1600); }); }
+  const temMe = () => !!me && state.people.some(p => p.id === me);
+  /** chegou depois da última visita e foi outra pessoa que anotou */
+  const tagNovo = e => lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : '';
+  const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
+    `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
+
   function render(){
     if (!state) return;
+    const hasMe = temMe();
+    const vazio = state.expenses.length === 0;   // sem nada anotado, Minha conta e Itens só teriam zeros: somem
+    const saldo = balances(), acerto = settlements(saldo), bal = hasMe ? (saldo[me] || 0) : 0;
+    const allEven = state.people.length > 0 && !vazio && Object.values(saldo).every(v => v === 0);
+
     $('#roomLabel').textContent = evento() || '—';
     document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
     { const wl = $('#whoLine');
-      const html = me && state.people.some(p => p.id === me) ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
+      const html = hasMe ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>` : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
       if (wl.dataset.k !== html) { wl.innerHTML = html; wl.dataset.k = html; }
       // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
       $('#whoBtn').onclick = () => state.people.length ? showWho() : showSetup(); }
-    const hasMe = me && state.people.some(p => p.id === me);
-    const allEven = state.people.length > 0 && Object.values(balances()).every(v => v === 0) && state.expenses.length > 0;
-    { const bal = hasMe ? (balances()[me] || 0) : 0;
-      if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém';   // o emoji ficou pra caixinha
-      if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even); }
-    // evento sem nada anotado: Minha conta e Itens só teriam zeros, então somem
-    const vazio = state.expenses.length === 0;
-    if (hasMe && !vazio) { const bal = balances()[me] || 0; const ln = (l, v, cls='') => `<div class="row ${cls}"><span class="l">${l}</span><span class="d"></span><span class="v">${v}</span></div>`;
-      $('#mine').classList.remove('hidden');
-      const stMe = settlements(balances());
-      // quando a chave do pix chega, o botão de copiar brota de trás do ✔ e o ✔ pisca
-      // verde, um "me pague". As duas saem da mesma hora, guardada uma vez
-      // por pessoa; como o #mineRows é refeito a cada poll, o atraso (negativo depois
-      // que a animação começou) retoma de onde estava em vez de recomeçar no meio
-      // hora marcada pras animações da seção: o copiar pix brotando de trás do ✔ e a
-      // piscada verde do próprio ✔. Só entra na fila quando Minha conta está na tela
-      // Minha conta pega a vez assim que aparece, sem esperar a chave do pix: senão o
-      // #settle, que já estava na tela, tomava a frente. A fila só reserva o tempo das
-      // piscadas, e curto: quem vem depois não precisa esperar tudo acabar
-      const meus = bal < 0 ? stMe.filter(t => t.from === me) : [];
-      // sem linha nenhuma não há o que reservar: quem vem depois não espera à toa
-      if (mineNaTela && !mineT) {
-        // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
-        // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
-        const vistos = room().lightsSeen, ja = Array.isArray(vistos) && vistos.includes(me);
-        natal = meus.length >= 2 && (!ja || Math.random() < .5)
-          ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT]) : null;
-        if (natal && !ja) mexe(roomKey(groupId), o => { o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me]; });
-        const fim = !meus.length ? 0 : (meus.length - 1) * PISCA_GAP + (natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
-        mineT = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim); }
-      // o copiar pix corre por fora da fila: brota assim que a chave chega do banco,
-      // sem esperar as piscadas nem segurar quem vem depois. Nada de spinner: o botão
-      // brotando já conta que chegou
-      const pixB = t => { if (!pixReady || !pixKeys[t.to]) return '';
-        if (!pixVisto.has(t.to)) pixVisto.set(t.to, Date.now());
-        const dt = Date.now() - (pixVisto.get(t.to) || 0);
-        const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';
-        return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG} copiar pix</button>`; };
-      // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
-      const okB = (t, i) => { const esp = i * PISCA_GAP, dt = mineT ? Date.now() - mineT : Infinity;
-        const j = natal && natal[i], fecho = j && (natal.length - 1) * PISCA_GAP + FECHO_EM + j[1];
-        const pi = tocouOk ? '' : j ? (dt < fecho + FECHO_MS ? ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms` : '')
-          : dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
-        return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`; };
-      // os botões dizem o que fazem ("paguei", "copiar pix"): um balão explicando ícone
-      // era recado solto, e recado solto a pessoa pula
-      const who = bal > 0 ? stMe.filter(t => t.to === me).map(t => ln(nm(t.from), val(t.cents/100), 'sub')) : bal < 0 ? meus.map((t, i) => ln(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, `<span class="cur">R$</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${fmt(t.cents/100)}">${fmt(t.cents/100)}</a>`, 'sub')) : [];
-      // quite não tem conta pra mostrar: a linha de zeros vira um recado, na mesma
-      // caixinha tracejada que aponta o lápis no evento novo. Uma linha só: o subtítulo
-      // lá em cima já diz que você não deve nada, e dizer de novo aqui virava eco
-      $('#mineRows').innerHTML = (bal === 0 ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
-        : ln(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + who.join('');
-    }
-    else $('#mine').classList.add('hidden');
+    if ($('#tagline')) $('#tagline').textContent = !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém';
+    if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.'
+      : pick(allEven ? SIGNOFF.all : !hasMe ? SIGNOFF.none : bal < 0 ? SIGNOFF.owe : bal > 0 ? SIGNOFF.owed : SIGNOFF.even);
+
+    if (hasMe && !vazio) renderMinha(bal, acerto); else $('#mine').classList.add('hidden');
+
     $('#fab').classList.toggle('hidden', !hasMe);   // anotar é de quem já disse quem é
+    $('#fab').classList.add('chamando');            // o ✎ fica âmbar o tempo todo
     $('#waBtn').classList.toggle('so', !hasMe);     // sozinho o zap encosta na esquerda
-    // enquanto não houver nada anotado, o balão mostra por onde se começa
-    // no caderno em branco o título não tem o que apresentar; fica só a caixa
-    // a ficha só entra em nota que já tem gasto; em caderno vazio ela é poluição
-    { const f = $('.stain'); if (f) { const b = hasMe ? (balances()[me] || 0) : null;
-        f.classList.toggle('hidden', vazio);
-        // a cor é a situação: deve (vermelho), recebe (verde), quite (rosa); sem nome, âmbar
-        f.classList.toggle('deve', b !== null && b < 0);
-        f.classList.toggle('recebe', b !== null && b > 0);
-        f.classList.toggle('quite', b === 0); } }
-    // todo mundo quite já é dito em Minha conta; repetir aqui era eco
+    $('#waBtn').classList.toggle('hidden', vazio);  // nota vazia não tem o que mandar
+    // a ficha só entra em nota que já tem gasto. A cor é a situação: deve (vermelho),
+    // recebe (verde), quite (rosa); sem nome, âmbar
+    { const f = $('.stain'); if (f) { f.classList.toggle('hidden', vazio);
+        f.classList.toggle('deve', hasMe && bal < 0); f.classList.toggle('recebe', hasMe && bal > 0); f.classList.toggle('quite', hasMe && bal === 0); } }
+    // todo mundo quite já é dito em Minha conta; repetir no Falta pagar era eco
     $('#settleHead').classList.toggle('hidden', vazio || allEven);
     $('#settle').classList.toggle('hidden', allEven);
     $('#settleHr').classList.toggle('hidden', allEven);
-    $('#fab').classList.add('chamando');   // o ✎ fica âmbar o tempo todo
-    // nota vazia não tem o que mandar: o zap some e sobra só o "quem é você?"
-    $('#waBtn').classList.toggle('hidden', vazio);
     $('#itemsSec').classList.toggle('hidden', vazio);   // quem está quite também quer ver no que gastou
-    // entre Minha conta e Falta pagar na página, e entre as duas na fila também. O
-    // cartão do "quem é você?" segura: com ele aberto os itens já estão visíveis por
-    // trás, e o toquinho furava a fila antes de Minha conta existir
-    // lista aberta (quem acabou de anotar cai nela assim) já sabe que a linha abre:
-    // nada de convite, e o bloco não reserva vez na fila
-    // quem já abriu a lista na mão, ou já veio mais de APERTO_VISITAS vezes, também
-    // aprendeu: esse ganha só o toquinho de leve na setinha
-    if (!itensT && itemsOpen) itensT = -1;
-    if (itensNaTela && !itensT && hasMe && $('#overlay').classList.contains('hidden')
-        && !$('#itemsSec').classList.contains('hidden')) {
-      itensSuave = !!device().itemsOpened || visitas > APERTO_VISITAS; itensT = agenda(APERTO_LEAD, APERTO_MS); }
-    const myBal = hasMe ? (balances()[me] || 0) : 0;
-    // sem spinner aqui também: a linha fica vazia e o botão desce de debaixo do título
-    const pixWant = !hasMe || myBal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
+
+    // o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
+    // página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a
+    // fila. Lista já aberta dispensa o convite; quem já abriu antes, ou já veio mais de
+    // APERTO_VISITAS vezes, ganha só um toquinho na setinha
+    if (!anim.itens && itemsOpen) anim.itens = -1;
+    if (anim.naTela.itens && !anim.itens && hasMe && semCartao() && !$('#itemsSec').classList.contains('hidden')) {
+      anim.suave = !!device().itemsOpened || visitas > APERTO_VISITAS; anim.itens = agenda(APERTO_LEAD, APERTO_MS); }
+
+    // o cadastrar chave pix desce de debaixo do título; a altura vem um quadro depois do
+    // conteúdo, senão a transição não tem de onde sair
+    const pixWant = !hasMe || bal <= 0 || pixKeys[me] || !pixReady ? '' : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
     const pl = $('#pixLine');
     if (!pixWant) { if (pl.dataset.k && !pl.classList.contains('gone')) { pl.classList.add('gone');
       setTimeout(() => { if (pl.classList.contains('gone')) { pl.innerHTML = ''; pl.dataset.k = ''; pl.classList.remove('cheio'); } }, 450); } }
-    // a altura vem num quadro depois do conteúdo, senão não há de onde a transição sair
     else { pl.classList.remove('gone'); if (pl.dataset.k !== pixWant) { pl.innerHTML = pixWant; pl.dataset.k = pixWant;
       requestAnimationFrame(() => pl.classList.add('cheio')); } }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
+
     $('#peopleSec').classList.toggle('hidden', !MEMBROS);
     $('#peopleLine').innerHTML = state.people.length ? state.people.map(p => nm(p.id)).join(', ') : 'ninguém';
     $('#addPerson').textContent = state.people.length ? ',+' : ' +';
+    renderForm();
 
-    const payerSel = $('#payer'); const prevPayer = payerSel.value || me;
+    const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
+    const nMeus = acerto.filter(t => t.from === me).length;
+    // o Falta pagar entra na fila atrás de Minha conta: primeiro as voltas do círculo (em
+    // cima), depois os riscos das quitações (embaixo), de cima pra baixo
+    if (anim.naTela.settle && !anim.settle && !seguraRisco && semCartao()) {
+      anim.settle = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
+      anim.risco = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
+      pays.forEach((e, i) => anim.riscos.set(e.id, anim.risco + i * RISCO_GAP)); }
+    // com a fila no fim, o Sou Fulano sublinha e, com a tela parada um tempo, o ✎ se
+    // apresenta. Só depois que cada seção à vista pegou a vez, senão o ✎ furava a fila
+    const aVista = el => { if (el.classList.contains('hidden')) return false; const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; };
+    const pegaram = (!aVista($('#mine')) || anim.naTela.mine) && (!aVista($('#itemsSec')) || anim.naTela.itens) && (!aVista($('#settle')) || anim.naTela.settle);
+    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !anim.fab && !fichaVem() && semCartao()) {
+      if (!anim.sou) { anim.sou = calmo(SOU_MS, 0); cutuca($('#whoBtn'), 'cutuca', anim.sou); }
+      if ((+device().fabTaps || 0) < 3) { anim.fab = calmo(ANOTA_MS, ANOTA_RESPIRO); cutuca($('#fab'), 'pulsa', anim.fab); } else anim.fab = -1; }
+    renderAcerto(hasMe, acerto, pays, nMeus);
+    renderItens();
+  }
+  /** Minha conta: o saldo de quem está vendo e, devendo, um ✔ e um copiar pix por pessoa */
+  function renderMinha(bal, acerto){
+    $('#mine').classList.remove('hidden');
+    const meus = bal < 0 ? acerto.filter(t => t.from === me) : [];
+    // pega a vez assim que chega na tela, sem esperar a chave do pix (senão o Falta pagar
+    // tomava a frente). A fila só segura o começo das piscadas: quem vem depois não
+    // espera elas acabarem, e sem linha nenhuma não há o que segurar
+    if (anim.naTela.mine && !anim.mine) {
+      // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
+      // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
+      const vistos = room().lightsSeen, ja = Array.isArray(vistos) && vistos.includes(me);
+      anim.natal = meus.length >= 2 && (!ja || Math.random() < .5)
+        ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT]) : null;
+      if (anim.natal && !ja) mexe(roomKey(groupId), o => { o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me]; });
+      const fim = !meus.length ? 0 : (meus.length - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+      anim.mine = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim); }
+    // o copiar pix corre por fora da fila: brota de trás do ✔ assim que a chave chega, e
+    // brotar já conta que chegou (nada de spinner). O #mineRows é refeito a cada poll: o
+    // atraso negativo retoma a animação de onde estava, aqui e na piscada
+    const pixB = t => { if (!pixReady || !pixKeys[t.to]) return '';
+      if (!anim.pix.has(t.to)) anim.pix.set(t.to, Date.now());
+      const dt = Date.now() - anim.pix.get(t.to);
+      const br = dt < PIX_MS ? ` brota" style="animation-delay:${-dt}ms` : '';
+      return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG} copiar pix</button>`; };
+    // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
+    const okB = (t, i) => { const esp = i * PISCA_GAP, dt = anim.mine ? Date.now() - anim.mine : Infinity;
+      const natal = anim.natal, j = natal && natal[i], fecho = j && (natal.length - 1) * PISCA_GAP + FECHO_EM + j[1];
+      const pi = anim.tocouOk ? '' : j ? (dt < fecho + FECHO_MS ? ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms` : '')
+        : dt < esp + PISCA_MS ? ` pisca" style="animation-delay:${esp - dt}ms` : '';
+      return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`; };
+    const valor = t => `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${num(t.cents)}">${num(t.cents)}</a>`;
+    // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
+    const quem = bal > 0 ? acerto.filter(t => t.to === me).map(t => linha(nm(t.from), val(t.cents/100), 'sub'))
+      : meus.map((t, i) => linha(`<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`, valor(t), 'sub'));
+    // quite vira um recado só: o subtítulo lá em cima já diz que você não deve nada
+    $('#mineRows').innerHTML = (bal === 0 ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
+      : linha(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal)/100), bal > 0 ? 'pos' : 'neg')) + quem.join('');
+  }
+  /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */
+  function renderForm(){
+    const payerSel = $('#payer'), prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map(p => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some(p => p.id === prevPayer)) payerSel.value = prevPayer;
-
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map(i => i.value)), checked = new Set(prev.filter(i => i.checked).map(i => i.value));
     $('#splitChips').innerHTML = state.people.map(p => { const on = !known.has(p.id) || checked.has(p.id);
       return `<label class="chip ${on?'on':''}"><input type="checkbox" value="${p.id}" ${on?'checked':''}>${esc(p.name)}</label>`; }).join('');
     updateHint();
-
-    const b = balances();
-    const line = (l, v, cls='', extra='', style='', vat='') => `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
-    const num = c => fmt(c/100);
-
-    const s = settlements(b);
-    const pays = state.expenses.filter(e => e.kind === 'payment').slice(-PAGOS_NA_LISTA).reverse();
-    // o #settle entra na fila atrás de Minha conta, e primeiro as voltas do círculo
-    // (que ficam em cima), depois os riscos dos pagamentos (que ficam embaixo)
-    const nMeus = s.filter(t => t.from === me).length;
-    if (settleNaTela && !settleT && !seguraRisco && $('#overlay').classList.contains('hidden')) {
-      settleT = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
-      riscoT = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
-      pays.forEach((e, i) => vistos.set(e.id, riscoT + i * RISCO_GAP)); }   // de cima pra baixo
-    // depois de tudo que estava na tela: o Sou Fulano sublinha assim que o último risco
-    // acaba e, com a tela parada um tempo, o ✎ se apresenta
-    // só depois que cada seção à vista já pegou a vez: senão o ✎ furava a fila
-    const aVista = el => { if (el.classList.contains('hidden')) return false; const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; };
-    const pegaram = (!aVista($('#mine')) || mineNaTela) && (!aVista($('#itemsSec')) || itensNaTela) && (!aVista($('#settle')) || settleNaTela);
-    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !fabT && $('#overlay').classList.contains('hidden')) {
-      if (!souT) { souT = calmo(SOU_MS, 0); cutuca($('#whoBtn'), 'cutuca', souT); }
-      if ((+device().fabTaps || 0) < 3) { fabT = calmo(ANOTA_MS, ANOTA_RESPIRO); cutuca($('#fab'), 'pulsa', fabT); } else fabT = -1; }
-    const dtS = settleT ? Date.now() - settleT : Infinity;
+  }
+  /** Falta pagar: quem paga quem (as suas linhas circuladas) e as últimas quitações, carimbadas */
+  function renderAcerto(hasMe, acerto, pays, nMeus){
+    const dtS = anim.settle ? Date.now() - anim.settle : Infinity;
     const desenha = dtS < DESENHA_MS + DESENHA_GAP + Math.max(0, nMeus - 1) * VOLTA_GAP;
     let ordem = 0;   // as suas linhas riscam uma atrás da outra, de cima pra baixo
-    $('#settle').innerHTML = (s.map(t => { const meu = t.from === me, o = meu ? ordem++ : 0;
-      return line(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100),
+    const deve = acerto.map(t => { const meu = t.from === me, o = meu ? ordem++ : 0;
+      const cobrar = COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : '';
+      return linha(`${nm(t.from)} → ${nm(t.to)}`, val(t.cents/100),
         meu ? 'mine' + (desenha ? ' risca' : '') : '', '',
         meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
-        meu ? ` data-copy-value="${fmt(t.cents/100)}" title="copiar valor"` : '') +
-        (COBRAR && t.to === me ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>` : ''); }).join('') || (state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
-        : `<div class="empty vazio${hasMe ? ' anota' : ''}">nada anotado ainda.<br><b>${hasMe ? `${LAPIS_SVG} toque aqui pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`))
-      + pays.map(e => { const st = stampStyle(e.id); return line(`<span class="n">${lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : ''}${nm(e.payer)} → ${nm(e.among[0])}</span>${DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : ''}<span class="stampbox"><span class="stamp" style="color:${colorOf(e.payer)};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`, val(e.amount), 'paid' + st.cls, '', `--ri:${colorOf(e.payer)};${st.rd}`) +
-        (e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : ''); }).join('');
-
+        meu ? ` data-copy-value="${num(t.cents)}" title="copiar valor"` : '') + cobrar; }).join('');
+    const nada = state.expenses.length ? '<div class="empty">tudo quitado 🎉</div>'
+      : `<div class="empty vazio${hasMe ? ' anota' : ''}">nada anotado ainda.<br><b>${hasMe ? `${LAPIS_SVG} toque aqui pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`;
+    const pagos = pays.map(e => { const st = stampStyle(e.id), cor = colorOf(e.payer);
+      const quem = `<span class="n">${tagNovo(e)}${nm(e.payer)} → ${nm(e.among[0])}</span>`;
+      const desfaz = DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : '';
+      const carimbo = `<span class="stampbox"><span class="stamp" style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
+      const por = e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '';
+      return linha(quem + desfaz + carimbo, val(e.amount), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por; }).join('');
+    $('#settle').innerHTML = (deve || nada) + pagos;
+  }
+  /** a lista dos itens, do mais novo pro mais velho, separada por dia quando tem mais de um */
+  function renderItens(){
     const items = state.expenses.filter(e => e.kind !== 'payment');
-    const all = [...items].reverse(); const list = showAll ? all : all.slice(0, 10);
+    const all = [...items].reverse(), list = showAll ? all : all.slice(0, 10);
     const dayOf = e => new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
     const days = new Set(all.map(dayOf)); let lastDay = null;
     $('#expenses').innerHTML = list.map(e => {
-      const how = howText(e, id => nm(id), true);
-      const isNew = lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me));
       let head = ''; if (days.size > 1) { const d = dayOf(e); if (d !== lastDay) { head = `<div class="day">${esc(d)}</div>`; lastDay = d; } }
       const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
-      return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` + line(`${isNew ? '<span class="tag">novo</span>' : ''}${esc(e.desc)}`, num(Math.round(e.amount*100))) + `<div class="small"><span>${nm(e.payer)} pagou · ${how}${by}</span>${me && (e.by ? e.by === nameOf(me) : e.payer === me) ? `<button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : ''}</div></div>`; }).join('')
+      const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
+      const mexe = meu ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>` : '';
+      return head + `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">`
+        + linha(`${tagNovo(e)}${esc(e.desc)}`, num(Math.round(e.amount*100)))
+        + `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${mexe}</div></div>`; }).join('')
       || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll'); tg.classList.toggle('hidden', all.length <= 10); tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
-    if (itemsOpen) viuItens = true;
-    $('#itemsCount').textContent = `${viuItens ? '' : all.length === 1 ? 'ver ' : 'ver os '}${all.length} ${all.length === 1 ? 'item' : 'itens'}`;
-    $('#itemsHead').classList.toggle('aberto', itemsOpen); $('#itemsHead').setAttribute('aria-expanded', String(itemsOpen)); $('#itemsCaret').classList.toggle('aberto', itemsOpen);
-    // a linha é o mesmo elemento em todo render: mexer no atraso depois reiniciaria a
-    // animação, então ele é marcado uma vez só e fica quieto
-    { const ih = $('#itemsHead');
-      if (itemsOpen) ih.classList.remove('pisca', 'suave');   // abriu no meio do convite: para ali
-      else if (itensT > 0 && !ih.dataset.pisca) { ih.dataset.pisca = '1';
-        ih.style.setProperty('--ad', `${itensT - Date.now()}ms`); ih.classList.add(itensSuave ? 'suave' : 'pisca'); } } $('#itemsBody').classList.toggle('hidden', !itemsOpen);
+    if (itemsOpen) anim.viuItens = true;
+    $('#itemsCount').textContent = `${anim.viuItens ? '' : all.length === 1 ? 'ver ' : 'ver os '}${all.length} ${all.length === 1 ? 'item' : 'itens'}`;
+    const ih = $('#itemsHead');
+    ih.classList.toggle('aberto', itemsOpen); ih.setAttribute('aria-expanded', String(itemsOpen)); $('#itemsCaret').classList.toggle('aberto', itemsOpen);
+    // a linha é o mesmo elemento em todo render: o atraso é marcado uma vez só, senão
+    // mexer nele reiniciaria a animação. Abriu no meio do convite, ele para ali
+    if (itemsOpen) ih.classList.remove('pisca', 'suave');
+    else if (anim.itens > 0 && !ih.dataset.pisca) { ih.dataset.pisca = '1';
+      ih.style.setProperty('--ad', `${anim.itens - Date.now()}ms`); ih.classList.add(anim.suave ? 'suave' : 'pisca'); }
+    $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount*100), 0) / 100);
   }
   let splitMode = 'equal';
@@ -561,11 +579,14 @@
     $('#sharesBox').classList.toggle('hidden', !custom);
     $('#falta').classList.toggle('hidden', !custom);
     if (custom) {
-      const prev = customShares();
-      $('#sharesBox').innerHTML = state.people.map(p => { const on = among.includes(p.id);
+      // as linhas só se refazem quando muda quem aparece nelas: todo sync passa por aqui, e
+      // refazer a cada um tirava o campo (e o teclado) de quem estava digitando a parte
+      const box = $('#sharesBox'), k = JSON.stringify(state.people.map(p => [p.id, p.name, among.includes(p.id)]));
+      if (box.dataset.k !== k) { box.dataset.k = k; const prev = customShares();
+        box.innerHTML = state.people.map(p => { const on = among.includes(p.id);
         return `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nm(p.id)}</span><span class="d"></span>`
           + (on ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? fmt(prev[p.id]/100) : ''}">` : '<span class="fora">fora</span>')
-          + '</div>'; }).join('');
+          + '</div>'; }).join(''); }
       // a frase fica nas duas abas, pra nada sumir do nada quando se troca
       h.innerHTML = !among.length ? 'Marque quem divide esse gasto.' : 'Dividido <u>em partes diferentes</u>.';
       atualizaFalta();
@@ -582,7 +603,7 @@
   function trocaAba(modo){
     const area = $('#splitArea'), antes = area.offsetHeight;
     splitMode = modo; updateHint();
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (semMovimento()) return;
     const depois = area.offsetHeight, curva = 'cubic-bezier(.3,.9,.4,1)';
     area.animate([{ height: antes + 'px', overflow: 'hidden' }, { height: depois + 'px', overflow: 'hidden' }], { duration: 300, easing: curva });
     const entra = [...area.children].filter(e => !e.classList.contains('hidden'));
@@ -631,12 +652,13 @@
   // ---------- telas ----------
   let overlayCancel = null, overlaySticky = false;
   const overlay = (html, sticky = false) => { overlayCancel = null; overlaySticky = sticky; $('#overlayBox').innerHTML = html; $('#overlay').classList.remove('hidden'); };
-  const closeOverlay = () => $('#overlay').classList.add('hidden');
+  const closeOverlay = () => { $('#overlay').classList.add('hidden'); $('#overlay').classList.remove('ensina', 'canto', 'meio', 'cima'); };
   $('#overlay').addEventListener('click', ev => { if (ev.target.id !== 'overlay' || overlaySticky) return; const c = overlayCancel; overlayCancel = null; closeOverlay(); if (c) c(); });
 
-  function ask(title, desc, okLabel = 'confirmar'){
+  /** `perigo` pinta o botão de vermelho: o que não tem volta não pode parecer um voltar */
+  function ask(title, desc, okLabel = 'confirmar', perigo = false){
     return new Promise(res => {
-      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
+      overlay(`<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big${perigo ? ' perigo' : ''}">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`);
       overlayCancel = () => res(false); $('#okBtn').onclick = () => { closeOverlay(); res(true); }; $('#okBtn').focus();
       $('#cancelBtn').onclick = () => { overlayCancel = null; closeOverlay(); res(false); };
     });
@@ -695,7 +717,7 @@
       <div class="c" style="margin-top:12px"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`, true);
     $('#setupForm').onsubmit = ev => { ev.preventDefault();
       const name = $('#setupName').value.trim(); if (!name) return;
-      if (state.people.some(q => q.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
+      if (nomeExiste(name)) return toast('Já existe alguém com esse nome');
       state.people.push({ id: uid(), name, at: Date.now() }); commit(); showSetup(); };
     // o ✕ vai pro deleted também: senão o merge() traz a pessoa de volta do banco no próximo sync
     for (const b of inputs('#overlayBox [data-drop]'))
@@ -704,7 +726,7 @@
     $('#setupGo').onclick = () => { if (!state.people.length) return;
       if (state.people.length === 1) return souEu(state.people[0].id);
       closeOverlay(); showWho(); };
-    $('#setupLeave').onclick = async () => { if (await ask('Sair do evento?', '', 'sair')) leave(); };
+    $('#setupLeave').onclick = async () => { if (await ask('Sair do evento?', '', 'sair', true)) leave(); };
     $('#setupName').focus();
   }
   // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
@@ -725,7 +747,7 @@
       if (v) entra(v); };
     $('#whoForm').onsubmit = ev => { ev.preventDefault();
       const n = $('#whoNew').value.trim(); if (!n) return;
-      if (state.people.some(q => q.name.toLowerCase() === n.toLowerCase())) return toast('Já existe alguém com esse nome');
+      if (nomeExiste(n)) return toast('Já existe alguém com esse nome');
       const p = { id: uid(), name: n, at: Date.now() }; state.people.push(p); commit(); entra(p.id); };
     $('#whoSel').focus();
   }
@@ -748,8 +770,8 @@
     if (!existing && !seed) {
       if (!(await ask('Evento novo?', `não existe evento com o código "${esc(code)}". criar um agora? o link ganha um final sorteado, pra ninguém adivinhar.`, 'criar evento'))) throw new Error('confira o código');
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
-      // vira "churras-k7f3q9x2", e o nome da tela continua "churras". 36⁸ finais possíveis
-      const nome = code; code = `${code}-${sorteia(8)}`; id = await sha(code);
+      // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
+      const nome = code; code = `${code}-${sorteia(6)}`; id = await sha(code);
       await apiPut(id, fresh(nome));
     } else if (!existing) {   // #seed=: restaura uma cópia com o mesmo código, sem sortear nada
       let data = fresh(code);
@@ -787,26 +809,43 @@
   }
   function showRoom(){
     overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
-      <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v">${esc(roomName)}</span></div>
+      <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
       <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
       <div class="hr"></div>
       <button id="evBack" class="sec">voltar</button>
       <div class="c" style="margin-top:12px"><button id="evLeave" class="ghost" style="color:var(--red)">sair do evento</button></div>`);
     $('#evBack').onclick = closeOverlay;
-    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair')) leave(); };
+    // o código é o que se manda no zap: um toque copia
+    $('#evCode').onclick = () => navigator.clipboard.writeText(roomName).then(() => toast('Código copiado.'), () => showCopy('Código do evento', roomName));
+    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair', true)) leave(); };
   }
   function leave(){ setDevice('lastRoom', undefined); location.href = location.pathname; }
 
   // ---------- eventos ----------
   $('#addPerson').onclick = async () => { const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim(); if (!name) return;
-    if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) return toast('Já existe alguém com esse nome');
+    if (nomeExiste(name)) return toast('Já existe alguém com esse nome');
     state.people.push({ id: uid(), name, at: Date.now() }); commit(); };
   $('#toggleAll').onclick = () => { showAll = !showAll; render(); };
   $('#itemsHead').onclick = () => { itemsOpen = !itemsOpen; if (itemsOpen) setDevice('itemsOpened', true); render(); };
   // é um botão pra quem usa teclado também: Enter e Espaço abrem como o clique
   $('#itemsHead').addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('#itemsHead').click(); } });
   const openSheet = () => { $('#sheet').classList.remove('hidden'); $('#amount').focus(); };
-  const closeSheet = () => $('#sheet').classList.add('hidden');
+  /** @type {string|null} */ let editando = null;
+  const limpaForm = () => { editando = null; $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal';
+    $('#splitChips').innerHTML = ''; $('#sharesBox').innerHTML = ''; delete $('#sharesBox').dataset.k;
+    $('#sheet h2').textContent = 'Anotar'; $('#expenseForm button.big').textContent = 'Anotar'; };
+  // fechar no meio de uma edição joga ela fora: o próximo anotar começa limpo
+  const closeSheet = () => { $('#sheet').classList.add('hidden'); if (editando) { limpaForm(); render(); } };
+  /** o anotar abre com o item preenchido; salvar troca ele por um novo no mesmo lugar */
+  function editaItem(e){
+    limpaForm(); editando = e.id; render();
+    $('#amount').value = fmt(e.amount); $('#desc').value = e.desc; $('#payer').value = e.payer;
+    for (const c of inputs('#splitChips input')) { c.checked = e.among.includes(c.value); c.closest('.chip').classList.toggle('on', c.checked); }
+    splitMode = e.shares ? 'custom' : 'equal'; updateHint();
+    if (e.shares) { for (const i of inputs('#sharesBox input[data-share]')) i.value = fmt((e.shares[i.dataset.share] || 0) / 100); atualizaFalta(); }
+    $('#sheet h2').textContent = 'Editar'; $('#expenseForm button.big').textContent = 'Salvar'; openSheet();
+  }
+  const apagaItem = e => { state.expenses = state.expenses.filter(x => x.id !== e.id); state.deleted.push(e.id); };
   // rolou a nota, o ✎ e o zap já estão por cima do texto: ficam meio transparentes
   const rolou = () => document.body.classList.toggle('rolou', scrollY > 8);
   addEventListener('scroll', rolou, { passive: true }); rolou();
@@ -821,8 +860,10 @@
     if (splitMode === 'custom') { const sh = customShares(); const total = Math.round(amount*100); const sum = among.reduce((a, id) => a + (sh[id] || 0), 0);
       if (sum !== total) return toast(sum < total ? `Faltam ${money((total-sum)/100)} nas partes` : `Sobram ${money((sum-total)/100)} nas partes`);
       exp.shares = {}; for (const id of among) exp.shares[id] = sh[id] || 0; }
-    state.expenses.push(exp);
-    $('#desc').value = ''; $('#amount').value = ''; splitMode = 'equal'; itemsOpen = true; closeSheet(); commit(); toast('Anotado!'); };
+    const velho = editando && state.expenses.find(x => x.id === editando);
+    if (velho) { exp.at = velho.at; apagaItem(velho); }
+    state.expenses.push(exp); state.expenses.sort((x, y) => x.at - y.at);
+    limpaForm(); itemsOpen = true; closeSheet(); commit(); toast(velho ? 'Editado!' : 'Anotado!'); };
   $('#payer').onchange = updateHint;
   document.addEventListener('change', ev => { const tgt = /** @type {HTMLInputElement} */ (ev.target); if (tgt.matches('#splitChips input')) { tgt.closest('.chip').classList.toggle('on', tgt.checked); updateHint(); } });
   // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.
@@ -831,11 +872,11 @@
     if (ev.pointerType === 'mouse') return;   // no mouse quem responde é o hover
     const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (ev.target).closest('#mineRows .dupla > button.ico'));
     if (!b) return;
-    tocouOk = true; b.classList.remove('pisca');
+    anim.tocouOk = true; b.classList.remove('pisca');
     // a piscada é montada com `animation-delay` inline, e declaração inline vence a
     // folha: sem tirar o atraso, o toque nascia adiantado (a piscada correndo) ou
     // parado no primeiro quadro pelo tempo do atraso que sobrou
-b.style.removeProperty('animation-delay'); b.classList.remove('brota');
+    b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // tocar de novo antes da anterior acabar recomeça a animação
     b.classList.remove('tocou'); void b.offsetWidth; b.classList.add('tocou');
     b.addEventListener('animationend', () => b.classList.remove('tocou'), { once: true });
@@ -843,11 +884,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   document.addEventListener('click', async ev => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
     /** @returns {HTMLElement|null} */ const near = sel => /** @type {HTMLElement|null} */ (tgt.closest(sel));
-    if (!near('a,button,input,label')) { const it = near('.item'); if (it) { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); } }
+    const abreItem = it => { const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); };
+    if (!near('a,button,input,label')) { const it = near('.item'); if (it) abreItem(it); }
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
     if (near('#settle .empty.anota')) return $('#fab').click();
     const am = near('[data-among]');
-    if (am) { const it = /** @type {HTMLElement} */ (am.closest('.item')); const id = it.dataset.item; openItems.has(id) ? openItems.delete(id) : openItems.add(id); it.classList.toggle('open'); return; }
+    if (am) { abreItem(/** @type {HTMLElement} */ (am.closest('.item'))); return; }
     const px = near('[data-pix]');
     if (px) { const [to, cents] = px.dataset.pix.split('|'); const code = pixCode(pixKeys[to], nameOf(to), +cents);
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }
@@ -857,7 +899,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     const un = near('[data-undo]');
     if (un) { const id = un.dataset.undo; const e = state.expenses.find(x => x.id === id); if (!e) return;
       if (!(await ask('Desfazer o pagamento?', `${nm(e.payer)} → ${nm(e.among[0])} · ${money(e.amount)}`, 'desfazer'))) return;
-      state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); vistos.delete(id); commit(); toast('Desfeito'); return; }
+      state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); anim.riscos.delete(id); commit(); toast('Desfeito'); return; }
     const st = near('[data-settle]');
     if (st) { const [from, to, cents] = st.dataset.settle.split('|'); const amount = +cents/100;
       const r = st.getBoundingClientRect(), fx = r.left + r.width/2, fy = r.top + r.height/2;
@@ -870,7 +912,9 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     const de = near('[data-del-expense]');
     if (de) { const id = de.dataset.delExpense; const e = state.expenses.find(x => x.id === id); if (!e) return;
       if (!(await ask('Excluir item?', `${esc(e.desc)} · ${money(e.amount)}`, 'excluir'))) return;
-      state.expenses = state.expenses.filter(x => x.id !== id); state.deleted.push(id); commit(); }
+      apagaItem(e); commit(); }
+    const ed = near('[data-edit-expense]');
+    if (ed) { const e = state.expenses.find(x => x.id === ed.dataset.editExpense); if (e) editaItem(e); }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
   const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : 'https://tolisa.com.br/';
@@ -897,8 +941,6 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     const L = M + P; let y = M + 12 + 50;
     const up = t => String(t).toUpperCase();
     const fit = (t, n) => { t = up(t); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + '…' : t; };
-    const num = cents => fmt(cents/100);
-    const numBig = cents => { const [i, d] = (Math.abs(cents)/100).toFixed(2).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
     const line = (t, col = INK) => { x.fillStyle = col; x.textAlign = 'left'; x.fillText(t, L, y); y += LH; };
     const center = (t, hl) => { x.textAlign = 'center'; if (hl) { const w = x.measureText(t).width + 16; x.fillStyle = HL; x.fillRect(W/2 - w/2, y - FS*0.75, w, FS*0.95); } x.fillStyle = INK; x.fillText(t, W/2, y); y += LH; };
     const dash = () => line('-'.repeat(COLS), INK2);
@@ -908,7 +950,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     /** @param {{ t: string, id?: string, w?: number }[]} segs */
     const flow = segs => { let col = 0, t = ''; for (const g of segs) { if (!g.t) continue; if (col > 2 && col + (g.w || g.t.length) > COLS) { line(t.trimEnd(), INK2); t = '  '; col = 2; }
       if (g.id) mark(col, g.t.length, markForte(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };
-    const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}).replace(':', ':') + 'H';
+    const now = new Date(); const d2 = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'2-digit'}); const hm = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + 'H';
 
     center(`*** TÔ LISA ***`);
     center(fit(`${up(evento())} · ${d2} ${hm}`, COLS)); blank(); dash();
@@ -943,7 +985,7 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       for (const id of e.among) { const ini = initial(id); if (col + ini.length > COLS) break; mark(col, ini.length, markForte(id)); t += ini + ' '; col += ini.length + 1; }
       line(t.trimEnd(), INK2); }
     blank();
-    line(leader('TOTAL', 'R$ ' + numBig(totalCents)), INK2);
+    line(leader('TOTAL', 'R$ ' + num(totalCents)), INK2);
     dash();
     blank(); center('* * *');
     { const widths = code128Widths('420420420420'); const units = [...widths].reduce((a, c) => a + +c, 0); const BW = 240, BH = 40, k = BW / units; let bx = W/2 - BW/2;
@@ -992,11 +1034,23 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // o evento só serve pra um prompt(): depois some, e o navegador manda outro quando quiser
     if (convite) { const c = convite; convite = null; c.prompt(); const r = await c.userChoice;
       setDevice('installPrompted', true); mostraInstalar(); if (r.outcome !== 'accepted') toast('Deixa pra próxima, meu bem.'); return; }
-    overlay(`<h2 style="margin-top:0">Instalar</h2>
-      <p class="muted" style="margin:0 0 14px;text-align:center;text-transform:none">no iPhone é pelo Safari, em três toques:</p>
-      <div class="passos">1. toque no <span class="tecla">•••</span> ao lado do endereço.<br>2. toque em <span class="tecla">${SHARE_SVG} Compartilhar</span>.<br>3. desça e escolha <b>Adicionar à Tela de Início</b>.</div>
-      <p class="muted" style="margin:10px 0 0;text-align:center;text-transform:none;font-size:15px">no Safari antigo o ${SHARE_SVG} já fica lá embaixo.</p>
-      <button id="instOk" class="sec" style="margin-top:16px">entendi</button>`);
+    // quadrinhos: cada passo com o desenho do que vai aparecer no Safari e o botão a tocar
+    // pintado, e uma seta pulando em cima do lugar de verdade. O Safari 26 guarda o
+    // Compartilhar no •••, no canto de baixo; o antigo deixa ele no meio da barra de baixo,
+    // e o iPad, em cima
+    const ver = +((navigator.userAgent.match(/Version\/(\d+)/) || [])[1] || 26);
+    const ipad = /ipad/i.test(navigator.userAgent) || navigator.platform === 'MacIntel';
+    const onde = ipad ? 'cima' : ver >= 26 ? 'canto' : 'meio';
+    const passo = (n, tela, txt) => `<div class="passo"><div class="tela">${tela}</div><p><b>${n}.</b> ${txt}</p></div>`;
+    const compartilhar = n => passo(n, `<span>Copiar</span><span class="toca">${SHARE_SVG} Compartilhar</span>`, 'toque em <b>Compartilhar</b>.');
+    const tela = n => passo(n, `<span>Adicionar aos Favoritos</span><span class="toca">${MAIS_SVG} Tela de Início</span>`, 'desça e toque em <b>Adicionar à Tela de Início</b>.');
+    const passos = onde === 'canto'
+      ? passo(1, `<div class="barra"><span>tolisa.com.br</span><span class="toca">•••</span></div>`, 'toque no <b>•••</b> lá embaixo.') + compartilhar(2) + tela(3)
+      : passo(1, `<div class="barra"><span class="toca">${SHARE_SVG}</span></div>`, `toque no <b>${SHARE_SVG}</b> lá ${onde === 'cima' ? 'em cima' : 'embaixo'}.`) + tela(2);
+    overlay(`<h2 style="margin-top:0">Instalar</h2>${passos}
+      <button id="instOk" class="sec" style="margin-top:10px">entendi</button>
+      <svg class="seta ${onde}" width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 8C30 90 70 150 122 176"/><path d="M96 178H124L116 152"/></svg>`);
+    $('#overlay').classList.add('ensina', onde);
     $('#instOk').onclick = closeOverlay;
   };
   mostraInstalar();
@@ -1006,12 +1060,8 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     setDevice('installPrompted', true);   // aceite ou recuse, o ✎ não pergunta de novo
     const c = convite; convite = null; mostraInstalar(); c.prompt();
   }
-  // o Compartilhar do Safari: quadrado aberto com a seta saindo pra cima
-  const SHARE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px"><path d="M12 3v12M7 8l5-5 5 5M5 12v8h14v-8"/></svg>';
-  const LAPIS_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg>';
-  const WA_SVG = '<svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
   function festa(x, y){
-    if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    if (semMovimento()) return;
     const box = document.createElement('div'); box.className = 'confete';
     box.style.left = x + 'px'; box.style.top = y + 'px';
     for (let i = 0; i < 26; i++) { const s = document.createElement('i');
@@ -1090,32 +1140,36 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // a ficha espera a pessoa chegar no fim da página. Antes bastava o código de barras
     // aparecer, e numa tela alta (o app instalado, sem barra de navegador) ele já estava
     // à vista na abertura: a ficha caía junto com o resto se animando, sem ninguém ver.
-    // E ela entra na fila do agenda(), então é sempre a última coisa a acontecer.
+    // Na fila ela vem logo depois dos riscos, antes do Sou Fulano e do ✎, que esperam ela.
     const DIVA_MS = 1100, FOLGA = 8;
     const noFim = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - FOLGA;
-    let jogada = false, aviso = 0;
+    let jogada = false, marcada = false, aviso = 0;
+    fichaVem = () => { if (!jogada) confere(); return !chato && jogada && !marcada; };
     const confere = () => {
       // ainda carregando, a nota é só o spinner: numa tela alta isso já é o "fim da
       // página" e a ficha caía antes do evento existir
       if (chato || jogada || $('#app').classList.contains('loading')) return;
       if (el.classList.contains('hidden') || !noFim()) return;   // nota sem gasto: a ficha espera
+      // com cartão ou o anotar abertos ela cairia por trás, sem ninguém ver: espera fechar
+      if (!semCartao() || !$('#sheet').classList.contains('hidden')) return;
       jogada = true; sorteia(); clearTimeout(aviso);
       // as seções só entram na fila depois que o #app sai do loading e o observador
       // reporta; pegar a vez no mesmo quadro fazia a ficha furar tudo. Um respiro e
       // aí sim ela pega o último lugar.
-      aviso = setTimeout(() => { const t = agenda(DIVA_MS);
+      aviso = setTimeout(() => { const t = agenda(DIVA_MS); marcada = true; render();   // agora o Sou Fulano e o ✎ entram, atrás dela
         aviso = setTimeout(() => { el.classList.add('voou');
           // sem animação (movimento reduzido) não há animationend: já pousa
-          if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.classList.remove('voou'); el.classList.add('pousou'); } }, Math.max(0, t - Date.now())); }, 400); };
+          if (semMovimento()) { el.classList.remove('voou'); el.classList.add('pousou'); } }, Math.max(0, t - Date.now())); }, 400); };
     window.addEventListener('scroll', confere, { passive: true });
     window.addEventListener('resize', confere);
     if ('ResizeObserver' in window) new ResizeObserver(confere).observe($('#app'));
-    // uma jogada só: chegar no fim de novo não traz outra. Recomeça quando a pessoa
-    // troca de nome, aí sim vale outra ficha
+    for (const q of ['#overlay', '#sheet']) new MutationObserver(confere).observe($(q), { attributes: true, attributeFilter: ['class'] });
+    // uma jogada só: chegar no fim de novo não traz outra, até o rejogaDiva (trocou de
+    // nome, a ficha entrou num botão, a diva voltou a falar).
     // pousou: a ficha passa a ser pegável. Dois toques ela treme; o terceiro já agarra,
     // no mesmo gesto. Agarrada, sai do papel pro body (fixed dentro de algo com
-    // transform não fica fixo) e segue o dedo; solta devagar, fica boiando ali; solta
-    // com força, voa na direção do arremesso, cai e some até a próxima jogada.
+    // transform não fica fixo) e segue o dedo; solta devagar, assenta no papel; solta num
+    // botão, aperta ele; solta com força, voa na direção do arremesso e some.
     const casa = el.parentElement, depois = el.nextSibling;
     // no aparelho de toque o dedo vai junto com a ficha; com mouse o gesto não fecha
     const pegavel = PEGA_FICHA || navigator.maxTouchPoints > 0;
@@ -1123,6 +1177,50 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     // graus por px: uma volta a cada perímetro da ficha (70px de diâmetro)
     const ROLA = 360 / (Math.PI * 70);
     let toques = 0, zera = 0, pega = null, voo = 0;
+    // soltar a ficha em cima de um botão aperta ele, que nem ficha em fenda de máquina: no
+    // ▸ dos itens abre a lista, no ✔ quita (que já pergunta antes), no copiar pix copia.
+    // Vale o centro da ficha, não a ponta do dedo, e só depois de arrastar de verdade:
+    // agarrar e soltar no lugar, ou um arremesso que passa voando por cima, não aperta nada
+    const ALVOS = '#itemsHead, [data-settle], [data-pix], [data-copy-value], #fab, #waBtn, #shareBtn, #whoBtn, #roomLabel, #toggleAll';
+    const ARRASTO = 24;   // px do dedo até a ficha passar a mirar
+    /** @returns {HTMLElement|null} o botão debaixo do centro da ficha */
+    const mirado = () => { const b = el.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height / 2;
+      const n = document.elementsFromPoint(x, y).find(n => n !== el);
+      const a = /** @type {HTMLElement|null} */ (n && n.closest(ALVOS));
+      if (!a || a.classList.contains('hidden') || /** @type {HTMLButtonElement} */ (a).disabled) return null;
+      // o centro tem que cair no botão mesmo: a folga que o ✔ ganha pro dedo não vale pra ficha
+      const r = a.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom ? a : null; };
+    // o botão mirado acende, e a ficha fica meio transparente pra ele aparecer por baixo
+    let mira = null;
+    const aponta = a => { if (a === mira) return; if (mira) mira.classList.remove('mira');
+      mira = a; if (a) a.classList.add('mira'); el.classList.toggle('mirando', !!a); };
+    // segurada perto da borda de cima ou de baixo, a página rola por baixo dela: da ficha
+    // no rodapé até o ✔ lá em cima, numa nota comprida, sem ter outro dedo pra rolar
+    const BORDA = 80, RAPIDO = 16;   // px da borda onde começa a rolar; px por quadro, no talo
+    let rola = 0;
+    const rolaBorda = () => { if (!pega) return;
+      const y = pega.y, v = !pega.andou ? 0 : y < BORDA ? -(BORDA - y) / BORDA : y > innerHeight - BORDA ? (y - innerHeight + BORDA) / BORDA : 0;
+      if (v) { const antes = scrollY; scrollBy(0, Math.round(Math.max(-1, Math.min(1, v)) * RAPIDO)); if (scrollY !== antes) aponta(mirado()); }
+      rola = requestAnimationFrame(rolaBorda); };
+    // nada de ler layout entre tirar o segura e pôr o engole: a leitura fixaria a ficha
+    // opaca no meio do caminho e ela piscava inteira antes de sumir
+    const engole = alvo => {
+      const r = alvo.getBoundingClientRect(), tranco = alvo.matches('#mineRows .dupla > button.ico') ? 'tocou' : 'engoliu';
+      el.classList.remove('segura'); aponta(null);
+      el.style.left = (r.left + r.width / 2 - D / 2) + 'px'; el.style.top = (r.top + r.height / 2 - D / 2) + 'px';
+      el.style.setProperty('--rot', ((parseFloat(el.style.getPropertyValue('--rot')) || 0) + 160).toFixed(1) + 'deg');
+      el.classList.add('engole');
+      // o clique vem já, ainda dentro do gesto: copiar pro clipboard e abrir o zap só valem com o dedo acabando de sair
+      alvo.click();
+      // o botão dá o tranco de quem recebeu: o ✔ e o copiar pix com o toque deles, o resto um pulinho
+      alvo.classList.remove(tranco); void alvo.offsetWidth; alvo.classList.add(tranco);
+      alvo.addEventListener('animationend', () => alvo.classList.remove(tranco), { once: true });
+      // entrou, some; volta a cair da próxima vez que a pessoa chegar no fim da página.
+      // O relógio de reserva é pra quando a transição não roda (aba escondida)
+      const some = () => { el.removeEventListener('transitionend', apagou); clearTimeout(reserva); el.classList.add('fora'); rejogaDiva(); };
+      const apagou = e => { if (e.propertyName === 'opacity') some(); };
+      el.addEventListener('transitionend', apagou); const reserva = setTimeout(some, 900); };
     el.addEventListener('animationend', e => { if (e.animationName === 'treme') el.classList.remove('treme');
       // pousada, larga as classes do voo: a cambalhota vence o pousou no CSS e rejogava a cada toque
       else if (el.classList.contains('voou')) { el.classList.remove('voou', 'cambalhota', 'requica'); el.classList.add('pousou'); } });
@@ -1143,16 +1241,18 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       const cx = b.left + (b.width - el.offsetWidth) / 2, cy = b.top + (b.height - el.offsetHeight) / 2;
       el.style.left = cx + 'px'; el.style.top = cy + 'px';
       el.classList.remove('voando'); el.classList.add('segura');
-      pega = { dx: e.clientX - cx, dy: e.clientY - cy, x: e.clientX, rot: parseFloat(el.style.getPropertyValue('--rot')) || -16,
+      pega = { dx: e.clientX - cx, dy: e.clientY - cy, x: e.clientX, x0: e.clientX, y0: e.clientY, y: e.clientY, andou: false, rot: parseFloat(el.style.getPropertyValue('--rot')) || -16,
         rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
-      el.setPointerCapture(e.pointerId); });
+      el.setPointerCapture(e.pointerId); cancelAnimationFrame(rola); rola = requestAnimationFrame(rolaBorda); });
     el.addEventListener('pointermove', e => { if (!pega) return;
       el.style.left = (e.clientX - pega.dx) + 'px'; el.style.top = (e.clientY - pega.dy) + 'px';
       // rola com o dedo, que nem moeda na mesa: cada px pro lado gira o que a borda andou
-      pega.rot += (e.clientX - pega.x) * ROLA; pega.x = e.clientX;
+      pega.rot += (e.clientX - pega.x) * ROLA; pega.x = e.clientX; pega.y = e.clientY;
       el.style.setProperty('--rot', pega.rot.toFixed(1) + 'deg');
       pega.rastro.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
-      while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift(); });
+      while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift();
+      if (!pega.andou) pega.andou = Math.hypot(e.clientX - pega.x0, e.clientY - pega.y0) > ARRASTO;
+      if (pega.andou) aponta(mirado()); });
     // largada devagar, a ficha volta pro papel no ponto em que parou: presa na tela ela
     // ficava boiando por cima de tudo, andando junto com a rolagem
     const assenta = () => {
@@ -1166,7 +1266,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     const solta = e => { if (!pega) return;
       const p0 = pega.rastro[0], dt = Math.max(16, e.timeStamp - p0.t);
       let vx = (e.clientX - p0.x) / dt, vy = (e.clientY - p0.y) / dt;   // px por ms
-      pega = null; el.classList.remove('segura');
+      // pointercancel é o sistema tomando o gesto, não a pessoa soltando: não aperta nada
+      const alvo = e.type === 'pointerup' && pega.andou ? mirado() : null;
+      pega = null;
+      // em cima de um botão, a mão que desacelera mirando ainda conta como largar
+      if (alvo && Math.hypot(vx, vy) < 1.2) return engole(alvo);
+      el.classList.remove('segura'); aponta(null);
       if (Math.hypot(vx, vy) < 0.7) return assenta();                  // devagar: assenta onde parou
       // arremesso: sai mais rápido que a mão e segue reto com gravidade, girando no
       // mesmo sentido em que rolava, até sair da tela
@@ -1182,12 +1287,12 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
       voo = requestAnimationFrame(passo); };
     el.addEventListener('pointerup', solta);
     el.addEventListener('pointercancel', solta);
-    rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = false; pega = null; toques = 0;
+    rejogaDiva = () => { clearTimeout(aviso); cancelAnimationFrame(voo); jogada = marcada = false; pega = null; toques = 0; aponta(null);
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga');
+      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga', 'engole');
       confere(); };
     // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
-    senha(el, () => { chato = true; setDevice('boringMode', true); pega = null; cancelAnimationFrame(voo);
+    senha(el, () => { chato = true; setDevice('boringMode', true); pega = null; cancelAnimationFrame(voo); aponta(null);
       el.classList.remove('segura', 'treme'); el.classList.add('apaga');
       setTimeout(() => { document.body.classList.add('chato'); render(); }, 700); });
     // e no "Deus é fiel." do rodapé, liga de novo: ela volta falando e é jogada outra vez
@@ -1198,21 +1303,18 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
   let olhoSec = null;
   function armaOlho(){
-    if (!('IntersectionObserver' in window)) { mineNaTela = itensNaTela = settleNaTela = true; return; }
+    if (!('IntersectionObserver' in window)) { anim.naTela = { mine: true, itens: true, settle: true }; return; }
     if (olhoSec) olhoSec.disconnect();
     olhoSec = new IntersectionObserver(es => { let mudou = false;
       for (const e of es) { if (!e.isIntersecting) continue;
-        if (e.target.id === 'mine' && !mineNaTela) { mineNaTela = true; mudou = true; }
-        if (e.target.id === 'itemsSec' && !itensNaTela) { itensNaTela = true; mudou = true; }
-        if (e.target.id === 'settle' && !settleNaTela) { settleNaTela = true; mudou = true; }
+        const k = { mine: 'mine', itemsSec: 'itens', settle: 'settle' }[e.target.id];
+        if (k && !anim.naTela[k]) { anim.naTela[k] = true; mudou = true; }
         if (olhoSec) olhoSec.unobserve(e.target); }
       if (mudou) render(); }, { threshold: .08 });
     for (const id of ['#mine', '#itemsSec', '#settle']) olhoSec.observe($(id));
   }
   /** nota nova (outro evento, outra pessoa): tudo volta pra fila e espera a tela de novo */
-  function rearmaAnims(){ vistos.clear(); pixVisto.clear();
-    settleT = riscoT = mineT = itensT = filaT = fimT = fabT = souT = 0; cutucas.forEach(clearTimeout); cutucas = []; viuItens = false; tocouOk = false;   // nota nova, convite novo
-    mineNaTela = itensNaTela = settleNaTela = false;
+  function rearmaAnims(){ anim.cutucas.forEach(clearTimeout); anim = novaNota();
     const ih = $('#itemsHead'); ih.classList.remove('pisca', 'suave'); delete ih.dataset.pisca; ih.style.removeProperty('--ad');
     armaOlho(); }
   armaOlho();
@@ -1231,8 +1333,8 @@ b.style.removeProperty('animation-delay'); b.classList.remove('brota');
     $('#bars').innerHTML = `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none" fill="#222" aria-hidden="true">${rects}</svg>`;
   })();
 
-  // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
   // ---------- início ----------
+  // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
   (async () => {
     const c = new URLSearchParams(location.search).get('senha');
     const saved = device().lastRoom;

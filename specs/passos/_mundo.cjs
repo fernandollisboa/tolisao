@@ -7,6 +7,9 @@ const cobertura = require('../_cobertura.cjs');
 defineParameterType({ name: 'num', regexp: /\d+(?:\.\d{3})*(?:,\d+)?/, transformer: s => Number(s.replace(/\./g, '').replace(',', '.')) });
 defineParameterType({ name: 'gente', regexp: /[^"]+?/, transformer: s => s.split(/\s*,\s*|\s+e\s+/).filter(Boolean) });
 
+// o relógio dos testes: toda aba nasce nessa hora, em São Paulo, e o tempo anda dali
+const AGORA = Date.parse('2026-03-10T15:00:00-03:00');
+
 const idDe = nome => nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 class Mundo {
@@ -20,7 +23,8 @@ class Mundo {
   criaEvento(dados) { this.evento = dados; this.sala = this.banco.sala(dados); return dados; }
 
   async abre({ quem, toque = false, semEvento = false } = {}) {
-    const ctx = await this.browser.newContext({ acceptDownloads: true, hasTouch: toque, isMobile: toque });
+    const ctx = await this.browser.newContext({ acceptDownloads: true, hasTouch: toque, isMobile: toque, timezoneId: 'America/Sao_Paulo' });
+    await ctx.clock.setSystemTime(AGORA);
     this.contextos.push(ctx);
     await this.banco.liga(ctx);
     await ctx.addInitScript(() => {
@@ -63,4 +67,4 @@ const test = base.extend({
   mundo: async ({ browser, servidor }, use) => { const m = new Mundo(browser, servidor); await use(m); await m.fecha(); },
 });
 
-module.exports = { test, expect, idDe, ...createBdd(test) };
+module.exports = { test, expect, idDe, AGORA, ...createBdd(test) };

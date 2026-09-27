@@ -19,7 +19,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 ## comandos
 
 - rodar: `python3 -m http.server`.
-- testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
+- testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). a saída é pontinho, falhas e os 5 cenários mais lerdos; `npm run relatorio` gera o passo a passo em `specs/relatorio.html`. o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
 - cobertura: `npm run cobertura` (aceita `-- pix`) diz o % de linhas do `app.js` que os cenários executam e os trechos sem cenário. é lanterna, não meta nem check.
 - tipos: `npm run types` (tem que sair limpo). sintaxe: `node --check app.js`.
 
@@ -45,7 +45,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário.
 - **CSP** no `<meta>` do `index.html`: só o próprio site e `*.firebaseio.com`. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
-- **código do evento** ganha final sorteado (`sorteia(8)`): código curto se adivinha testando o hash no banco.
+- **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.
 - **dinheiro** é centavo inteiro até virar texto.
 - **`og5.jpg`** abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.

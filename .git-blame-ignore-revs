@@ -1,0 +1,5 @@
+# commits só de formato: o git blame (e o GitHub) pulam eles
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# prettier no app.js
+329cf4eede2381261ff19e3a402e8e552814c1ad

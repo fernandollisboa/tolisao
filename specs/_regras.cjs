@@ -46,7 +46,7 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
 {
   const sala = banco.rules.rooms.$room, pessoa = sala.people.$i, item = sala.expenses.$i;
   const limite = v => +(v['.validate'].match(/length <= (\d+)/)?.[1] ?? NaN);
-  const corpo = app.match(/function clean\(d\)\{[\s\S]*?\n {2}\}/)?.[0] || '';
+  const corpo = app.match(/function clean\(d\)\s*\{[\s\S]*?\n {2}\}/)?.[0] || '';
   const pares = [
     ['nome do evento', limite(sala.name), /str\(d\.name, (\d+)\)/],
     ['nome da pessoa', limite(pessoa.name), /str\(p\.name, (\d+)\)/],

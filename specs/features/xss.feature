@@ -25,3 +25,19 @@ Funcionalidade: Tudo que vem do banco é hostil
     E a lista tem 1 item, com o "<script>" escrito como texto
     E não aparece nenhum botão de copiar pix
     E não aparece nenhuma imagem além da ficha
+
+  # os três limites do clean() (evento 40, pessoa 30, item 60) com um emoji começando
+  # exatamente na última unidade que cabe: o slice() parava no meio do par surrogate
+  Cenário: emoji no limite do corte não vira meia letra
+    Dado que alguém gravou no banco o evento:
+      """
+      { "name": "aniversario de 40 anos da vovo zizi no 🎉 sitio", "updatedAt": 1, "deleted": [],
+        "people": [
+          { "id": "fernando", "name": "Fernando", "at": 1 },
+          { "id": "lia", "name": "fernando da silva sauro junio🎉", "at": 2 } ],
+        "expenses": [
+          { "id": "a", "desc": "churrasco de domingo na casa da vovo zizi la no sitio grand🎉 e mais", "amount": 90, "payer": "fernando", "among": ["fernando", "lia"], "at": 3 } ] }
+      """
+    Quando eu abro o evento como Fernando
+    E eu abro a lista de itens
+    Então nada na tela tem meia letra

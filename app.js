@@ -112,7 +112,12 @@
   // ---------- merge (união por id; exclusões vencem) ----------
   // dados do banco/cache são de terceiros: só ids [a-z0-9] entram em atributos HTML, tudo o mais vira string curta ou número
   const okId = id => typeof id === 'string' && /^[a-z0-9]{1,32}$/.test(id);
-  const str = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+  // o limite é em unidade UTF-16 porque é o que o .validate do banco conta (length <= 40,
+  // 30, 60): cortar por grafema deixaria 40 emojis com 80 unidades e a escrita seria
+  // recusada. Só não pode parar no meio de um par surrogate — meia letra vira � na tela,
+  // na comanda e no zap. Aparar a metade órfã nunca deixa a string maior que o orçamento.
+  const apara = t => /[\uD800-\uDBFF]$/.test(t) ? t.slice(0, -1) : t;
+  const str = (v, n) => typeof v === 'string' ? apara(v.slice(0, n)) : '';
   /** @param {any} d @returns {Room|null} */
   function clean(d){
     if (!d || typeof d !== 'object') return null;
@@ -944,13 +949,16 @@
     const mark = (col, len, color) => { x.fillStyle = color; x.fillRect(L + col*cw - 3, y - FS*0.72, len*cw + 6, FS*0.9); };
     const L = M + P; let y = M + 12 + 50;
     const up = t => String(t).toUpperCase();
-    const fit = (t, n) => { t = up(t); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + '…' : t; };
+    // a coluna continua contada em unidade UTF-16, que é o que a régua do papel usa;
+    // o apara() só não deixa a conta parar no meio de um par surrogate
+    const fit = (t, n) => { t = up(t); return t.length > n ? apara(t.slice(0, Math.max(1, n - 1))) + '…' : t; };
     const line = (t, col = INK) => { x.fillStyle = col; x.textAlign = 'left'; x.fillText(t, L, y); y += LH; };
     const center = (t, hl) => { x.textAlign = 'center'; if (hl) { const w = x.measureText(t).width + 16; x.fillStyle = HL; x.fillRect(W/2 - w/2, y - FS*0.75, w, FS*0.95); } x.fillStyle = INK; x.fillText(t, W/2, y); y += LH; };
     const dash = () => line('-'.repeat(COLS), INK2);
     const blank = () => { y += LH*0.6; };
     const norm = t => up(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const initial = id => { const n = norm(nameOf(id)); let k = 1; while (k < n.length && state.people.some(p => p.id !== id && norm(nameOf(p.id)).slice(0, k) === n.slice(0, k))) k++; return n.slice(0, k); };
+    const ini = (t, k) => apara(t.slice(0, k));
+    const initial = id => { const n = norm(nameOf(id)); let k = 1; while (k < n.length && state.people.some(p => p.id !== id && ini(norm(nameOf(p.id)), k) === ini(n, k))) k++; return ini(n, k); };
     /** @param {{ t: string, id?: string, w?: number }[]} segs */
     const flow = segs => { let col = 0, t = ''; for (const g of segs) { if (!g.t) continue; if (col > 2 && col + (g.w || g.t.length) > COLS) { line(t.trimEnd(), INK2); t = '  '; col = 2; }
       if (g.id) mark(col, g.t.length, markForte(g.id)); t += g.t; col += g.t.length; } if (t.trim()) line(t.trimEnd(), INK2); };

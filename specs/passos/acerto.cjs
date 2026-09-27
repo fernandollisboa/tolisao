@@ -36,6 +36,8 @@ When('eu quito a primeira linha de Minha conta e aviso no zap', async ({ mundo }
 Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/\u00a0/g, ' ').trim() : null))
     .toBe(txt.replace('{link do evento}', mundo.link).trim());
+  // pelo wa.me n\u00e3o: ele redireciona pra c\u00e1 trocando emoji astral (\ud83e\uddfe \ud83d\udcb8 \ud83d\udc49) por U+FFFD
+  expect(await mundo.p.evaluate(() => window.__aberto)).toContain('https://api.whatsapp.com/send?text=');
 });
 
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });

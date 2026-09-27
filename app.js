@@ -805,7 +805,7 @@
     const fecha = () => { closeOverlay(); seguraRisco = false; render(); };   // solta o risco da linha nova
     $('#quitOk').onclick = fecha;
     overlayCancel = fecha;
-    $('#waAviso').onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${evento()}* 👍\n${shareUrl()}`), '_blank', 'noopener'); fecha(); };
+    $('#waAviso').onclick = () => { abreZap(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${evento()}* 👍\n${shareUrl()}`); fecha(); };
   }
   function showRoom(){
     overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
@@ -895,7 +895,7 @@
       navigator.clipboard.writeText(code).then(() => toast('Pix copia e cola copiado. Cola no app do banco.'), () => showCopy('Pix copia e cola', code)); }
     const cb = near('[data-cobrar]');
     if (cb) { const [from, cents] = cb.dataset.cobrar.split('|'); const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
-      window.open('https://wa.me/?text=' + encodeURIComponent(`👀 ${nameOf(from)}, tá faltando ${money(+cents/100)} do *${evento()}*${pix}\n${shareUrl()}`), '_blank', 'noopener'); return; }
+      abreZap(`👀 ${nameOf(from)}, tá faltando ${money(+cents/100)} do *${evento()}*${pix}\n${shareUrl()}`); return; }
     const un = near('[data-undo]');
     if (un) { const id = un.dataset.undo; const e = state.expenses.find(x => x.id === id); if (!e) return;
       if (!(await ask('Desfazer o pagamento?', `${nm(e.payer)} → ${nm(e.among[0])} · ${money(e.amount)}`, 'desfazer'))) return;
@@ -919,6 +919,10 @@
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
   const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin + location.pathname : 'https://tolisa.com.br/';
   const shareUrl = () => `${SITE}?senha=${encodeURIComponent(roomName)}`;
+  // api.whatsapp.com, não wa.me: o wa.me redireciona pra cá e, no caminho, troca todo
+  // emoji astral (🧾 💸 👉, acima de U+FFFF) por U+FFFD. No celular o link abre o app
+  // direto e passa longe do redirecionamento, então o estrago só aparecia na web.
+  const abreZap = txt => window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
   $('#shareBtn').onclick = async () => { const url = shareUrl();
     try { await navigator.clipboard.writeText(url); toast('Link copiado. Quem abrir cai neste evento.'); } catch { showCopy('Link do evento', url); } };
   function summaryText(){
@@ -1003,7 +1007,7 @@
     g.drawImage(cc, 0, 0, W*S, H*S, 0, 0, W, H);
     return new Promise(res => c.toBlob(res, 'image/png'));
   }
-  const waText = () => window.open('https://wa.me/?text=' + encodeURIComponent(summaryText()), '_blank', 'noopener');
+  const waText = () => abreZap(summaryText());
   $('#waBtn').onclick = async () => {
     const btn = $('#waBtn'); btn.disabled = true; toast('Gerando a imagem…');
     try {

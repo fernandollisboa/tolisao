@@ -31,8 +31,8 @@
   const semCartao = () => document.querySelector('#overlay').classList.contains('hidden');
   const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } }, del: k => { try { localStorage.removeItem(k); } catch {} } };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, installPrompted, itemsOpened, boringMode, lastRoom: {code, id} }
-  //   tolisa:<sala>  { me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], snapshot }
+  //   tolisa         { visits, installPrompted, itemsOpened, boringMode }
+  //   tolisa:<sala>  { code, openedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa', roomKey = id => `${DEVICE}:${id}`;
   /** @returns {Record<string, any>} */
@@ -58,6 +58,12 @@
         else if (b === 'pixtok' && c) (sala(a).pixTokens ||= {})[c] ??= v; } }
     const ok = [[DEVICE, dev], ...Object.entries(salas).map(([id, o]) => [roomKey(id), o])].every(([k, o]) => ls.set(k, JSON.stringify(o)));
     if (ok) velhas.forEach(ls.del);
+  })();
+  // o último evento aberto morava na gaveta do aparelho; agora cada evento guarda o próprio
+  // código, que é o que a lista de eventos precisa pra reabrir. Sem ele o evento não volta
+  (() => { const r = device().lastRoom; if (!r) return;
+    if (typeof r.code === 'string' && /^[0-9a-f]{64}$/.test(r.id || '') && !mexe(roomKey(r.id), o => { o.code ??= r.code; o.openedAt ??= Date.now(); })) return;
+    setDevice('lastRoom', undefined);
   })();
   // visitas contadas neste aparelho: o convite de instalar e o aperto dos itens leem daqui
   const visitas = (+device().visits || 0) + 1; setDevice('visits', visitas);
@@ -195,9 +201,10 @@
     if (!html) return `÷${e.among.length}`;
     return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`; };
   /** @returns {Record<string, number>} saldo em centavos por pessoa (positivo = a receber) */
-  function balances(){
-    /** @type {Record<string, number>} */ const b = {}; state.people.forEach(p => b[p.id] = 0);
-    for (const e of state.expenses) {
+  /** @param {Room} s */
+  function balances(s = state){
+    /** @type {Record<string, number>} */ const b = {}; s.people.forEach(p => b[p.id] = 0);
+    for (const e of s.expenses) {
       const ids = e.among.filter(id => id in b); if (!ids.length || !(e.payer in b)) continue;
       const cents = Math.round(e.amount*100); b[e.payer] += cents; const sh = shareOf(e, ids); for (const id of ids) b[id] -= sh[id];
     }
@@ -682,25 +689,29 @@
   }
   function showGate(msg){
     $('#app').classList.add('loading', 'nospin');
-    const intro = msg ? '' : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">tipo Splitwise, só que sem app e sem cadastro.</div>
+    // quem já tem evento neste aparelho cai na lista; o convite e o autofocus (que abre o teclado por cima dela) são pra quem chega
+    const evs = meusEventos(), botao = evs.length ? 'Entrar' : 'Abrir';
+    const intro = msg || evs.length ? '' : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">tipo Splitwise, só que sem app e sem cadastro.</div>
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
         <div>1. anote quem pagou o quê, quando e com quem</div>
         <div>2. copie o pix e pague o deves</div>
         <div>3. cobre o amiguinho a fazer o mesmo</div>
       </div>`;
-    overlay(`<h1><span id="tituloGate">tô lisa</span></h1>${intro}<div class="hr"></div><h2 style="margin-top:0">Evento</h2><p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>
-      <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autofocus autocapitalize="none">
-      <p id="gateErr" class="status err" style="margin:0"></p><button class="big">Abrir</button></form>`, true);
+    const lista = evs.length ? `<div class="hr"></div><h2 style="margin-top:0">*** Meus eventos ***</h2>${listaEventos(evs, false)}` : '';
+    overlay(`<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2 style="margin-top:0">${evs.length ? 'Outro evento' : 'Evento'}</h2>${msg || !evs.length ? `<p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>` : ''}
+      <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required${evs.length ? '' : ' autofocus'} autocapitalize="none">
+      <p id="gateErr" class="status err" style="margin:0"></p><button class="big">${botao}</button></form>`, true);
     digitaTitulo($('#tituloGate'));
+    ligaEventos(evs);
     $('#gateForm').onsubmit = async ev => {
       ev.preventDefault();
-      const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = 'Abrindo…';
+      const btn = ev.target.querySelector('button'); btn.disabled = true; btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
       const code = $('#gateCode').value;
       try { await enterRoom(code.trim().toLowerCase()); }
       catch (e) {
         // o "Evento novo?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) { showGate(); $('#gateCode').value = code; }
-        $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = 'Abrir'; }
+        $('#gateErr').textContent = e.message; btn.disabled = false; btn.textContent = botao; }
     };
   }
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você */
@@ -757,7 +768,8 @@
     overlay(`<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 12px;text-align:center">esse evento não está mais no banco</p>
       ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`, true);
     if (cached) $('#restoreBtn').onclick = async () => { try { await apiPut(groupId, cached); location.reload(); } catch (e) { toast('Falhou: ' + e.message); } };
-    $('#lostBack').onclick = leave;
+    // o evento não existe mais: sai da lista também (a gaveta fica, com a cópia e o tok do pix)
+    $('#lostBack').onclick = () => { esconde(groupId); leave(); };
   }
 
   // ---------- salas (código → grupo) ----------
@@ -779,13 +791,14 @@
       await apiPut(id, data);
       history.replaceState(null, '', location.pathname);
     }
-    setDevice('lastRoom', { code, id });
     await openGroup(code, id);
   }
   async function openGroup(code, id){
     // o código fica no endereço: copiar a URL da barra já manda o evento
     if (code && location.search !== '?senha=' + encodeURIComponent(code)) history.replaceState(null, '', location.pathname + '?senha=' + encodeURIComponent(code) + location.hash);
-    roomName = code; groupId = id; { const r = room(); me = typeof r.me === 'string' ? r.me : null; lastSeen = +r.lastSeen || 0; } showAll = false;
+    roomName = code; groupId = id;
+    if (code) mexe(roomKey(id), o => { o.code = code; o.openedAt = Date.now(); delete o.hidden; });   // entrou de novo, volta pra lista
+    { const r = room(); me = typeof r.me === 'string' ? r.me : null; lastSeen = +r.lastSeen || 0; } showAll = false;
     $('#app').classList.add('loading'); $('#app').classList.remove('nospin');
     state = cacheLoad(); if (state) render();
     closeOverlay(); setStatus('Carregando…');
@@ -808,18 +821,69 @@
     $('#waAviso').onclick = () => { window.open('https://wa.me/?text=' + encodeURIComponent(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${evento()}* 👍\n${shareUrl()}`), '_blank', 'noopener'); fecha(); };
   }
   function showRoom(){
+    const evs = meusEventos();
     overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
       <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
       <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
       <div class="hr"></div>
-      <button id="evBack" class="sec">voltar</button>
-      <div class="c" style="margin-top:12px"><button id="evLeave" class="ghost" style="color:var(--red)">sair do evento</button></div>`);
+      ${evs.length ? `<h2 style="margin-top:0">*** Meus eventos ***</h2>${listaEventos(evs, true)}
+      <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>` : ''}
+      <div class="c" style="margin-top:6px;text-transform:none;font-size:17px"><a class="link" id="evOutro">+ entrar em outro evento</a></div>
+      <div class="hr"></div>
+      <button id="evBack" class="sec">voltar</button>`);
     $('#evBack').onclick = closeOverlay;
     // o código é o que se manda no zap: um toque copia
     $('#evCode').onclick = () => navigator.clipboard.writeText(roomName).then(() => toast('Código copiado.'), () => showCopy('Código do evento', roomName));
-    $('#evLeave').onclick = async () => { if (await ask('Sair do evento?', 'só neste aparelho. você volta digitando o código.', 'sair', true)) leave(); };
+    $('#evOutro').onclick = leave;
+    ligaEventos(evs, async e => {
+      if (!(await ask(`Esquecer ${esc(e.nome)}?`, 'some da lista só neste aparelho. você volta digitando o código.', 'esquecer', true))) return showRoom();
+      esconde(e.id); if (e.id === groupId) return leave(); showRoom(); });
   }
-  function leave(){ setDevice('lastRoom', undefined); location.href = location.pathname; }
+  /** o endereço sem código é a lista de eventos (ou o cartão do código, pra quem nunca entrou em nenhum) */
+  function leave(){ location.href = location.pathname; }
+
+  // ---------- meus eventos (só deste aparelho: o banco não deixa listar nada) ----------
+  /** @typedef {{ id: string, code: string, nome: string, at: number, me: string|null, snap: Room|null }} MeuEvento */
+  /** os eventos que este aparelho já abriu, do último aberto pro mais antigo @returns {MeuEvento[]} */
+  function meusEventos(){
+    let ks = []; try { ks = Object.keys(localStorage); } catch {}
+    return ks.filter(k => k.startsWith(DEVICE + ':')).map(k => k.slice(DEVICE.length + 1)).filter(id => /^[0-9a-f]{64}$/.test(id))
+      .map(id => ({ id, o: gaveta(roomKey(id)) }))
+      .filter(({ o }) => typeof o.code === 'string' && o.code && o.code.length <= 100 && !o.hidden)
+      .map(({ id, o }) => { const snap = clean(o.snapshot);
+        return { id, code: o.code, nome: (snap && snap.name) || o.code, at: +o.openedAt || 0, me: okId(o.me) ? o.me : null, snap }; })
+      .sort((a, b) => b.at - a.at);
+  }
+  /** esquecer só esconde: apagar a gaveta levaria junto o tok do pix, e a chave travava */
+  const esconde = id => mexe(roomKey(id), o => { o.hidden = true; });
+  function quando(at){
+    if (!at) return '';
+    const d = new Date(at), hoje = new Date(), dias = Math.round((new Date(hoje.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86400000);
+    if (Date.now() - at < 3600000) return 'agora';
+    if (dias <= 0) return 'hoje';
+    if (dias === 1) return 'ontem';
+    if (dias < 7) return `há ${dias} dias`;
+    if (dias < 35) return `há ${Math.round(dias / 7)} semana${Math.round(dias / 7) === 1 ? '' : 's'}`;
+    const mes = d.toLocaleDateString('pt-BR', { month: 'long' });
+    return d.getFullYear() === hoje.getFullYear() ? `em ${mes}` : `em ${mes} de ${d.getFullYear()}`;
+  }
+  /** cada evento com o seu saldo nele, contado da cópia do aparelho: abre sem internet */
+  function listaEventos(evs, comX){
+    return `<div class="evs">${evs.map(e => {
+      const s = e.snap, eu = s && e.me ? s.people.find(p => p.id === e.me) : null, b = s && eu ? balances(s)[eu.id] : null;
+      const [cls, v] = b === null ? ['ok', '—'] : b > 0 ? ['pos', money(b/100)] : b < 0 ? ['neg', money(b/100)] : ['ok', 'quite'];
+      const n = s ? s.people.length : 0, sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ');
+      return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
+        <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>
+        <div class="sub"><span>${sub}</span><span>${quando(e.at)}</span></div></div>`; }).join('')}</div>`;
+  }
+  /** a linha inteira abre o evento; o ✕ dela chama `esquece` @param {MeuEvento[]} evs @param {(e: MeuEvento) => void} [esquece] */
+  function ligaEventos(evs, esquece){
+    const abre = e => { if (e.id === groupId) return closeOverlay(); location.href = location.pathname + '?senha=' + encodeURIComponent(e.code); };
+    for (const el of inputs('#overlayBox [data-ev]')) { const e = evs.find(x => x.id === el.dataset.ev); if (!e) continue;
+      el.onclick = ev => { const x = /** @type {Element} */ (ev.target).closest('[data-esquece]'); if (x) { if (esquece) esquece(e); return; } abre(e); };
+      el.onkeydown = ev => { if (ev.target === el && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); abre(e); } }; }
+  }
 
   // ---------- eventos ----------
   $('#addPerson').onclick = async () => { const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim(); if (!name) return;
@@ -1337,14 +1401,11 @@
   // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
   (async () => {
     const c = new URLSearchParams(location.search).get('senha');
-    const saved = device().lastRoom;
-    if (c) { const code = c.trim().toLowerCase();
-      // o endereço agora sempre carrega o código: recarregar o evento de sempre não é entrar de novo
+    if (c) { const code = c.trim().toLowerCase(), id = await sha(code);
+      // o endereço sempre carrega o código: recarregar um evento que o aparelho conhece não é entrar de novo
       // (e, se ele sumiu do banco, cai no "Evento não encontrado" com a cópia, não no "Evento novo?")
-      if (saved && saved.code === code && /^[0-9a-f]{64}$/.test(saved.id || '') && DB) return openGroup(saved.code, saved.id);
+      if (DB && gaveta(roomKey(id)).code === code) return openGroup(code, id);
       try { return await enterRoom(code); } catch (e) { return showGate(e.message); } }
-    if (saved && /^[0-9a-f]{64}$/.test(saved.id || '') && DB && !location.hash.includes('seed=')) return openGroup(saved.code, saved.id);
-    setDevice('lastRoom', undefined);   // resto de versão antiga
     showGate();
   })();
 })();

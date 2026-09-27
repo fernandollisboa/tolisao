@@ -41,14 +41,12 @@ Then('o nome do evento no cabeçalho é {string}', async ({ mundo }, nome) => { 
 Then('o site não pergunta nada', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeHidden(); });
 When('eu colo o link {string} na mesma aba', async ({ mundo }, q) => { await mundo.p.evaluate(q => { location.search = q; }, q); });
 
-When('eu toco no nome do evento', async ({ mundo }) => { await mundo.p.click('#roomLabel'); await mundo.p.waitForSelector('#evLeave'); });
+When('eu toco no nome do evento', async ({ mundo }) => { await mundo.p.click('#roomLabel'); await mundo.p.waitForSelector('#evBack'); });
 Then('o cartão mostra:', async ({ mundo }, txt) => {
-  await expect.poll(() => mundo.linhas('#overlayBox')).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
+  // o R$ vem colado no valor por um espaço que não quebra; no .feature ele é um espaço comum
+  await expect.poll(async () => (await mundo.linhas('#overlayBox')).map(l => l.replace(/\u00a0/g, ' '))).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
 });
-Then('o botão de sair do evento é vermelho', async ({ mundo }) => { await expect(mundo.p.locator('#evLeave')).toHaveCSS('color', 'rgb(155, 28, 28)'); });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
-When('eu toco em sair do evento', async ({ mundo }) => { await mundo.p.click('#evLeave'); await mundo.p.waitForSelector('#okBtn'); });
-Then('o botão de sair é vermelho', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toHaveText(/sair/i); await expect(mundo.p.locator('#okBtn')).toHaveCSS('background-color', 'rgb(155, 28, 28)'); });
 When('eu toco no código do evento', async ({ mundo }) => { await mundo.p.click('#evCode'); });
 Then('fica copiado {string}', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt); });
 Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toHaveClass(/\bhidden\b/); });
@@ -70,7 +68,9 @@ Then('a lista de gente fica {string}', async ({ mundo }, txt) => { await expect.
 Then('aparece o aviso {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#toast')).toHaveText(txt); });
 
 // evento sem ninguém: o "quem é você?" vira a lista de gente
-const salaAberta = mundo => mundo.p.evaluate(() => JSON.parse(localStorage.getItem('tolisa') || '{}').lastRoom?.id);
+// a sala aberta é a gaveta que guarda o código que está no endereço
+const salaAberta = mundo => mundo.p.evaluate(() => { const c = new URLSearchParams(location.search).get('senha');
+  return Object.keys(localStorage).find(k => k.startsWith('tolisa:') && JSON.parse(localStorage.getItem(k) || '{}').code === c)?.slice(7); });
 When('eu toco em quem é você', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#overlayBox h2'); });
 When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
   for (const n of gente) { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); await expect(mundo.p.locator('#setupName')).toHaveValue(''); }
@@ -106,5 +106,7 @@ When('eu desisto do evento', async ({ mundo }) => { await Promise.all([mundo.p.w
 Then('aparece o cartão do código', async ({ mundo }) => { await expect(mundo.p.locator('#gateCode')).toBeVisible(); });
 Then('o aparelho esquece o evento', async ({ mundo }) => {
   expect(await mundo.p.evaluate(() => location.search)).toBe('');
-  expect(await salaAberta(mundo)).toBeUndefined();
+  await expect(mundo.p.locator('#overlayBox .ev')).toHaveCount(0);
+  const g = await mundo.p.evaluate(k => JSON.parse(localStorage.getItem(k) || '{}'), `tolisa:${mundo.sala}`);
+  expect(g.hidden).toBe(true); expect(g.snapshot).toBeTruthy();
 });

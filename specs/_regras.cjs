@@ -2,7 +2,7 @@
 // `npm run regras` roda no CI antes dos testes: é o que a IA (ou a gente) esquece
 // e nenhum cenário pega, porque validação de banco não vira cenário.
 // Cada regra é sim ou não: nada de limite que alguém sobe pra passar.
-const fs = require('fs'), path = require('path'), { createHash } = require('crypto');
+const fs = require('fs'), path = require('path');
 
 const raiz = path.join(__dirname, '..');
 const le = f => fs.readFileSync(path.join(raiz, f), 'utf8');
@@ -10,17 +10,15 @@ const html = le('index.html'), app = le('app.js'), banco = JSON.parse(le('databa
 const falhas = [];
 const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`); else console.log(`✓ ${nome}`); };
 
-// ---------- CSP: o sha256 do <meta> é o dos <script> inline da página ----------
+// ---------- CSP: script só do próprio site, conexão só com o firebase ----------
+// o hash do <script> do fim não mora aqui: se ele quebrar, todo cenário falha (_mundo.cjs)
 {
   const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/)?.[1] || '';
-  const tem = [...csp.matchAll(/'sha256-([^']+)'/g)].map(m => m[1]);
-  const quer = [...html.replace(/<!--[\s\S]*?-->/g, '').matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => createHash('sha256').update(m[1]).digest('base64'));
-  const faltam = quer.filter(h => !tem.includes(h)), sobram = tem.filter(h => !quer.includes(h));
-  regra('a CSP libera o <script> do fim da página pelo sha256', !csp ? 'não achei o <meta> da CSP no index.html'
-    : faltam.length ? `o <script> mudou: troque o hash da CSP por 'sha256-${faltam.join("' 'sha256-")}'`
-    : sobram.length && `hash na CSP sem <script> que case: 'sha256-${sobram.join("' 'sha256-")}'`);
-  const fora = csp.match(/https?:\/\/[^\s;']+/g)?.filter(u => u !== 'https://*.firebaseio.com') || [];
-  regra('a CSP só fala com o próprio site e o firebase', fora.length && `endereço de fora na CSP: ${fora.join(', ')}`);
+  const dir = Object.fromEntries(csp.split(';').map(d => d.trim().split(/\s+/)).filter(d => d[0]).map(([k, ...v]) => [k, v]));
+  const pode = { 'default-src': ["'self'"], 'script-src': ["'self'", /^'sha256-/], 'connect-src': ["'self'", 'https://*.firebaseio.com'] };
+  const errados = Object.entries(pode).flatMap(([k, ok]) => !dir[k] ? [`falta ${k}`]
+    : dir[k].filter(v => !ok.some(o => typeof o === 'string' ? o === v : o.test(v))).map(v => `${k} ${v}`));
+  regra('a CSP só roda script do site e só fala com o firebase', !csp ? 'não achei o <meta> da CSP no index.html' : errados.join('; '));
 }
 
 // ---------- banco: .read/.write só abaixo de um $curinga ----------
@@ -35,6 +33,13 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   };
   anda(banco.rules, []);
   regra('o banco não deixa listar salas nem chaves pix', soltos.length && soltos.join('; '));
+  // do pix só a chave se lê: quem lê o tok troca a chave pix dos outros
+  const lidos = [];
+  const pix = (no, caminho) => { for (const [k, v] of Object.entries(no)) {
+    if (k === '.read' && v !== false && caminho.at(-1) !== 'key') lidos.push(`pix/${caminho.join('/')} tem .read`);
+    else if (v && typeof v === 'object') pix(v, [...caminho, k]); } };
+  pix(banco.rules.pix || {}, []);
+  regra('o tok do pix não se lê', lidos.join('; '));
 }
 
 // ---------- clean() e .validate de rooms/$room contam o mesmo ----------

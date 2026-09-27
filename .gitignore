@@ -4,3 +4,4 @@ specs/.gerado/
 specs/.resultados/
 playwright-report/
 specs/relatorio.html
+specs/.cobertura/

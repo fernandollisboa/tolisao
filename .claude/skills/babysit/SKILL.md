@@ -9,7 +9,7 @@ Abriu o PR, ele é seu até o site estar no ar. O usuário não quer ser chamado
 
 ## Antes de subir
 
-- `npm run types` limpo e `npm test` verde, na máquina, antes de cada push. Um push validado vale mais que três no chute.
+- `npm run qualidade` verde, na máquina, antes de cada push. Um push validado vale mais que três no chute.
 - Mudança visual: suba o `?v=` do `index.html` (data + letra) e mande o preview antes.
 
 ## Esperando o check

@@ -14,5 +14,4 @@
 
 ---
 
-- [ ] `npm run types` limpo
-- [ ] `npm test` verde
+- [ ] `npm run qualidade` verde

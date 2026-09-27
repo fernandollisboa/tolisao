@@ -5,7 +5,11 @@
   "scripts": {
     "test": "bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
     "relatorio": "HTML=1 npm test",
+    "cobertura": "node specs/_cobertura.cjs",
     "types": "tsc -p jsconfig.json",
+    "regras": "node specs/_regras.cjs",
+    "formata": "prettier --write app.js",
+    "qualidade": "node --check app.js && prettier --check app.js && npm run types && npm run regras && npm test",
     "preview": "node specs/preview.cjs",
     "video": "node specs/video.cjs"
   },
@@ -13,6 +17,7 @@
     "@cucumber/pretty-formatter": "^4.0.2",
     "@playwright/test": "^1.63.0",
     "playwright-bdd": "^9.2.1",
+    "prettier": "^3.9.9",
     "typescript": "^7.0.2"
   }
 }

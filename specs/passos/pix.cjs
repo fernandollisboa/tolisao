@@ -28,10 +28,27 @@ Then('o banco recusa', async ({ mundo }) => { expect(mundo.nota.status).toBe(401
 Given('que alguém gravou no banco o evento:', async ({ mundo }, json) => { mundo.criaEvento(JSON.parse(json)); mundo.banco.congelado = true; });
 Given('a chave pix da/do {word} é {string}', async ({ mundo }, nome, chave) => { mundo.banco.pix(mundo.sala, idDe(nome), chave); });
 When('a lista de gente do rodapé aparece', async ({ mundo }) => { await mundo.p.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden')); });
-Then('nenhum script rodou', async ({ mundo }) => { await mundo.p.waitForTimeout(800); expect(await mundo.p.evaluate(() => window.__xss)).toBeUndefined(); });
+// sem relógio: um onerror dispara quando a imagem falha, e esperar por ele é chutar um prazo.
+// Em vez disso confere que o código não tem onde morar: nenhum atributo on* nem link javascript:
+// no DOM. Sem isso nada roda, nem agora nem depois
+Then('nenhum script rodou', async ({ mundo }) => {
+  const achados = await mundo.p.evaluate(() => [...document.querySelectorAll('*')].flatMap(e => [...e.attributes]
+    .filter(a => /^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)).map(a => `<${e.tagName.toLowerCase()} ${a.name}="${a.value}">`)));
+  expect(achados, 'código vindo do banco no DOM').toEqual([]);
+  expect(await mundo.p.evaluate(() => window.__xss)).toBeUndefined();
+});
 Then('a lista de gente tem {int} pessoas', async ({ mundo }, n) => { await expect(mundo.p.locator('#peopleLine .nm')).toHaveCount(n); });
 Then('a lista tem {int} item, com o {string} escrito como texto', async ({ mundo }, n, txt) => {
   await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); await expect(mundo.p.locator('#expenses .item .l').first()).toContainText(txt);
 });
 Then('não aparece nenhum botão de copiar pix', async ({ mundo }) => { await expect(mundo.p.locator('[data-pix]')).toHaveCount(0); });
 Then('não aparece nenhuma imagem além da ficha', async ({ mundo }) => { await expect(mundo.p.locator('img:not(.stain)')).toHaveCount(0); });
+// meia letra é o que sobra quando um corte para no meio de um par surrogate: a metade
+// órfã não forma caractere nenhum e a tela desenha �
+Then('nada na tela tem meia letra', async ({ mundo }) => {
+  const achado = await mundo.p.evaluate(() => {
+    const solto = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]|�/;
+    return [...document.querySelectorAll('body *')].map(e => e.textContent || '').find(t => solto.test(t)) || null;
+  });
+  expect(achado, 'sobrou meia letra na tela').toBeNull();
+});

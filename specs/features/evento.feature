@@ -50,21 +50,20 @@ Funcionalidade: Entrar no evento
       bailedamada
       ENTRA QUEM TEM
       a senha
+      *** MEUS EVENTOS ***
+      BAILEDAMADA
+      quite
+      ✕
+      sou Lia · 3 pessoas
+      agora
+      o ✕ tira da lista só neste aparelho
+      + entrar em outro evento
       VOLTAR
-      SAIR DO EVENTO
       """
-    E o botão de sair do evento é vermelho
     Quando eu toco em voltar
     Então o cartão fecha
     Quando eu toco no meu nome
     Então o cartão de quem é você não tem botão de sair
-
-  Cenário: confirmar a saída é vermelho, não mais um voltar
-    Dado o evento "bailedamada" com Fernando, Júlia e Lia
-    Quando eu abro o evento como Lia
-    E eu toco no nome do evento
-    E eu toco em sair do evento
-    Então o botão de sair é vermelho
 
   Cenário: tocar no código do cartão do evento copia ele
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
@@ -85,3 +84,64 @@ Funcionalidade: Entrar no evento
     Quando eu abro o evento como Lia
     E eu toco na caixa do caderno em branco
     Então o formulário de anotar abre
+
+  Cenário: evento novo começa pela lista de gente
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    E eu crio o evento
+    E eu toco em quem é você
+    Então o cartão mostra:
+      """
+      *** QUEM TÁ NO EVENTO? ***
+      ninguém ainda
+      ADICIONAR
+      CONTINUAR
+      SAIR
+      """
+    Quando eu ponho Fernando, Júlia e Lia na lista
+    E eu tiro a Júlia da lista
+    E eu tento pôr fernando na lista de novo
+    Então aparece o aviso "Já existe alguém com esse nome"
+    Quando eu continuo
+    Então o site pergunta quem é você
+    Quando eu escolho Lia
+    Então o cabeçalho diz "sou Lia"
+    E o evento no banco tem Fernando e Lia
+
+  Cenário: evento de uma pessoa só não pergunta quem é você
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    E eu crio o evento
+    E eu toco em quem é você
+    E eu ponho Lia na lista
+    E eu continuo
+    Então o cabeçalho diz "sou Lia"
+
+  Cenário: o evento sumiu do banco, e a cópia do aparelho traz ele de volta
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    E os gastos:
+      | o quê  | valor | pagou | divide entre         |
+      | Carvão | 90,00 | Júlia | Fernando, Júlia, Lia |
+    Quando eu abro o evento como Lia
+    E o evento some do banco
+    E eu abro o site de novo
+    Então o cartão mostra:
+      """
+      EVENTO NÃO ENCONTRADO
+      esse evento não está mais no banco
+      RESTAURAR DA MINHA CÓPIA
+      VOLTAR
+      """
+    Quando eu restauro da minha cópia
+    Então o evento volta pro banco com o Carvão
+    E o cabeçalho diz "sou Lia"
+
+  Cenário: o evento sumiu do banco e eu desisto dele
+    Ele sai da lista de eventos, mas a gaveta fica: é nela que mora a cópia.
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E o evento some do banco
+    E eu abro o site de novo
+    E eu desisto do evento
+    Então aparece o cartão do código
+    E o aparelho esquece o evento

@@ -14,17 +14,21 @@ salvou, recarregou, tá valendo.
 
 ```sh
 npm ci && npx playwright install chromium   # uma vez (se já tiver um chromium, o teste acha)
-npm run types                               # limpo
-npm test                                    # verde
+npm run formata                             # prettier no app.js
+npm run qualidade                           # sintaxe, formato, tipos, regras e testes: verde
 ```
 
 os testes são cucumber em português: a especificação fica em `specs/features/*.feature` e os passos em `specs/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo, e o fim da saída diz como abrir o trace.
+
+`npm run regras` confere, sem navegador, o que nenhum cenário pega: a CSP só roda script do site e só fala com o firebase, o banco não deixa listar salas nem ler o `tok` do pix, o `clean()` corta no tamanho que o banco valida e o `og5.jpg` cabe no WhatsApp. falhou, ele diz o que trocar.
+
+`npm run cobertura` roda os mesmos testes e diz quanto do `app.js` eles executam, com os trechos que nenhum cenário alcança. serve pra achar fluxo sem cenário, não é meta: animação e gesto se conferem no vídeo.
 
 ## não rola
 
 - **dependência nova no site.** o navegador não tem? a gente escreve (por isso existem `crc16`, `code128Widths` e o recibo em canvas). ferramenta de desenvolvimento pode.
 - **build, bundler, framework.** tipo é JSDoc com `// @ts-check`.
-- **reescrita grande.** edição pequena em `app.js`/`style.css`.
+- **reescrita grande.** edição pequena em `app.js`/`style.css`. o formato é do prettier (`npm run formata`), não se discute.
 - **inglês na tela.** o rodapé fala como dona de boteco baiana.
 
 ## estilo

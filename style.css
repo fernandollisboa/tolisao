@@ -488,3 +488,12 @@ body.rolou #waBtn.wafab:not(:hover):not(:active){background:rgba(255,248,230,.45
 #whoBtn:not(.amb){text-decoration:none;background:linear-gradient(currentColor,currentColor) no-repeat 0 100%/100% 1px;padding-bottom:1px}
 #whoBtn.cutuca{animation:sublinha 1.2s ease-out}
 @media (prefers-reduced-motion:reduce){#fab.pulsa,#whoBtn.cutuca{animation:none}}
+/* meus eventos: a linha inteira abre o evento, com o saldo de quem você é nele */
+.ev{cursor:pointer;padding:3px 0}
+.ev + .ev{border-top:1px dotted rgba(122,106,74,.45)}
+.ev .row{line-height:1.45}
+.ev .sub{font-size:16px;color:var(--ink2);line-height:1.2;display:flex;justify-content:space-between;gap:10px}
+.ev .v.ok{color:var(--muted)}
+.ev.aqui .l:before{content:"▸ "}
+.ev.aqui .l{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.ev .x{margin-left:8px}

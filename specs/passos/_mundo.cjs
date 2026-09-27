@@ -2,6 +2,7 @@ const { test: base, createBdd, defineParameterType } = require('playwright-bdd')
 const { expect } = require('@playwright/test');
 const servir = require('../_serve.cjs');
 const { Banco } = require('../_banco.cjs');
+const cobertura = require('../_cobertura.cjs');
 
 defineParameterType({ name: 'num', regexp: /\d+(?:\.\d{3})*(?:,\d+)?/, transformer: s => Number(s.replace(/\./g, '').replace(',', '.')) });
 defineParameterType({ name: 'gente', regexp: /[^"]+?/, transformer: s => s.split(/\s*,\s*|\s+e\s+/).filter(Boolean) });
@@ -29,14 +30,21 @@ class Mundo {
     await ctx.addInitScript(() => {
       const w = window;
       w.open = u => { w.__aberto = u; return null; };
-      // a CSP do index.html barrou alguma coisa do próprio site: vira erro do cenário
-      document.addEventListener('securitypolicyviolation', e => setTimeout(() => { throw new Error(`CSP barrou ${e.violatedDirective}: ${e.blockedURI || 'inline'}`); }));
+      // a CSP do index.html barrou alguma coisa do próprio site: vira erro do cenário.
+      // microtask e não setTimeout: o relógio é falso e o timer nunca disparava
+      document.addEventListener('securitypolicyviolation', e => queueMicrotask(() => { throw new Error(`CSP barrou ${e.violatedDirective}: ${e.blockedURI || 'inline'} (mexeu no <script> do fim? recalcule o sha256)`); }));
       Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { w.__copiado = t; } } });
+      // animação CSS termina na hora: o playwright não clica em nada que ainda se mexe, e cada
+      // entrada (a nota subindo, o pix descendo, o aperto dos itens) custava de 0,4 a 1,5s de
+      // espera por clique. As classes entram nas mesmas horas e o animationend dispara igual, só
+      // que já no quadro final. Animação se confere no vídeo, não aqui
+      addEventListener('DOMContentLoaded', () => document.head.append(Object.assign(document.createElement('style'),
+        { textContent: '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important}' })));
     });
     // o que o aparelho já tinha guardado antes desta visita (só na primeira carga da aba)
     if (this.antes) await ctx.addInitScript(antes => { if (sessionStorage.getItem('__antes')) return; sessionStorage.setItem('__antes', '1');
       for (const [k, v] of Object.entries(antes)) localStorage.setItem(k, v); }, this.antes);
-    const p = await ctx.newPage(); this.p = p;
+    const p = await ctx.newPage(); this.p = p; await cobertura.liga(p);
     p.on('pageerror', e => this.erros.push(e.message));
     p.on('dialog', d => { this.dialogos.push(d.message()); d.accept(); });
     await p.goto(semEvento ? this.base + '/' : this.link);
@@ -53,6 +61,7 @@ class Mundo {
   linhas(sel) { return this.p.$eval(sel, e => e.innerText.split('\n').map(l => l.trim()).filter(Boolean)); }
 
   async fecha() {
+    await cobertura.guarda(this.contextos);
     for (const c of this.contextos) await c.close().catch(() => {});
     expect(this.erros, 'erros na página').toEqual([]);
     expect(this.dialogos, 'diálogos nativos').toEqual([]);

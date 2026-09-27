@@ -3,16 +3,11 @@ Funcionalidade: Acertar as contas
   Minha conta diz quanto eu devo ou tenho a receber, e é de lá que eu ajo:
   o ✔ quita e o copiar pix já vai com o valor. Falta pagar só mostra.
 
+  # a mesma festa do anotar.feature, repetida de propósito: as contas daqui saem desta
+  # tabela, e quem lê confere os números sem abrir outro arquivo
+  # quem é e quanto gastou cada um está em specs/_festa.cjs, na forma desta tabela
   Contexto:
-    Dado o evento "bailedamada" com Fernando, Júlia, Lia, Mengla e Klinsmann
-    E os gastos:
-      | o quê                   | valor  | pagou    | divide entre                            |
-      | Uber ida                | 18,98  | Lia      | Klinsmann, Mengla, Lia                  |
-      | Janta (parte da Lia)    | 18,87  | Júlia    | Lia                                     |
-      | Janta (parte da Mengla) | 23,97  | Júlia    | Mengla                                  |
-      | Gasolina ida            | 136,00 | Júlia    | Mengla, Lia, Fernando, Júlia            |
-      | Airbnb                  | 510,00 | Fernando | Mengla, Lia, Fernando, Júlia, Klinsmann |
-      | Uber volta              | 32,50  | Lia      | Lia, Mengla, Fernando, Júlia            |
+    Dado o evento de exemplo "bailedamada"
 
   Cenário: o acerto é o mínimo de transferências
     Quando eu abro o evento como Lia
@@ -46,6 +41,29 @@ Funcionalidade: Acertar as contas
     Então falta pagar:
       | quem      | paga pra | valor  |
       | Mengla    | Fernando | 174,43 |
+      | Klinsmann | Fernando | 73,61  |
+      | Klinsmann | Júlia    | 34,72  |
+
+  Cenário: desfazer um pagamento
+    Quando eu abro o evento como Lia
+    E eu quito a primeira linha de Minha conta
+    E eu começo a desfazer o pagamento "Lia → Fernando" e volto atrás
+    Então o pagamento "Lia → Fernando" continua carimbado
+    Quando eu desfaço o pagamento "Lia → Fernando"
+    Então nenhum pagamento está carimbado
+    E falta pagar:
+      | quem      | paga pra | valor  |
+      | Mengla    | Fernando | 174,43 |
+      | Lia       | Fernando | 117,84 |
+      | Klinsmann | Fernando | 73,61  |
+      | Klinsmann | Júlia    | 34,72  |
+    E eu devo R$ 117,84 pro Fernando
+    Quando eu abro o evento como Fernando em outro aparelho
+    Então nenhum pagamento está carimbado
+    E falta pagar:
+      | quem      | paga pra | valor  |
+      | Mengla    | Fernando | 174,43 |
+      | Lia       | Fernando | 117,84 |
       | Klinsmann | Fernando | 73,61  |
       | Klinsmann | Júlia    | 34,72  |
 

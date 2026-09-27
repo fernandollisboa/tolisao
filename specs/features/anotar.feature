@@ -3,6 +3,8 @@ Funcionalidade: Anotar um gasto
   O ✎ abre o formulário: valor, o quê, quem pagou e quem divide.
   Dá pra dividir igualmente ou em partes diferentes.
 
+  # a mesma festa do acerto.feature, repetida de propósito: as contas daqui saem desta
+  # tabela, e quem lê confere os números sem abrir outro arquivo
   Contexto:
     Dado o evento "bailedamada" com Fernando, Júlia, Lia, Mengla e Klinsmann
     E os gastos:
@@ -86,6 +88,23 @@ Funcionalidade: Anotar um gasto
     Quando eu abro o evento como Fernando em outro aparelho
     E eu abro a lista de itens
     Então o "Uber volta" fica de 40,00
+
+  Cenário: excluir um item
+    Quando eu abro o evento como Lia
+    E eu abro a lista de itens
+    E eu começo a excluir o "Uber volta" e volto atrás
+    Então a lista tem 6 itens
+    Quando eu excluo o "Uber volta"
+    Então a lista tem 5 itens
+    E o "Uber volta" não está na lista
+    E falta pagar:
+      | quem      | paga pra | valor  |
+      | Mengla    | Fernando | 166,30 |
+      | Lia       | Fernando | 142,21 |
+      | Klinsmann | Fernando | 65,49  |
+      | Klinsmann | Júlia    | 42,84  |
+    Quando eu abro o evento como Fernando em outro aparelho
+    Então a lista tem 5 itens
 
   Cenário: desistir da edição não suja o próximo anotar
     Quando eu abro o evento como Lia

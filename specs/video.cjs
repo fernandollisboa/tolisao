@@ -25,6 +25,10 @@ const DOIS = { name: 'bailedamada', people: DADOS.people,
   ] };
 
 const CENAS = {
+  vaza: { nome: 'rolou a nota: o ✎ e o zap vazam um atrás do outro, e firmam na volta', quem: 'Klinsmann', atrasoPix: 0,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1500);
+      await p.evaluate(() => scrollTo({ top: 260, behavior: 'smooth' })); await p.waitForTimeout(2500);
+      await p.evaluate(() => scrollTo({ top: 0, behavior: 'smooth' })); await p.waitForTimeout(2500); } },
   pix: { nome: 'copiar pix brotando do ✔ e a piscada verde', quem: 'Lia', atrasoPix: 2000,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'center' }));
       await p.waitForSelector('#mineRows [data-pix]', { timeout: 8000 }); await p.waitForTimeout(4500); } },

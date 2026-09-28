@@ -831,6 +831,8 @@
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
 
+  /** redesenha a nota inteira a partir do `state`. Roda a cada mudança e a cada sync.
+   *  Os agenda…() no meio põem as animações na fila, na ordem em que a página se lê */
   function render() {
     if (!state) return;
     const hasMe = temMe();
@@ -839,68 +841,85 @@
       acerto = settlements(saldo),
       bal = hasMe ? saldo[me] || 0 : 0;
     const allEven = state.people.length > 0 && !vazio && Object.values(saldo).every((v) => v === 0);
+    const pays = state.expenses
+      .filter((e) => e.kind === 'payment')
+      .slice(-PAGOS_NA_LISTA)
+      .reverse();
+    const nMeus = acerto.filter((t) => t.from === me).length;
 
+    renderCabecalho(hasMe, bal, allEven);
+    if (hasMe && !vazio) renderMinha(bal, acerto);
+    else $('#mine').classList.add('hidden');
+    mostraSecoes(hasMe, bal, vazio, allEven);
+    agendaConviteItens(hasMe);
+    renderLinhaPix(hasMe, bal);
+    $('#peopleSec').classList.toggle('hidden', !MEMBROS);
+    $('#peopleLine').innerHTML = state.people.length ? state.people.map((p) => nm(p.id)).join(', ') : 'ninguém';
+    $('#addPerson').textContent = state.people.length ? ',+' : ' +';
+    renderForm();
+    agendaFaltaPagar(pays, nMeus);
+    agendaSouEFab(hasMe);
+    renderAcerto(hasMe, acerto, pays, nMeus);
+    renderItens();
+  }
+  /** o nome do evento, o "Sou Fulano", o subtítulo e a frase do rodapé */
+  function renderCabecalho(hasMe, bal, allEven) {
     $('#roomLabel').textContent = evento() || '—';
     document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
-    {
-      const wl = $('#whoLine');
-      const html = hasMe
-        ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
-        : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
-      if (wl.dataset.k !== html) {
-        wl.innerHTML = html;
-        wl.dataset.k = html;
-      }
-      // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
-      $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
+    const wl = $('#whoLine');
+    const html = hasMe
+      ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
+      : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
+    if (wl.dataset.k !== html) {
+      wl.innerHTML = html;
+      wl.dataset.k = html;
     }
+    // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
+    $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
-
-    if (hasMe && !vazio) renderMinha(bal, acerto);
-    else $('#mine').classList.add('hidden');
-
+  }
+  /** o que aparece e o que some: o ✎, o zap, a ficha, o Falta pagar e os itens */
+  function mostraSecoes(hasMe, bal, vazio, allEven) {
     $('#fab').classList.toggle('hidden', !hasMe); // anotar é de quem já disse quem é
     $('#fab').classList.add('chamando'); // o ✎ fica âmbar o tempo todo
     $('#waBtn').classList.toggle('so', !hasMe); // sozinho o zap encosta na esquerda
     $('#waBtn').classList.toggle('hidden', vazio); // nota vazia não tem o que mandar
     // a ficha só entra em nota que já tem gasto. A cor é a situação: deve (vermelho),
     // recebe (verde), quite (rosa); sem nome, âmbar
-    {
-      const f = $('.stain');
-      if (f) {
-        f.classList.toggle('hidden', vazio);
-        f.classList.toggle('deve', hasMe && bal < 0);
-        f.classList.toggle('recebe', hasMe && bal > 0);
-        f.classList.toggle('quite', hasMe && bal === 0);
-      }
+    const f = $('.stain');
+    if (f) {
+      f.classList.toggle('hidden', vazio);
+      f.classList.toggle('deve', hasMe && bal < 0);
+      f.classList.toggle('recebe', hasMe && bal > 0);
+      f.classList.toggle('quite', hasMe && bal === 0);
     }
     // todo mundo quite já é dito em Minha conta; repetir no Falta pagar era eco
     $('#settleHead').classList.toggle('hidden', vazio || allEven);
     $('#settle').classList.toggle('hidden', allEven);
     $('#settleHr').classList.toggle('hidden', allEven);
     $('#itemsSec').classList.toggle('hidden', vazio); // quem está quite também quer ver no que gastou
-
-    // o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
-    // página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a
-    // fila. Lista já aberta dispensa o convite; quem já abriu antes, ou já veio mais de
-    // APERTO_VISITAS vezes, ganha só um toquinho na setinha
+  }
+  /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
+   *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a
+   *  fila. Lista já aberta dispensa o convite; quem já abriu antes, ou já veio mais de
+   *  APERTO_VISITAS vezes, ganha só um toquinho na setinha */
+  function agendaConviteItens(hasMe) {
     if (!anim.itens && itemsOpen) anim.itens = -1;
     if (anim.naTela.itens && !anim.itens && hasMe && semCartao() && !$('#itemsSec').classList.contains('hidden')) {
       anim.suave = !!device().itemsOpened || visitas > APERTO_VISITAS;
       anim.itens = agenda(APERTO_LEAD, APERTO_MS);
     }
-
-    // o cadastrar chave pix desce de debaixo do título; a altura vem um quadro depois do
-    // conteúdo, senão a transição não tem de onde sair
-    const pixWant =
-      !hasMe || bal <= 0 || pixKeys[me] || !pixReady
-        ? ''
-        : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
+  }
+  /** o "cadastrar chave pix", pra quem recebe e ainda não tem chave. Ele desce de debaixo
+   *  do título; a altura vem um quadro depois do conteúdo, senão a transição não tem de onde sair */
+  function renderLinhaPix(hasMe, bal) {
+    const quer = hasMe && bal > 0 && !pixKeys[me] && pixReady;
+    const html = quer ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>` : '';
     const pl = $('#pixLine');
-    if (!pixWant) {
+    if (!html) {
       if (pl.dataset.k && !pl.classList.contains('gone')) {
         pl.classList.add('gone');
         setTimeout(() => {
@@ -913,33 +932,25 @@
       }
     } else {
       pl.classList.remove('gone');
-      if (pl.dataset.k !== pixWant) {
-        pl.innerHTML = pixWant;
-        pl.dataset.k = pixWant;
+      if (pl.dataset.k !== html) {
+        pl.innerHTML = html;
+        pl.dataset.k = html;
         requestAnimationFrame(() => pl.classList.add('cheio'));
       }
     }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
-
-    $('#peopleSec').classList.toggle('hidden', !MEMBROS);
-    $('#peopleLine').innerHTML = state.people.length ? state.people.map((p) => nm(p.id)).join(', ') : 'ninguém';
-    $('#addPerson').textContent = state.people.length ? ',+' : ' +';
-    renderForm();
-
-    const pays = state.expenses
-      .filter((e) => e.kind === 'payment')
-      .slice(-PAGOS_NA_LISTA)
-      .reverse();
-    const nMeus = acerto.filter((t) => t.from === me).length;
-    // o Falta pagar entra na fila atrás de Minha conta: primeiro as voltas do círculo (em
-    // cima), depois os riscos das quitações (embaixo), de cima pra baixo
-    if (anim.naTela.settle && !anim.settle && !seguraRisco && semCartao()) {
-      anim.settle = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
-      anim.risco = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
-      pays.forEach((e, i) => anim.riscos.set(e.id, anim.risco + i * RISCO_GAP));
-    }
-    // com a fila no fim, o Sou Fulano sublinha e, com a tela parada um tempo, o ✎ se
-    // apresenta. Só depois que cada seção à vista pegou a vez, senão o ✎ furava a fila
+  }
+  /** o Falta pagar entra na fila atrás de Minha conta: primeiro as voltas do círculo (em
+   *  cima), depois os riscos das quitações (embaixo), de cima pra baixo */
+  function agendaFaltaPagar(pays, nMeus) {
+    if (!anim.naTela.settle || anim.settle || seguraRisco || !semCartao()) return;
+    anim.settle = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
+    anim.risco = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
+    pays.forEach((e, i) => anim.riscos.set(e.id, anim.risco + i * RISCO_GAP));
+  }
+  /** com a fila no fim, o Sou Fulano sublinha e, com a tela parada um tempo, o ✎ se
+   *  apresenta. Só depois que cada seção à vista pegou a vez, senão o ✎ furava a fila */
+  function agendaSouEFab(hasMe) {
     const aVista = (el) => {
       if (el.classList.contains('hidden')) return false;
       const r = el.getBoundingClientRect();
@@ -949,44 +960,22 @@
       (!aVista($('#mine')) || anim.naTela.mine) &&
       (!aVista($('#itemsSec')) || anim.naTela.itens) &&
       (!aVista($('#settle')) || anim.naTela.settle);
-    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !anim.fab && !ficha.vem() && semCartao()) {
-      if (!anim.sou) {
-        anim.sou = calmo(SOU_MS, 0);
-        cutuca($('#whoBtn'), 'cutuca', anim.sou);
-      }
-      if ((+device().fabTaps || 0) < 3) {
-        anim.fab = calmo(ANOTA_MS, ANOTA_RESPIRO);
-        cutuca($('#fab'), 'pulsa', anim.fab);
-      } else anim.fab = -1;
+    if (!pegaram || $('#app').classList.contains('loading') || !hasMe || anim.fab || ficha.vem() || !semCartao())
+      return;
+    if (!anim.sou) {
+      anim.sou = calmo(SOU_MS, 0);
+      cutuca($('#whoBtn'), 'cutuca', anim.sou);
     }
-    renderAcerto(hasMe, acerto, pays, nMeus);
-    renderItens();
+    if ((+device().fabTaps || 0) < 3) {
+      anim.fab = calmo(ANOTA_MS, ANOTA_RESPIRO);
+      cutuca($('#fab'), 'pulsa', anim.fab);
+    } else anim.fab = -1;
   }
   /** Minha conta: o saldo de quem está vendo e, devendo, um ✔ e um copiar pix por pessoa */
   function renderMinha(bal, acerto) {
     $('#mine').classList.remove('hidden');
     const meus = bal < 0 ? acerto.filter((t) => t.from === me) : [];
-    // pega a vez assim que chega na tela, sem esperar a chave do pix (senão o Falta pagar
-    // tomava a frente). A fila só segura o começo das piscadas: quem vem depois não
-    // espera elas acabarem, e sem linha nenhuma não há o que segurar
-    if (anim.naTela.mine && !anim.mine) {
-      // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
-      // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
-      const vistos = room().lightsSeen,
-        ja = Array.isArray(vistos) && vistos.includes(me);
-      anim.natal =
-        meus.length >= 2 && (!ja || Math.random() < 0.5)
-          ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT])
-          : null;
-      if (anim.natal && !ja)
-        mexe(roomKey(groupId), (o) => {
-          o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me];
-        });
-      const fim = !meus.length
-        ? 0
-        : (meus.length - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
-      anim.mine = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
-    }
+    agendaMinha(meus);
     // o copiar pix corre por fora da fila: brota de trás do ✔ assim que a chave chega, e
     // brotar já conta que chegou (nada de spinner). O #mineRows é refeito a cada poll: o
     // atraso negativo retoma a animação de onde estava, aqui e na piscada
@@ -1035,6 +1024,28 @@
       (bal === 0
         ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) + quem.join('');
+  }
+  /** Minha conta pega a vez assim que chega na tela, sem esperar a chave do pix (senão o
+   *  Falta pagar tomava a frente). A fila só segura o começo das piscadas: quem vem depois
+   *  não espera elas acabarem, e sem linha nenhuma não há o que segurar */
+  function agendaMinha(meus) {
+    if (!anim.naTela.mine || anim.mine) return;
+    // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
+    // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
+    const vistos = room().lightsSeen,
+      ja = Array.isArray(vistos) && vistos.includes(me);
+    anim.natal =
+      meus.length >= 2 && (!ja || Math.random() < 0.5)
+        ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT])
+        : null;
+    if (anim.natal && !ja)
+      mexe(roomKey(groupId), (o) => {
+        o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me];
+      });
+    const fim = !meus.length
+      ? 0
+      : (meus.length - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+    anim.mine = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
   }
   /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */
   function renderForm() {

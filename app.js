@@ -57,7 +57,7 @@
   };
   // o que fica no aparelho, em duas gavetas de JSON:
   //   tolisa         { visits, installPrompted, itemsOpened, boringMode }
-  //   tolisa:<sala>  { code, openedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], snapshot }
+  //   tolisa:<sala>  { code, openedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -357,6 +357,7 @@
         state = merged;
         cacheSave();
         render();
+        avisaPagos();
         if (!changed) break;
         try {
           await apiPut(groupId, state, etag);
@@ -637,6 +638,30 @@
     );
   };
   let lastSeen = 0;
+  // pagamento novo pra quem está vendo vira aviso, uma vez só. A gaveta guarda os ids já
+  // vistos (de qualquer pessoa, senão trocar de nome avisava o passado dos outros); na
+  // primeira vez vale o lastSeen: avisa só o que caiu depois da última visita
+  function avisaPagos() {
+    const pays = state.expenses.filter((e) => e.kind === 'payment');
+    const r = room();
+    const vistos = new Set(
+      Array.isArray(r.paysSeen) ? r.paysSeen : pays.filter((e) => !lastSeen || e.at <= lastSeen).map((e) => e.id),
+    );
+    const novos = pays.filter((e) => !vistos.has(e.id));
+    if (!novos.length && Array.isArray(r.paysSeen)) return;
+    setRoom('paysSeen', [...vistos, ...novos.map((e) => e.id)].slice(-200));
+    const pra = novos.filter((e) => me && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
+    if (!pra.length) return;
+    const total = money(pra.reduce((s, e) => s + Math.round(e.amount * 100), 0) / 100);
+    const quem = [...new Set(pra.map((e) => nameOf(e.payer)))];
+    toast(
+      quem.length === 1
+        ? `💸 ${quem[0]} te pagou ${total}`
+        : `💸 ${quem.slice(0, -1).join(', ')} e ${quem.at(-1)} te pagaram ${total}`,
+      5000,
+      'recebe',
+    );
+  }
   const markSeen = () => {
     if (groupId) setRoom('lastSeen', Date.now());
   };
@@ -3012,12 +3037,12 @@
   }
   armaOlho();
   let tt;
-  function toast(msg) {
+  function toast(msg, ms = 2200, cls = '') {
     const t = $('#toast');
     t.textContent = msg;
-    t.classList.add('show');
+    t.className = 'toast show' + (cls ? ' ' + cls : '');
     clearTimeout(tt);
-    tt = setTimeout(() => t.classList.remove('show'), 2200);
+    tt = setTimeout(() => t.classList.remove('show'), ms);
   }
 
   // ---------- código de barras (Code 128 C) ----------

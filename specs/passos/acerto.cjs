@@ -69,3 +69,28 @@ Then('os botões da minha linha são {string} e {string}', async ({ mundo }, um,
 });
 Then('a área de toque do ✔ tem pelo menos {int}px', async ({ mundo }, n) => { expect(await area(mundo.p)).toBeGreaterThanOrEqual(n); });
 Then('a área do ✔ tem menos de {int}px', async ({ mundo }, n) => { expect(await area(mundo.p)).toBeLessThan(n); });
+
+// o outro aparelho grava o pagamento no banco; a volta pra aba faz o sync na hora, sem esperar o poll.
+// Pronto quando a gaveta anota o id: o aviso (ou a falta dele) já foi decidido
+const pagaNoBanco = async (mundo, pagos) => {
+  const sala = mundo.banco.arvore.rooms[mundo.sala], ids = [];
+  for (const [quem, pra, valor] of pagos) {
+    const id = 'pg' + ids.length + Date.now().toString(36);
+    ids.push(id);
+    sala.expenses = [...(sala.expenses || []), { id, kind: 'payment', desc: 'Pagamento', amount: valor,
+      payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: Date.now(), by: quem }];
+  }
+  await mundo.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(() => mundo.p.evaluate(([k, ids]) => { const v = JSON.parse(localStorage.getItem(k) || '{}').paysSeen || [];
+    return ids.every(i => v.includes(i)); }, [`tolisa:${mundo.sala}`, ids])).toBe(true);
+};
+When('o/a {word} paga R$ {num} pro/pra {word} em outro aparelho', async ({ mundo }, quem, valor, pra) => { await pagaNoBanco(mundo, [[quem, pra, valor]]); });
+When('a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho', async ({ mundo }) => {
+  await pagaNoBanco(mundo, [['Mengla', 'Fernando', 174.43], ['Klinsmann', 'Fernando', 73.61]]);
+});
+// o rodapé ganha a hora só no fim do sync, depois do aviso
+When('o app sincroniza', async ({ mundo }) => {
+  await mundo.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(mundo.p.locator('#status')).toHaveText(/Sincronizado \d/);
+});
+Then('não aparece aviso de pagamento', async ({ mundo }) => { await expect(mundo.p.locator('#toast')).not.toContainText('te pag'); });

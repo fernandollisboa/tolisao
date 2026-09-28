@@ -450,8 +450,13 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 .seg button.on:before{max-width:1em;margin-right:.35em;opacity:1}
 #splitArea{display:grid;gap:10px}
 @media (prefers-reduced-motion:reduce){.seg:before,.seg button,.seg button:before{transition:none}}
-.toast{position:fixed;top:calc(env(safe-area-inset-top) + 18px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);text-align:center;box-shadow:3px 3px 0 rgba(0,0,0,.25);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;text-transform:uppercase}
-.toast.show{opacity:1} .toast.recebe{background:var(--green)}
+.toast{position:fixed;top:17vh;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);text-align:center;box-shadow:3px 3px 0 rgba(0,0,0,.25);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;pointer-events:none;z-index:20;text-transform:uppercase}
+.toast.recebe{background:var(--green)}
+/* o aviso sobe de baixo devagar, para, e na saída continua subindo enquanto esmaece */
+.toast.show{animation:avisoEntra .9s cubic-bezier(.2,.8,.3,1) both} .toast.sai{animation:avisoSai .9s ease-in both}
+@keyframes avisoEntra{from{opacity:0;transform:translate(-50%,40px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes avisoSai{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-30px)}}
+@media (prefers-reduced-motion:reduce){.toast.show{animation:none;opacity:1}.toast.sai{animation:none}}
 @media (min-width:900px) and (min-height:600px){html{zoom:1.5}}
 #boot{display:none;margin:14px 0 2px} #boot .spin{width:22px;height:22px;border-width:3px}
 #app.loading>*:not(h1):not(#boot){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}

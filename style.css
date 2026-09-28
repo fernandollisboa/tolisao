@@ -300,6 +300,10 @@ form{display:grid;gap:10px}
 html:has(#overlay:not(.hidden)),html:has(#sheet:not(.hidden)){overflow:hidden}
 #overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 #sheet .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
+/* o miolo dos cartões: título colado no topo, recado centrado embaixo dele, o voltar no pé */
+#overlayBox h2{margin-top:0}
+.recado{margin:0 0 12px;text-align:center}
+.voltar{margin-top:12px}
 code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
 #mineRows .row.pos .v{color:var(--green)} #mineRows .row.neg .v{color:var(--red)} #mineRows .row.ok .l,#mineRows .row.ok .v{color:var(--green)} #mineRows .row.ok .d{border-color:var(--green)} 
 #mineRows .row.sub{font-size:17px;color:var(--ink2);line-height:1.5} #mineRows .row.sub .v{font-size:17px}

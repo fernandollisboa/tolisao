@@ -1303,7 +1303,7 @@
   function ask(title, desc, okLabel = 'confirmar', perigo = false) {
     return new Promise((res) => {
       overlay(
-        `<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big${perigo ? ' perigo' : ''}">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`,
+        `<h2>${title}</h2>${desc ? `<p class="muted recado">${desc}</p>` : ''}<button id="okBtn" class="big${perigo ? ' perigo' : ''}">${okLabel}</button><div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(false);
       $('#okBtn').onclick = () => {
@@ -1322,7 +1322,7 @@
   function askText(title, desc, placeholder, value = '', okLabel = 'confirmar', valida = null) {
     return new Promise((res) => {
       overlay(
-        `<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" id="askDesc" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`,
+        `<h2>${title}</h2>${desc ? `<p class="muted recado" id="askDesc">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);
       const erro = ['#askInput', '#askDesc'].map((q) => $(q)).filter(Boolean);
@@ -1351,7 +1351,7 @@
   }
   function showCopy(title, text) {
     overlay(
-      `<h2 style="margin-top:0">${title}</h2><p class="muted" style="margin:0 0 12px;text-align:center">toque e segure pra copiar</p><code class="box">${esc(text)}</code><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">fechar</button></div>`,
+      `<h2>${title}</h2><p class="muted recado">toque e segure pra copiar</p><code class="box">${esc(text)}</code><div class="c voltar"><button id="cancelBtn" class="ghost">fechar</button></div>`,
     );
     $('#cancelBtn').onclick = closeOverlay;
   }
@@ -1410,11 +1410,9 @@
         <div>2. copie o pix e pague o deves</div>
         <div>3. cobre o amiguinho a fazer o mesmo</div>
       </div>`;
-    const lista = evs.length
-      ? `<div class="hr"></div><h2 style="margin-top:0">*** Meus eventos ***</h2>${listaEventos(evs, false)}`
-      : '';
+    const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, false)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2 style="margin-top:0">${evs.length ? 'Outro evento' : 'Evento'}</h2>${msg || !evs.length ? `<p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>` : ''}
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>${evs.length ? 'Outro evento' : 'Evento'}</h2>${msg || !evs.length ? `<p class="muted recado">${msg || ''}</p>` : ''}
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required${evs.length ? '' : ' autofocus'} autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">${botao}</button></form>`,
       true,
@@ -1452,13 +1450,13 @@
           .join('')
       : '<div class="empty">ninguém ainda</div>';
     overlay(
-      `<h2 class="longo" style="margin-top:0">*** Quem tá no evento? ***</h2>
+      `<h2 class="longo">*** Quem tá no evento? ***</h2>
       ${list}
       <div class="hr"></div>
       <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">
         <input id="setupName" placeholder="nome" maxlength="30"><button class="small">adicionar</button></form>
       <button id="setupGo" class="big" style="margin-top:16px" ${state.people.length ? '' : 'disabled'}>Continuar</button>
-      <div class="c" style="margin-top:12px"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`,
+      <div class="c voltar"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`,
       true,
     );
     $('#setupForm').onsubmit = (ev) => {
@@ -1504,7 +1502,7 @@
   }
   function showWho() {
     const opts = state.people.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
-    overlay(`<h2 style="margin-top:0">Quem é você?</h2>
+    overlay(`<h2>Quem é você?</h2>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
         <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
@@ -1533,7 +1531,7 @@
     $('#app').classList.add('loading', 'nospin');
     const cached = cacheLoad();
     overlay(
-      `<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 12px;text-align:center">esse evento não está mais no banco</p>
+      `<h2>Evento não encontrado</h2><p class="muted recado">esse evento não está mais no banco</p>
       ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`,
       true,
     );
@@ -1650,10 +1648,10 @@
     loadPixKeys();
   }
   function showQuitado(to, cents) {
-    overlay(`<h2 style="margin-top:0">Quitado!</h2>
-      <p class="muted" style="margin:0 0 14px;text-align:center">avise ${nm(to)} pra não cobrar de novo</p>
+    overlay(`<h2>Quitado!</h2>
+      <p class="muted recado" style="margin-bottom:14px">avise ${nm(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
-      <div class="c" style="margin-top:12px"><button id="quitOk" class="ghost">fechar</button></div>`);
+      <div class="c voltar"><button id="quitOk" class="ghost">fechar</button></div>`);
     const fecha = () => {
       closeOverlay();
       seguraRisco = false;
@@ -1668,13 +1666,13 @@
   }
   function showRoom() {
     const evs = meusEventos();
-    overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
+    overlay(`<h2>*** Evento ***</h2>
       <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
       <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
       <div class="hr"></div>
       ${
         evs.length
-          ? `<h2 style="margin-top:0">*** Meus eventos ***</h2>${listaEventos(evs, true)}
+          ? `<h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
           : ''
       }
@@ -2488,7 +2486,7 @@
             `<div class="barra"><span class="toca">${SHARE_SVG}</span></div>`,
             `toque no <b>${SHARE_SVG}</b> lá ${onde === 'cima' ? 'em cima' : 'embaixo'}.`,
           ) + tela(2);
-    overlay(`<h2 style="margin-top:0">Instalar</h2>${passos}
+    overlay(`<h2>Instalar</h2>${passos}
       <button id="instOk" class="sec" style="margin-top:10px">entendi</button>
       <svg class="seta ${onde}" width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 8C30 90 70 150 122 176"/><path d="M96 178H124L116 152"/></svg>`);
     $('#overlay').classList.add('ensina', onde);

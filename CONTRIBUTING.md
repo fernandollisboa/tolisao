@@ -20,7 +20,7 @@ npm run qualidade                           # sintaxe, formato, tipos, regras e 
 
 os testes são cucumber em português: a especificação fica em `specs/features/*.feature` e os passos em `specs/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo, e o fim da saída diz como abrir o trace.
 
-`npm run regras` confere, sem navegador, o que nenhum cenário pega: a CSP só roda script do site e só fala com o firebase, o banco não deixa listar salas nem ler o `tok` do pix, o `clean()` corta no tamanho que o banco valida e o `og5.jpg` cabe no WhatsApp. falhou, ele diz o que trocar.
+`npm run regras` confere, sem navegador, o que nenhum cenário pega: a CSP só roda script do site e só fala com o firebase, o banco não deixa listar salas nem ler o `tok` do pix, o `clean()` corta no tamanho que o banco valida e o `og6.jpg` cabe no WhatsApp. falhou, ele diz o que trocar.
 
 `npm run cobertura` roda os mesmos testes e diz quanto do `app.js` eles executam, com os trechos que nenhum cenário alcança. serve pra achar fluxo sem cenário, não é meta: animação e gesto se conferem no vídeo.
 

@@ -1490,7 +1490,7 @@
     const intro =
       msg || evs.length
         ? ''
-        : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">tipo Splitwise, só que sem app e sem cadastro.</div>
+        : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta e anota quem deve, sem app e sem cadastro.</div>
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
         <div>1. anote quem pagou o quê, quando e com quem</div>
         <div>2. copie o pix e pague o deves</div>

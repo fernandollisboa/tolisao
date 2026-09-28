@@ -3037,7 +3037,7 @@
   }
   armaOlho();
   let tt;
-  function toast(msg, ms = 2200, cls = '') {
+  function toast(msg, ms = 3500, cls = '') {
     const t = $('#toast');
     t.textContent = msg;
     // tira a classe e mede antes de pôr de novo: aviso em cima de aviso recomeça a subida

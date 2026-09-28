@@ -519,6 +519,7 @@
     return p ? nm(p.id) : esc(name);
   };
   let showAll = false,
+    showGone = false,
     itemsOpen = false;
   const openItems = new Set();
   // ---------- fila das animações ----------
@@ -1142,12 +1143,11 @@
   /** a lista dos itens, do mais novo pro mais velho, separada por dia quando tem mais de um */
   function renderItens() {
     const items = state.expenses.filter((e) => e.kind !== 'payment');
-    const all = [...items].reverse();
-    const linhas = [...all, ...state.gone.filter((g) => !g.to)].sort((x, y) => y.at - x.at),
-      list = showAll ? linhas : linhas.slice(0, 10);
+    const all = [...items].reverse(),
+      list = showAll ? all : all.slice(0, 10);
     const dayOf = (e) =>
       new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
-    const days = new Set(linhas.map(dayOf));
+    const days = new Set(all.map(dayOf));
     let lastDay = null;
     $('#expenses').innerHTML =
       list
@@ -1160,13 +1160,6 @@
               lastDay = d;
             }
           }
-          if ('goneAt' in e)
-            return (
-              head +
-              `<div class="item apagado" data-gone="${e.id}">` +
-              linha(esc(e.desc), num(Math.round(e.amount * 100))) +
-              `<div class="small"><span>apagado${e.by ? ` por ${nmByName(e.by)}` : ''} · ${new Date(e.goneAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span></div></div>`
-            );
           const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
           const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
           const mexe = meu
@@ -1181,7 +1174,28 @@
         })
         .join('') || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll');
-    tg.classList.toggle('hidden', linhas.length <= 10);
+    tg.classList.toggle('hidden', all.length <= 10);
+    // os apagados ficam recolhidos no fim: a lista não se enche de risco, e "cadê a janta?" está a um toque
+    const gone = state.gone.filter((g) => !g.to).reverse();
+    const dia = (t) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    $('#gone').innerHTML = gone.length
+      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${gone.length} ${gone.length === 1 ? 'item apagado' : 'itens apagados'}</a></div>` +
+        (showGone
+          ? gone
+              .map(
+                (g) =>
+                  `<div class="item apagado" data-gone="${g.id}">` +
+                  linha(esc(g.desc), num(Math.round(g.amount * 100))) +
+                  `<div class="small"><span>apagado${g.by ? ` por ${nmByName(g.by)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
+              )
+              .join('')
+          : '')
+      : '';
+    if (gone.length)
+      $('#goneToggle').onclick = () => {
+        showGone = !showGone;
+        render();
+      };
     tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     if (itemsOpen) anim.viuItens = true;
     $('#itemsCount').textContent =
@@ -1659,6 +1673,7 @@
       lastSeen = +r.lastSeen || 0;
     }
     showAll = false;
+    showGone = false;
     $('#app').classList.add('loading');
     $('#app').classList.remove('nospin');
     state = cacheLoad();

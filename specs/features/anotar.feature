@@ -78,14 +78,16 @@ Funcionalidade: Anotar um gasto
     Quando eu digito "1234567" no valor
     Então o valor fica "5.001.234,56"
 
-  Cenário: apagar um item deixa ele riscado, com quem apagou
+  Cenário: apagar um item deixa ele recolhido no fim, riscado e com quem apagou
     Quando eu abro o evento como Lia
     E eu abro a lista de itens
     E eu apago o "Uber ida"
-    Então o "Uber ida" aparece riscado, apagado por Lia
+    Então o fim da lista diz "▸ 1 item apagado"
+    E nenhum item aparece riscado
     E o total dos itens fica 721,34
     Quando eu abro o evento como Fernando em outro aparelho
     E eu abro a lista de itens
+    E eu abro os itens apagados
     Então o "Uber ida" aparece riscado, apagado por Lia
 
   Cenário: editar um item

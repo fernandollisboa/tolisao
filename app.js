@@ -4,6 +4,14 @@
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
+  // o app inteiro mora neste arquivo, de cima pra baixo:
+  //   config e utilitários → o que fica no aparelho (localStorage) → o estado da página
+  //   → a conta (clean, merge, balances, settlements) → o banco (sync) → dinheiro
+  //   → cores e a fila das animações → pix → a nota (render) → o anotar
+  //   → cartões (overlays) → entrar num evento → meus eventos → botões e cliques
+  //   → a comanda em png → instalar → a ficha do rodapé → início (o fim do arquivo)
+  // tudo começa lá no fim, em "início": lê o ?senha= do endereço e abre o evento.
+
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
@@ -141,56 +149,32 @@
   // visitas contadas neste aparelho: o convite de instalar e o aperto dos itens leem daqui
   const visitas = (+device().visits || 0) + 1;
   setDevice('visits', visitas);
-  // "tô lisa" se digita sozinho no cartão do código, a tela de estreia — só na primeira
-  // visita deste aparelho, e uma vez só. No cabeçalho do evento ele fica quieto: ali
-  // a pessoa veio ver a conta, não o título.
-  // É tudo em JS (troca de textContent), não CSS: um clip-path animado já deu bug de
-  // verdade num navegador (o relógio da animação simplesmente não andava, sem
-  // getAnimations() nenhum rodando) — trocar texto por setTimeout não depende de
-  // nenhum relógio de animação, só do event loop normal.
-  let tituloJaAnimou = false;
-  function digitaTitulo(el) {
-    if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
-    tituloJaAnimou = true;
-    document.fonts.ready.then(() => {
-      if (!el.isConnected) return; // a tela pode ter trocado enquanto a fonte carregava
-      // a cadência é de gente de verdade, não de metrônomo: os intervalos abaixo
-      // foram medidos quadro a quadro de um vídeo do usuário digitando isso na
-      // barra do navegador. `d` é a espera *antes* daquele texto aparecer.
-      const BASE = 'tô lisa';
-      const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
-      const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
-      passos.push({ t: BASE + '!', d: 765 }); // olha o que escreveu e crava um !
-      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 }); // volta pra pôr mais um, e emenda o terceiro
-      passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
-      passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
-      passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
-      passos.push({ t: BASE + '.', d: 300 }, { t: BASE, d: 900 }); // acaba num ponto, que some pro título ficar igual ao resto
-      el.textContent = '';
-      el.classList.add('digitando');
-      let i = 0;
-      const passo = () => {
-        if (i >= passos.length) {
-          el.classList.remove('digitando');
-          return;
-        }
-        el.textContent = passos[i].t;
-        const atraso = passos[i + 1]?.d ?? 90;
-        i++;
-        setTimeout(passo, atraso);
-      };
-      setTimeout(passo, passos[0].d);
-    });
-  }
-
-  /** @type {string|null} */ let groupId = null;
-  let roomName = ''; // roomName é o código inteiro, com o final sorteado
+  // ---------- o estado da página ----------
+  // tudo que muda enquanto a página está aberta. O resto do arquivo lê e escreve aqui
+  /** o id do evento no banco: sha-256 do código @type {string|null} */ let groupId = null;
+  /** o código inteiro, com o final sorteado ("churras-k7f3q9") */ let roomName = '';
+  /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
+  /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
+  /** quando esta pessoa viu o evento pela última vez: o que chegou depois ganha "novo" */ let lastSeen = 0;
+  /** pessoa → chave pix, lida do banco @type {Record<string, string>} */ let pixKeys = {};
+  /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
+  /** a lista de itens aberta, e com todos (não só os 10 últimos) */ let itemsOpen = false,
+    showAll = false;
+  /** os itens com os detalhes abertos @type {Set<string>} */ const openItems = new Set();
+  /** o anotar: 'equal' (igual) ou 'custom' (partes diferentes) */ let splitMode = 'equal';
+  /** o gasto que o anotar está editando @type {string|null} */ let editando = null;
+  /** modo chato (easter egg da ficha): sem diva, e o rodapé vira "Deus é fiel." */ let chato = !!device().boringMode;
+  let pollTimer = null,
+    saving = false; // um sync de cada vez
+  // a ficha do rodapé; as duas funções são preenchidas em jogaDiva(), lá no fim
+  const ficha = {
+    /** a ficha vai cair: o Sou Fulano e o ✎ esperam ela pegar a vez na fila */
+    vem: () => false,
+    /** joga a ficha de novo (trocou de pessoa, ela entrou num botão, a diva voltou a falar) */
+    rejoga: () => {},
+  };
   /** o nome que aparece: o que a pessoa digitou quando criou (evento antigo: o próprio código) */
   const evento = () => (state && state.name) || roomName;
-  /** @type {Room|null} */ let state = null;
-  /** @type {string|null} */ let me = null;
-  let pollTimer = null,
-    saving = false;
 
   /** @returns {Room} */
   const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [] });
@@ -208,7 +192,7 @@
     }
   };
 
-  // ---------- merge (união por id; exclusões vencem) ----------
+  // ---------- a conta: limpar e mesclar (união por id; exclusões vencem) ----------
   // dados do banco/cache são de terceiros: só ids [a-z0-9] entram em atributos HTML, tudo o mais vira string curta ou número
   const okId = (id) => typeof id === 'string' && /^[a-z0-9]{1,32}$/.test(id);
   // o limite é em unidade UTF-16 porque é o que o .validate do banco conta (length <= 40,
@@ -295,7 +279,7 @@
     };
   }
 
-  // ---------- remoto ----------
+  // ---------- o banco (Firebase via REST) ----------
   const setStatus = (msg, err) => {
     const el = $('#status');
     el.textContent = msg;
@@ -445,7 +429,7 @@
     return out;
   }
 
-  // ---------- render ----------
+  // ---------- cores ----------
   const PALETTE = [
     '#8a5345',
     '#45838a',
@@ -487,9 +471,6 @@
     const p = state.people.find((q) => q.name === name);
     return p ? nm(p.id) : esc(name);
   };
-  let showAll = false,
-    itemsOpen = false;
-  const openItems = new Set();
   // ---------- fila das animações ----------
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria. Tudo que a fila guarda
@@ -528,8 +509,6 @@
   const APERTO_MS = 1600,
     APERTO_LEAD = 300; // a linha dos itens vira botão e afunda uma vez
   let seguraRisco = false; // quitação acabou de sair: espera o cartão de 'quitado!' fechar
-  // a ficha do rodapé vai cair: o Sou Fulano e o ✎ esperam ela pegar a vez (atribuída lá embaixo)
-  let fichaVem = () => false;
   /** uma seção pega a vez atrás da anterior. `dur` é o quanto ela segura a fila (a entrada
    *  do próximo), `total` é quanto ela dura de fato. Seção que chega na tela atrasada (o
    *  Falta pagar abaixo da dobra) entra atrás das seções, não atrás do Sou Fulano e do ✎ */
@@ -604,7 +583,6 @@
       `--mkw:${g(24, 95, 5).toFixed(0)}%;--mkv:${g(2, 92, 6).toFixed(0)}%;--mkx:${g(6, 0, 4).toFixed(0)}%;--mky:${g(10, 2, 6).toFixed(0)}%;--mkz:${g(14, -2, 4).toFixed(0)}px`
     );
   };
-  let lastSeen = 0;
   const markSeen = () => {
     if (groupId) setRoom('lastSeen', Date.now());
   };
@@ -628,8 +606,6 @@
   const WA_SVG =
     '<svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
   // ---------- pix ----------
-  let pixKeys = {},
-    pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const PIX_MS = 420,
     PISCA_MS = 900,
     PISCA_GAP = 320; // uma piscada só, uma linha atrás da outra
@@ -785,12 +761,12 @@
     ],
     none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
   };
+  // ---------- a nota (render) ----------
   const luck = Math.random();
   const pick = (list) => list[Math.floor(luck * list.length)];
   // easter egg: segurar, tocar, segurar na ficha desliga a diva (modo chato). Some a
   // ficha, some o subtítulo e o rodapé vira "Deus é fiel.". O mesmo toque no rodapé
   // liga de novo. Fica guardado no aparelho.
-  let chato = !!device().boringMode;
   document.body.classList.toggle('chato', chato);
   /** forte (segurou) e fraco (tocou) em sequência; três seguidos formam a senha */
   function senha(alvo, ok) {
@@ -973,7 +949,7 @@
       (!aVista($('#mine')) || anim.naTela.mine) &&
       (!aVista($('#itemsSec')) || anim.naTela.itens) &&
       (!aVista($('#settle')) || anim.naTela.settle);
-    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !anim.fab && !fichaVem() && semCartao()) {
+    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !anim.fab && !ficha.vem() && semCartao()) {
       if (!anim.sou) {
         anim.sou = calmo(SOU_MS, 0);
         cutuca($('#whoBtn'), 'cutuca', anim.sou);
@@ -1174,7 +1150,7 @@
     $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = valorHtml(items.reduce((a, e) => a + centavos(e), 0));
   }
-  let splitMode = 'equal';
+  // ---------- o anotar (o formulário de gasto) ----------
   const customShares = () => {
     const o = {};
     for (const i of inputs('#sharesBox input[data-share]')) o[i.dataset.share] = lerCentavos(i.value) || 0;
@@ -1291,7 +1267,7 @@
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta();
   });
 
-  // ---------- telas ----------
+  // ---------- cartões (overlays) ----------
   let overlayCancel = null,
     overlaySticky = false;
   const overlay = (html, sticky = false) => {
@@ -1367,6 +1343,47 @@
       `<h2 style="margin-top:0">${title}</h2><p class="muted" style="margin:0 0 12px;text-align:center">toque e segure pra copiar</p><code class="box">${esc(text)}</code><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">fechar</button></div>`,
     );
     $('#cancelBtn').onclick = closeOverlay;
+  }
+  // "tô lisa" se digita sozinho no cartão do código, a tela de estreia — só na primeira
+  // visita deste aparelho, e uma vez só. No cabeçalho do evento ele fica quieto: ali
+  // a pessoa veio ver a conta, não o título.
+  // É tudo em JS (troca de textContent), não CSS: um clip-path animado já deu bug de
+  // verdade num navegador (o relógio da animação simplesmente não andava, sem
+  // getAnimations() nenhum rodando) — trocar texto por setTimeout não depende de
+  // nenhum relógio de animação, só do event loop normal.
+  let tituloJaAnimou = false;
+  function digitaTitulo(el) {
+    if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
+    tituloJaAnimou = true;
+    document.fonts.ready.then(() => {
+      if (!el.isConnected) return; // a tela pode ter trocado enquanto a fonte carregava
+      // a cadência é de gente de verdade, não de metrônomo: os intervalos abaixo
+      // foram medidos quadro a quadro de um vídeo do usuário digitando isso na
+      // barra do navegador. `d` é a espera *antes* daquele texto aparecer.
+      const BASE = 'tô lisa';
+      const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
+      const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
+      passos.push({ t: BASE + '!', d: 765 }); // olha o que escreveu e crava um !
+      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 }); // volta pra pôr mais um, e emenda o terceiro
+      passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
+      passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
+      passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
+      passos.push({ t: BASE + '.', d: 300 }, { t: BASE, d: 900 }); // acaba num ponto, que some pro título ficar igual ao resto
+      el.textContent = '';
+      el.classList.add('digitando');
+      let i = 0;
+      const passo = () => {
+        if (i >= passos.length) {
+          el.classList.remove('digitando');
+          return;
+        }
+        el.textContent = passos[i].t;
+        const atraso = passos[i + 1]?.d ?? 90;
+        i++;
+        setTimeout(passo, atraso);
+      };
+      setTimeout(passo, passos[0].d);
+    });
   }
   function showGate(msg) {
     $('#app').classList.add('loading', 'nospin');
@@ -1472,7 +1489,7 @@
     render();
     $('#payer').value = me;
     updateHint();
-    rejogaDiva();
+    ficha.rejoga();
   }
   function showWho() {
     const opts = state.people.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
@@ -1525,7 +1542,7 @@
     };
   }
 
-  // ---------- salas (código → grupo) ----------
+  // ---------- entrar num evento (código → id no banco) ----------
   async function enterRoom(code) {
     if (!code) throw new Error('Digite um código.');
     if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
@@ -1774,7 +1791,7 @@
     }
   }
 
-  // ---------- eventos ----------
+  // ---------- botões ----------
   $('#addPerson').onclick = async () => {
     const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim();
     if (!name) return;
@@ -1802,7 +1819,6 @@
     $('#sheet').classList.remove('hidden');
     $('#amount').focus();
   };
-  /** @type {string|null} */ let editando = null;
   const limpaForm = () => {
     editando = null;
     $('#desc').value = '';
@@ -2493,7 +2509,7 @@
     document.body.appendChild(box);
     setTimeout(() => box.remove(), 1400);
   }
-  let rejogaDiva = () => {}; // atribuída abaixo; joga a ficha de novo
+  // ---------- a ficha do rodapé (a diva) ----------
   // a diva só é jogada quando o código de barras entra na tela. O lugar sai de
   // uma lista de cantos ao redor do código, sempre acima do "sincronizado", e o
   // voo às vezes vem direto, às vezes dando cambalhota
@@ -2559,7 +2575,7 @@
       el.style.right = 'auto';
       el.style.bottom = 'auto';
     };
-    const sorteia = () => {
+    const sorteiaVaga = () => {
       const v = vagas();
       slot = Math.floor(Math.random() * (v ? v.length : 5));
       posiciona();
@@ -2587,7 +2603,7 @@
       el.classList.toggle('cambalhota', jeito < 0.4);
       el.classList.toggle('requica', jeito >= 0.4 && jeito < 0.52);
     };
-    sorteia();
+    sorteiaVaga();
     if ('ResizeObserver' in window) new ResizeObserver(posiciona).observe($('#app'));
     window.addEventListener('resize', posiciona);
     // a ficha espera a pessoa chegar no fim da página. Antes bastava o código de barras
@@ -2600,7 +2616,7 @@
     let jogada = false,
       marcada = false,
       aviso = 0;
-    fichaVem = () => {
+    ficha.vem = () => {
       if (!jogada) confere();
       return !chato && jogada && !marcada;
     };
@@ -2612,7 +2628,7 @@
       // com cartão ou o anotar abertos ela cairia por trás, sem ninguém ver: espera fechar
       if (!semCartao() || !$('#sheet').classList.contains('hidden')) return;
       jogada = true;
-      sorteia();
+      sorteiaVaga();
       clearTimeout(aviso);
       // as seções só entram na fila depois que o #app sai do loading e o observador
       // reporta; pegar a vez no mesmo quadro fazia a ficha furar tudo. Um respiro e
@@ -2639,7 +2655,7 @@
     if ('ResizeObserver' in window) new ResizeObserver(confere).observe($('#app'));
     for (const q of ['#overlay', '#sheet'])
       new MutationObserver(confere).observe($(q), { attributes: true, attributeFilter: ['class'] });
-    // uma jogada só: chegar no fim de novo não traz outra, até o rejogaDiva (trocou de
+    // uma jogada só: chegar no fim de novo não traz outra, até o ficha.rejoga() (trocou de
     // nome, a ficha entrou num botão, a diva voltou a falar).
     // pousou: a ficha passa a ser pegável. Dois toques ela treme; o terceiro já agarra,
     // no mesmo gesto. Agarrada, sai do papel pro body (fixed dentro de algo com
@@ -2727,7 +2743,7 @@
         el.removeEventListener('transitionend', apagou);
         clearTimeout(reserva);
         el.classList.add('fora');
-        rejogaDiva();
+        ficha.rejoga();
       };
       const apagou = (e) => {
         if (e.propertyName === 'opacity') some();
@@ -2868,7 +2884,7 @@
     };
     el.addEventListener('pointerup', solta);
     el.addEventListener('pointercancel', solta);
-    rejogaDiva = () => {
+    ficha.rejoga = () => {
       clearTimeout(aviso);
       cancelAnimationFrame(voo);
       jogada = marcada = false;
@@ -2902,7 +2918,7 @@
         setDevice('boringMode', undefined);
         document.body.classList.remove('chato');
         render();
-        rejogaDiva();
+        ficha.rejoga();
       });
   })();
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo

@@ -5,6 +5,16 @@
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
+  // o app inteiro mora neste arquivo. As seções, na ordem (cada uma abre com um
+  // "// ---------- nome ----------", é só procurar):
+  //   config → o que fica no aparelho (localStorage) → o estado da página
+  //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
+  //   → a conta: saldos e quem paga quem (balances, settlements) → cores
+  //   → fila das animações → desenhos (ícones) → pix → a nota (render) → o anotar
+  //   → cartões (overlays) → entrar num evento → meus eventos → botões → cliques
+  //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
+  // tudo começa na última seção, "início": lê o ?senha= do endereço e abre o evento.
+
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
@@ -33,6 +43,8 @@
       .join('');
   const semMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const semCartao = () => document.querySelector('#overlay').classList.contains('hidden');
+  // ---------- o que fica no aparelho (localStorage) ----------
+  /** localStorage que não quebra: em aba anônima ou com o armazenamento cheio ele lança erro */
   const ls = {
     get: (k) => {
       try {
@@ -61,7 +73,7 @@
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
-  /** @returns {Record<string, any>} */
+  /** lê uma gaveta (um JSON no localStorage); estragada ou vazia, vem {} @returns {Record<string, any>} */
   const gaveta = (k) => {
     try {
       const o = JSON.parse(ls.get(k) || '{}');
@@ -70,7 +82,7 @@
       return {};
     }
   };
-  /** @param {string} k @param {(o: Record<string, any>) => void} f */
+  /** abre a gaveta, deixa `f` mexer nela e grava de volta @param {string} k @param {(o: Record<string, any>) => void} f */
   const mexe = (k, f) => {
     const o = gaveta(k);
     f(o);
@@ -140,56 +152,33 @@
   // visitas contadas neste aparelho: o convite de instalar e o aperto dos itens leem daqui
   const visitas = (+device().visits || 0) + 1;
   setDevice('visits', visitas);
-  // "tô lisa" se digita sozinho no cartão do código, a tela de estreia — só na primeira
-  // visita deste aparelho, e uma vez só. No cabeçalho do evento ele fica quieto: ali
-  // a pessoa veio ver a conta, não o título.
-  // É tudo em JS (troca de textContent), não CSS: um clip-path animado já deu bug de
-  // verdade num navegador (o relógio da animação simplesmente não andava, sem
-  // getAnimations() nenhum rodando) — trocar texto por setTimeout não depende de
-  // nenhum relógio de animação, só do event loop normal.
-  let tituloJaAnimou = false;
-  function digitaTitulo(el) {
-    if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
-    tituloJaAnimou = true;
-    document.fonts.ready.then(() => {
-      if (!el.isConnected) return; // a tela pode ter trocado enquanto a fonte carregava
-      // a cadência é de gente de verdade, não de metrônomo: os intervalos abaixo
-      // foram medidos quadro a quadro de um vídeo do usuário digitando isso na
-      // barra do navegador. `d` é a espera *antes* daquele texto aparecer.
-      const BASE = 'tô lisa';
-      const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
-      const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
-      passos.push({ t: BASE + '!', d: 765 }); // olha o que escreveu e crava um !
-      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 }); // volta pra pôr mais um, e emenda o terceiro
-      passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
-      passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
-      passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
-      passos.push({ t: BASE + '.', d: 300 }, { t: BASE, d: 900 }); // acaba num ponto, que some pro título ficar igual ao resto
-      el.textContent = '';
-      el.classList.add('digitando');
-      let i = 0;
-      const passo = () => {
-        if (i >= passos.length) {
-          el.classList.remove('digitando');
-          return;
-        }
-        el.textContent = passos[i].t;
-        const atraso = passos[i + 1]?.d ?? 90;
-        i++;
-        setTimeout(passo, atraso);
-      };
-      setTimeout(passo, passos[0].d);
-    });
-  }
-
-  /** @type {string|null} */ let groupId = null;
-  let roomName = ''; // roomName é o código inteiro, com o final sorteado
+  // ---------- o estado da página ----------
+  // tudo que muda enquanto a página está aberta. O resto do arquivo lê e escreve aqui
+  /** o id do evento no banco: sha-256 do código @type {string|null} */ let groupId = null;
+  /** o código inteiro, com o final sorteado ("churras-k7f3q9") */ let roomName = '';
+  /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
+  /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
+  /** quando esta pessoa viu o evento pela última vez: o que chegou depois ganha "novo" */ let lastSeen = 0;
+  /** pessoa → chave pix, lida do banco @type {Record<string, string>} */ let pixKeys = {};
+  /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
+  /** a lista de itens aberta, e com todos (não só os 10 últimos) */ let itemsOpen = false,
+    showAll = false;
+  /** os itens apagados, recolhidos no fim da lista, estão abertos */ let showGone = false;
+  /** os itens com os detalhes abertos @type {Set<string>} */ const openItems = new Set();
+  /** o anotar: 'equal' (igual) ou 'custom' (partes diferentes) */ let splitMode = 'equal';
+  /** o gasto que o anotar está editando @type {string|null} */ let editando = null;
+  /** modo chato (easter egg da ficha): sem diva, e o rodapé vira "Deus é fiel." */ let chato = !!device().boringMode;
+  let pollTimer = null,
+    saving = false; // um sync de cada vez
+  // a ficha do rodapé; as duas funções são preenchidas em jogaDiva(), lá no fim
+  const ficha = {
+    /** a ficha vai cair: o Sou Fulano e o ✎ esperam ela pegar a vez na fila */
+    vem: () => false,
+    /** joga a ficha de novo (trocou de pessoa, ela entrou num botão, a diva voltou a falar) */
+    rejoga: () => {},
+  };
   /** o nome que aparece: o que a pessoa digitou quando criou (evento antigo: o próprio código) */
   const evento = () => (state && state.name) || roomName;
-  /** @type {Room|null} */ let state = null;
-  /** @type {string|null} */ let me = null;
-  let pollTimer = null,
-    saving = false;
 
   /** @returns {Room} */
   const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [], gone: [] });
@@ -207,7 +196,7 @@
     }
   };
 
-  // ---------- merge (união por id; exclusões vencem) ----------
+  // ---------- a conta: limpar e mesclar (união por id; exclusões vencem) ----------
   // dados do banco/cache são de terceiros: só ids [a-z0-9] entram em atributos HTML, tudo o mais vira string curta ou número
   const okId = (id) => typeof id === 'string' && /^[a-z0-9]{1,32}$/.test(id);
   // o limite é em unidade UTF-16 porque é o que o .validate do banco conta (length <= 40,
@@ -313,7 +302,7 @@
     };
   }
 
-  // ---------- remoto ----------
+  // ---------- o banco (Firebase via REST) ----------
   const setStatus = (msg, err) => {
     const el = $('#status');
     el.textContent = msg;
@@ -399,21 +388,29 @@
     if (!document.hidden) sync();
   });
 
-  // ---------- contas ----------
-  const fmt = (n) => {
-    const [i, d] = Math.abs(n).toFixed(2).split('.');
+  // ---------- dinheiro ----------
+  // dinheiro é sempre centavo inteiro. O banco guarda `amount` em reais (formato antigo),
+  // então quem lê um gasto passa por centavos(e), e só os formatadores abaixo dividem por 100
+  /** @param {{ amount: number }} e */
+  const centavos = (e) => Math.round(e.amount * 100);
+  /** 123456 → "1.234,56" (sem sinal: quem chama diz se deve ou recebe) */
+  const reais = (c) => {
+    const [i, d] = (Math.abs(c) / 100).toFixed(2).split('.');
     return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d;
   };
-  const num = (c) => fmt(c / 100);
-  const money = (n) => `${CURRENCY}\u00a0${fmt(n)}`;
-  const val = (n) => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
-  // no teclado do celular o separador é vírgula; aceita 12,50 e 1.234,56 além de 12.50
-  const numVal = (v) => {
+  /** 123456 → "R$ 1.234,56" */
+  const comSifrao = (c) => `${CURRENCY}\u00a0${reais(c)}`;
+  /** o mesmo, em html, com o R$ e o número em spans separados */
+  const valorHtml = (c) => `<span class="cur">${CURRENCY}</span><span class="num">${reais(c)}</span>`;
+  /** o que a pessoa digitou → centavos (ou NaN). No teclado do celular o separador é
+   *  vírgula; aceita 12,50 e 1.234,56 além de 12.50 */
+  const lerCentavos = (v) => {
     let s = String(v).trim().replace(/\s/g, '');
     if (!s) return NaN;
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-    return parseFloat(s);
+    return Math.round(parseFloat(s) * 100);
   };
+  // ---------- a conta: saldos e quem paga quem ----------
   const nameOf = (id) => (state.people.find((p) => p.id === id) || { name: '?' }).name;
   const nomeExiste = (n) => state.people.some((p) => p.name.toLowerCase() === n.toLowerCase());
   function shares(cents, ids) {
@@ -429,11 +426,11 @@
       for (const id of ids) o[id] = e.shares[id] || 0;
       return o;
     }
-    return shares(Math.round(e.amount * 100), ids);
+    return shares(centavos(e), ids);
   };
   const howText = (e, name = nameOf, html = false) => {
     const loan = !e.among.includes(e.payer);
-    if (e.shares) return e.among.map((id) => `${name(id)} ${fmt((e.shares[id] || 0) / 100)}`).join(', ');
+    if (e.shares) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
     if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length === 1 ? '' : 'm'} tudo`;
     if (!html) return `÷${e.among.length}`;
     return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`;
@@ -446,8 +443,7 @@
     for (const e of s.expenses) {
       const ids = e.among.filter((id) => id in b);
       if (!ids.length || !(e.payer in b)) continue;
-      const cents = Math.round(e.amount * 100);
-      b[e.payer] += cents;
+      b[e.payer] += centavos(e);
       const sh = shareOf(e, ids);
       for (const id of ids) b[id] -= sh[id];
     }
@@ -477,7 +473,7 @@
     return out;
   }
 
-  // ---------- render ----------
+  // ---------- cores ----------
   const PALETTE = [
     '#8a5345',
     '#45838a',
@@ -504,25 +500,23 @@
     '#eb75ab',
     '#75aaeb',
   ];
-  const idx = (id) =>
+  /** a posição da pessoa na lista: escolhe a cor dela */
+  const indiceDaPessoa = (id) =>
     Math.max(
       0,
       state.people.findIndex((p) => p.id === id),
     );
-  const colorOf = (id) => PALETTE[idx(id) % PALETTE.length];
+  const colorOf = (id) => PALETTE[indiceDaPessoa(id) % PALETTE.length];
   // o emoji da conta fechada varia, mas não pisca a cada render: sai do evento e do dia
   const FESTA = ['🎉', '🙌', '🙏', '❣️', '🥂', '✨'];
   const festeja = () => FESTA[hash32((groupId || '') + new Date().toDateString()) % FESTA.length];
-  const markForte = (id) => MARKR[idx(id) % MARKR.length]; // o mesmo tom, firme: recibo em png e a volta da caneta
-  const nm = (id) => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
-  const nmByName = (name) => {
+  const markForte = (id) => MARKR[indiceDaPessoa(id) % MARKR.length]; // o mesmo tom, firme: recibo em png e a volta da caneta
+  /** o nome da pessoa, na cor dela, pronto pra innerHTML */
+  const nomeHtml = (id) => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
+  const nomeHtmlPorNome = (name) => {
     const p = state.people.find((q) => q.name === name);
-    return p ? nm(p.id) : esc(name);
+    return p ? nomeHtml(p.id) : esc(name);
   };
-  let showAll = false,
-    showGone = false,
-    itemsOpen = false;
-  const openItems = new Set();
   // ---------- fila das animações ----------
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria. Tudo que a fila guarda
@@ -561,8 +555,6 @@
   const APERTO_MS = 1600,
     APERTO_LEAD = 300; // a linha dos itens vira botão e afunda uma vez
   let seguraRisco = false; // quitação acabou de sair: espera o cartão de 'quitado!' fechar
-  // a ficha do rodapé vai cair: o Sou Fulano e o ✎ esperam ela pegar a vez (atribuída lá embaixo)
-  let fichaVem = () => false;
   /** uma seção pega a vez atrás da anterior. `dur` é o quanto ela segura a fila (a entrada
    *  do próximo), `total` é quanto ela dura de fato. Seção que chega na tela atrasada (o
    *  Falta pagar abaixo da dobra) entra atrás das seções, não atrás do Sou Fulano e do ✎ */
@@ -637,7 +629,6 @@
       `--mkw:${g(24, 95, 5).toFixed(0)}%;--mkv:${g(2, 92, 6).toFixed(0)}%;--mkx:${g(6, 0, 4).toFixed(0)}%;--mky:${g(10, 2, 6).toFixed(0)}%;--mkz:${g(14, -2, 4).toFixed(0)}px`
     );
   };
-  let lastSeen = 0;
   // pagamento novo pra quem está vendo vira aviso, uma vez só. A gaveta guarda os ids já
   // vistos (de qualquer pessoa, senão trocar de nome avisava o passado dos outros); na
   // primeira vez vale o lastSeen: avisa só o que caiu depois da última visita
@@ -652,7 +643,7 @@
     setRoom('paysSeen', [...vistos, ...novos.map((e) => e.id)].slice(-200));
     const pra = novos.filter((e) => me && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
     if (!pra.length) return;
-    const total = money(pra.reduce((s, e) => s + Math.round(e.amount * 100), 0) / 100);
+    const total = comSifrao(pra.reduce((s, e) => s + centavos(e), 0));
     const quem = [...new Set(pra.map((e) => nameOf(e.payer)))];
     toast(
       quem.length === 1
@@ -669,7 +660,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) markSeen();
   });
-  // ---------- desenhos ----------
+  // ---------- desenhos (ícones) ----------
   const KEY_SVG =
     '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12.65 10A6 6 0 0 0 1 12a6 6 0 0 0 11.65 2H18v3h4v-7h-9.35zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
   const PIX_SVG =
@@ -685,8 +676,6 @@
   const WA_SVG =
     '<svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
   // ---------- pix ----------
-  let pixKeys = {},
-    pixReady = false; // personId -> chave (lida do banco); pixReady = já consultou uma vez
   const PIX_MS = 420,
     PISCA_MS = 900,
     PISCA_GAP = 320; // uma piscada só, uma linha atrás da outra
@@ -779,7 +768,7 @@
   }
   const tlv = (id, v) => id + String(v.length).padStart(2, '0') + v;
   function pixCode(key, name, cents) {
-    const nm =
+    const recebedor =
       name
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -794,18 +783,18 @@
       tlv('53', '986') +
       tlv('54', (cents / 100).toFixed(2)) +
       tlv('58', 'BR') +
-      tlv('59', nm) +
+      tlv('59', recebedor) +
       tlv('60', 'BRASIL') +
       tlv('62', tlv('05', '***')) +
       '6304';
     return p + crc16(p);
   }
   // valor digitado como no app do banco: os dígitos entram pela direita, pelos centavos
-  // (5 → 0,05, 50 → 0,50, 5000 → 50,00). A usuária da QA digitava o 00 do fim por
-  // costume. Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
+  // (5 → 0,05, 50 → 0,50, 5000 → 50,00), que é o costume de quem usa app de banco.
+  // Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
   const mascara = (el) => {
     const d = el.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
-    el.value = d ? fmt(+d / 100) : '';
+    el.value = d ? reais(+d) : '';
   };
   // na captura, antes de quem lê o campo (o quanto falta das partes)
   document.addEventListener(
@@ -844,12 +833,12 @@
     ],
     none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
   };
+  // ---------- a nota (render) ----------
   const luck = Math.random();
   const pick = (list) => list[Math.floor(luck * list.length)];
   // easter egg: segurar, tocar, segurar na ficha desliga a diva (modo chato). Some a
   // ficha, some o subtítulo e o rodapé vira "Deus é fiel.". O mesmo toque no rodapé
   // liga de novo. Fica guardado no aparelho.
-  let chato = !!device().boringMode;
   document.body.classList.toggle('chato', chato);
   /** forte (segurou) e fraco (tocou) em sequência; três seguidos formam a senha */
   function senha(alvo, ok) {
@@ -893,13 +882,33 @@
       }, 1600);
     });
   }
+  /** o subtítulo do cabeçalho muda com o saldo de quem está vendo */
+  function subtitulo(hasMe, bal) {
+    if (!hasMe || bal > 0) return 'quem me deve?';
+    if (bal < 0) return 'pra quem eu devo?';
+    return 'mas não devo a ninguém';
+  }
+  /** a lista de frases do rodapé que combina com a situação */
+  function frasesDoRodape(hasMe, bal, allEven) {
+    if (allEven) return SIGNOFF.all;
+    if (!hasMe) return SIGNOFF.none;
+    if (bal < 0) return SIGNOFF.owe;
+    if (bal > 0) return SIGNOFF.owed;
+    return SIGNOFF.even;
+  }
   const temMe = () => !!me && state.people.some((p) => p.id === me);
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) =>
     lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : '';
+  /** uma linha da nota: texto à esquerda, pontinhos, valor à direita (`vat` são atributos a mais no valor) */
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
 
+  /** redesenha a nota inteira a partir do `state`. Roda a cada mudança e a cada sync.
+   *  Os agenda…() no meio põem as animações na fila, na ordem em que a página se lê.
+   *  A ORDEM DAS CHAMADAS IMPORTA: cada agenda…() pega a vez atrás do anterior, e o
+   *  agendaSouEFab() mede na tela as seções que as chamadas de cima acabaram de mostrar.
+   *  Trocar a ordem não dá erro nenhum, só bagunça a fila das animações */
   function render() {
     if (!state) return;
     const hasMe = temMe();
@@ -908,83 +917,82 @@
       acerto = settlements(saldo),
       bal = hasMe ? saldo[me] || 0 : 0;
     const allEven = state.people.length > 0 && !vazio && Object.values(saldo).every((v) => v === 0);
+    const pays = state.expenses
+      .filter((e) => e.kind === 'payment')
+      .slice(-PAGOS_NA_LISTA)
+      .reverse();
+    const nMeus = acerto.filter((t) => t.from === me).length;
 
+    renderCabecalho(hasMe, bal, allEven);
+    if (hasMe && !vazio) renderMinha(bal, acerto);
+    else $('#mine').classList.add('hidden');
+    mostraSecoes(hasMe, bal, vazio, allEven);
+    agendaConviteItens(hasMe);
+    renderLinhaPix(hasMe, bal);
+    renderForm();
+    agendaFaltaPagar(pays, nMeus);
+    agendaSouEFab(hasMe);
+    renderAcerto(hasMe, acerto, pays, nMeus);
+    renderItens();
+  }
+  /** o nome do evento, o "Sou Fulano", o subtítulo e a frase do rodapé */
+  function renderCabecalho(hasMe, bal, allEven) {
     $('#roomLabel').textContent = evento() || '—';
     document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
-    {
-      const wl = $('#whoLine');
-      const html = hasMe
-        ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
-        : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
-      if (wl.dataset.k !== html) {
-        wl.innerHTML = html;
-        wl.dataset.k = html;
-      }
-      // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
-      $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
+    const wl = $('#whoLine');
+    const html = hasMe
+      ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
+      : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
+    if (wl.dataset.k !== html) {
+      wl.innerHTML = html;
+      wl.dataset.k = html;
     }
-    if ($('#tagline'))
-      $('#tagline').textContent =
-        !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém';
-    if ($('#signoff'))
-      $('#signoff').textContent = chato
-        ? 'Deus é fiel.'
-        : pick(
-            allEven
-              ? SIGNOFF.all
-              : !hasMe
-                ? SIGNOFF.none
-                : bal < 0
-                  ? SIGNOFF.owe
-                  : bal > 0
-                    ? SIGNOFF.owed
-                    : SIGNOFF.even,
-          );
-
-    if (hasMe && !vazio) renderMinha(bal, acerto);
-    else $('#mine').classList.add('hidden');
-
+    // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
+    $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
+    if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
+    if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
+  }
+  /** o que aparece e o que some: o ✎, o zap, a ficha, o Falta pagar e os itens */
+  function mostraSecoes(hasMe, bal, vazio, allEven) {
     $('#fab').classList.toggle('hidden', !hasMe); // anotar é de quem já disse quem é
     $('#fab').classList.add('chamando'); // o ✎ fica âmbar o tempo todo
     $('#waBtn').classList.toggle('so', !hasMe); // sozinho o zap encosta na esquerda
     $('#waBtn').classList.toggle('hidden', vazio); // nota vazia não tem o que mandar
     // a ficha só entra em nota que já tem gasto. A cor é a situação: deve (vermelho),
     // recebe (verde), quite (rosa); sem nome, âmbar
-    {
-      const f = $('.stain');
-      if (f) {
-        f.classList.toggle('hidden', vazio);
-        f.classList.toggle('deve', hasMe && bal < 0);
-        f.classList.toggle('recebe', hasMe && bal > 0);
-        f.classList.toggle('quite', hasMe && bal === 0);
-      }
+    const f = $('.stain');
+    if (f) {
+      f.classList.toggle('hidden', vazio);
+      f.classList.toggle('deve', hasMe && bal < 0);
+      f.classList.toggle('recebe', hasMe && bal > 0);
+      f.classList.toggle('quite', hasMe && bal === 0);
     }
     // todo mundo quite já é dito em Minha conta; repetir no Falta pagar era eco
     $('#settleHead').classList.toggle('hidden', vazio || allEven);
     $('#settle').classList.toggle('hidden', allEven);
     $('#settleHr').classList.toggle('hidden', allEven);
     $('#itemsSec').classList.toggle('hidden', vazio); // quem está quite também quer ver no que gastou
-
-    // o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
-    // página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a
-    // fila. Lista já aberta dispensa o convite; quem já abriu antes, ou já veio mais de
-    // APERTO_VISITAS vezes, ganha só um toquinho na setinha
+  }
+  /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
+   *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a
+   *  fila. Lista já aberta dispensa o convite; quem já abriu antes, ou já veio mais de
+   *  APERTO_VISITAS vezes, ganha só um toquinho na setinha */
+  function agendaConviteItens(hasMe) {
     if (!anim.itens && itemsOpen) anim.itens = -1;
     if (anim.naTela.itens && !anim.itens && hasMe && semCartao() && !$('#itemsSec').classList.contains('hidden')) {
       anim.suave = !!device().itemsOpened || visitas > APERTO_VISITAS;
       anim.itens = agenda(APERTO_LEAD, APERTO_MS);
     }
-
-    // o cadastrar chave pix desce de debaixo do título; a altura vem um quadro depois do
-    // conteúdo, senão a transição não tem de onde sair
-    const pixWant =
-      !hasMe || bal <= 0 || pixKeys[me] || !pixReady
-        ? ''
-        : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
+  }
+  /** o "cadastrar chave pix", pra quem recebe e ainda não tem chave. Ele desce de debaixo
+   *  do título; a altura vem um quadro depois do conteúdo, senão a transição não tem de onde sair */
+  function renderLinhaPix(hasMe, bal) {
+    const quer = hasMe && bal > 0 && !pixKeys[me] && pixReady;
+    const html = quer ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>` : '';
     const pl = $('#pixLine');
-    if (!pixWant) {
+    if (!html) {
       if (pl.dataset.k && !pl.classList.contains('gone')) {
         pl.classList.add('gone');
         setTimeout(() => {
@@ -997,30 +1005,25 @@
       }
     } else {
       pl.classList.remove('gone');
-      if (pl.dataset.k !== pixWant) {
-        pl.innerHTML = pixWant;
-        pl.dataset.k = pixWant;
+      if (pl.dataset.k !== html) {
+        pl.innerHTML = html;
+        pl.dataset.k = html;
         requestAnimationFrame(() => pl.classList.add('cheio'));
       }
     }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
-
-    renderForm();
-
-    const pays = state.expenses
-      .filter((e) => e.kind === 'payment')
-      .slice(-PAGOS_NA_LISTA)
-      .reverse();
-    const nMeus = acerto.filter((t) => t.from === me).length;
-    // o Falta pagar entra na fila atrás de Minha conta: primeiro as voltas do círculo (em
-    // cima), depois os riscos das quitações (embaixo), de cima pra baixo
-    if (anim.naTela.settle && !anim.settle && !seguraRisco && semCartao()) {
-      anim.settle = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
-      anim.risco = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
-      pays.forEach((e, i) => anim.riscos.set(e.id, anim.risco + i * RISCO_GAP));
-    }
-    // com a fila no fim, o Sou Fulano sublinha e, com a tela parada um tempo, o ✎ se
-    // apresenta. Só depois que cada seção à vista pegou a vez, senão o ✎ furava a fila
+  }
+  /** o Falta pagar entra na fila atrás de Minha conta: primeiro as voltas do círculo (em
+   *  cima), depois os riscos das quitações (embaixo), de cima pra baixo */
+  function agendaFaltaPagar(pays, nMeus) {
+    if (!anim.naTela.settle || anim.settle || seguraRisco || !semCartao()) return;
+    anim.settle = agenda(nMeus ? (nMeus - 1) * VOLTA_GAP + DESENHA_GAP + DESENHA_MS : 0);
+    anim.risco = agenda(pays.length ? (pays.length - 1) * RISCO_GAP + RISCO_MS : 0);
+    pays.forEach((e, i) => anim.riscos.set(e.id, anim.risco + i * RISCO_GAP));
+  }
+  /** com a fila no fim, o Sou Fulano sublinha e, com a tela parada um tempo, o ✎ se
+   *  apresenta. Só depois que cada seção à vista pegou a vez, senão o ✎ furava a fila */
+  function agendaSouEFab(hasMe) {
     const aVista = (el) => {
       if (el.classList.contains('hidden')) return false;
       const r = el.getBoundingClientRect();
@@ -1030,48 +1033,26 @@
       (!aVista($('#mine')) || anim.naTela.mine) &&
       (!aVista($('#itemsSec')) || anim.naTela.itens) &&
       (!aVista($('#settle')) || anim.naTela.settle);
-    if (pegaram && !$('#app').classList.contains('loading') && hasMe && !anim.fab && !fichaVem() && semCartao()) {
-      if (!anim.sou) {
-        anim.sou = calmo(SOU_MS, 0);
-        cutuca($('#whoBtn'), 'cutuca', anim.sou);
-      }
-      if ((+device().fabTaps || 0) < 3) {
-        anim.fab = calmo(ANOTA_MS, ANOTA_RESPIRO);
-        cutuca($('#fab'), 'pulsa', anim.fab);
-      } else anim.fab = -1;
+    if (!pegaram || $('#app').classList.contains('loading') || !hasMe || anim.fab || ficha.vem() || !semCartao())
+      return;
+    if (!anim.sou) {
+      anim.sou = calmo(SOU_MS, 0);
+      cutuca($('#whoBtn'), 'cutuca', anim.sou);
     }
-    renderAcerto(hasMe, acerto, pays, nMeus);
-    renderItens();
+    if ((+device().fabTaps || 0) < 3) {
+      anim.fab = calmo(ANOTA_MS, ANOTA_RESPIRO);
+      cutuca($('#fab'), 'pulsa', anim.fab);
+    } else anim.fab = -1;
   }
   /** Minha conta: o saldo de quem está vendo e, devendo, um ✔ e um copiar pix por pessoa */
   function renderMinha(bal, acerto) {
     $('#mine').classList.remove('hidden');
     const meus = bal < 0 ? acerto.filter((t) => t.from === me) : [];
-    // pega a vez assim que chega na tela, sem esperar a chave do pix (senão o Falta pagar
-    // tomava a frente). A fila só segura o começo das piscadas: quem vem depois não
-    // espera elas acabarem, e sem linha nenhuma não há o que segurar
-    if (anim.naTela.mine && !anim.mine) {
-      // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
-      // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
-      const vistos = room().lightsSeen,
-        ja = Array.isArray(vistos) && vistos.includes(me);
-      anim.natal =
-        meus.length >= 2 && (!ja || Math.random() < 0.5)
-          ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT])
-          : null;
-      if (anim.natal && !ja)
-        mexe(roomKey(groupId), (o) => {
-          o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me];
-        });
-      const fim = !meus.length
-        ? 0
-        : (meus.length - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
-      anim.mine = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
-    }
+    agendaMinha(meus);
     // o copiar pix corre por fora da fila: brota de trás do ✔ assim que a chave chega, e
     // brotar já conta que chegou (nada de spinner). O #mineRows é refeito a cada poll: o
     // atraso negativo retoma a animação de onde estava, aqui e na piscada
-    const pixB = (t) => {
+    const botaoCopiarPix = (t) => {
       if (!pixReady || !pixKeys[t.to]) return '';
       if (!anim.pix.has(t.to)) anim.pix.set(t.to, Date.now());
       const dt = Date.now() - anim.pix.get(t.to);
@@ -1079,32 +1060,34 @@
       return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG} copiar pix</button>`;
     };
     // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
-    const okB = (t, i) => {
+    const botaoPaguei = (t, i) => {
       const esp = i * PISCA_GAP,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
       const natal = anim.natal,
         j = natal && natal[i],
         fecho = j && (natal.length - 1) * PISCA_GAP + FECHO_EM + j[1];
-      const pi = anim.tocouOk
-        ? ''
-        : j
-          ? dt < fecho + FECHO_MS
-            ? ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms`
-            : ''
-          : dt < esp + PISCA_MS
-            ? ` pisca" style="animation-delay:${esp - dt}ms`
-            : '';
+      // o que entra no class (e no style) do botão: nada, a piscada simples ou o pisca-pisca de natal
+      const piscada = () => {
+        if (anim.tocouOk) return '';
+        if (j) {
+          if (dt >= fecho + FECHO_MS) return '';
+          return ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms`;
+        }
+        if (dt >= esp + PISCA_MS) return '';
+        return ` pisca" style="animation-delay:${esp - dt}ms`;
+      };
+      const pi = piscada();
       return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`;
     };
     const valor = (t) =>
-      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${num(t.cents)}">${num(t.cents)}</a>`;
+      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
-        ? acerto.filter((t) => t.to === me).map((t) => linha(nm(t.from), val(t.cents / 100), 'sub'))
+        ? acerto.filter((t) => t.to === me).map((t) => linha(nomeHtml(t.from), valorHtml(t.cents), 'sub'))
         : meus.map((t, i) =>
             linha(
-              `<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`,
+              `<span class="n">${nomeHtml(t.to)}</span><span class="dupla">${botaoPaguei(t, i)}${botaoCopiarPix(t)}</span>`,
               valor(t),
               'sub',
             ),
@@ -1113,7 +1096,29 @@
     $('#mineRows').innerHTML =
       (bal === 0
         ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
-        : linha(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal) / 100), bal > 0 ? 'pos' : 'neg')) + quem.join('');
+        : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) + quem.join('');
+  }
+  /** Minha conta pega a vez assim que chega na tela, sem esperar a chave do pix (senão o
+   *  Falta pagar tomava a frente). A fila só segura o começo das piscadas: quem vem depois
+   *  não espera elas acabarem, e sem linha nenhuma não há o que segurar */
+  function agendaMinha(meus) {
+    if (!anim.naTela.mine || anim.mine) return;
+    // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
+    // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
+    const vistos = room().lightsSeen,
+      ja = Array.isArray(vistos) && vistos.includes(me);
+    anim.natal =
+      meus.length >= 2 && (!ja || Math.random() < 0.5)
+        ? meus.map(() => [Math.random() * NATAL_JIT, Math.random() * FECHO_JIT])
+        : null;
+    if (anim.natal && !ja)
+      mexe(roomKey(groupId), (o) => {
+        o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me];
+      });
+    const fim = !meus.length
+      ? 0
+      : (meus.length - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+    anim.mine = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
   }
   /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */
   function renderForm() {
@@ -1142,12 +1147,12 @@
         const meu = t.from === me,
           o = meu ? ordem++ : 0;
         return linha(
-          `${nm(t.from)} → ${nm(t.to)}`,
-          val(t.cents / 100),
+          `${nomeHtml(t.from)} → ${nomeHtml(t.to)}`,
+          valorHtml(t.cents),
           meu ? 'mine' + (desenha ? ' risca' : '') : '',
           '',
           meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
-          meu ? ` data-copy-value="${num(t.cents)}" title="copiar valor"` : '',
+          meu ? ` data-copy-value="${reais(t.cents)}" title="copiar valor"` : '',
         );
       })
       .join('');
@@ -1158,11 +1163,13 @@
       .map((e) => {
         const st = stampStyle(e.id),
           cor = colorOf(e.payer);
-        const quem = `<span class="n">${tagNovo(e)}${nm(e.payer)} → ${nm(e.among[0])}</span>`;
+        const quem = `<span class="n">${tagNovo(e)}${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])}</span>`;
         const desfaz = DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : '';
         const carimbo = `<span class="stampbox"><span class="stamp" style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
         const por = e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '';
-        return linha(quem + desfaz + carimbo, val(e.amount), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por;
+        return (
+          linha(quem + desfaz + carimbo, valorHtml(centavos(e)), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por
+        );
       })
       .join('');
     $('#settle').innerHTML = (deve || nada) + pagos;
@@ -1187,16 +1194,17 @@
               lastDay = d;
             }
           }
-          const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
+          const by =
+            e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nomeHtmlPorNome(e.by)}</span>` : '';
           const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
-          const mexe = meu
+          const botoes = meu
             ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
             : '';
           return (
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
-            linha(`${tagNovo(e)}${esc(e.desc)}`, num(Math.round(e.amount * 100))) +
-            `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${mexe}</div></div>`
+            linha(`${tagNovo(e)}${esc(e.desc)}`, reais(centavos(e))) +
+            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
           );
         })
         .join('') || '<div class="empty">nada anotado ainda</div>';
@@ -1212,8 +1220,8 @@
               .map(
                 (g) =>
                   `<div class="item apagado" data-gone="${g.id}">` +
-                  linha(esc(g.desc), num(Math.round(g.amount * 100))) +
-                  `<div class="small"><span>apagado${g.by ? ` por ${nmByName(g.by)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
+                  linha(esc(g.desc), reais(centavos(g))) +
+                  `<div class="small"><span>apagado${g.by ? ` por ${nomeHtmlPorNome(g.by)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
               )
               .join('')
           : '')
@@ -1240,16 +1248,15 @@
       ih.classList.add(anim.suave ? 'suave' : 'pisca');
     }
     $('#itemsBody').classList.toggle('hidden', !itemsOpen);
-    $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount * 100), 0) / 100);
+    $('#total').innerHTML = valorHtml(items.reduce((a, e) => a + centavos(e), 0));
   }
-  let splitMode = 'equal';
+  // ---------- o anotar (o formulário de gasto) ----------
   const customShares = () => {
     const o = {};
-    for (const i of inputs('#sharesBox input[data-share]'))
-      o[i.dataset.share] = Math.round((numVal(i.value) || 0) * 100);
+    for (const i of inputs('#sharesBox input[data-share]')) o[i.dataset.share] = lerCentavos(i.value) || 0;
     return o;
   };
-  const totalDigitado = () => Math.round((numVal($('#amount').value) || 0) * 100);
+  const totalDigitado = () => lerCentavos($('#amount').value) || 0;
   /** o jeito de dividir são duas abas: "igual" (os chips de quem divide) e "partes
    *  diferentes" (uma linha por pessoa, com o ✔ de quem entra e o valor dela). A lista
    *  é uma só: nas partes diferentes os chips somem, e marcar a linha marca o chip */
@@ -1279,9 +1286,9 @@
           .map((p) => {
             const on = among.includes(p.id);
             return (
-              `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nm(p.id)}</span><span class="d"></span>` +
+              `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nomeHtml(p.id)}</span><span class="d"></span>` +
               (on
-                ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? fmt(prev[p.id] / 100) : ''}">`
+                ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? reais(prev[p.id]) : ''}">`
                 : '<span class="fora">fora</span>') +
               '</div>'
             );
@@ -1336,16 +1343,15 @@
     const total = totalDigitado(),
       sh = customShares();
     const resta = total - Object.values(sh).reduce((a, b) => a + b, 0);
-    const vazios = inputs('#sharesBox input[data-share]').filter((i) => !numVal(i.value));
+    const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
     const f = $('#falta');
     f.className = 'falta ' + (!total ? 'neutro' : resta === 0 ? 'ok' : 'erro');
-    f.innerHTML = !total
-      ? 'digite o valor do gasto lá em cima.'
-      : resta === 0
-        ? `✔ fechou ${money(total / 100)}.`
-        : resta > 0
-          ? `faltam <b>${money(resta / 100)}</b> pra fechar ${money(total / 100)}.${vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : ''}`
-          : `sobram <b>${money(-resta / 100)}</b> além de ${money(total / 100)}.`;
+    const dividirResto = vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : '';
+    if (!total) f.innerHTML = 'digite o valor do gasto lá em cima.';
+    else if (resta === 0) f.innerHTML = `✔ fechou ${comSifrao(total)}.`;
+    else if (resta > 0)
+      f.innerHTML = `faltam <b>${comSifrao(resta)}</b> pra fechar ${comSifrao(total)}.${dividirResto}`;
+    else f.innerHTML = `sobram <b>${comSifrao(-resta)}</b> além de ${comSifrao(total)}.`;
     for (const b of inputs('#sharesBox [data-resto]'))
       b.classList.toggle('hidden', resta <= 0 || sh[b.dataset.resto] > 0);
     // o campo tem a largura do número: os pontinhos da linha correm até perto do valor
@@ -1360,52 +1366,8 @@
     const tgt = /** @type {HTMLElement} */ (ev.target);
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta();
   });
-  document.addEventListener('click', (ev) => {
-    const tgt = /** @type {HTMLElement} */ (ev.target);
-    const aba = /** @type {HTMLElement|null} */ (tgt.closest('#splitSeg button'));
-    if (aba) {
-      const modo = aba.dataset.modo === 'custom' ? 'custom' : 'equal';
-      if (modo !== splitMode) trocaAba(modo);
-      return;
-    }
-    // "o resto" joga na linha o que falta; "dividir o resto igual" reparte entre as vazias
-    const resto = /** @type {HTMLElement|null} */ (tgt.closest('[data-resto]'));
-    const falta = () => totalDigitado() - Object.values(customShares()).reduce((a, b) => a + b, 0);
-    if (resto) {
-      const i = /** @type {HTMLInputElement} */ ($(`#sharesBox input[data-share="${resto.dataset.resto}"]`));
-      const r = falta();
-      if (i && r > 0) {
-        i.value = fmt(r / 100);
-        atualizaFalta();
-      }
-      return;
-    }
-    if (tgt.closest('#restoIgual')) {
-      const vazios = inputs('#sharesBox input[data-share]').filter((i) => !numVal(i.value));
-      const r = falta();
-      if (vazios.length && r > 0) {
-        const o = shares(
-          r,
-          vazios.map((i) => i.dataset.share),
-        );
-        for (const i of vazios) i.value = fmt(o[i.dataset.share] / 100);
-        atualizaFalta();
-      }
-    }
-  });
-  // marcar ou desmarcar a linha é marcar o chip: a lista de quem divide é uma só
-  document.addEventListener('change', (ev) => {
-    const tgt = /** @type {HTMLInputElement} */ (ev.target);
-    if (!tgt.matches('#sharesBox [data-quem]')) return;
-    const chip = /** @type {HTMLInputElement|null} */ ($(`#splitChips input[value="${tgt.dataset.quem}"]`));
-    if (chip) {
-      chip.checked = tgt.checked;
-      chip.closest('.chip').classList.toggle('on', tgt.checked);
-    }
-    updateHint();
-  });
 
-  // ---------- telas ----------
+  // ---------- cartões (overlays) ----------
   let overlayCancel = null,
     overlaySticky = false;
   const overlay = (html, sticky = false) => {
@@ -1430,7 +1392,7 @@
   function ask(title, desc, okLabel = 'confirmar', perigo = false) {
     return new Promise((res) => {
       overlay(
-        `<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<button id="okBtn" class="big${perigo ? ' perigo' : ''}">${okLabel}</button><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`,
+        `<h2>${title}</h2>${desc ? `<p class="muted recado">${desc}</p>` : ''}<button id="okBtn" class="big${perigo ? ' perigo' : ''}">${okLabel}</button><div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(false);
       $('#okBtn').onclick = () => {
@@ -1449,7 +1411,7 @@
   function askText(title, desc, placeholder, value = '', okLabel = 'confirmar', valida = null) {
     return new Promise((res) => {
       overlay(
-        `<h2 style="margin-top:0">${title}</h2>${desc ? `<p class="muted" id="askDesc" style="margin:0 0 12px;text-align:center">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">voltar</button></div>`,
+        `<h2>${title}</h2>${desc ? `<p class="muted recado" id="askDesc">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);
       const erro = ['#askInput', '#askDesc'].map((q) => $(q)).filter(Boolean);
@@ -1478,9 +1440,47 @@
   }
   function showCopy(title, text) {
     overlay(
-      `<h2 style="margin-top:0">${title}</h2><p class="muted" style="margin:0 0 12px;text-align:center">toque e segure pra copiar</p><code class="box">${esc(text)}</code><div class="c" style="margin-top:12px"><button id="cancelBtn" class="ghost">fechar</button></div>`,
+      `<h2>${title}</h2><p class="muted recado">toque e segure pra copiar</p><code class="box">${esc(text)}</code><div class="c voltar"><button id="cancelBtn" class="ghost">fechar</button></div>`,
     );
     $('#cancelBtn').onclick = closeOverlay;
+  }
+  // "tô lisa" se digita sozinho no cartão do código, a tela de estreia — só na primeira
+  // visita deste aparelho, e uma vez só. No cabeçalho do evento ele fica quieto: ali
+  // a pessoa veio ver a conta, não o título.
+  // É troca de textContent com setTimeout, não animação CSS: um clip-path animado
+  // travava num navegador, e setTimeout não depende do relógio de animação.
+  let tituloJaAnimou = false;
+  function digitaTitulo(el) {
+    if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
+    tituloJaAnimou = true;
+    document.fonts.ready.then(() => {
+      if (!el.isConnected) return; // a tela pode ter trocado enquanto a fonte carregava
+      // a cadência é de gente de verdade (medida de um vídeo de alguém digitando).
+      // `d` é a espera *antes* daquele texto aparecer.
+      const BASE = 'tô lisa';
+      const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
+      const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
+      passos.push({ t: BASE + '!', d: 765 }); // olha o que escreveu e crava um !
+      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 }); // volta pra pôr mais um, e emenda o terceiro
+      passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
+      passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
+      passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
+      passos.push({ t: BASE + '.', d: 300 }, { t: BASE, d: 900 }); // acaba num ponto, que some pro título ficar igual ao resto
+      el.textContent = '';
+      el.classList.add('digitando');
+      let i = 0;
+      const passo = () => {
+        if (i >= passos.length) {
+          el.classList.remove('digitando');
+          return;
+        }
+        el.textContent = passos[i].t;
+        const atraso = passos[i + 1]?.d ?? 90;
+        i++;
+        setTimeout(passo, atraso);
+      };
+      setTimeout(passo, passos[0].d);
+    });
   }
   function showGate(msg) {
     $('#app').classList.add('loading', 'nospin');
@@ -1496,11 +1496,9 @@
         <div>2. copie o pix e pague o deves</div>
         <div>3. cobre o amiguinho a fazer o mesmo</div>
       </div>`;
-    const lista = evs.length
-      ? `<div class="hr"></div><h2 style="margin-top:0">*** Meus eventos ***</h2>${listaEventos(evs, false)}`
-      : '';
+    const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, false)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2 style="margin-top:0">${evs.length ? 'Outro evento' : 'Evento'}</h2>${msg || !evs.length ? `<p class="muted" style="margin:0 0 12px;text-align:center">${msg || ''}</p>` : ''}
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>${evs.length ? 'Outro evento' : 'Evento'}</h2>${msg || !evs.length ? `<p class="muted recado">${msg || ''}</p>` : ''}
       <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required${evs.length ? '' : ' autofocus'} autocapitalize="none">
       <p id="gateErr" class="status err" style="margin:0"></p><button class="big">${botao}</button></form>`,
       true,
@@ -1533,18 +1531,18 @@
       ? state.people
           .map(
             (p) =>
-              `<div class="row"><span class="l">${nm(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
+              `<div class="row"><span class="l">${nomeHtml(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
           )
           .join('')
       : '<div class="empty">ninguém ainda</div>';
     overlay(
-      `<h2 class="longo" style="margin-top:0">*** Quem tá no evento? ***</h2>
+      `<h2 class="longo">*** Quem tá no evento? ***</h2>
       ${list}
       <div class="hr"></div>
       <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">
         <input id="setupName" placeholder="nome" maxlength="30"><button class="small">adicionar</button></form>
       <button id="setupGo" class="big" style="margin-top:16px" ${state.people.length ? '' : 'disabled'}>Continuar</button>
-      <div class="c" style="margin-top:12px"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`,
+      <div class="c voltar"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`,
       true,
     );
     $('#setupForm').onsubmit = (ev) => {
@@ -1586,14 +1584,14 @@
     render();
     $('#payer').value = me;
     updateHint();
-    rejogaDiva();
+    ficha.rejoga();
   }
   function showWho() {
     // quem já é alguém vê o próprio nome escolhido; o menu só abre se tocar pra trocar
     const opts = state.people
       .map((p) => `<option value="${p.id}"${p.id === me ? ' selected' : ''}>${esc(p.name)}</option>`)
       .join('');
-    overlay(`<h2 style="margin-top:0">Quem é você?</h2>
+    overlay(`<h2>Quem é você?</h2>
       <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
         <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>${whoPix()}`);
@@ -1635,7 +1633,7 @@
     $('#app').classList.add('loading', 'nospin');
     const cached = cacheLoad();
     overlay(
-      `<h2 style="margin-top:0">Evento não encontrado</h2><p class="muted" style="margin:0 0 12px;text-align:center">esse evento não está mais no banco</p>
+      `<h2>Evento não encontrado</h2><p class="muted recado">esse evento não está mais no banco</p>
       ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`,
       true,
     );
@@ -1655,7 +1653,7 @@
     };
   }
 
-  // ---------- salas (código → grupo) ----------
+  // ---------- entrar num evento (código → id no banco) ----------
   async function enterRoom(code) {
     if (!code) throw new Error('Digite um código.');
     if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
@@ -1752,11 +1750,11 @@
     sync();
     loadPixKeys();
   }
-  function showQuitado(to, amount) {
-    overlay(`<h2 style="margin-top:0">Quitado!</h2>
-      <p class="muted" style="margin:0 0 14px;text-align:center">avise ${nm(to)} pra não cobrar de novo</p>
+  function showQuitado(to, cents) {
+    overlay(`<h2>Quitado!</h2>
+      <p class="muted recado" style="margin-bottom:14px">avise ${nomeHtml(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
-      <div class="c" style="margin-top:12px"><button id="quitOk" class="ghost">fechar</button></div>`);
+      <div class="c voltar"><button id="quitOk" class="ghost">fechar</button></div>`);
     const fecha = () => {
       closeOverlay();
       seguraRisco = false;
@@ -1765,19 +1763,19 @@
     $('#quitOk').onclick = fecha;
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
-      abreZap(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${evento()}* 👍\n${shareUrl()}`);
+      abreZap(`✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl()}`);
       fecha();
     };
   }
   function showRoom() {
     const evs = meusEventos();
-    overlay(`<h2 style="margin-top:0">*** Evento ***</h2>
+    overlay(`<h2>*** Evento ***</h2>
       <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
       <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
       <div class="hr"></div>
       ${
         evs.length
-          ? `<h2 style="margin-top:0">*** Meus eventos ***</h2>${listaEventos(evs, true)}
+          ? `<h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
           : ''
       }
@@ -1864,14 +1862,11 @@
         const s = e.snap,
           eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
           b = s && eu ? balances(s)[eu.id] : null;
-        const [cls, v] =
-          b === null
-            ? ['ok', '—']
-            : b > 0
-              ? ['pos', money(b / 100)]
-              : b < 0
-                ? ['neg', money(b / 100)]
-                : ['ok', 'quite'];
+        let cls = 'ok',
+          v = '—';
+        if (b > 0) [cls, v] = ['pos', comSifrao(b)];
+        else if (b < 0) [cls, v] = ['neg', comSifrao(b)];
+        else if (b === 0) v = 'quite';
         const n = s ? s.people.length : 0,
           sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : '']
             .filter(Boolean)
@@ -1908,7 +1903,7 @@
     }
   }
 
-  // ---------- eventos ----------
+  // ---------- botões ----------
   $('#toggleAll').onclick = () => {
     showAll = !showAll;
     render();
@@ -1929,7 +1924,6 @@
     $('#sheet').classList.remove('hidden');
     $('#amount').focus();
   };
-  /** @type {string|null} */ let editando = null;
   const limpaForm = () => {
     editando = null;
     $('#desc').value = '';
@@ -1954,7 +1948,7 @@
     limpaForm();
     editando = e.id;
     render();
-    $('#amount').value = fmt(e.amount);
+    $('#amount').value = reais(centavos(e));
     $('#desc').value = e.desc;
     $('#payer').value = e.payer;
     for (const c of inputs('#splitChips input')) {
@@ -1964,7 +1958,7 @@
     splitMode = e.shares ? 'custom' : 'equal';
     updateHint();
     if (e.shares) {
-      for (const i of inputs('#sharesBox input[data-share]')) i.value = fmt((e.shares[i.dataset.share] || 0) / 100);
+      for (const i of inputs('#sharesBox input[data-share]')) i.value = reais(e.shares[i.dataset.share] || 0);
       atualizaFalta();
     }
     $('#sheet h2').textContent = 'Editar';
@@ -2011,14 +2005,14 @@
   $('#expenseForm').onsubmit = (ev) => {
     ev.preventDefault();
     const among = inputs('#splitChips input:checked').map((i) => i.value);
-    const amount = numVal($('#amount').value);
+    const total = lerCentavos($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro');
     if (!among.length) return toast('Marque quem divide esse gasto');
-    if (!(amount > 0)) return toast('Valor inválido');
+    if (!(total > 0)) return toast('Valor inválido');
     const exp = {
       id: uid(),
       desc: $('#desc').value.trim(),
-      amount: Math.round(amount * 100) / 100,
+      amount: total / 100,
       payer: $('#payer').value,
       among,
       at: Date.now(),
@@ -2026,13 +2020,10 @@
     };
     if (splitMode === 'custom') {
       const sh = customShares();
-      const total = Math.round(amount * 100);
       const sum = among.reduce((a, id) => a + (sh[id] || 0), 0);
       if (sum !== total)
         return toast(
-          sum < total
-            ? `Faltam ${money((total - sum) / 100)} nas partes`
-            : `Sobram ${money((sum - total) / 100)} nas partes`,
+          sum < total ? `Faltam ${comSifrao(total - sum)} nas partes` : `Sobram ${comSifrao(sum - total)} nas partes`,
         );
       exp.shares = {};
       for (const id of among) exp.shares[id] = sh[id] || 0;
@@ -2051,13 +2042,6 @@
     toast(velho ? 'Editado!' : 'Anotado!');
   };
   $('#payer').onchange = updateHint;
-  document.addEventListener('change', (ev) => {
-    const tgt = /** @type {HTMLInputElement} */ (ev.target);
-    if (tgt.matches('#splitChips input')) {
-      tgt.closest('.chip').classList.toggle('on', tgt.checked);
-      updateHint();
-    }
-  });
   // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.
   // Na captura, pra pegar o toque mesmo que alguém pare o evento no caminho
   document.addEventListener(
@@ -2083,101 +2067,154 @@
     },
     true,
   );
-  document.addEventListener('click', async (ev) => {
+  // ---------- cliques ----------
+  // cada botão diz o que é num data-* (ou num id), e esta lista diz o que cada um faz.
+  // Um clique só no document atende a página toda, inclusive o que o render() refaz.
+  const achaGasto = (id) => state.expenses.find((x) => x.id === id);
+  /** copia pro clipboard; sem permissão, mostra o texto num cartão pra copiar na mão */
+  const copia = (texto, recado, titulo) =>
+    navigator.clipboard.writeText(texto).then(
+      () => toast(recado),
+      () => showCopy(titulo, texto),
+    );
+  /** abre ou fecha os detalhes de um item (quem pagou, como dividiu, editar) */
+  const abreItem = (it) => {
+    const id = it.dataset.item;
+    openItems.has(id) ? openItems.delete(id) : openItems.add(id);
+    it.classList.toggle('open');
+  };
+  function copiaPix(el) {
+    const [to, cents] = el.dataset.pix.split('|');
+    copia(
+      pixCode(pixKeys[to], nameOf(to), +cents),
+      'Pix copia e cola copiado. Cola no app do banco.',
+      'Pix copia e cola',
+    );
+  }
+  async function desfazPagamento(el) {
+    const e = achaGasto(el.dataset.undo);
+    if (!e) return;
+    const certeza = await ask(
+      'Desfazer o pagamento?',
+      `${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])} · ${comSifrao(centavos(e))}`,
+      'desfazer',
+    );
+    if (!certeza) return;
+    // não é apagaItem(): pagamento desfeito não vai pra lista de itens apagados
+    state.expenses = state.expenses.filter((x) => x.id !== e.id);
+    state.deleted.push(e.id);
+    anim.riscos.delete(e.id);
+    commit();
+    toast('Desfeito');
+  }
+  /** o ✔ paguei: vira um gasto do tipo 'payment' de quem deve pra quem recebe */
+  async function quita(el) {
+    const [from, to, cs] = el.dataset.settle.split('|');
+    const cents = +cs;
+    // o confete sai do botão: mede antes do cartão abrir por cima
+    const r = el.getBoundingClientRect();
+    const certeza = await ask(
+      'Quitar?',
+      `${nomeHtml(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}`,
+      'quitei',
+    );
+    if (!certeza) return;
+    state.expenses.push({
+      id: uid(),
+      kind: 'payment',
+      desc: 'Pagamento',
+      amount: cents / 100,
+      payer: from,
+      among: [to],
+      at: Date.now(),
+      by: me ? nameOf(me) : undefined,
+    });
+    seguraRisco = true;
+    commit();
+    festa(r.left + r.width / 2, r.top + r.height / 2);
+    toast('Quitado! 🎉');
+    showQuitado(to, cents);
+  }
+  async function excluiGasto(el) {
+    const e = achaGasto(el.dataset.delExpense);
+    if (!e) return;
+    if (!(await ask('Excluir item?', `${esc(e.desc)} · ${comSifrao(centavos(e))}`, 'excluir'))) return;
+    apagaItem(e);
+    commit();
+  }
+  /** as abas "igual" e "partes diferentes" do anotar */
+  function escolheAba(el) {
+    const modo = el.dataset.modo === 'custom' ? 'custom' : 'equal';
+    if (modo !== splitMode) trocaAba(modo);
+  }
+  const faltaNasPartes = () => totalDigitado() - Object.values(customShares()).reduce((a, b) => a + b, 0);
+  /** "o resto": joga na linha o que falta pra fechar */
+  function poeResto(el) {
+    const i = /** @type {HTMLInputElement} */ ($(`#sharesBox input[data-share="${el.dataset.resto}"]`));
+    const r = faltaNasPartes();
+    if (i && r > 0) {
+      i.value = reais(r);
+      atualizaFalta();
+    }
+  }
+  /** "dividir o resto igual": reparte o que falta entre as linhas vazias */
+  function divideResto() {
+    const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
+    const r = faltaNasPartes();
+    if (!vazios.length || r <= 0) return;
+    const o = shares(
+      r,
+      vazios.map((i) => i.dataset.share),
+    );
+    for (const i of vazios) i.value = reais(o[i.dataset.share]);
+    atualizaFalta();
+  }
+  /** @type {[string, (el: HTMLElement) => unknown][]} vale o primeiro seletor que o clique acertar */
+  const CLIQUES = [
+    ['#splitSeg button', escolheAba],
+    ['[data-resto]', poeResto],
+    ['#restoIgual', divideResto],
+    // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
+    ['#settle .empty.anota', () => $('#fab').click()],
+    ['[data-among]', (el) => abreItem(el.closest('.item'))],
+    ['[data-pix]', copiaPix],
+    ['[data-undo]', desfazPagamento],
+    ['[data-settle]', quita],
+    ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
+    ['[data-del-expense]', excluiGasto],
+    [
+      '[data-edit-expense]',
+      (el) => {
+        const e = achaGasto(el.dataset.editExpense);
+        if (e) editaItem(e);
+      },
+    ],
+  ];
+  document.addEventListener('click', (ev) => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
-    /** @returns {HTMLElement|null} */ const near = (sel) => /** @type {HTMLElement|null} */ (tgt.closest(sel));
-    const abreItem = (it) => {
-      const id = it.dataset.item;
-      openItems.has(id) ? openItems.delete(id) : openItems.add(id);
-      it.classList.toggle('open');
-    };
-    if (!near('a,button,input,label')) {
-      const it = near('.item[data-item]');
+    // tocar na linha de um item, fora dos botões dela, abre os detalhes (item apagado não abre)
+    if (!tgt.closest('a,button,input,label')) {
+      const it = /** @type {HTMLElement|null} */ (tgt.closest('.item[data-item]'));
       if (it) abreItem(it);
     }
-    // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
-    if (near('#settle .empty.anota')) return $('#fab').click();
-    const am = near('[data-among]');
-    if (am) {
-      abreItem(/** @type {HTMLElement} */ (am.closest('.item')));
-      return;
+    for (const [seletor, faz] of CLIQUES) {
+      const el = /** @type {HTMLElement|null} */ (tgt.closest(seletor));
+      if (el) return void faz(el);
     }
-    const px = near('[data-pix]');
-    if (px) {
-      const [to, cents] = px.dataset.pix.split('|');
-      const code = pixCode(pixKeys[to], nameOf(to), +cents);
-      navigator.clipboard.writeText(code).then(
-        () => toast('Pix copia e cola copiado. Cola no app do banco.'),
-        () => showCopy('Pix copia e cola', code),
-      );
-    }
-    const un = near('[data-undo]');
-    if (un) {
-      const id = un.dataset.undo;
-      const e = state.expenses.find((x) => x.id === id);
-      if (!e) return;
-      if (!(await ask('Desfazer o pagamento?', `${nm(e.payer)} → ${nm(e.among[0])} · ${money(e.amount)}`, 'desfazer')))
-        return;
-      state.expenses = state.expenses.filter((x) => x.id !== id);
-      state.deleted.push(id);
-      anim.riscos.delete(id);
-      commit();
-      toast('Desfeito');
-      return;
-    }
-    const st = near('[data-settle]');
-    if (st) {
-      const [from, to, cents] = st.dataset.settle.split('|');
-      const amount = +cents / 100;
-      const r = st.getBoundingClientRect(),
-        fx = r.left + r.width / 2,
-        fy = r.top + r.height / 2;
-      if (
-        !(await ask(
-          'Quitar?',
-          `${nm(from)} pagou <b style="color:var(--green)">${money(amount)}</b> pra ${nm(to)}`,
-          'quitei',
-        ))
-      )
-        return;
-      state.expenses.push({
-        id: uid(),
-        kind: 'payment',
-        desc: 'Pagamento',
-        amount,
-        payer: from,
-        among: [to],
-        at: Date.now(),
-        by: me ? nameOf(me) : undefined,
-      });
-      seguraRisco = true;
-      commit();
-      festa(fx, fy);
-      toast('Quitado! 🎉');
-      showQuitado(to, amount);
-    }
-    const cv = near('[data-copy-value]');
-    if (cv) {
-      const val = cv.dataset.copyValue;
-      navigator.clipboard.writeText(val).then(
-        () => toast('Valor copiado. Cola no app do banco.'),
-        () => showCopy('Valor', val),
-      );
-      return;
-    }
-    const de = near('[data-del-expense]');
-    if (de) {
-      const id = de.dataset.delExpense;
-      const e = state.expenses.find((x) => x.id === id);
-      if (!e) return;
-      if (!(await ask('Excluir item?', `${esc(e.desc)} · ${money(e.amount)}`, 'excluir'))) return;
-      apagaItem(e);
-      commit();
-    }
-    const ed = near('[data-edit-expense]');
-    if (ed) {
-      const e = state.expenses.find((x) => x.id === ed.dataset.editExpense);
-      if (e) editaItem(e);
+  });
+  // os chips de quem divide e o ✔ das linhas das partes marcam a mesma lista
+  document.addEventListener('change', (ev) => {
+    const tgt = /** @type {HTMLInputElement} */ (ev.target);
+    if (tgt.matches('#splitChips input')) {
+      tgt.closest('.chip').classList.toggle('on', tgt.checked);
+      updateHint();
+    } else if (tgt.matches('#sharesBox [data-quem]')) {
+      const chip = /** @type {HTMLInputElement|null} */ ($(`#splitChips input[value="${tgt.dataset.quem}"]`));
+      if (chip) {
+        chip.checked = tgt.checked;
+        chip.closest('.chip').classList.toggle('on', tgt.checked);
+      }
+      updateHint();
     }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
@@ -2185,9 +2222,8 @@
     ? location.origin + location.pathname
     : 'https://tolisa.com.br/';
   const shareUrl = () => `${SITE}?senha=${encodeURIComponent(roomName)}`;
-  // api.whatsapp.com, não wa.me: o wa.me redireciona pra cá e, no caminho, troca todo
-  // emoji astral (🧾 💸 👉, acima de U+FFFF) por U+FFFD. No celular o link abre o app
-  // direto e passa longe do redirecionamento, então o estrago só aparecia na web.
+  // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
+  // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
   $('#shareBtn').onclick = async () => {
@@ -2208,246 +2244,244 @@
       '',
       ...st.map(
         (t) =>
-          `💸 ${nameOf(t.from)} paga ${money(t.cents / 100)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`,
+          `💸 ${nameOf(t.from)} paga ${comSifrao(t.cents)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`,
       ),
       '',
       `tudo aqui 👉 ${shareUrl()}`,
     ].join('\n');
   }
   // ---------- imagem da comanda (canvas) ----------
+  // a comanda é uma nota de papel impressa em fonte de máquina: cada letra tem a mesma
+  // largura, então tudo se conta em colunas, como numa impressora de cupom
   async function renderReceipt() {
     await document.fonts.load("28px 'VT323'");
-    const b = balances(),
-      st = settlements(b);
+    const saldo = balances(),
+      acerto = settlements(saldo);
     const items = [...state.expenses.filter((e) => e.kind !== 'payment')].reverse();
-    const totalCents = items.reduce((a, e) => a + Math.round(e.amount * 100), 0);
-    const W = 720,
-      M = 24,
-      P = 36,
-      S = 2,
-      FS = 28,
-      LH = 34;
-    const cc = document.createElement('canvas');
-    cc.width = W * S;
-    cc.height = 4000 * S;
-    const x = cc.getContext('2d');
-    x.scale(S, S);
-    x.font = `${FS}px 'VT323'`;
-    x.textBaseline = 'alphabetic';
-    const cw = x.measureText('M').width,
-      COLS = Math.floor((W - 2 * M - 2 * P) / cw);
-    const INK = '#2a2a2a',
-      INK2 = '#5a5a5a',
-      PAPER = '#efe9d8',
-      HL = '#f7f23a';
-    const mark = (col, len, color) => {
-      x.fillStyle = color;
-      x.fillRect(L + col * cw - 3, y - FS * 0.72, len * cw + 6, FS * 0.9);
+    const totalCents = items.reduce((a, e) => a + centavos(e), 0);
+    const LARGURA = 720, // da imagem
+      MARGEM = 24, // a borda escura em volta do papel
+      RECUO = 36, // da beira do papel até o texto
+      ESCALA = 2, // pixels de verdade por pixel desenhado (fica nítido no celular)
+      FONTE = 28,
+      ENTRELINHA = 34;
+    const ESQ = MARGEM + RECUO; // onde o texto começa
+    const TINTA = '#2a2a2a',
+      TINTA_CLARA = '#5a5a5a',
+      PAPEL = '#efe9d8',
+      VERDE = '#15703a';
+    // escreve num rascunho bem alto e depois copia só a altura usada pro papel de verdade
+    const rascunho = document.createElement('canvas');
+    rascunho.width = LARGURA * ESCALA;
+    rascunho.height = 4000 * ESCALA;
+    const ctx = rascunho.getContext('2d');
+    ctx.scale(ESCALA, ESCALA);
+    ctx.font = `${FONTE}px 'VT323'`;
+    ctx.textBaseline = 'alphabetic';
+    const larguraLetra = ctx.measureText('M').width,
+      COLUNAS = Math.floor((LARGURA - 2 * MARGEM - 2 * RECUO) / larguraLetra);
+    let y = MARGEM + 12 + 50; // a linha em que o próximo texto entra
+
+    /** pinta o marca-texto atrás de `len` letras a partir da coluna `col` da linha atual */
+    const marcaTexto = (col, len, cor) => {
+      ctx.fillStyle = cor;
+      ctx.fillRect(ESQ + col * larguraLetra - 3, y - FONTE * 0.72, len * larguraLetra + 6, FONTE * 0.9);
     };
-    const L = M + P;
-    let y = M + 12 + 50;
-    const up = (t) => String(t).toUpperCase();
+    const maiusc = (t) => String(t).toUpperCase();
     // a coluna continua contada em unidade UTF-16, que é o que a régua do papel usa;
     // o apara() só não deixa a conta parar no meio de um par surrogate
-    const fit = (t, n) => {
-      t = up(t);
+    /** o texto em maiúsculas, cortado com … se passar de n colunas */
+    const cabe = (t, n) => {
+      t = maiusc(t);
       return t.length > n ? apara(t.slice(0, Math.max(1, n - 1))) + '…' : t;
     };
-    const line = (t, col = INK) => {
-      x.fillStyle = col;
-      x.textAlign = 'left';
-      x.fillText(t, L, y);
-      y += LH;
+    const escreve = (t, cor = TINTA) => {
+      ctx.fillStyle = cor;
+      ctx.textAlign = 'left';
+      ctx.fillText(t, ESQ, y);
+      y += ENTRELINHA;
     };
-    const center = (t, hl) => {
-      x.textAlign = 'center';
-      if (hl) {
-        const w = x.measureText(t).width + 16;
-        x.fillStyle = HL;
-        x.fillRect(W / 2 - w / 2, y - FS * 0.75, w, FS * 0.95);
-      }
-      x.fillStyle = INK;
-      x.fillText(t, W / 2, y);
-      y += LH;
+    const centraliza = (t) => {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = TINTA;
+      ctx.fillText(t, LARGURA / 2, y);
+      y += ENTRELINHA;
     };
-    const dash = () => line('-'.repeat(COLS), INK2);
-    const blank = () => {
-      y += LH * 0.6;
+    const traco = () => escreve('-'.repeat(COLUNAS), TINTA_CLARA);
+    const pula = () => {
+      y += ENTRELINHA * 0.6;
     };
-    const norm = (t) =>
-      up(t)
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
-    const ini = (t, k) => apara(t.slice(0, k));
-    const initial = (id) => {
-      const n = norm(nameOf(id));
+    /** "ALGO ........ VALOR", ocupando a linha toda */
+    const comPontinhos = (l, v) => {
+      l = cabe(l, COLUNAS - 10 - 2); // guarda 10 colunas pro valor
+      const pontos = '.'.repeat(Math.max(1, COLUNAS - l.length - v.length - 2));
+      return `${l} ${pontos} ${v}`;
+    };
+    // as iniciais de quem divide ("F J L"): letras suficientes pra ninguém se confundir
+    const semAcento = (t) => maiusc(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const primeiras = (t, k) => apara(t.slice(0, k));
+    const inicial = (id) => {
+      const n = semAcento(nameOf(id));
       let k = 1;
-      while (k < n.length && state.people.some((p) => p.id !== id && ini(norm(nameOf(p.id)), k) === ini(n, k))) k++;
-      return ini(n, k);
+      while (
+        k < n.length &&
+        state.people.some((p) => p.id !== id && primeiras(semAcento(nameOf(p.id)), k) === primeiras(n, k))
+      )
+        k++;
+      return primeiras(n, k);
     };
-    /** @param {{ t: string, id?: string, w?: number }[]} segs */
-    const flow = (segs) => {
+    /** escreve pedaços de texto, com marca-texto nos que têm `id`, quebrando a linha
+     *  quando o próximo pedaço (ou `w` colunas) não cabe
+     *  @param {{ t: string, id?: string, w?: number }[]} pedacos */
+    const escreveQuebrando = (pedacos) => {
       let col = 0,
         t = '';
-      for (const g of segs) {
-        if (!g.t) continue;
-        if (col > 2 && col + (g.w || g.t.length) > COLS) {
-          line(t.trimEnd(), INK2);
+      for (const p of pedacos) {
+        if (!p.t) continue;
+        if (col > 2 && col + (p.w || p.t.length) > COLUNAS) {
+          escreve(t.trimEnd(), TINTA_CLARA);
           t = '  ';
           col = 2;
         }
-        if (g.id) mark(col, g.t.length, markForte(g.id));
-        t += g.t;
-        col += g.t.length;
+        if (p.id) marcaTexto(col, p.t.length, markForte(p.id));
+        t += p.t;
+        col += p.t.length;
       }
-      if (t.trim()) line(t.trimEnd(), INK2);
+      if (t.trim()) escreve(t.trimEnd(), TINTA_CLARA);
     };
-    const now = new Date();
-    const d2 = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-    const hm = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
 
-    center(`*** TÔ LISA ***`);
-    center(fit(`${up(evento())} · ${d2} ${hm}`, COLS));
-    blank();
-    dash();
-
-    const VW = 10;
-    const leader = (l, v) => {
-      l = fit(l, COLS - VW - 2);
-      const dots = '.'.repeat(Math.max(1, COLS - l.length - v.length - 2));
-      return `${l} ${dots} ${v}`;
-    };
+    // cabeçalho
+    const agora = new Date();
+    const data = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
+    centraliza(`*** TÔ LISA ***`);
+    centraliza(cabe(`${maiusc(evento())} · ${data} ${hora}`, COLUNAS));
+    pula();
+    traco();
 
     // saldo: quem ainda paga quem, e depois quem já está quite
-    const GREEN = '#15703a';
-    blank();
-    center('*** FALTA PAGAR ***');
-    blank();
-    if (!st.length) center('TUDO QUITADO');
-    for (const t of st) {
-      const a = fit(nameOf(t.from), 12),
-        c = fit(nameOf(t.to), 12);
-      mark(0, a.length, markForte(t.from));
-      mark(a.length + 6, c.length, markForte(t.to));
-      line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents)));
+    pula();
+    centraliza('*** FALTA PAGAR ***');
+    pula();
+    if (!acerto.length) centraliza('TUDO QUITADO');
+    for (const t of acerto) {
+      const de = cabe(nameOf(t.from), 12),
+        pra = cabe(nameOf(t.to), 12);
+      marcaTexto(0, de.length, markForte(t.from));
+      marcaTexto(de.length + 6, pra.length, markForte(t.to));
+      escreve(comPontinhos(`${de} PAGA ${pra}`, 'R$ ' + reais(t.cents)));
     }
-    {
-      const quites = state.people.filter((p) => (b[p.id] || 0) === 0);
-      if (quites.length && st.length) blank();
-      for (const p of quites) {
-        const n = fit(nameOf(p.id), COLS - 16);
-        mark(0, n.length, markForte(p.id));
-        line(leader(n, 'QUITE'), GREEN);
-      }
+    const quites = state.people.filter((p) => (saldo[p.id] || 0) === 0);
+    if (quites.length && acerto.length) pula();
+    for (const p of quites) {
+      const n = cabe(nameOf(p.id), COLUNAS - 16);
+      marcaTexto(0, n.length, markForte(p.id));
+      escreve(comPontinhos(n, 'QUITE'), VERDE);
     }
-    dash();
+    traco();
 
-    // itens: descrição ...... valor, com quem pagou embaixo
-    blank();
-    center('*** ITENS ***');
-    blank();
-    if (!items.length) line('NADA ANOTADO');
+    // itens: descrição ...... valor, com quem pagou e como dividiu embaixo
+    pula();
+    centraliza('*** ITENS ***');
+    pula();
+    if (!items.length) escreve('NADA ANOTADO');
     for (const e of items) {
-      const cents = Math.round(e.amount * 100);
-      line(leader(e.desc, num(cents)));
-      const pn = fit(nameOf(e.payer), 14);
-      mark(2, pn.length, markForte(e.payer));
+      escreve(comPontinhos(e.desc, reais(centavos(e))));
+      const pagou = cabe(nameOf(e.payer), 14);
+      marcaTexto(2, pagou.length, markForte(e.payer));
+      /** @type {{ t: string, id?: string, w?: number }[]} */
+      const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
+      const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
       if (e.shares) {
-        const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([
-          { t: '  ' },
-          { t: pn, id: e.payer },
-          { t: ' PAGOU · ' },
-        ]);
+        // partes diferentes: cada nome com o valor dele
         e.among.forEach((id, i) => {
-          const n = fit(nameOf(id), 14),
-            v = ' ' + num(e.shares[id] || 0);
-          segs.push({ t: n, id, w: n.length + v.length }, { t: v + (i < e.among.length - 1 ? ', ' : '') });
+          const n = cabe(nameOf(id), 14),
+            v = ' ' + reais(e.shares[id] || 0);
+          pedacos.push({ t: n, id, w: n.length + v.length }, { t: v + virgula(i) });
         });
-        flow(segs);
+        escreveQuebrando(pedacos);
         continue;
       }
       if (!e.among.includes(e.payer)) {
-        const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([
-          { t: '  ' },
-          { t: pn, id: e.payer },
-          { t: ' PAGOU · ' },
-        ]);
-        e.among.forEach((id, i) =>
-          segs.push({ t: fit(nameOf(id), 14), id }, { t: i < e.among.length - 1 ? ', ' : '' }),
-        );
-        segs.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
-        flow(segs);
+        // empréstimo: quem pagou não entra na divisão
+        e.among.forEach((id, i) => pedacos.push({ t: cabe(nameOf(id), 14), id }, { t: virgula(i) }));
+        pedacos.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
+        escreveQuebrando(pedacos);
         continue;
       }
-      const all = state.people.every((p) => e.among.includes(p.id));
-      if (all) {
-        line('  ' + fit(`${pn} pagou · ÷${e.among.length} todos`, COLS - 2), INK2);
+      if (state.people.every((p) => e.among.includes(p.id))) {
+        escreve('  ' + cabe(`${pagou} pagou · ÷${e.among.length} todos`, COLUNAS - 2), TINTA_CLARA);
         continue;
       }
-      const head = `  ${pn} PAGOU · ÷${e.among.length} `;
-      let col = head.length,
-        t = head;
+      // igual entre alguns: as iniciais de quem divide, até onde couber
+      const inicio = `  ${pagou} PAGOU · ÷${e.among.length} `;
+      let col = inicio.length,
+        t = inicio;
       for (const id of e.among) {
-        const ini = initial(id);
-        if (col + ini.length > COLS) break;
-        mark(col, ini.length, markForte(id));
+        const ini = inicial(id);
+        if (col + ini.length > COLUNAS) break;
+        marcaTexto(col, ini.length, markForte(id));
         t += ini + ' ';
         col += ini.length + 1;
       }
-      line(t.trimEnd(), INK2);
+      escreve(t.trimEnd(), TINTA_CLARA);
     }
-    blank();
-    line(leader('TOTAL', 'R$ ' + num(totalCents)), INK2);
-    dash();
-    blank();
-    center('* * *');
+    pula();
+    escreve(comPontinhos('TOTAL', 'R$ ' + reais(totalCents)), TINTA_CLARA);
+    traco();
+    pula();
+    centraliza('* * *');
+
+    // o código de barras do rodapé, o mesmo da página
     {
-      const widths = code128Widths('420420420420');
-      const units = [...widths].reduce((a, c) => a + +c, 0);
-      const BW = 240,
-        BH = 40,
-        k = BW / units;
-      let bx = W / 2 - BW / 2;
-      x.fillStyle = INK;
-      for (let i = 0; i < widths.length; i++) {
-        const w = +widths[i] * k;
-        if (i % 2 === 0) x.fillRect(bx, y - 8, w, BH);
+      const barras = code128Widths('420420420420');
+      const unidades = [...barras].reduce((a, n) => a + +n, 0);
+      const LARG_BARRAS = 240,
+        ALT_BARRAS = 40,
+        porUnidade = LARG_BARRAS / unidades;
+      let bx = LARGURA / 2 - LARG_BARRAS / 2;
+      ctx.fillStyle = TINTA;
+      for (let i = 0; i < barras.length; i++) {
+        const w = +barras[i] * porUnidade;
+        if (i % 2 === 0) ctx.fillRect(bx, y - 8, w, ALT_BARRAS); // posição par é barra, ímpar é vão
         bx += w;
       }
-      y += BH + 4;
+      y += ALT_BARRAS + 4;
     }
-    x.fillStyle = INK2;
-    x.textAlign = 'center';
-    x.fillText('tolisa.com.br', W / 2, y + 16);
-    y += LH + 6;
+    ctx.fillStyle = TINTA_CLARA;
+    ctx.textAlign = 'center';
+    ctx.fillText('tolisa.com.br', LARGURA / 2, y + 16);
+    y += ENTRELINHA + 6;
 
-    // papel na altura exata
-    const H = y + M + 12;
-    const c = document.createElement('canvas');
-    c.width = W * S;
-    c.height = H * S;
-    const g = c.getContext('2d');
-    g.scale(S, S);
-    g.fillStyle = '#262626';
-    g.fillRect(0, 0, W, H);
-    g.fillStyle = PAPER;
-    g.fillRect(M, M + 12, W - 2 * M, H - 2 * M - 24);
-    for (let i = 0; i < (W - 2 * M) / 12; i++) {
-      g.beginPath();
-      g.moveTo(M + i * 12, M + 12);
-      g.lineTo(M + i * 12 + 6, M);
-      g.lineTo(M + i * 12 + 12, M + 12);
-      g.fill();
-      g.beginPath();
-      g.moveTo(M + i * 12, H - M - 12);
-      g.lineTo(M + i * 12 + 6, H - M);
-      g.lineTo(M + i * 12 + 12, H - M - 12);
-      g.fill();
+    // o papel na altura exata: fundo escuro, papel com a borda picotada em zigue-zague
+    // em cima e embaixo, riscos bem leves de papel térmico, e o rascunho por cima
+    const ALTURA = y + MARGEM + 12;
+    const papel = document.createElement('canvas');
+    papel.width = LARGURA * ESCALA;
+    papel.height = ALTURA * ESCALA;
+    const p = papel.getContext('2d');
+    p.scale(ESCALA, ESCALA);
+    p.fillStyle = '#262626';
+    p.fillRect(0, 0, LARGURA, ALTURA);
+    p.fillStyle = PAPEL;
+    p.fillRect(MARGEM, MARGEM + 12, LARGURA - 2 * MARGEM, ALTURA - 2 * MARGEM - 24);
+    for (let i = 0; i < (LARGURA - 2 * MARGEM) / 12; i++) {
+      const x = MARGEM + i * 12;
+      p.beginPath();
+      p.moveTo(x, MARGEM + 12);
+      p.lineTo(x + 6, MARGEM);
+      p.lineTo(x + 12, MARGEM + 12);
+      p.fill();
+      p.beginPath();
+      p.moveTo(x, ALTURA - MARGEM - 12);
+      p.lineTo(x + 6, ALTURA - MARGEM);
+      p.lineTo(x + 12, ALTURA - MARGEM - 12);
+      p.fill();
     }
-    g.fillStyle = 'rgba(0,0,0,.03)';
-    for (let yy = M; yy < H - M; yy += 4) g.fillRect(M, yy, W - 2 * M, 1);
-    g.drawImage(cc, 0, 0, W * S, H * S, 0, 0, W, H);
-    return new Promise((res) => c.toBlob(res, 'image/png'));
+    p.fillStyle = 'rgba(0,0,0,.03)';
+    for (let yy = MARGEM; yy < ALTURA - MARGEM; yy += 4) p.fillRect(MARGEM, yy, LARGURA - 2 * MARGEM, 1);
+    p.drawImage(rascunho, 0, 0, LARGURA * ESCALA, ALTURA * ESCALA, 0, 0, LARGURA, ALTURA);
+    return new Promise((res) => papel.toBlob(res, 'image/png'));
   }
   const waText = () => abreZap(summaryText());
   $('#waBtn').onclick = async () => {
@@ -2552,7 +2586,7 @@
             `<div class="barra"><span class="toca">${SHARE_SVG}</span></div>`,
             `toque no <b>${SHARE_SVG}</b> lá ${onde === 'cima' ? 'em cima' : 'embaixo'}.`,
           ) + tela(2);
-    overlay(`<h2 style="margin-top:0">Instalar</h2>${passos}
+    overlay(`<h2>Instalar</h2>${passos}
       <button id="instOk" class="sec" style="margin-top:10px">entendi</button>
       <svg class="seta ${onde}" width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 8C30 90 70 150 122 176"/><path d="M96 178H124L116 152"/></svg>`);
     $('#overlay').classList.add('ensina', onde);
@@ -2584,7 +2618,7 @@
     document.body.appendChild(box);
     setTimeout(() => box.remove(), 1400);
   }
-  let rejogaDiva = () => {}; // atribuída abaixo; joga a ficha de novo
+  // ---------- a ficha do rodapé (a diva) ----------
   // a diva só é jogada quando o código de barras entra na tela. O lugar sai de
   // uma lista de cantos ao redor do código, sempre acima do "sincronizado", e o
   // voo às vezes vem direto, às vezes dando cambalhota
@@ -2650,7 +2684,7 @@
       el.style.right = 'auto';
       el.style.bottom = 'auto';
     };
-    const sorteia = () => {
+    const sorteiaVaga = () => {
       const v = vagas();
       slot = Math.floor(Math.random() * (v ? v.length : 5));
       posiciona();
@@ -2678,20 +2712,19 @@
       el.classList.toggle('cambalhota', jeito < 0.4);
       el.classList.toggle('requica', jeito >= 0.4 && jeito < 0.52);
     };
-    sorteia();
+    sorteiaVaga();
     if ('ResizeObserver' in window) new ResizeObserver(posiciona).observe($('#app'));
     window.addEventListener('resize', posiciona);
-    // a ficha espera a pessoa chegar no fim da página. Antes bastava o código de barras
-    // aparecer, e numa tela alta (o app instalado, sem barra de navegador) ele já estava
-    // à vista na abertura: a ficha caía junto com o resto se animando, sem ninguém ver.
-    // Na fila ela vem logo depois dos riscos, antes do Sou Fulano e do ✎, que esperam ela.
+    // a ficha espera a pessoa chegar no fim da página (numa tela alta o código de barras
+    // já aparece na abertura, e ela cairia sem ninguém ver). Na fila ela vem logo depois
+    // dos riscos, antes do Sou Fulano e do ✎, que esperam ela.
     const DIVA_MS = 1100,
       FOLGA = 8;
     const noFim = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - FOLGA;
     let jogada = false,
       marcada = false,
       aviso = 0;
-    fichaVem = () => {
+    ficha.vem = () => {
       if (!jogada) confere();
       return !chato && jogada && !marcada;
     };
@@ -2703,7 +2736,7 @@
       // com cartão ou o anotar abertos ela cairia por trás, sem ninguém ver: espera fechar
       if (!semCartao() || !$('#sheet').classList.contains('hidden')) return;
       jogada = true;
-      sorteia();
+      sorteiaVaga();
       clearTimeout(aviso);
       // as seções só entram na fila depois que o #app sai do loading e o observador
       // reporta; pegar a vez no mesmo quadro fazia a ficha furar tudo. Um respiro e
@@ -2730,7 +2763,7 @@
     if ('ResizeObserver' in window) new ResizeObserver(confere).observe($('#app'));
     for (const q of ['#overlay', '#sheet'])
       new MutationObserver(confere).observe($(q), { attributes: true, attributeFilter: ['class'] });
-    // uma jogada só: chegar no fim de novo não traz outra, até o rejogaDiva (trocou de
+    // uma jogada só: chegar no fim de novo não traz outra, até o ficha.rejoga() (trocou de
     // nome, a ficha entrou num botão, a diva voltou a falar).
     // pousou: a ficha passa a ser pegável. Dois toques ela treme; o terceiro já agarra,
     // no mesmo gesto. Agarrada, sai do papel pro body (fixed dentro de algo com
@@ -2782,14 +2815,11 @@
     let rola = 0;
     const rolaBorda = () => {
       if (!pega) return;
-      const y = pega.y,
-        v = !pega.andou
-          ? 0
-          : y < BORDA
-            ? -(BORDA - y) / BORDA
-            : y > innerHeight - BORDA
-              ? (y - innerHeight + BORDA) / BORDA
-              : 0;
+      // quanto rolar: de -1 (no talo pra cima) a 1 (no talo pra baixo), 0 longe das bordas
+      const y = pega.y;
+      let v = 0;
+      if (pega.andou && y < BORDA) v = -(BORDA - y) / BORDA;
+      else if (pega.andou && y > innerHeight - BORDA) v = (y - innerHeight + BORDA) / BORDA;
       if (v) {
         const antes = scrollY;
         scrollBy(0, Math.round(Math.max(-1, Math.min(1, v)) * RAPIDO));
@@ -2821,7 +2851,7 @@
         el.removeEventListener('transitionend', apagou);
         clearTimeout(reserva);
         el.classList.add('fora');
-        rejogaDiva();
+        ficha.rejoga();
       };
       const apagou = (e) => {
         if (e.propertyName === 'opacity') some();
@@ -2962,7 +2992,7 @@
     };
     el.addEventListener('pointerup', solta);
     el.addEventListener('pointercancel', solta);
-    rejogaDiva = () => {
+    ficha.rejoga = () => {
       clearTimeout(aviso);
       cancelAnimationFrame(voo);
       jogada = marcada = false;
@@ -2996,7 +3026,7 @@
         setDevice('boringMode', undefined);
         document.body.classList.remove('chato');
         render();
-        rejogaDiva();
+        ficha.rejoga();
       });
   })();
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo

@@ -8,7 +8,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 
 ## onde fica o quê
 
-- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. flags em maiúscula no topo ligam e desligam coisa meio pronta.
+- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. o sumário logo abaixo é o mapa das seções; o estado da página fica junto em "o estado da página"; os cliques ficam na tabela `CLIQUES`. flags em maiúscula no topo ligam e desligam coisa meio pronta.
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
@@ -51,7 +51,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.
-- **dinheiro** é centavo inteiro até virar texto.
+- **dinheiro** é centavo inteiro até virar texto. o banco guarda `amount` em reais: leia com `centavos(e)`; `reais()`, `comSifrao()` e `valorHtml()` recebem centavos.
 - **`og5.jpg`** abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.
 - **fontes** em `fonts/` são OFL 1.1 e Apache 2.0, não MIT.
 

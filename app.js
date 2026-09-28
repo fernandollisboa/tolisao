@@ -42,6 +42,7 @@
       .join('');
   const semMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const semCartao = () => document.querySelector('#overlay').classList.contains('hidden');
+  /** localStorage que não quebra: em aba anônima ou com o armazenamento cheio ele lança erro */
   const ls = {
     get: (k) => {
       try {
@@ -70,7 +71,7 @@
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
-  /** @returns {Record<string, any>} */
+  /** lê uma gaveta (um JSON no localStorage); estragada ou vazia, vem {} @returns {Record<string, any>} */
   const gaveta = (k) => {
     try {
       const o = JSON.parse(ls.get(k) || '{}');
@@ -79,7 +80,7 @@
       return {};
     }
   };
-  /** @param {string} k @param {(o: Record<string, any>) => void} f */
+  /** abre a gaveta, deixa `f` mexer nela e grava de volta @param {string} k @param {(o: Record<string, any>) => void} f */
   const mexe = (k, f) => {
     const o = gaveta(k);
     f(o);
@@ -456,20 +457,22 @@
     '#eb75ab',
     '#75aaeb',
   ];
-  const idx = (id) =>
+  /** a posição da pessoa na lista: escolhe a cor dela */
+  const indiceDaPessoa = (id) =>
     Math.max(
       0,
       state.people.findIndex((p) => p.id === id),
     );
-  const colorOf = (id) => PALETTE[idx(id) % PALETTE.length];
+  const colorOf = (id) => PALETTE[indiceDaPessoa(id) % PALETTE.length];
   // o emoji da conta fechada varia, mas não pisca a cada render: sai do evento e do dia
   const FESTA = ['🎉', '🙌', '🙏', '❣️', '🥂', '✨'];
   const festeja = () => FESTA[hash32((groupId || '') + new Date().toDateString()) % FESTA.length];
-  const markForte = (id) => MARKR[idx(id) % MARKR.length]; // o mesmo tom, firme: recibo em png e a volta da caneta
-  const nm = (id) => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
-  const nmByName = (name) => {
+  const markForte = (id) => MARKR[indiceDaPessoa(id) % MARKR.length]; // o mesmo tom, firme: recibo em png e a volta da caneta
+  /** o nome da pessoa, na cor dela, pronto pra innerHTML */
+  const nomeHtml = (id) => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
+  const nomeHtmlPorNome = (name) => {
     const p = state.people.find((q) => q.name === name);
-    return p ? nm(p.id) : esc(name);
+    return p ? nomeHtml(p.id) : esc(name);
   };
   // ---------- fila das animações ----------
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
@@ -696,7 +699,7 @@
   }
   const tlv = (id, v) => id + String(v.length).padStart(2, '0') + v;
   function pixCode(key, name, cents) {
-    const nm =
+    const recebedor =
       name
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -711,7 +714,7 @@
       tlv('53', '986') +
       tlv('54', (cents / 100).toFixed(2)) +
       tlv('58', 'BR') +
-      tlv('59', nm) +
+      tlv('59', recebedor) +
       tlv('60', 'BRASIL') +
       tlv('62', tlv('05', '***')) +
       '6304';
@@ -828,6 +831,7 @@
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) =>
     lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : '';
+  /** uma linha da nota: texto à esquerda, pontinhos, valor à direita (`vat` são atributos a mais no valor) */
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
 
@@ -854,7 +858,7 @@
     agendaConviteItens(hasMe);
     renderLinhaPix(hasMe, bal);
     $('#peopleSec').classList.toggle('hidden', !MEMBROS);
-    $('#peopleLine').innerHTML = state.people.length ? state.people.map((p) => nm(p.id)).join(', ') : 'ninguém';
+    $('#peopleLine').innerHTML = state.people.length ? state.people.map((p) => nomeHtml(p.id)).join(', ') : 'ninguém';
     $('#addPerson').textContent = state.people.length ? ',+' : ' +';
     renderForm();
     agendaFaltaPagar(pays, nMeus);
@@ -979,7 +983,7 @@
     // o copiar pix corre por fora da fila: brota de trás do ✔ assim que a chave chega, e
     // brotar já conta que chegou (nada de spinner). O #mineRows é refeito a cada poll: o
     // atraso negativo retoma a animação de onde estava, aqui e na piscada
-    const pixB = (t) => {
+    const botaoCopiarPix = (t) => {
       if (!pixReady || !pixKeys[t.to]) return '';
       if (!anim.pix.has(t.to)) anim.pix.set(t.to, Date.now());
       const dt = Date.now() - anim.pix.get(t.to);
@@ -987,7 +991,7 @@
       return `<button class="ico${br}" data-pix="${t.to}|${t.cents}" title="copiar pix">${PIX_SVG} copiar pix</button>`;
     };
     // toda linha pisca, tenha chave de pix ou não: a conta é a mesma. Uma atrás da outra
-    const okB = (t, i) => {
+    const botaoPaguei = (t, i) => {
       const esp = i * PISCA_GAP,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
       const natal = anim.natal,
@@ -1011,10 +1015,10 @@
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
-        ? acerto.filter((t) => t.to === me).map((t) => linha(nm(t.from), valorHtml(t.cents), 'sub'))
+        ? acerto.filter((t) => t.to === me).map((t) => linha(nomeHtml(t.from), valorHtml(t.cents), 'sub'))
         : meus.map((t, i) =>
             linha(
-              `<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`,
+              `<span class="n">${nomeHtml(t.to)}</span><span class="dupla">${botaoPaguei(t, i)}${botaoCopiarPix(t)}</span>`,
               valor(t),
               'sub',
             ),
@@ -1079,7 +1083,7 @@
             : '';
         return (
           linha(
-            `${nm(t.from)} → ${nm(t.to)}`,
+            `${nomeHtml(t.from)} → ${nomeHtml(t.to)}`,
             valorHtml(t.cents),
             meu ? 'mine' + (desenha ? ' risca' : '') : '',
             '',
@@ -1096,7 +1100,7 @@
       .map((e) => {
         const st = stampStyle(e.id),
           cor = colorOf(e.payer);
-        const quem = `<span class="n">${tagNovo(e)}${nm(e.payer)} → ${nm(e.among[0])}</span>`;
+        const quem = `<span class="n">${tagNovo(e)}${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])}</span>`;
         const desfaz = DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : '';
         const carimbo = `<span class="stampbox"><span class="stamp" style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
         const por = e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '';
@@ -1127,16 +1131,17 @@
               lastDay = d;
             }
           }
-          const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
+          const by =
+            e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nomeHtmlPorNome(e.by)}</span>` : '';
           const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
-          const mexe = meu
+          const botoes = meu
             ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
             : '';
           return (
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
             linha(`${tagNovo(e)}${esc(e.desc)}`, reais(centavos(e))) +
-            `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${mexe}</div></div>`
+            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
           );
         })
         .join('') || '<div class="empty">nada anotado ainda</div>';
@@ -1197,7 +1202,7 @@
           .map((p) => {
             const on = among.includes(p.id);
             return (
-              `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nm(p.id)}</span><span class="d"></span>` +
+              `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nomeHtml(p.id)}</span><span class="d"></span>` +
               (on
                 ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? reais(prev[p.id]) : ''}">`
                 : '<span class="fora">fora</span>') +
@@ -1445,7 +1450,7 @@
       ? state.people
           .map(
             (p) =>
-              `<div class="row"><span class="l">${nm(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
+              `<div class="row"><span class="l">${nomeHtml(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
           )
           .join('')
       : '<div class="empty">ninguém ainda</div>';
@@ -1649,7 +1654,7 @@
   }
   function showQuitado(to, cents) {
     overlay(`<h2>Quitado!</h2>
-      <p class="muted recado" style="margin-bottom:14px">avise ${nm(to)} pra não cobrar de novo</p>
+      <p class="muted recado" style="margin-bottom:14px">avise ${nomeHtml(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
       <div class="c voltar"><button id="quitOk" class="ghost">fechar</button></div>`);
     const fecha = () => {
@@ -1995,7 +2000,7 @@
     if (!e) return;
     const certeza = await ask(
       'Desfazer o pagamento?',
-      `${nm(e.payer)} → ${nm(e.among[0])} · ${comSifrao(centavos(e))}`,
+      `${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])} · ${comSifrao(centavos(e))}`,
       'desfazer',
     );
     if (!certeza) return;
@@ -2012,7 +2017,7 @@
     const r = el.getBoundingClientRect();
     const certeza = await ask(
       'Quitar?',
-      `${nm(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nm(to)}`,
+      `${nomeHtml(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}`,
       'quitei',
     );
     if (!certeza) return;
@@ -2150,238 +2155,237 @@
     ].join('\n');
   }
   // ---------- imagem da comanda (canvas) ----------
+  // a comanda é uma nota de papel impressa em fonte de máquina: cada letra tem a mesma
+  // largura, então tudo se conta em colunas, como numa impressora de cupom
   async function renderReceipt() {
     await document.fonts.load("28px 'VT323'");
-    const b = balances(),
-      st = settlements(b);
+    const saldo = balances(),
+      acerto = settlements(saldo);
     const items = [...state.expenses.filter((e) => e.kind !== 'payment')].reverse();
     const totalCents = items.reduce((a, e) => a + centavos(e), 0);
-    const W = 720,
-      M = 24,
-      P = 36,
-      S = 2,
-      FS = 28,
-      LH = 34;
-    const cc = document.createElement('canvas');
-    cc.width = W * S;
-    cc.height = 4000 * S;
-    const x = cc.getContext('2d');
-    x.scale(S, S);
-    x.font = `${FS}px 'VT323'`;
-    x.textBaseline = 'alphabetic';
-    const cw = x.measureText('M').width,
-      COLS = Math.floor((W - 2 * M - 2 * P) / cw);
-    const INK = '#2a2a2a',
-      INK2 = '#5a5a5a',
-      PAPER = '#efe9d8',
-      HL = '#f7f23a';
-    const mark = (col, len, color) => {
-      x.fillStyle = color;
-      x.fillRect(L + col * cw - 3, y - FS * 0.72, len * cw + 6, FS * 0.9);
+    const LARGURA = 720, // da imagem
+      MARGEM = 24, // a borda escura em volta do papel
+      RECUO = 36, // da beira do papel até o texto
+      ESCALA = 2, // pixels de verdade por pixel desenhado (fica nítido no celular)
+      FONTE = 28,
+      ENTRELINHA = 34;
+    const ESQ = MARGEM + RECUO; // onde o texto começa
+    const TINTA = '#2a2a2a',
+      TINTA_CLARA = '#5a5a5a',
+      PAPEL = '#efe9d8',
+      VERDE = '#15703a';
+    // escreve num rascunho bem alto e depois copia só a altura usada pro papel de verdade
+    const rascunho = document.createElement('canvas');
+    rascunho.width = LARGURA * ESCALA;
+    rascunho.height = 4000 * ESCALA;
+    const ctx = rascunho.getContext('2d');
+    ctx.scale(ESCALA, ESCALA);
+    ctx.font = `${FONTE}px 'VT323'`;
+    ctx.textBaseline = 'alphabetic';
+    const larguraLetra = ctx.measureText('M').width,
+      COLUNAS = Math.floor((LARGURA - 2 * MARGEM - 2 * RECUO) / larguraLetra);
+    let y = MARGEM + 12 + 50; // a linha em que o próximo texto entra
+
+    /** pinta o marca-texto atrás de `len` letras a partir da coluna `col` da linha atual */
+    const marcaTexto = (col, len, cor) => {
+      ctx.fillStyle = cor;
+      ctx.fillRect(ESQ + col * larguraLetra - 3, y - FONTE * 0.72, len * larguraLetra + 6, FONTE * 0.9);
     };
-    const L = M + P;
-    let y = M + 12 + 50;
-    const up = (t) => String(t).toUpperCase();
+    const maiusc = (t) => String(t).toUpperCase();
     // a coluna continua contada em unidade UTF-16, que é o que a régua do papel usa;
     // o apara() só não deixa a conta parar no meio de um par surrogate
-    const fit = (t, n) => {
-      t = up(t);
+    /** o texto em maiúsculas, cortado com … se passar de n colunas */
+    const cabe = (t, n) => {
+      t = maiusc(t);
       return t.length > n ? apara(t.slice(0, Math.max(1, n - 1))) + '…' : t;
     };
-    const line = (t, col = INK) => {
-      x.fillStyle = col;
-      x.textAlign = 'left';
-      x.fillText(t, L, y);
-      y += LH;
+    const escreve = (t, cor = TINTA) => {
+      ctx.fillStyle = cor;
+      ctx.textAlign = 'left';
+      ctx.fillText(t, ESQ, y);
+      y += ENTRELINHA;
     };
-    const center = (t, hl) => {
-      x.textAlign = 'center';
-      if (hl) {
-        const w = x.measureText(t).width + 16;
-        x.fillStyle = HL;
-        x.fillRect(W / 2 - w / 2, y - FS * 0.75, w, FS * 0.95);
-      }
-      x.fillStyle = INK;
-      x.fillText(t, W / 2, y);
-      y += LH;
+    const centraliza = (t) => {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = TINTA;
+      ctx.fillText(t, LARGURA / 2, y);
+      y += ENTRELINHA;
     };
-    const dash = () => line('-'.repeat(COLS), INK2);
-    const blank = () => {
-      y += LH * 0.6;
+    const traco = () => escreve('-'.repeat(COLUNAS), TINTA_CLARA);
+    const pula = () => {
+      y += ENTRELINHA * 0.6;
     };
-    const norm = (t) =>
-      up(t)
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
-    const ini = (t, k) => apara(t.slice(0, k));
-    const initial = (id) => {
-      const n = norm(nameOf(id));
+    /** "ALGO ........ VALOR", ocupando a linha toda */
+    const comPontinhos = (l, v) => {
+      l = cabe(l, COLUNAS - 10 - 2); // guarda 10 colunas pro valor
+      const pontos = '.'.repeat(Math.max(1, COLUNAS - l.length - v.length - 2));
+      return `${l} ${pontos} ${v}`;
+    };
+    // as iniciais de quem divide ("F J L"): letras suficientes pra ninguém se confundir
+    const semAcento = (t) => maiusc(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const primeiras = (t, k) => apara(t.slice(0, k));
+    const inicial = (id) => {
+      const n = semAcento(nameOf(id));
       let k = 1;
-      while (k < n.length && state.people.some((p) => p.id !== id && ini(norm(nameOf(p.id)), k) === ini(n, k))) k++;
-      return ini(n, k);
+      while (
+        k < n.length &&
+        state.people.some((p) => p.id !== id && primeiras(semAcento(nameOf(p.id)), k) === primeiras(n, k))
+      )
+        k++;
+      return primeiras(n, k);
     };
-    /** @param {{ t: string, id?: string, w?: number }[]} segs */
-    const flow = (segs) => {
+    /** escreve pedaços de texto, com marca-texto nos que têm `id`, quebrando a linha
+     *  quando o próximo pedaço (ou `w` colunas) não cabe
+     *  @param {{ t: string, id?: string, w?: number }[]} pedacos */
+    const escreveQuebrando = (pedacos) => {
       let col = 0,
         t = '';
-      for (const g of segs) {
-        if (!g.t) continue;
-        if (col > 2 && col + (g.w || g.t.length) > COLS) {
-          line(t.trimEnd(), INK2);
+      for (const p of pedacos) {
+        if (!p.t) continue;
+        if (col > 2 && col + (p.w || p.t.length) > COLUNAS) {
+          escreve(t.trimEnd(), TINTA_CLARA);
           t = '  ';
           col = 2;
         }
-        if (g.id) mark(col, g.t.length, markForte(g.id));
-        t += g.t;
-        col += g.t.length;
+        if (p.id) marcaTexto(col, p.t.length, markForte(p.id));
+        t += p.t;
+        col += p.t.length;
       }
-      if (t.trim()) line(t.trimEnd(), INK2);
+      if (t.trim()) escreve(t.trimEnd(), TINTA_CLARA);
     };
-    const now = new Date();
-    const d2 = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-    const hm = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
 
-    center(`*** TÔ LISA ***`);
-    center(fit(`${up(evento())} · ${d2} ${hm}`, COLS));
-    blank();
-    dash();
-
-    const VW = 10;
-    const leader = (l, v) => {
-      l = fit(l, COLS - VW - 2);
-      const dots = '.'.repeat(Math.max(1, COLS - l.length - v.length - 2));
-      return `${l} ${dots} ${v}`;
-    };
+    // cabeçalho
+    const agora = new Date();
+    const data = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
+    centraliza(`*** TÔ LISA ***`);
+    centraliza(cabe(`${maiusc(evento())} · ${data} ${hora}`, COLUNAS));
+    pula();
+    traco();
 
     // saldo: quem ainda paga quem, e depois quem já está quite
-    const GREEN = '#15703a';
-    blank();
-    center('*** FALTA PAGAR ***');
-    blank();
-    if (!st.length) center('TUDO QUITADO');
-    for (const t of st) {
-      const a = fit(nameOf(t.from), 12),
-        c = fit(nameOf(t.to), 12);
-      mark(0, a.length, markForte(t.from));
-      mark(a.length + 6, c.length, markForte(t.to));
-      line(leader(`${a} PAGA ${c}`, 'R$ ' + reais(t.cents)));
+    pula();
+    centraliza('*** FALTA PAGAR ***');
+    pula();
+    if (!acerto.length) centraliza('TUDO QUITADO');
+    for (const t of acerto) {
+      const de = cabe(nameOf(t.from), 12),
+        pra = cabe(nameOf(t.to), 12);
+      marcaTexto(0, de.length, markForte(t.from));
+      marcaTexto(de.length + 6, pra.length, markForte(t.to));
+      escreve(comPontinhos(`${de} PAGA ${pra}`, 'R$ ' + reais(t.cents)));
     }
-    {
-      const quites = state.people.filter((p) => (b[p.id] || 0) === 0);
-      if (quites.length && st.length) blank();
-      for (const p of quites) {
-        const n = fit(nameOf(p.id), COLS - 16);
-        mark(0, n.length, markForte(p.id));
-        line(leader(n, 'QUITE'), GREEN);
-      }
+    const quites = state.people.filter((p) => (saldo[p.id] || 0) === 0);
+    if (quites.length && acerto.length) pula();
+    for (const p of quites) {
+      const n = cabe(nameOf(p.id), COLUNAS - 16);
+      marcaTexto(0, n.length, markForte(p.id));
+      escreve(comPontinhos(n, 'QUITE'), VERDE);
     }
-    dash();
+    traco();
 
-    // itens: descrição ...... valor, com quem pagou embaixo
-    blank();
-    center('*** ITENS ***');
-    blank();
-    if (!items.length) line('NADA ANOTADO');
+    // itens: descrição ...... valor, com quem pagou e como dividiu embaixo
+    pula();
+    centraliza('*** ITENS ***');
+    pula();
+    if (!items.length) escreve('NADA ANOTADO');
     for (const e of items) {
-      line(leader(e.desc, reais(centavos(e))));
-      const pn = fit(nameOf(e.payer), 14);
-      mark(2, pn.length, markForte(e.payer));
+      escreve(comPontinhos(e.desc, reais(centavos(e))));
+      const pagou = cabe(nameOf(e.payer), 14);
+      marcaTexto(2, pagou.length, markForte(e.payer));
+      /** @type {{ t: string, id?: string, w?: number }[]} */
+      const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
+      const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
       if (e.shares) {
-        const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([
-          { t: '  ' },
-          { t: pn, id: e.payer },
-          { t: ' PAGOU · ' },
-        ]);
+        // partes diferentes: cada nome com o valor dele
         e.among.forEach((id, i) => {
-          const n = fit(nameOf(id), 14),
+          const n = cabe(nameOf(id), 14),
             v = ' ' + reais(e.shares[id] || 0);
-          segs.push({ t: n, id, w: n.length + v.length }, { t: v + (i < e.among.length - 1 ? ', ' : '') });
+          pedacos.push({ t: n, id, w: n.length + v.length }, { t: v + virgula(i) });
         });
-        flow(segs);
+        escreveQuebrando(pedacos);
         continue;
       }
       if (!e.among.includes(e.payer)) {
-        const segs = /** @type {{ t: string, id?: string, w?: number }[]} */ ([
-          { t: '  ' },
-          { t: pn, id: e.payer },
-          { t: ' PAGOU · ' },
-        ]);
-        e.among.forEach((id, i) =>
-          segs.push({ t: fit(nameOf(id), 14), id }, { t: i < e.among.length - 1 ? ', ' : '' }),
-        );
-        segs.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
-        flow(segs);
+        // empréstimo: quem pagou não entra na divisão
+        e.among.forEach((id, i) => pedacos.push({ t: cabe(nameOf(id), 14), id }, { t: virgula(i) }));
+        pedacos.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
+        escreveQuebrando(pedacos);
         continue;
       }
-      const all = state.people.every((p) => e.among.includes(p.id));
-      if (all) {
-        line('  ' + fit(`${pn} pagou · ÷${e.among.length} todos`, COLS - 2), INK2);
+      if (state.people.every((p) => e.among.includes(p.id))) {
+        escreve('  ' + cabe(`${pagou} pagou · ÷${e.among.length} todos`, COLUNAS - 2), TINTA_CLARA);
         continue;
       }
-      const head = `  ${pn} PAGOU · ÷${e.among.length} `;
-      let col = head.length,
-        t = head;
+      // igual entre alguns: as iniciais de quem divide, até onde couber
+      const inicio = `  ${pagou} PAGOU · ÷${e.among.length} `;
+      let col = inicio.length,
+        t = inicio;
       for (const id of e.among) {
-        const ini = initial(id);
-        if (col + ini.length > COLS) break;
-        mark(col, ini.length, markForte(id));
+        const ini = inicial(id);
+        if (col + ini.length > COLUNAS) break;
+        marcaTexto(col, ini.length, markForte(id));
         t += ini + ' ';
         col += ini.length + 1;
       }
-      line(t.trimEnd(), INK2);
+      escreve(t.trimEnd(), TINTA_CLARA);
     }
-    blank();
-    line(leader('TOTAL', 'R$ ' + reais(totalCents)), INK2);
-    dash();
-    blank();
-    center('* * *');
+    pula();
+    escreve(comPontinhos('TOTAL', 'R$ ' + reais(totalCents)), TINTA_CLARA);
+    traco();
+    pula();
+    centraliza('* * *');
+
+    // o código de barras do rodapé, o mesmo da página
     {
-      const widths = code128Widths('420420420420');
-      const units = [...widths].reduce((a, c) => a + +c, 0);
-      const BW = 240,
-        BH = 40,
-        k = BW / units;
-      let bx = W / 2 - BW / 2;
-      x.fillStyle = INK;
-      for (let i = 0; i < widths.length; i++) {
-        const w = +widths[i] * k;
-        if (i % 2 === 0) x.fillRect(bx, y - 8, w, BH);
+      const barras = code128Widths('420420420420');
+      const unidades = [...barras].reduce((a, n) => a + +n, 0);
+      const LARG_BARRAS = 240,
+        ALT_BARRAS = 40,
+        porUnidade = LARG_BARRAS / unidades;
+      let bx = LARGURA / 2 - LARG_BARRAS / 2;
+      ctx.fillStyle = TINTA;
+      for (let i = 0; i < barras.length; i++) {
+        const w = +barras[i] * porUnidade;
+        if (i % 2 === 0) ctx.fillRect(bx, y - 8, w, ALT_BARRAS); // posição par é barra, ímpar é vão
         bx += w;
       }
-      y += BH + 4;
+      y += ALT_BARRAS + 4;
     }
-    x.fillStyle = INK2;
-    x.textAlign = 'center';
-    x.fillText('tolisa.com.br', W / 2, y + 16);
-    y += LH + 6;
+    ctx.fillStyle = TINTA_CLARA;
+    ctx.textAlign = 'center';
+    ctx.fillText('tolisa.com.br', LARGURA / 2, y + 16);
+    y += ENTRELINHA + 6;
 
-    // papel na altura exata
-    const H = y + M + 12;
-    const c = document.createElement('canvas');
-    c.width = W * S;
-    c.height = H * S;
-    const g = c.getContext('2d');
-    g.scale(S, S);
-    g.fillStyle = '#262626';
-    g.fillRect(0, 0, W, H);
-    g.fillStyle = PAPER;
-    g.fillRect(M, M + 12, W - 2 * M, H - 2 * M - 24);
-    for (let i = 0; i < (W - 2 * M) / 12; i++) {
-      g.beginPath();
-      g.moveTo(M + i * 12, M + 12);
-      g.lineTo(M + i * 12 + 6, M);
-      g.lineTo(M + i * 12 + 12, M + 12);
-      g.fill();
-      g.beginPath();
-      g.moveTo(M + i * 12, H - M - 12);
-      g.lineTo(M + i * 12 + 6, H - M);
-      g.lineTo(M + i * 12 + 12, H - M - 12);
-      g.fill();
+    // o papel na altura exata: fundo escuro, papel com a borda picotada em zigue-zague
+    // em cima e embaixo, riscos bem leves de papel térmico, e o rascunho por cima
+    const ALTURA = y + MARGEM + 12;
+    const papel = document.createElement('canvas');
+    papel.width = LARGURA * ESCALA;
+    papel.height = ALTURA * ESCALA;
+    const p = papel.getContext('2d');
+    p.scale(ESCALA, ESCALA);
+    p.fillStyle = '#262626';
+    p.fillRect(0, 0, LARGURA, ALTURA);
+    p.fillStyle = PAPEL;
+    p.fillRect(MARGEM, MARGEM + 12, LARGURA - 2 * MARGEM, ALTURA - 2 * MARGEM - 24);
+    for (let i = 0; i < (LARGURA - 2 * MARGEM) / 12; i++) {
+      const x = MARGEM + i * 12;
+      p.beginPath();
+      p.moveTo(x, MARGEM + 12);
+      p.lineTo(x + 6, MARGEM);
+      p.lineTo(x + 12, MARGEM + 12);
+      p.fill();
+      p.beginPath();
+      p.moveTo(x, ALTURA - MARGEM - 12);
+      p.lineTo(x + 6, ALTURA - MARGEM);
+      p.lineTo(x + 12, ALTURA - MARGEM - 12);
+      p.fill();
     }
-    g.fillStyle = 'rgba(0,0,0,.03)';
-    for (let yy = M; yy < H - M; yy += 4) g.fillRect(M, yy, W - 2 * M, 1);
-    g.drawImage(cc, 0, 0, W * S, H * S, 0, 0, W, H);
-    return new Promise((res) => c.toBlob(res, 'image/png'));
+    p.fillStyle = 'rgba(0,0,0,.03)';
+    for (let yy = MARGEM; yy < ALTURA - MARGEM; yy += 4) p.fillRect(MARGEM, yy, LARGURA - 2 * MARGEM, 1);
+    p.drawImage(rascunho, 0, 0, LARGURA * ESCALA, ALTURA * ESCALA, 0, 0, LARGURA, ALTURA);
+    return new Promise((res) => papel.toBlob(res, 'image/png'));
   }
   const waText = () => abreZap(summaryText());
   $('#waBtn').onclick = async () => {

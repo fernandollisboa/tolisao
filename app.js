@@ -24,7 +24,7 @@
   const INSTALAR = true;
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
-  const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto some pra não poluir
+  const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -440,14 +440,28 @@
   function balances(s = state) {
     /** @type {Record<string, number>} */ const b = {};
     s.people.forEach((p) => (b[p.id] = 0));
-    for (const e of s.expenses) {
-      const ids = e.among.filter((id) => id in b);
-      if (!ids.length || !(e.payer in b)) continue;
-      b[e.payer] += centavos(e);
-      const sh = shareOf(e, ids);
-      for (const id of ids) b[id] -= sh[id];
-    }
+    for (const e of s.expenses) soma(b, e);
     return b;
+  }
+  /** põe um gasto (ou pagamento) nos saldos @param {Record<string, number>} b @param {Expense} e */
+  function soma(b, e) {
+    const ids = e.among.filter((id) => id in b);
+    if (!ids.length || !(e.payer in b)) return;
+    b[e.payer] += centavos(e);
+    const sh = shareOf(e, ids);
+    for (const id of ids) b[id] -= sh[id];
+  }
+  /** quantos gastos, do começo, vão até a última vez que todo mundo ficou quite. Ali a
+   *  conta zerou: as quitações de antes já foram acertadas e saem do Falta pagar @param {Room} s */
+  function zerouEm(s = state) {
+    /** @type {Record<string, number>} */ const b = {};
+    s.people.forEach((p) => (b[p.id] = 0));
+    let n = 0;
+    s.expenses.forEach((e, i) => {
+      soma(b, e);
+      if (Object.values(b).every((v) => v === 0)) n = i + 1;
+    });
+    return n;
   }
   /** @param {Record<string, number>} b @returns {Transfer[]} */
   function settlements(b) {
@@ -918,6 +932,7 @@
       bal = hasMe ? saldo[me] || 0 : 0;
     const allEven = state.people.length > 0 && !vazio && Object.values(saldo).every((v) => v === 0);
     const pays = state.expenses
+      .slice(zerouEm())
       .filter((e) => e.kind === 'payment')
       .slice(-PAGOS_NA_LISTA)
       .reverse();

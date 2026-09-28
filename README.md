@@ -1,6 +1,6 @@
 # tô lisa · quem me deve?
 
-Divisor de gastos entre amigos, no estilo do Splitwise, sem aplicativo e sem cadastro. É um site estático (HTML, CSS e JavaScript, sem build) publicado em [tolisa.com.br](https://tolisa.com.br/), com os dados no Firebase Realtime Database.
+Divisor de gastos entre amigos: racha a conta e anota quem deve, sem aplicativo e sem cadastro. É um site estático (HTML, CSS e JavaScript, sem build) publicado em [tolisa.com.br](https://tolisa.com.br/), com os dados no Firebase Realtime Database.
 
 ## Como usar
 

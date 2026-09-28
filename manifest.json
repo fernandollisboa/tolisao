@@ -1,7 +1,7 @@
 {
   "name": "tô lisa · quem me deve?",
   "short_name": "tô lisa",
-  "description": "Tipo Splitwise, só que sem app e sem cadastro",
+  "description": "Racha a conta e anota quem deve, sem app e sem cadastro",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

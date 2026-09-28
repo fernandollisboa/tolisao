@@ -2,7 +2,7 @@
 
 ## o que é
 
-"tô lisa · quem me deve?": divisor de gastos entre amigos, tipo Splitwise, sem app e sem cadastro. `index.html`, `style.css` e `app.js`, sem build, no GitHub Pages, com Firebase Realtime Database via REST. site: https://tolisa.com.br/. tudo em pt-BR, tela e código.
+"tô lisa · quem me deve?": divisor de gastos entre amigos, sem app e sem cadastro. `index.html`, `style.css` e `app.js`, sem build, no GitHub Pages, com Firebase Realtime Database via REST. site: https://tolisa.com.br/. tudo em pt-BR, tela e código.
 
 este arquivo é o mapa e as regras que não se quebram. como cada feature se comporta está no código e nos `.feature`: não precisa vir pra cá.
 
@@ -12,7 +12,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
-- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, `og5.jpg`). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
+- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, `og6.jpg`). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `docs/qa.md`: roteiro e achados das sessões de QA.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
 
@@ -52,7 +52,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.
 - **dinheiro** é centavo inteiro até virar texto. o banco guarda `amount` em reais: leia com `centavos(e)`; `reais()`, `comSifrao()` e `valorHtml()` recebem centavos.
-- **`og5.jpg`** abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.
+- **`og6.jpg`** abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.
 - **fontes** em `fonts/` são OFL 1.1 e Apache 2.0, não MIT.
 
 ## convenções

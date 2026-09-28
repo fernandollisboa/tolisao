@@ -64,7 +64,7 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   regra('clean() corta no mesmo tamanho que o banco valida', !corpo ? 'não achei o clean() no app.js' : errados.join('; '));
 }
 
-// ---------- og5.jpg abaixo de ~300 KB, senão o WhatsApp ignora ----------
+// ---------- og6.jpg abaixo de ~300 KB, senão o WhatsApp ignora ----------
 {
   const og = html.match(/property="og:image" content="https:\/\/tolisa\.com\.br\/([^"]+)"/)?.[1];
   const kb = og && fs.existsSync(path.join(raiz, og)) ? fs.statSync(path.join(raiz, og)).size / 1024 : NaN;

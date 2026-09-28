@@ -834,6 +834,20 @@
       }, 1600);
     });
   }
+  /** o subtítulo do cabeçalho muda com o saldo de quem está vendo */
+  function subtitulo(hasMe, bal) {
+    if (!hasMe || bal > 0) return 'quem me deve?';
+    if (bal < 0) return 'pra quem eu devo?';
+    return 'mas não devo a ninguém';
+  }
+  /** a lista de frases do rodapé que combina com a situação */
+  function frasesDoRodape(hasMe, bal, allEven) {
+    if (allEven) return SIGNOFF.all;
+    if (!hasMe) return SIGNOFF.none;
+    if (bal < 0) return SIGNOFF.owe;
+    if (bal > 0) return SIGNOFF.owed;
+    return SIGNOFF.even;
+  }
   const temMe = () => !!me && state.people.some((p) => p.id === me);
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) =>
@@ -866,23 +880,8 @@
       // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
       $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
     }
-    if ($('#tagline'))
-      $('#tagline').textContent =
-        !hasMe || bal > 0 ? 'quem me deve?' : bal < 0 ? 'pra quem eu devo?' : 'mas não devo a ninguém';
-    if ($('#signoff'))
-      $('#signoff').textContent = chato
-        ? 'Deus é fiel.'
-        : pick(
-            allEven
-              ? SIGNOFF.all
-              : !hasMe
-                ? SIGNOFF.none
-                : bal < 0
-                  ? SIGNOFF.owe
-                  : bal > 0
-                    ? SIGNOFF.owed
-                    : SIGNOFF.even,
-          );
+    if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
+    if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
 
     if (hasMe && !vazio) renderMinha(bal, acerto);
     else $('#mine').classList.add('hidden');
@@ -1029,15 +1028,17 @@
       const natal = anim.natal,
         j = natal && natal[i],
         fecho = j && (natal.length - 1) * PISCA_GAP + FECHO_EM + j[1];
-      const pi = anim.tocouOk
-        ? ''
-        : j
-          ? dt < fecho + FECHO_MS
-            ? ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms`
-            : ''
-          : dt < esp + PISCA_MS
-            ? ` pisca" style="animation-delay:${esp - dt}ms`
-            : '';
+      // o que entra no class (e no style) do botão: nada, a piscada simples ou o pisca-pisca de natal
+      const piscada = () => {
+        if (anim.tocouOk) return '';
+        if (j) {
+          if (dt >= fecho + FECHO_MS) return '';
+          return ` pisca natal${i % 2 ? ' b' : ''}" style="animation-delay:${Math.round(esp + j[0] - dt)}ms,${Math.round(fecho - dt)}ms`;
+        }
+        if (dt >= esp + PISCA_MS) return '';
+        return ` pisca" style="animation-delay:${esp - dt}ms`;
+      };
+      const pi = piscada();
       return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`;
     };
     const valor = (t) =>
@@ -1269,13 +1270,12 @@
     const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
     const f = $('#falta');
     f.className = 'falta ' + (!total ? 'neutro' : resta === 0 ? 'ok' : 'erro');
-    f.innerHTML = !total
-      ? 'digite o valor do gasto lá em cima.'
-      : resta === 0
-        ? `✔ fechou ${comSifrao(total)}.`
-        : resta > 0
-          ? `faltam <b>${comSifrao(resta)}</b> pra fechar ${comSifrao(total)}.${vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : ''}`
-          : `sobram <b>${comSifrao(-resta)}</b> além de ${comSifrao(total)}.`;
+    const dividirResto = vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : '';
+    if (!total) f.innerHTML = 'digite o valor do gasto lá em cima.';
+    else if (resta === 0) f.innerHTML = `✔ fechou ${comSifrao(total)}.`;
+    else if (resta > 0)
+      f.innerHTML = `faltam <b>${comSifrao(resta)}</b> pra fechar ${comSifrao(total)}.${dividirResto}`;
+    else f.innerHTML = `sobram <b>${comSifrao(-resta)}</b> além de ${comSifrao(total)}.`;
     for (const b of inputs('#sharesBox [data-resto]'))
       b.classList.toggle('hidden', resta <= 0 || sh[b.dataset.resto] > 0);
     // o campo tem a largura do número: os pontinhos da linha correm até perto do valor
@@ -1777,8 +1777,11 @@
         const s = e.snap,
           eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
           b = s && eu ? balances(s)[eu.id] : null;
-        const [cls, v] =
-          b === null ? ['ok', '—'] : b > 0 ? ['pos', comSifrao(b)] : b < 0 ? ['neg', comSifrao(b)] : ['ok', 'quite'];
+        let cls = 'ok',
+          v = '—';
+        if (b > 0) [cls, v] = ['pos', comSifrao(b)];
+        else if (b < 0) [cls, v] = ['neg', comSifrao(b)];
+        else if (b === 0) v = 'quite';
         const n = s ? s.people.length : 0,
           sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : '']
             .filter(Boolean)
@@ -2695,14 +2698,11 @@
     let rola = 0;
     const rolaBorda = () => {
       if (!pega) return;
-      const y = pega.y,
-        v = !pega.andou
-          ? 0
-          : y < BORDA
-            ? -(BORDA - y) / BORDA
-            : y > innerHeight - BORDA
-              ? (y - innerHeight + BORDA) / BORDA
-              : 0;
+      // quanto rolar: de -1 (no talo pra cima) a 1 (no talo pra baixo), 0 longe das bordas
+      const y = pega.y;
+      let v = 0;
+      if (pega.andou && y < BORDA) v = -(BORDA - y) / BORDA;
+      else if (pega.andou && y > innerHeight - BORDA) v = (y - innerHeight + BORDA) / BORDA;
       if (v) {
         const antes = scrollY;
         scrollBy(0, Math.round(Math.max(-1, Math.min(1, v)) * RAPIDO));

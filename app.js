@@ -656,9 +656,10 @@
     const quem = [...new Set(pra.map((e) => nameOf(e.payer)))];
     toast(
       quem.length === 1
-        ? `${quem[0]} te pagou ${total}`
-        : `${quem.slice(0, -1).join(', ')} e ${quem.at(-1)} te pagaram ${total}`,
+        ? `💸 ${quem[0]} te pagou ${total}`
+        : `💸 ${quem.slice(0, -1).join(', ')} e ${quem.at(-1)} te pagaram ${total}`,
       5000,
+      'recebe',
     );
   }
   const markSeen = () => {
@@ -3036,10 +3037,10 @@
   }
   armaOlho();
   let tt;
-  function toast(msg, ms = 2200) {
+  function toast(msg, ms = 2200, cls = '') {
     const t = $('#toast');
     t.textContent = msg;
-    t.classList.add('show');
+    t.className = 'toast show' + (cls ? ' ' + cls : '');
     clearTimeout(tt);
     tt = setTimeout(() => t.classList.remove('show'), ms);
   }

@@ -117,7 +117,7 @@ Funcionalidade: Acertar as contas
   Cenário: quem recebe vê o aviso quando alguém paga
     Quando eu abro o evento como Fernando
     E a Mengla paga R$ 174,43 pro Fernando em outro aparelho
-    Então aparece o aviso "Mengla te pagou R$ 174,43"
+    Então aparece o aviso "💸 Mengla te pagou R$ 174,43"
     Quando eu recarrego a página
     E o app sincroniza
     Então não aparece aviso de pagamento
@@ -125,7 +125,7 @@ Funcionalidade: Acertar as contas
   Cenário: dois pagamentos juntos viram um aviso só
     Quando eu abro o evento como Fernando
     E a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho
-    Então aparece o aviso "Mengla e Klinsmann te pagaram R$ 248,04"
+    Então aparece o aviso "💸 Mengla e Klinsmann te pagaram R$ 248,04"
 
   Cenário: quem não recebeu não vê aviso
     Quando eu abro o evento como Lia

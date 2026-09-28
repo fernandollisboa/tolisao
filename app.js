@@ -1888,10 +1888,19 @@
     state.expenses = state.expenses.filter((x) => x.id !== e.id);
     state.deleted.push(e.id);
   };
-  // rolou a nota, o ✎ e o zap já estão por cima do texto: ficam meio transparentes
-  const rolou = () => document.body.classList.toggle('rolou', scrollY > 8);
-  addEventListener('scroll', rolou, { passive: true });
-  rolou();
+  // a nota subindo passa por baixo do ✎ e do zap: cada um fica meio transparente quando
+  // o texto chega nele, não os dois de uma vez. O de baixo é alcançado primeiro. A régua é
+  // o tracejado do cabeçalho, onde a nota começa a correr por baixo deles
+  const vaza = () => {
+    const corte = /** @type {HTMLElement} */ ($('#app > .hr')).getBoundingClientRect().top;
+    for (const b of [$('#fab'), $('#waBtn')]) {
+      const r = b.getBoundingClientRect();
+      b.classList.toggle('vaza', r.height > 0 && corte < r.bottom);
+    }
+  };
+  addEventListener('scroll', vaza, { passive: true });
+  addEventListener('resize', vaza);
+  new ResizeObserver(vaza).observe($('#app'));
   $('#fab').onclick = () => {
     setDevice('fabTaps', (+device().fabTaps || 0) + 1);
     if (!state.people.length) return toast('Adicione pessoas primeiro');

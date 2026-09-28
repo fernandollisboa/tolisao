@@ -1290,50 +1290,6 @@
     const tgt = /** @type {HTMLElement} */ (ev.target);
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta();
   });
-  document.addEventListener('click', (ev) => {
-    const tgt = /** @type {HTMLElement} */ (ev.target);
-    const aba = /** @type {HTMLElement|null} */ (tgt.closest('#splitSeg button'));
-    if (aba) {
-      const modo = aba.dataset.modo === 'custom' ? 'custom' : 'equal';
-      if (modo !== splitMode) trocaAba(modo);
-      return;
-    }
-    // "o resto" joga na linha o que falta; "dividir o resto igual" reparte entre as vazias
-    const resto = /** @type {HTMLElement|null} */ (tgt.closest('[data-resto]'));
-    const falta = () => totalDigitado() - Object.values(customShares()).reduce((a, b) => a + b, 0);
-    if (resto) {
-      const i = /** @type {HTMLInputElement} */ ($(`#sharesBox input[data-share="${resto.dataset.resto}"]`));
-      const r = falta();
-      if (i && r > 0) {
-        i.value = reais(r);
-        atualizaFalta();
-      }
-      return;
-    }
-    if (tgt.closest('#restoIgual')) {
-      const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
-      const r = falta();
-      if (vazios.length && r > 0) {
-        const o = shares(
-          r,
-          vazios.map((i) => i.dataset.share),
-        );
-        for (const i of vazios) i.value = reais(o[i.dataset.share]);
-        atualizaFalta();
-      }
-    }
-  });
-  // marcar ou desmarcar a linha é marcar o chip: a lista de quem divide é uma só
-  document.addEventListener('change', (ev) => {
-    const tgt = /** @type {HTMLInputElement} */ (ev.target);
-    if (!tgt.matches('#sharesBox [data-quem]')) return;
-    const chip = /** @type {HTMLInputElement|null} */ ($(`#splitChips input[value="${tgt.dataset.quem}"]`));
-    if (chip) {
-      chip.checked = tgt.checked;
-      chip.closest('.chip').classList.toggle('on', tgt.checked);
-    }
-    updateHint();
-  });
 
   // ---------- telas ----------
   let overlayCancel = null,
@@ -1955,13 +1911,6 @@
     toast(velho ? 'Editado!' : 'Anotado!');
   };
   $('#payer').onchange = updateHint;
-  document.addEventListener('change', (ev) => {
-    const tgt = /** @type {HTMLInputElement} */ (ev.target);
-    if (tgt.matches('#splitChips input')) {
-      tgt.closest('.chip').classList.toggle('on', tgt.checked);
-      updateHint();
-    }
-  });
   // o dedo não tem hover: o toque no ✔ e no copiar pix preenche o botão e volta.
   // Na captura, pra pegar o toque mesmo que alguém pare o evento no caminho
   document.addEventListener(
@@ -1987,114 +1936,158 @@
     },
     true,
   );
-  document.addEventListener('click', async (ev) => {
+  // ---------- cliques ----------
+  // cada botão diz o que é num data-* (ou num id), e esta lista diz o que cada um faz.
+  // Um clique só no document atende a página toda, inclusive o que o render() refaz.
+  const achaGasto = (id) => state.expenses.find((x) => x.id === id);
+  /** copia pro clipboard; sem permissão, mostra o texto num cartão pra copiar na mão */
+  const copia = (texto, recado, titulo) =>
+    navigator.clipboard.writeText(texto).then(
+      () => toast(recado),
+      () => showCopy(titulo, texto),
+    );
+  /** abre ou fecha os detalhes de um item (quem pagou, como dividiu, editar) */
+  const abreItem = (it) => {
+    const id = it.dataset.item;
+    openItems.has(id) ? openItems.delete(id) : openItems.add(id);
+    it.classList.toggle('open');
+  };
+  function copiaPix(el) {
+    const [to, cents] = el.dataset.pix.split('|');
+    copia(
+      pixCode(pixKeys[to], nameOf(to), +cents),
+      'Pix copia e cola copiado. Cola no app do banco.',
+      'Pix copia e cola',
+    );
+  }
+  function cobra(el) {
+    const [from, cents] = el.dataset.cobrar.split('|');
+    const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
+    abreZap(`👀 ${nameOf(from)}, tá faltando ${comSifrao(+cents)} do *${evento()}*${pix}\n${shareUrl()}`);
+  }
+  async function desfazPagamento(el) {
+    const e = achaGasto(el.dataset.undo);
+    if (!e) return;
+    const certeza = await ask(
+      'Desfazer o pagamento?',
+      `${nm(e.payer)} → ${nm(e.among[0])} · ${comSifrao(centavos(e))}`,
+      'desfazer',
+    );
+    if (!certeza) return;
+    apagaItem(e);
+    anim.riscos.delete(e.id);
+    commit();
+    toast('Desfeito');
+  }
+  /** o ✔ paguei: vira um gasto do tipo 'payment' de quem deve pra quem recebe */
+  async function quita(el) {
+    const [from, to, cs] = el.dataset.settle.split('|');
+    const cents = +cs;
+    // o confete sai do botão: mede antes do cartão abrir por cima
+    const r = el.getBoundingClientRect();
+    const certeza = await ask(
+      'Quitar?',
+      `${nm(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nm(to)}`,
+      'quitei',
+    );
+    if (!certeza) return;
+    state.expenses.push({
+      id: uid(),
+      kind: 'payment',
+      desc: 'Pagamento',
+      amount: cents / 100,
+      payer: from,
+      among: [to],
+      at: Date.now(),
+      by: me ? nameOf(me) : undefined,
+    });
+    seguraRisco = true;
+    commit();
+    festa(r.left + r.width / 2, r.top + r.height / 2);
+    toast('Quitado! 🎉');
+    showQuitado(to, cents);
+  }
+  async function excluiGasto(el) {
+    const e = achaGasto(el.dataset.delExpense);
+    if (!e) return;
+    if (!(await ask('Excluir item?', `${esc(e.desc)} · ${comSifrao(centavos(e))}`, 'excluir'))) return;
+    apagaItem(e);
+    commit();
+  }
+  /** as abas "igual" e "partes diferentes" do anotar */
+  function escolheAba(el) {
+    const modo = el.dataset.modo === 'custom' ? 'custom' : 'equal';
+    if (modo !== splitMode) trocaAba(modo);
+  }
+  const faltaNasPartes = () => totalDigitado() - Object.values(customShares()).reduce((a, b) => a + b, 0);
+  /** "o resto": joga na linha o que falta pra fechar */
+  function poeResto(el) {
+    const i = /** @type {HTMLInputElement} */ ($(`#sharesBox input[data-share="${el.dataset.resto}"]`));
+    const r = faltaNasPartes();
+    if (i && r > 0) {
+      i.value = reais(r);
+      atualizaFalta();
+    }
+  }
+  /** "dividir o resto igual": reparte o que falta entre as linhas vazias */
+  function divideResto() {
+    const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
+    const r = faltaNasPartes();
+    if (!vazios.length || r <= 0) return;
+    const o = shares(
+      r,
+      vazios.map((i) => i.dataset.share),
+    );
+    for (const i of vazios) i.value = reais(o[i.dataset.share]);
+    atualizaFalta();
+  }
+  /** @type {[string, (el: HTMLElement) => unknown][]} vale o primeiro seletor que o clique acertar */
+  const CLIQUES = [
+    ['#splitSeg button', escolheAba],
+    ['[data-resto]', poeResto],
+    ['#restoIgual', divideResto],
+    // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
+    ['#settle .empty.anota', () => $('#fab').click()],
+    ['[data-among]', (el) => abreItem(el.closest('.item'))],
+    ['[data-pix]', copiaPix],
+    ['[data-cobrar]', cobra],
+    ['[data-undo]', desfazPagamento],
+    ['[data-settle]', quita],
+    ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
+    ['[data-del-expense]', excluiGasto],
+    [
+      '[data-edit-expense]',
+      (el) => {
+        const e = achaGasto(el.dataset.editExpense);
+        if (e) editaItem(e);
+      },
+    ],
+  ];
+  document.addEventListener('click', (ev) => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
-    /** @returns {HTMLElement|null} */ const near = (sel) => /** @type {HTMLElement|null} */ (tgt.closest(sel));
-    const abreItem = (it) => {
-      const id = it.dataset.item;
-      openItems.has(id) ? openItems.delete(id) : openItems.add(id);
-      it.classList.toggle('open');
-    };
-    if (!near('a,button,input,label')) {
-      const it = near('.item');
+    // tocar na linha de um item, fora dos botões dela, abre os detalhes
+    if (!tgt.closest('a,button,input,label')) {
+      const it = /** @type {HTMLElement|null} */ (tgt.closest('.item'));
       if (it) abreItem(it);
     }
-    // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
-    if (near('#settle .empty.anota')) return $('#fab').click();
-    const am = near('[data-among]');
-    if (am) {
-      abreItem(/** @type {HTMLElement} */ (am.closest('.item')));
-      return;
+    for (const [seletor, faz] of CLIQUES) {
+      const el = /** @type {HTMLElement|null} */ (tgt.closest(seletor));
+      if (el) return void faz(el);
     }
-    const px = near('[data-pix]');
-    if (px) {
-      const [to, cents] = px.dataset.pix.split('|');
-      const code = pixCode(pixKeys[to], nameOf(to), +cents);
-      navigator.clipboard.writeText(code).then(
-        () => toast('Pix copia e cola copiado. Cola no app do banco.'),
-        () => showCopy('Pix copia e cola', code),
-      );
-    }
-    const cb = near('[data-cobrar]');
-    if (cb) {
-      const [from, cents] = cb.dataset.cobrar.split('|');
-      const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
-      abreZap(`👀 ${nameOf(from)}, tá faltando ${comSifrao(+cents)} do *${evento()}*${pix}\n${shareUrl()}`);
-      return;
-    }
-    const un = near('[data-undo]');
-    if (un) {
-      const id = un.dataset.undo;
-      const e = state.expenses.find((x) => x.id === id);
-      if (!e) return;
-      if (
-        !(await ask(
-          'Desfazer o pagamento?',
-          `${nm(e.payer)} → ${nm(e.among[0])} · ${comSifrao(centavos(e))}`,
-          'desfazer',
-        ))
-      )
-        return;
-      state.expenses = state.expenses.filter((x) => x.id !== id);
-      state.deleted.push(id);
-      anim.riscos.delete(id);
-      commit();
-      toast('Desfeito');
-      return;
-    }
-    const st = near('[data-settle]');
-    if (st) {
-      const [from, to, cs] = st.dataset.settle.split('|');
-      const cents = +cs;
-      const r = st.getBoundingClientRect(),
-        fx = r.left + r.width / 2,
-        fy = r.top + r.height / 2;
-      if (
-        !(await ask(
-          'Quitar?',
-          `${nm(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nm(to)}`,
-          'quitei',
-        ))
-      )
-        return;
-      state.expenses.push({
-        id: uid(),
-        kind: 'payment',
-        desc: 'Pagamento',
-        amount: cents / 100,
-        payer: from,
-        among: [to],
-        at: Date.now(),
-        by: me ? nameOf(me) : undefined,
-      });
-      seguraRisco = true;
-      commit();
-      festa(fx, fy);
-      toast('Quitado! 🎉');
-      showQuitado(to, cents);
-    }
-    const cv = near('[data-copy-value]');
-    if (cv) {
-      const val = cv.dataset.copyValue;
-      navigator.clipboard.writeText(val).then(
-        () => toast('Valor copiado. Cola no app do banco.'),
-        () => showCopy('Valor', val),
-      );
-      return;
-    }
-    const de = near('[data-del-expense]');
-    if (de) {
-      const id = de.dataset.delExpense;
-      const e = state.expenses.find((x) => x.id === id);
-      if (!e) return;
-      if (!(await ask('Excluir item?', `${esc(e.desc)} · ${comSifrao(centavos(e))}`, 'excluir'))) return;
-      apagaItem(e);
-      commit();
-    }
-    const ed = near('[data-edit-expense]');
-    if (ed) {
-      const e = state.expenses.find((x) => x.id === ed.dataset.editExpense);
-      if (e) editaItem(e);
+  });
+  // os chips de quem divide e o ✔ das linhas das partes marcam a mesma lista
+  document.addEventListener('change', (ev) => {
+    const tgt = /** @type {HTMLInputElement} */ (ev.target);
+    if (tgt.matches('#splitChips input')) {
+      tgt.closest('.chip').classList.toggle('on', tgt.checked);
+      updateHint();
+    } else if (tgt.matches('#sharesBox [data-quem]')) {
+      const chip = /** @type {HTMLInputElement|null} */ ($(`#splitChips input[value="${tgt.dataset.quem}"]`));
+      if (chip) {
+        chip.checked = tgt.checked;
+        chip.closest('.chip').classList.toggle('on', tgt.checked);
+      }
+      updateHint();
     }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo

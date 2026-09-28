@@ -19,13 +19,20 @@ class Banco {
         if (m === 'GET') return filho === 'key' ? json(200, cur ? cur.key : null) : nega();
         if (m !== 'PUT' || filho) return nega();
         const novo = JSON.parse(rq.postData() || 'null');
-        if (cur && cur.tok !== novo?.tok) return nega();
+        if (cur && cur.key !== '' && cur.tok !== novo?.tok) return nega();
         if (!this.congelado) (this.arvore.pix[sala] ||= {})[pessoa] = novo;
         return json(200, novo);
       }
       if (partes[0] !== 'rooms' || partes.length < 2) { if (m === 'GET') this.listagens++; return nega(); }
-      if (m === 'GET') return json(200, this.pega(partes));
+      // o ETag como o Firebase: só vem se pedir, e o PUT com if-match velho leva 412 com a sala atual
+      const tag = () => { const v = this.pega(partes); return v == null ? 'null_etag' : sha256(JSON.stringify(v)); };
+      const comTag = (status, v) => r.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v),
+        headers: { etag: tag(), 'access-control-allow-origin': '*', 'access-control-expose-headers': 'ETag' } });
+      if (m === 'GET') return rq.headers()['x-firebase-etag'] === 'true' ? comTag(200, this.pega(partes)) : json(200, this.pega(partes));
       if (m === 'PUT' && partes.length === 2) { const v = JSON.parse(rq.postData() || 'null');
+        if (this.noMeio?.(partes[1], v)) this.noMeio = null;
+        const se = rq.headers()['if-match'];
+        if (se && se !== tag()) return comTag(412, this.pega(partes));
         if (!this.congelado) this.arvore.rooms[partes[1]] = v; return json(200, v); }
       return json(400, { error: 'o app só grava a sala inteira' });
     });

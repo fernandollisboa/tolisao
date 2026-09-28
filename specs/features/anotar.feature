@@ -32,6 +32,14 @@ Funcionalidade: Anotar um gasto
     Quando eu abro o evento como Lia em outro aparelho
     Então o primeiro item da lista é "Cerveja" de 50,00
 
+  # o sync baixa, mescla e grava a sala inteira: sem o if-match, a gravação passava por cima
+  # do item que o outro aparelho gravou entre a baixada e a subida
+  Cenário: outro aparelho grava no meio e os dois itens ficam
+    Quando eu abro o evento como Lia
+    E outro aparelho anota "Gelo" de R$ 20,00 bem na hora que eu gravo o "Cerveja"
+    E eu anoto "Cerveja" de R$ 50,00 dividido igualmente
+    Então o banco tem os itens "Cerveja" e "Gelo"
+
   Cenário: dividir em partes diferentes
     Quando eu abro o evento como Júlia
     E eu toco no ✎
@@ -70,6 +78,18 @@ Funcionalidade: Anotar um gasto
     Quando eu digito "1234567" no valor
     Então o valor fica "5.001.234,56"
 
+  Cenário: apagar um item deixa ele recolhido no fim, riscado e com quem apagou
+    Quando eu abro o evento como Lia
+    E eu abro a lista de itens
+    E eu apago o "Uber ida"
+    Então o fim da lista diz "▸ 1 item apagado"
+    E nenhum item aparece riscado
+    E o total dos itens fica 721,34
+    Quando eu abro o evento como Fernando em outro aparelho
+    E eu abro a lista de itens
+    E eu abro os itens apagados
+    Então o "Uber ida" aparece riscado, apagado por Lia
+
   Cenário: editar um item
     Quando eu abro o evento como Lia
     E eu abro a lista de itens
@@ -77,7 +97,7 @@ Funcionalidade: Anotar um gasto
     Então o formulário vem com R$ 32,50 de "Uber volta"
     Quando eu troco o valor pra R$ 40,00 e salvo
     Então o "Uber volta" fica de 40,00
-    E a lista tem 6 itens
+    E nenhum item aparece riscado
     Quando eu abro o evento como Fernando em outro aparelho
     E eu abro a lista de itens
     Então o "Uber volta" fica de 40,00

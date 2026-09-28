@@ -66,18 +66,12 @@ Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#ov
 When('eu toco na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle .empty.anota'); });
 Then('o formulário de anotar abre', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).not.toHaveClass(/\bhidden\b/); });
 When('eu toco no meu nome', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#whoSel'); });
+Then('o cartão de quem é você já vem com {word} escolhida/escolhido', async ({ mundo }, quem) => {
+  await expect(mundo.p.locator('#whoSel option:checked')).toHaveText(quem);
+  await expect(mundo.p.locator('#whoSel')).not.toBeFocused();
+});
 Then('o cartão de quem é você não tem botão de sair', async ({ mundo }) => { await expect(mundo.p.locator('#leaveBtn')).toHaveCount(0); });
 
-When('eu adiciono {string} pela lista de gente do rodapé', async ({ mundo }, nome) => {
-  const p = mundo.p;
-  await expect(async () => {
-    if (await p.locator('#askInput').isVisible()) return;
-    await p.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden'));
-    await p.click('#addPerson', { timeout: 1000 }); await expect(p.locator('#askInput')).toBeVisible({ timeout: 1000 });
-  }).toPass();
-  await p.fill('#askInput', nome); await p.click('#askForm button.big');
-});
-Then('a lista de gente fica {string}', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.$eval('#peopleLine', e => e.innerText)).toBe(txt); });
 Then('aparece o aviso {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#toast')).toHaveText(txt); });
 
 // evento sem ninguém: o "quem é você?" vira a lista de gente

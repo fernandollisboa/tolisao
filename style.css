@@ -232,7 +232,6 @@ a.link.amb:active{transform:translate(2px,2px);box-shadow:none}
 @keyframes chama{0%,58%,100%{transform:rotate(0) scale(1)}64%{transform:rotate(-6deg) scale(1.1)}70%{transform:rotate(5deg) scale(1.1)}76%{transform:rotate(-4deg) scale(1.06)}82%{transform:rotate(3deg) scale(1.03)}88%{transform:rotate(-1.5deg) scale(1)}}
 a.link.amb{animation:chama 1.8s ease-in-out infinite;transform-origin:50% 60%}
 @media (prefers-reduced-motion:reduce){a.link.amb{animation:none}}
-#addPerson{text-decoration:none;padding:2px 8px 2px 0;margin-right:-8px;white-space:nowrap}
 button:disabled{opacity:.45;cursor:default;box-shadow:none}
 /* no desktop não há dedo: o mouse por cima preenche o botão com a cor dele mesmo */
 @media (hover:hover) and (pointer:fine){
@@ -411,6 +410,9 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .item .by,.item .who{display:none}
 .item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}
 .item{cursor:default}
+.item.apagado .row .l,.item.apagado .row .v{text-decoration:line-through;color:var(--muted)}
+.item.apagado .small{color:var(--muted)}
+#gone>.c{margin-top:10px} #goneToggle{color:var(--muted)}
 button.edita{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 6px;display:none}
 .item:hover button.edita,.item.open button.edita{display:inline-block}
 .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
@@ -452,8 +454,16 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 .seg button.on:before{max-width:1em;margin-right:.35em;opacity:1}
 #splitArea{display:grid;gap:10px}
 @media (prefers-reduced-motion:reduce){.seg:before,.seg button,.seg button:before{transition:none}}
-.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;text-transform:uppercase}
-.toast.show{opacity:1}
+.toast{position:fixed;top:17vh;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);text-align:center;box-shadow:3px 3px 0 rgba(0,0,0,.25);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;pointer-events:none;z-index:20;text-transform:uppercase}
+.toast.recebe{background:var(--green)}
+/* o aviso sobe de baixo devagar, para, e na saída continua subindo enquanto esmaece.
+   O de dinheiro recebido dá uma piscadela quando para, como o ✔ */
+.toast.show{animation:avisoEntra 1.5s cubic-bezier(.15,.9,.25,1) both} .toast.sai{animation:avisoSai 1.3s ease-in both}
+.toast.recebe.show{animation:avisoEntra 1.5s cubic-bezier(.15,.9,.25,1) both,avisoPisca .6s ease-in-out 1.45s}
+@keyframes avisoEntra{from{opacity:0;transform:translate(-50%,90px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes avisoSai{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-60px)}}
+@keyframes avisoPisca{0%,100%{transform:translate(-50%,0)}45%{background:var(--paper);color:var(--green);transform:translate(-50%,0) scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.toast.show,.toast.recebe.show{animation:none;opacity:1}.toast.sai{animation:none}}
 @media (min-width:900px) and (min-height:600px){html{zoom:1.5}}
 #boot{display:none;margin:14px 0 2px} #boot .spin{width:22px;height:22px;border-width:3px}
 #app.loading>*:not(h1):not(#boot){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}

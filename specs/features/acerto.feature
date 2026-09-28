@@ -112,3 +112,22 @@ Funcionalidade: Acertar as contas
     Então a área de toque do ✔ tem pelo menos 44px
     Quando eu abro o evento como Lia
     Então a área do ✔ tem menos de 30px
+
+  # o poll já baixa o evento: pagamento novo pra quem está vendo vira aviso, uma vez só
+  Cenário: quem recebe vê o aviso quando alguém paga
+    Quando eu abro o evento como Fernando
+    E a Mengla paga R$ 174,43 pro Fernando em outro aparelho
+    Então aparece o aviso "💸 Mengla te pagou R$ 174,43"
+    Quando eu recarrego a página
+    E o app sincroniza
+    Então não aparece aviso de pagamento
+
+  Cenário: dois pagamentos juntos viram um aviso só
+    Quando eu abro o evento como Fernando
+    E a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho
+    Então aparece o aviso "💸 Mengla e Klinsmann te pagaram R$ 248,04"
+
+  Cenário: quem não recebeu não vê aviso
+    Quando eu abro o evento como Lia
+    E a Mengla paga R$ 174,43 pro Fernando em outro aparelho
+    Então não aparece aviso de pagamento

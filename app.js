@@ -1,23 +1,24 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
 /** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', by?: string, shares?: Record<string, number> }} Expense */
-/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[] }} Room */
+/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, goneAt: number, to?: string }} Gone */
+/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
-  // o app inteiro mora neste arquivo, de cima pra baixo:
-  //   config e utilitários → o que fica no aparelho (localStorage) → o estado da página
-  //   → a conta (clean, merge, balances, settlements) → o banco (sync) → dinheiro
-  //   → cores e a fila das animações → pix → a nota (render) → o anotar
-  //   → cartões (overlays) → entrar num evento → meus eventos → botões e cliques
-  //   → a comanda em png → instalar → a ficha do rodapé → início (o fim do arquivo)
-  // tudo começa lá no fim, em "início": lê o ?senha= do endereço e abre o evento.
+  // o app inteiro mora neste arquivo. As seções, na ordem (cada uma abre com um
+  // "// ---------- nome ----------", é só procurar):
+  //   config → o que fica no aparelho (localStorage) → o estado da página
+  //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
+  //   → a conta: saldos e quem paga quem (balances, settlements) → cores
+  //   → fila das animações → desenhos (ícones) → pix → a nota (render) → o anotar
+  //   → cartões (overlays) → entrar num evento → meus eventos → botões → cliques
+  //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
+  // tudo começa na última seção, "início": lê o ?senha= do endereço e abre o evento.
 
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
-  const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
-  const MEMBROS = false; // lista de gente no rodapé; desligada pra ver como fica sem
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
   const INSTALAR = true;
@@ -42,6 +43,7 @@
       .join('');
   const semMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const semCartao = () => document.querySelector('#overlay').classList.contains('hidden');
+  // ---------- o que fica no aparelho (localStorage) ----------
   /** localStorage que não quebra: em aba anônima ou com o armazenamento cheio ele lança erro */
   const ls = {
     get: (k) => {
@@ -67,7 +69,7 @@
   };
   // o que fica no aparelho, em duas gavetas de JSON:
   //   tolisa         { visits, installPrompted, itemsOpened, boringMode }
-  //   tolisa:<sala>  { code, openedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], snapshot }
+  //   tolisa:<sala>  { code, openedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -161,6 +163,7 @@
   /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
   /** a lista de itens aberta, e com todos (não só os 10 últimos) */ let itemsOpen = false,
     showAll = false;
+  /** os itens apagados, recolhidos no fim da lista, estão abertos */ let showGone = false;
   /** os itens com os detalhes abertos @type {Set<string>} */ const openItems = new Set();
   /** o anotar: 'equal' (igual) ou 'custom' (partes diferentes) */ let splitMode = 'equal';
   /** o gasto que o anotar está editando @type {string|null} */ let editando = null;
@@ -178,7 +181,7 @@
   const evento = () => (state && state.name) || roomName;
 
   /** @returns {Room} */
-  const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [] });
+  const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [], gone: [] });
   const room = () => gaveta(roomKey(groupId)),
     setRoom = (campo, v) =>
       mexe(roomKey(groupId), (o) => {
@@ -236,6 +239,21 @@
         }
         return o;
       });
+    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição
+    const gone = (Array.isArray(d.gone) ? d.gone : [])
+      .filter((g) => g && okId(g.id) && Number.isFinite(+g.amount))
+      .map((g) => {
+        const o = {
+          id: g.id,
+          desc: str(g.desc, 60),
+          amount: Math.round(+g.amount * 100) / 100,
+          at: +g.at || 0,
+          by: str(g.by, 30),
+          goneAt: +g.goneAt || 0,
+        };
+        if (okId(g.to)) o.to = g.to;
+        return o;
+      });
     return {
       v: 2,
       name: str(d.name, 40),
@@ -243,6 +261,7 @@
       people,
       expenses,
       deleted: (Array.isArray(d.deleted) ? d.deleted : []).filter(okId),
+      gone,
     };
   }
   // Firebase devolve chaves em ordem alfabética; compara sem depender da ordem
@@ -270,6 +289,8 @@
     };
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
+    const gone = new Map();
+    for (const g of [...a.gone, ...b.gone]) if (deleted.has(g.id) && !gone.has(g.id)) gone.set(g.id, g);
     return {
       v: 2,
       name: a.name || b.name || '',
@@ -277,6 +298,7 @@
       people: [...people.values()].sort((x, y) => (x.at || 0) - (y.at || 0)),
       expenses: [...expenses.values()].sort((x, y) => x.at - y.at),
       deleted: [...deleted].slice(-500),
+      gone: [...gone.values()].sort((x, y) => x.goneAt - y.goneAt).slice(-50),
     };
   }
 
@@ -287,17 +309,27 @@
     el.classList.toggle('err', !!err);
   };
   const roomUrl = (id) => `${DB}/rooms/${id}.json`;
-  async function apiGet(id) {
-    const r = await fetch(roomUrl(id), { cache: 'no-store' });
+  // a sala vem com o ETag dela: o sync grava com if-match, e se outro aparelho gravou entre
+  // a baixada e a subida o banco responde 412 em vez de passar por cima do que ele gravou
+  /** @returns {Promise<{ data: any, etag: string | null }>} */
+  async function baixa(id) {
+    const r = await fetch(roomUrl(id), { cache: 'no-store', headers: { 'X-Firebase-ETag': 'true' } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
     if (data === null) throw Object.assign(new Error('não encontrado'), { notFound: true });
-    return data;
+    return { data, etag: r.headers.get('ETag') };
   }
-  async function apiPut(id, data) {
+  const apiGet = async (id) => (await baixa(id)).data;
+  /** @param {string} id @param {any} data @param {string | null} [etag] */
+  async function apiPut(id, data, etag) {
     // passa pelo clean() na ida também: as regras do banco só aceitam a sala nesse formato
     // (nome até 40, pessoa até 30, item até 60…), e um campo a mais recusaria a gravação inteira
-    const r = await fetch(roomUrl(id), { method: 'PUT', body: JSON.stringify(clean(data)) });
+    const r = await fetch(roomUrl(id), {
+      method: 'PUT',
+      headers: etag ? { 'if-match': etag } : {},
+      body: JSON.stringify(clean(data)),
+    });
+    if (r.status === 412) throw Object.assign(new Error('mudou no meio'), { mudou: true });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
   }
 
@@ -306,13 +338,23 @@
     if (!groupId || saving) return;
     saving = true;
     try {
-      const remote = await apiGet(groupId);
-      const merged = merge(state, remote);
-      const changed = canon(merged) !== canon(remote);
-      state = merged;
-      cacheSave();
-      render();
-      if (changed) await apiPut(groupId, state);
+      // outro aparelho gravou no meio: baixa de novo e mescla por cima do que ele gravou
+      for (let vez = 1; ; vez++) {
+        const { data: remote, etag } = await baixa(groupId);
+        const merged = merge(state, remote);
+        const changed = canon(merged) !== canon(remote);
+        state = merged;
+        cacheSave();
+        render();
+        avisaPagos();
+        if (!changed) break;
+        try {
+          await apiPut(groupId, state, etag);
+          break;
+        } catch (e) {
+          if (!e.mudou || vez === 3) throw e;
+        }
+      }
       setStatus(
         'Sincronizado ' +
           new Date().toLocaleDateString('pt-BR') +
@@ -346,7 +388,7 @@
     if (!document.hidden) sync();
   });
 
-  // ---------- contas ----------
+  // ---------- dinheiro ----------
   // dinheiro é sempre centavo inteiro. O banco guarda `amount` em reais (formato antigo),
   // então quem lê um gasto passa por centavos(e), e só os formatadores abaixo dividem por 100
   /** @param {{ amount: number }} e */
@@ -368,6 +410,7 @@
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
     return Math.round(parseFloat(s) * 100);
   };
+  // ---------- a conta: saldos e quem paga quem ----------
   const nameOf = (id) => (state.people.find((p) => p.id === id) || { name: '?' }).name;
   const nomeExiste = (n) => state.people.some((p) => p.name.toLowerCase() === n.toLowerCase());
   function shares(cents, ids) {
@@ -586,6 +629,30 @@
       `--mkw:${g(24, 95, 5).toFixed(0)}%;--mkv:${g(2, 92, 6).toFixed(0)}%;--mkx:${g(6, 0, 4).toFixed(0)}%;--mky:${g(10, 2, 6).toFixed(0)}%;--mkz:${g(14, -2, 4).toFixed(0)}px`
     );
   };
+  // pagamento novo pra quem está vendo vira aviso, uma vez só. A gaveta guarda os ids já
+  // vistos (de qualquer pessoa, senão trocar de nome avisava o passado dos outros); na
+  // primeira vez vale o lastSeen: avisa só o que caiu depois da última visita
+  function avisaPagos() {
+    const pays = state.expenses.filter((e) => e.kind === 'payment');
+    const r = room();
+    const vistos = new Set(
+      Array.isArray(r.paysSeen) ? r.paysSeen : pays.filter((e) => !lastSeen || e.at <= lastSeen).map((e) => e.id),
+    );
+    const novos = pays.filter((e) => !vistos.has(e.id));
+    if (!novos.length && Array.isArray(r.paysSeen)) return;
+    setRoom('paysSeen', [...vistos, ...novos.map((e) => e.id)].slice(-200));
+    const pra = novos.filter((e) => me && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
+    if (!pra.length) return;
+    const total = comSifrao(pra.reduce((s, e) => s + centavos(e), 0));
+    const quem = [...new Set(pra.map((e) => nameOf(e.payer)))];
+    toast(
+      quem.length === 1
+        ? `💸 ${quem[0]} te pagou ${total}`
+        : `💸 ${quem.slice(0, -1).join(', ')} e ${quem.at(-1)} te pagaram ${total}`,
+      5000,
+      'recebe',
+    );
+  }
   const markSeen = () => {
     if (groupId) setRoom('lastSeen', Date.now());
   };
@@ -593,7 +660,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) markSeen();
   });
-  // ---------- desenhos ----------
+  // ---------- desenhos (ícones) ----------
   const KEY_SVG =
     '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12.65 10A6 6 0 0 0 1 12a6 6 0 0 0 11.65 2H18v3h4v-7h-9.35zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
   const PIX_SVG =
@@ -678,9 +745,11 @@
           'Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)',
         );
       if (!r.ok) return toast('Erro ao salvar: HTTP ' + r.status);
-      pixKeys[pid] = key;
+      // apagar grava a chave vazia: o nó fica, e a regra deixa qualquer aparelho cadastrar de novo
+      if (key) pixKeys[pid] = key;
+      else delete pixKeys[pid];
       render();
-      toast('Chave Pix salva');
+      toast(key ? 'Chave Pix salva' : 'Chave Pix apagada');
     } catch (e) {
       toast('Erro ao salvar: ' + e.message);
     }
@@ -836,7 +905,10 @@
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
 
   /** redesenha a nota inteira a partir do `state`. Roda a cada mudança e a cada sync.
-   *  Os agenda…() no meio põem as animações na fila, na ordem em que a página se lê */
+   *  Os agenda…() no meio põem as animações na fila, na ordem em que a página se lê.
+   *  A ORDEM DAS CHAMADAS IMPORTA: cada agenda…() pega a vez atrás do anterior, e o
+   *  agendaSouEFab() mede na tela as seções que as chamadas de cima acabaram de mostrar.
+   *  Trocar a ordem não dá erro nenhum, só bagunça a fila das animações */
   function render() {
     if (!state) return;
     const hasMe = temMe();
@@ -857,9 +929,6 @@
     mostraSecoes(hasMe, bal, vazio, allEven);
     agendaConviteItens(hasMe);
     renderLinhaPix(hasMe, bal);
-    $('#peopleSec').classList.toggle('hidden', !MEMBROS);
-    $('#peopleLine').innerHTML = state.people.length ? state.people.map((p) => nomeHtml(p.id)).join(', ') : 'ninguém';
-    $('#addPerson').textContent = state.people.length ? ',+' : ' +';
     renderForm();
     agendaFaltaPagar(pays, nMeus);
     agendaSouEFab(hasMe);
@@ -1077,19 +1146,13 @@
       .map((t) => {
         const meu = t.from === me,
           o = meu ? ordem++ : 0;
-        const cobrar =
-          COBRAR && t.to === me
-            ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>`
-            : '';
-        return (
-          linha(
-            `${nomeHtml(t.from)} → ${nomeHtml(t.to)}`,
-            valorHtml(t.cents),
-            meu ? 'mine' + (desenha ? ' risca' : '') : '',
-            '',
-            meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
-            meu ? ` data-copy-value="${reais(t.cents)}" title="copiar valor"` : '',
-          ) + cobrar
+        return linha(
+          `${nomeHtml(t.from)} → ${nomeHtml(t.to)}`,
+          valorHtml(t.cents),
+          meu ? 'mine' + (desenha ? ' risca' : '') : '',
+          '',
+          meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
+          meu ? ` data-copy-value="${reais(t.cents)}" title="copiar valor"` : '',
         );
       })
       .join('');
@@ -1147,6 +1210,27 @@
         .join('') || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll');
     tg.classList.toggle('hidden', all.length <= 10);
+    // os apagados ficam recolhidos no fim: a lista não se enche de risco, e "cadê a janta?" está a um toque
+    const gone = state.gone.filter((g) => !g.to).reverse();
+    const dia = (t) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    $('#gone').innerHTML = gone.length
+      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${gone.length} ${gone.length === 1 ? 'item apagado' : 'itens apagados'}</a></div>` +
+        (showGone
+          ? gone
+              .map(
+                (g) =>
+                  `<div class="item apagado" data-gone="${g.id}">` +
+                  linha(esc(g.desc), reais(centavos(g))) +
+                  `<div class="small"><span>apagado${g.by ? ` por ${nomeHtmlPorNome(g.by)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
+              )
+              .join('')
+          : '')
+      : '';
+    if (gone.length)
+      $('#goneToggle').onclick = () => {
+        showGone = !showGone;
+        render();
+      };
     tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     if (itemsOpen) anim.viuItens = true;
     $('#itemsCount').textContent =
@@ -1503,11 +1587,14 @@
     ficha.rejoga();
   }
   function showWho() {
-    const opts = state.people.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    // quem já é alguém vê o próprio nome escolhido; o menu só abre se tocar pra trocar
+    const opts = state.people
+      .map((p) => `<option value="${p.id}"${p.id === me ? ' selected' : ''}>${esc(p.name)}</option>`)
+      .join('');
     overlay(`<h2>Quem é você?</h2>
-      <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
+      <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
+        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>${whoPix()}`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
     const entra = souEu;
     $('#whoSel').onchange = () => {
@@ -1526,8 +1613,21 @@
       commit();
       entra(p.id);
     };
-    $('#whoSel').focus();
+    if ($('#whoPix')) {
+      $('#pixTroca').onclick = savePix;
+      $('#pixApaga').onclick = async () => {
+        if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
+      };
+    }
+    // no iPhone o focus já abre o menu: só pra quem ainda não escolheu
+    if (!me) $('#whoSel').focus();
   }
+  // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
+  const whoPix = () =>
+    me && pixKeys[me] && (room().pixTokens || {})[me]
+      ? `<div id="whoPix"><div class="hr"></div>${linha('meu pix', esc(pixKeys[me]), '', '', '', ' style="text-transform:none"')}
+        <div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div></div>`
+      : '';
   function showLost() {
     clearInterval(pollTimer);
     $('#app').classList.add('loading', 'nospin');
@@ -1614,6 +1714,7 @@
       lastSeen = +r.lastSeen || 0;
     }
     showAll = false;
+    showGone = false;
     $('#app').classList.add('loading');
     $('#app').classList.remove('nospin');
     state = cacheLoad();
@@ -1803,13 +1904,6 @@
   }
 
   // ---------- botões ----------
-  $('#addPerson').onclick = async () => {
-    const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim();
-    if (!name) return;
-    if (nomeExiste(name)) return toast('Já existe alguém com esse nome');
-    state.people.push({ id: uid(), name, at: Date.now() });
-    commit();
-  };
   $('#toggleAll').onclick = () => {
     showAll = !showAll;
     render();
@@ -1871,9 +1965,19 @@
     $('#expenseForm button.big').textContent = 'Salvar';
     openSheet();
   }
-  const apagaItem = (e) => {
+  /** o item sai da conta e fica riscado na lista com quem apagou; `to` é quem tomou o lugar dele */
+  const apagaItem = (e, to) => {
     state.expenses = state.expenses.filter((x) => x.id !== e.id);
     state.deleted.push(e.id);
+    state.gone.push({
+      id: e.id,
+      desc: e.desc,
+      amount: e.amount,
+      at: e.at,
+      by: me ? nameOf(me) : '',
+      goneAt: Date.now(),
+      ...(to ? { to } : {}),
+    });
   };
   // a nota subindo passa por baixo do ✎ e do zap: cada um fica meio transparente quando
   // o texto chega nele, não os dois de uma vez. O de baixo é alcançado primeiro. A régua é
@@ -1927,7 +2031,7 @@
     const velho = editando && state.expenses.find((x) => x.id === editando);
     if (velho) {
       exp.at = velho.at;
-      apagaItem(velho);
+      apagaItem(velho, exp.id);
     }
     state.expenses.push(exp);
     state.expenses.sort((x, y) => x.at - y.at);
@@ -1987,11 +2091,6 @@
       'Pix copia e cola',
     );
   }
-  function cobra(el) {
-    const [from, cents] = el.dataset.cobrar.split('|');
-    const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
-    abreZap(`👀 ${nameOf(from)}, tá faltando ${comSifrao(+cents)} do *${evento()}*${pix}\n${shareUrl()}`);
-  }
   async function desfazPagamento(el) {
     const e = achaGasto(el.dataset.undo);
     if (!e) return;
@@ -2001,7 +2100,9 @@
       'desfazer',
     );
     if (!certeza) return;
-    apagaItem(e);
+    // não é apagaItem(): pagamento desfeito não vai pra lista de itens apagados
+    state.expenses = state.expenses.filter((x) => x.id !== e.id);
+    state.deleted.push(e.id);
     anim.riscos.delete(e.id);
     commit();
     toast('Desfeito');
@@ -2077,7 +2178,6 @@
     ['#settle .empty.anota', () => $('#fab').click()],
     ['[data-among]', (el) => abreItem(el.closest('.item'))],
     ['[data-pix]', copiaPix],
-    ['[data-cobrar]', cobra],
     ['[data-undo]', desfazPagamento],
     ['[data-settle]', quita],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
@@ -2092,9 +2192,9 @@
   ];
   document.addEventListener('click', (ev) => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
-    // tocar na linha de um item, fora dos botões dela, abre os detalhes
+    // tocar na linha de um item, fora dos botões dela, abre os detalhes (item apagado não abre)
     if (!tgt.closest('a,button,input,label')) {
-      const it = /** @type {HTMLElement|null} */ (tgt.closest('.item'));
+      const it = /** @type {HTMLElement|null} */ (tgt.closest('.item[data-item]'));
       if (it) abreItem(it);
     }
     for (const [seletor, faz] of CLIQUES) {
@@ -2967,12 +3067,15 @@
   }
   armaOlho();
   let tt;
-  function toast(msg) {
+  function toast(msg, ms = 3500, cls = '') {
     const t = $('#toast');
     t.textContent = msg;
-    t.classList.add('show');
+    // tira a classe e mede antes de pôr de novo: aviso em cima de aviso recomeça a subida
+    t.className = 'toast';
+    void t.offsetWidth;
+    t.className = 'toast show' + (cls ? ' ' + cls : '');
     clearTimeout(tt);
-    tt = setTimeout(() => t.classList.remove('show'), 2200);
+    tt = setTimeout(() => t.classList.replace('show', 'sai'), ms);
   }
 
   // ---------- código de barras (Code 128 C) ----------

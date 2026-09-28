@@ -3,6 +3,8 @@ const { Given, When, Then, expect, idDe } = require('./_mundo.cjs');
 When('eu cadastro a chave pix {string}', async ({ mundo }, chave) => {
   const p = mundo.p; await p.click('#pixBtn'); await p.fill('#askInput', chave); await p.click('#askForm button.big');
 });
+When('eu toco em trocar a chave pix', async ({ mundo }) => { await mundo.p.click('#pixTroca'); await mundo.p.waitForSelector('#askInput'); });
+When('eu apago a chave pix', async ({ mundo }) => { await mundo.p.click('#pixApaga'); await mundo.p.click('#okBtn'); });
 When('eu troco a chave por {string}', async ({ mundo }, chave) => { await mundo.p.fill('#askInput', chave); await mundo.p.click('#askForm button.big'); });
 Then('o cartão barra a chave em vermelho', async ({ mundo }) => {
   const p = mundo.p; await expect(p.locator('#overlay')).not.toHaveClass(/\bhidden\b/);
@@ -27,7 +29,6 @@ Then('o banco recusa', async ({ mundo }) => { expect(mundo.nota.status).toBe(401
 
 Given('que alguém gravou no banco o evento:', async ({ mundo }, json) => { mundo.criaEvento(JSON.parse(json)); mundo.banco.congelado = true; });
 Given('a chave pix da/do {word} é {string}', async ({ mundo }, nome, chave) => { mundo.banco.pix(mundo.sala, idDe(nome), chave); });
-When('a lista de gente do rodapé aparece', async ({ mundo }) => { await mundo.p.evaluate(() => document.getElementById('peopleSec').classList.remove('hidden')); });
 // sem relógio: um onerror dispara quando a imagem falha, e esperar por ele é chutar um prazo.
 // Em vez disso confere que o código não tem onde morar: nenhum atributo on* nem link javascript:
 // no DOM. Sem isso nada roda, nem agora nem depois
@@ -37,7 +38,7 @@ Then('nenhum script rodou', async ({ mundo }) => {
   expect(achados, 'código vindo do banco no DOM').toEqual([]);
   expect(await mundo.p.evaluate(() => window.__xss)).toBeUndefined();
 });
-Then('a lista de gente tem {int} pessoas', async ({ mundo }, n) => { await expect(mundo.p.locator('#peopleLine .nm')).toHaveCount(n); });
+Then('o quem é você lista {int} pessoas', async ({ mundo }, n) => { await expect(mundo.p.locator('#whoSel option:not([value=""]):not([value="__new"])')).toHaveCount(n); });
 Then('a lista tem {int} item, com o {string} escrito como texto', async ({ mundo }, n, txt) => {
   await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); await expect(mundo.p.locator('#expenses .item .l').first()).toContainText(txt);
 });

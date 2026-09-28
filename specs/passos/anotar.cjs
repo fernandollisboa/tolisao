@@ -2,9 +2,9 @@ const { When, Then, expect } = require('./_mundo.cjs');
 
 const dinheiro = v => v.toFixed(2).replace('.', ',');
 const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
-const item = (p, nome) => p.locator('#expenses .item').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
+const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
 
-Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); });
+Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item[data-item]')).toHaveCount(n); });
 Then('o primeiro item da lista é {string} de {word}', async ({ mundo }, nome, valor) => {
   const r = mundo.p.locator('#expenses .item').first().locator('.row');
   await expect(r.locator('.l')).toHaveText(nome); await expect(r.locator('.v')).toHaveText(valor);
@@ -109,6 +109,16 @@ Then('embaixo dele está escrito {string}', async ({ mundo }, txt) => {
 });
 Then('a lista fica separada em {int} dias', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .day')).toHaveCount(n); });
 
+When('eu apago o {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('[data-del-expense]').click(); await mundo.p.click('#okBtn'); });
+Then('o {string} aparece riscado, apagado por {word}', async ({ mundo }, nome, quem) => {
+  const r = mundo.p.locator('#gone .item.apagado').filter({ hasText: nome });
+  await expect(r.locator('.row .l')).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(r.locator('.small')).toContainText(`apagado por ${quem}`);
+});
+Then('o fim da lista diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#goneToggle')).toHaveText(txt); });
+When('eu abro os itens apagados', async ({ mundo }) => { await mundo.p.click('#goneToggle'); });
+Then('nenhum item aparece riscado', async ({ mundo }) => { await expect(mundo.p.locator('.item.apagado')).toHaveCount(0); });
+Then('o total dos itens fica {word}', async ({ mundo }, v) => { await expect(mundo.p.locator('#total')).toContainText(v); });
 When('eu edito o {string}', async ({ mundo }, nome) => {
   const it = item(mundo.p, nome); await it.locator('.row .l').click(); await it.locator('[data-edit-expense]').click();
   await mundo.p.waitForSelector('#sheet:not(.hidden)');
@@ -131,3 +141,16 @@ const excluir = async (p, nome) => { const it = item(p, nome); await it.locator(
 When('eu começo a excluir o {string} e volto atrás', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#cancelBtn'); await mundo.p.waitForSelector('#overlay', { state: 'hidden' }); });
 When('eu excluo o {string}', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#okBtn'); });
 Then('o {string} não está na lista', async ({ mundo }, nome) => { await expect(item(mundo.p, nome)).toHaveCount(0); });
+
+When('outro aparelho anota {string} de R$ {num} bem na hora que eu gravo o {string}', async ({ mundo }, desc, valor, meu) => {
+  const lia = mundo.pessoa('Lia').id;
+  mundo.banco.noMeio = (sala, novo) => {
+    if (!(novo?.expenses || []).some(e => e.desc === meu)) return false;
+    const atual = mundo.banco.arvore.rooms[sala];
+    atual.expenses = [...(atual.expenses || []), { id: 'dooutro', desc, amount: valor, payer: lia, among: [lia], at: Date.now() }];
+    return true;
+  };
+});
+Then('o banco tem os itens {string} e {string}', async ({ mundo }, a, b) => {
+  await expect.poll(() => (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).map(e => e.desc)).toEqual(expect.arrayContaining([a, b]));
+});

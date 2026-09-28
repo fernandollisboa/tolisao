@@ -131,3 +131,16 @@ const excluir = async (p, nome) => { const it = item(p, nome); await it.locator(
 When('eu começo a excluir o {string} e volto atrás', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#cancelBtn'); await mundo.p.waitForSelector('#overlay', { state: 'hidden' }); });
 When('eu excluo o {string}', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#okBtn'); });
 Then('o {string} não está na lista', async ({ mundo }, nome) => { await expect(item(mundo.p, nome)).toHaveCount(0); });
+
+When('outro aparelho anota {string} de R$ {num} bem na hora que eu gravo o {string}', async ({ mundo }, desc, valor, meu) => {
+  const lia = mundo.pessoa('Lia').id;
+  mundo.banco.noMeio = (sala, novo) => {
+    if (!(novo?.expenses || []).some(e => e.desc === meu)) return false;
+    const atual = mundo.banco.arvore.rooms[sala];
+    atual.expenses = [...(atual.expenses || []), { id: 'dooutro', desc, amount: valor, payer: lia, among: [lia], at: Date.now() }];
+    return true;
+  };
+});
+Then('o banco tem os itens {string} e {string}', async ({ mundo }, a, b) => {
+  await expect.poll(() => (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).map(e => e.desc)).toEqual(expect.arrayContaining([a, b]));
+});

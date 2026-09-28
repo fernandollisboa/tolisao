@@ -7,9 +7,7 @@
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
-  const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
-  const MEMBROS = false; // lista de gente no rodapé; desligada pra ver como fica sem
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
   const INSTALAR = true;
@@ -302,17 +300,27 @@
     el.classList.toggle('err', !!err);
   };
   const roomUrl = (id) => `${DB}/rooms/${id}.json`;
-  async function apiGet(id) {
-    const r = await fetch(roomUrl(id), { cache: 'no-store' });
+  // a sala vem com o ETag dela: o sync grava com if-match, e se outro aparelho gravou entre
+  // a baixada e a subida o banco responde 412 em vez de passar por cima do que ele gravou
+  /** @returns {Promise<{ data: any, etag: string | null }>} */
+  async function baixa(id) {
+    const r = await fetch(roomUrl(id), { cache: 'no-store', headers: { 'X-Firebase-ETag': 'true' } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
     if (data === null) throw Object.assign(new Error('não encontrado'), { notFound: true });
-    return data;
+    return { data, etag: r.headers.get('ETag') };
   }
-  async function apiPut(id, data) {
+  const apiGet = async (id) => (await baixa(id)).data;
+  /** @param {string} id @param {any} data @param {string | null} [etag] */
+  async function apiPut(id, data, etag) {
     // passa pelo clean() na ida também: as regras do banco só aceitam a sala nesse formato
     // (nome até 40, pessoa até 30, item até 60…), e um campo a mais recusaria a gravação inteira
-    const r = await fetch(roomUrl(id), { method: 'PUT', body: JSON.stringify(clean(data)) });
+    const r = await fetch(roomUrl(id), {
+      method: 'PUT',
+      headers: etag ? { 'if-match': etag } : {},
+      body: JSON.stringify(clean(data)),
+    });
+    if (r.status === 412) throw Object.assign(new Error('mudou no meio'), { mudou: true });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
   }
 
@@ -321,13 +329,22 @@
     if (!groupId || saving) return;
     saving = true;
     try {
-      const remote = await apiGet(groupId);
-      const merged = merge(state, remote);
-      const changed = canon(merged) !== canon(remote);
-      state = merged;
-      cacheSave();
-      render();
-      if (changed) await apiPut(groupId, state);
+      // outro aparelho gravou no meio: baixa de novo e mescla por cima do que ele gravou
+      for (let vez = 1; ; vez++) {
+        const { data: remote, etag } = await baixa(groupId);
+        const merged = merge(state, remote);
+        const changed = canon(merged) !== canon(remote);
+        state = merged;
+        cacheSave();
+        render();
+        if (!changed) break;
+        try {
+          await apiPut(groupId, state, etag);
+          break;
+        } catch (e) {
+          if (!e.mudou || vez === 3) throw e;
+        }
+      }
       setStatus(
         'Sincronizado ' +
           new Date().toLocaleDateString('pt-BR') +
@@ -940,9 +957,6 @@
     }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
 
-    $('#peopleSec').classList.toggle('hidden', !MEMBROS);
-    $('#peopleLine').innerHTML = state.people.length ? state.people.map((p) => nm(p.id)).join(', ') : 'ninguém';
-    $('#addPerson').textContent = state.people.length ? ',+' : ' +';
     renderForm();
 
     const pays = state.expenses
@@ -1079,19 +1093,13 @@
       .map((t) => {
         const meu = t.from === me,
           o = meu ? ordem++ : 0;
-        const cobrar =
-          COBRAR && t.to === me
-            ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>`
-            : '';
-        return (
-          linha(
-            `${nm(t.from)} → ${nm(t.to)}`,
-            val(t.cents / 100),
-            meu ? 'mine' + (desenha ? ' risca' : '') : '',
-            '',
-            meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
-            meu ? ` data-copy-value="${num(t.cents)}" title="copiar valor"` : '',
-          ) + cobrar
+        return linha(
+          `${nm(t.from)} → ${nm(t.to)}`,
+          val(t.cents / 100),
+          meu ? 'mine' + (desenha ? ' risca' : '') : '',
+          '',
+          meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
+          meu ? ` data-copy-value="${num(t.cents)}" title="copiar valor"` : '',
         );
       })
       .join('');
@@ -1815,13 +1823,6 @@
   }
 
   // ---------- eventos ----------
-  $('#addPerson').onclick = async () => {
-    const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim();
-    if (!name) return;
-    if (nomeExiste(name)) return toast('Já existe alguém com esse nome');
-    state.people.push({ id: uid(), name, at: Date.now() });
-    commit();
-  };
   $('#toggleAll').onclick = () => {
     showAll = !showAll;
     render();
@@ -2013,13 +2014,6 @@
         () => toast('Pix copia e cola copiado. Cola no app do banco.'),
         () => showCopy('Pix copia e cola', code),
       );
-    }
-    const cb = near('[data-cobrar]');
-    if (cb) {
-      const [from, cents] = cb.dataset.cobrar.split('|');
-      const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
-      abreZap(`👀 ${nameOf(from)}, tá faltando ${money(+cents / 100)} do *${evento()}*${pix}\n${shareUrl()}`);
-      return;
     }
     const un = near('[data-undo]');
     if (un) {

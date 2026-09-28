@@ -32,6 +32,14 @@ Funcionalidade: Anotar um gasto
     Quando eu abro o evento como Lia em outro aparelho
     Então o primeiro item da lista é "Cerveja" de 50,00
 
+  # o sync baixa, mescla e grava a sala inteira: sem o if-match, a gravação passava por cima
+  # do item que o outro aparelho gravou entre a baixada e a subida
+  Cenário: outro aparelho grava no meio e os dois itens ficam
+    Quando eu abro o evento como Lia
+    E outro aparelho anota "Gelo" de R$ 20,00 bem na hora que eu gravo o "Cerveja"
+    E eu anoto "Cerveja" de R$ 50,00 dividido igualmente
+    Então o banco tem os itens "Cerveja" e "Gelo"
+
   Cenário: dividir em partes diferentes
     Quando eu abro o evento como Júlia
     E eu toco no ✎

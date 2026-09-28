@@ -73,12 +73,6 @@ Funcionalidade: Entrar no evento
     Então fica copiado "bailedamada"
     E aparece o aviso "Código copiado."
 
-  Cenário: chegar mais gente pela lista do rodapé
-    Dado o evento "bailedamada" com Fernando, Júlia, Lia, Mengla e Klinsmann
-    Quando eu abro o evento como Lia
-    E eu adiciono "Zé" pela lista de gente do rodapé
-    Então a lista de gente fica "Fernando, Júlia, Lia, Mengla, Klinsmann, Zé"
-
   Cenário: no caderno em branco, a caixa abre o anotar
     Dado o evento "churras" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia

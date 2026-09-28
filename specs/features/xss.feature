@@ -19,9 +19,9 @@ Funcionalidade: Tudo que vem do banco é hostil
     E a chave pix da Lia é "<img src=x onerror=\"window.__xss=5\">"
     Quando eu abro o evento como Fernando
     E eu abro a lista de itens
-    E a lista de gente do rodapé aparece
+    E eu toco no meu nome
     Então nenhum script rodou
-    E a lista de gente tem 2 pessoas
+    E o quem é você lista 2 pessoas
     E a lista tem 1 item, com o "<script>" escrito como texto
     E não aparece nenhum botão de copiar pix
     E não aparece nenhuma imagem além da ficha

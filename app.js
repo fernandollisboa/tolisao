@@ -300,17 +300,27 @@
     el.classList.toggle('err', !!err);
   };
   const roomUrl = (id) => `${DB}/rooms/${id}.json`;
-  async function apiGet(id) {
-    const r = await fetch(roomUrl(id), { cache: 'no-store' });
+  // a sala vem com o ETag dela: o sync grava com if-match, e se outro aparelho gravou entre
+  // a baixada e a subida o banco responde 412 em vez de passar por cima do que ele gravou
+  /** @returns {Promise<{ data: any, etag: string | null }>} */
+  async function baixa(id) {
+    const r = await fetch(roomUrl(id), { cache: 'no-store', headers: { 'X-Firebase-ETag': 'true' } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
     if (data === null) throw Object.assign(new Error('não encontrado'), { notFound: true });
-    return data;
+    return { data, etag: r.headers.get('ETag') };
   }
-  async function apiPut(id, data) {
+  const apiGet = async (id) => (await baixa(id)).data;
+  /** @param {string} id @param {any} data @param {string | null} [etag] */
+  async function apiPut(id, data, etag) {
     // passa pelo clean() na ida também: as regras do banco só aceitam a sala nesse formato
     // (nome até 40, pessoa até 30, item até 60…), e um campo a mais recusaria a gravação inteira
-    const r = await fetch(roomUrl(id), { method: 'PUT', body: JSON.stringify(clean(data)) });
+    const r = await fetch(roomUrl(id), {
+      method: 'PUT',
+      headers: etag ? { 'if-match': etag } : {},
+      body: JSON.stringify(clean(data)),
+    });
+    if (r.status === 412) throw Object.assign(new Error('mudou no meio'), { mudou: true });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
   }
 
@@ -319,13 +329,22 @@
     if (!groupId || saving) return;
     saving = true;
     try {
-      const remote = await apiGet(groupId);
-      const merged = merge(state, remote);
-      const changed = canon(merged) !== canon(remote);
-      state = merged;
-      cacheSave();
-      render();
-      if (changed) await apiPut(groupId, state);
+      // outro aparelho gravou no meio: baixa de novo e mescla por cima do que ele gravou
+      for (let vez = 1; ; vez++) {
+        const { data: remote, etag } = await baixa(groupId);
+        const merged = merge(state, remote);
+        const changed = canon(merged) !== canon(remote);
+        state = merged;
+        cacheSave();
+        render();
+        if (!changed) break;
+        try {
+          await apiPut(groupId, state, etag);
+          break;
+        } catch (e) {
+          if (!e.mudou || vez === 3) throw e;
+        }
+      }
       setStatus(
         'Sincronizado ' +
           new Date().toLocaleDateString('pt-BR') +

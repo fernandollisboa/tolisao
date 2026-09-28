@@ -1564,9 +1564,12 @@
     rejogaDiva();
   }
   function showWho() {
-    const opts = state.people.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    // quem já é alguém vê o próprio nome escolhido; o menu só abre se tocar pra trocar
+    const opts = state.people
+      .map((p) => `<option value="${p.id}"${p.id === me ? ' selected' : ''}>${esc(p.name)}</option>`)
+      .join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
-      <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
+      <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
         <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>${whoPix()}`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
@@ -1593,7 +1596,8 @@
         if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
       };
     }
-    $('#whoSel').focus();
+    // no iPhone o focus já abre o menu: só pra quem ainda não escolheu
+    if (!me) $('#whoSel').focus();
   }
   // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
   const whoPix = () =>

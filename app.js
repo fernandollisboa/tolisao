@@ -1615,21 +1615,28 @@
       commit();
       entra(p.id);
     };
-    if ($('#whoPix')) {
-      $('#pixTroca').onclick = savePix;
+    if ($('#pixTroca')) $('#pixTroca').onclick = savePix;
+    if ($('#pixNova')) $('#pixNova').onclick = savePix;
+    if ($('#pixApaga'))
       $('#pixApaga').onclick = async () => {
         if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
       };
-    }
     // no iPhone o focus já abre o menu: só pra quem ainda não escolheu
     if (!me) $('#whoSel').focus();
   }
   // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
-  const whoPix = () =>
-    me && pixKeys[me] && (room().pixTokens || {})[me]
-      ? `<div id="whoPix"><div class="hr"></div>${linha('meu pix', esc(pixKeys[me]), '', '', '', ' style="text-transform:none"')}
-        <div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div></div>`
-      : '';
+  // o cartão nunca fica mudo sobre o pix: sem chave, cadastra; com chave de outro aparelho, diz por que não troca
+  function whoPix() {
+    if (!me || !pixReady) return '';
+    const k = pixKeys[me];
+    const corpo = !k
+      ? `<div class="c"><button class="ico amb" id="pixNova">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button></div>`
+      : linha('meu pix', esc(k), '', '', '', ' style="text-transform:none"') +
+        ((room().pixTokens || {})[me]
+          ? `<div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div>`
+          : `<p class="muted" id="pixOutro" style="margin:6px 0 0;text-align:center;text-transform:none">cadastrada em outro aparelho: só ele troca</p>`);
+    return `<div id="whoPix"><div class="hr"></div>${corpo}</div>`;
+  }
   function showLost() {
     clearInterval(pollTimer);
     $('#app').classList.add('loading', 'nospin');

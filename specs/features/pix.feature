@@ -42,12 +42,18 @@ Funcionalidade: Cadastrar a chave pix
     Dado que o Fernando já cadastrou a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d" em outro aparelho
     Quando eu abro o evento como Fernando
     Então não aparece o botão de cadastrar pix
-    E o cartão de quem é você não tem campo de pix
+    E o cartão de quem é você mostra a chave, cadastrada em outro aparelho
     Quando eu tento gravar a chave do Fernando "hacker@mal.com" direto no banco
     Então o banco recusa
     Quando eu tento gravar a chave do Fernando "" direto no banco
     Então o banco recusa
     E o banco guarda a chave do Fernando "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
+
+  Cenário: sem chave, o cartão de quem é você cadastra
+    Quando eu abro o evento como Lia
+    E eu cadastro a chave pix "lia@exemplo.com" pelo cartão de quem é você
+    Então aparece o aviso "Chave Pix salva"
+    E o banco guarda a chave da Lia "lia@exemplo.com"
 
   Cenário: trocar a chave no aparelho que cadastrou
     Quando eu abro o evento como Fernando

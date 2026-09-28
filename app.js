@@ -7,9 +7,7 @@
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
-  const COBRAR = false; // botão 'cobrar' no acerto, desligado por enquanto
   const DESFAZER = true; // link pra remover um pagamento, útil pra testar
-  const MEMBROS = false; // lista de gente no rodapé; desligada pra ver como fica sem
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
   const INSTALAR = true;
@@ -940,9 +938,6 @@
     }
     if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
 
-    $('#peopleSec').classList.toggle('hidden', !MEMBROS);
-    $('#peopleLine').innerHTML = state.people.length ? state.people.map((p) => nm(p.id)).join(', ') : 'ninguém';
-    $('#addPerson').textContent = state.people.length ? ',+' : ' +';
     renderForm();
 
     const pays = state.expenses
@@ -1079,19 +1074,13 @@
       .map((t) => {
         const meu = t.from === me,
           o = meu ? ordem++ : 0;
-        const cobrar =
-          COBRAR && t.to === me
-            ? `<div class="small acts" style="margin:4px 0 10px;justify-content:flex-start"><button class="ico" data-cobrar="${t.from}|${t.cents}" title="cobrar pelo whatsapp">👀 cobrar</button></div>`
-            : '';
-        return (
-          linha(
-            `${nm(t.from)} → ${nm(t.to)}`,
-            val(t.cents / 100),
-            meu ? 'mine' + (desenha ? ' risca' : '') : '',
-            '',
-            meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
-            meu ? ` data-copy-value="${num(t.cents)}" title="copiar valor"` : '',
-          ) + cobrar
+        return linha(
+          `${nm(t.from)} → ${nm(t.to)}`,
+          val(t.cents / 100),
+          meu ? 'mine' + (desenha ? ' risca' : '') : '',
+          '',
+          meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
+          meu ? ` data-copy-value="${num(t.cents)}" title="copiar valor"` : '',
         );
       })
       .join('');
@@ -1815,13 +1804,6 @@
   }
 
   // ---------- eventos ----------
-  $('#addPerson').onclick = async () => {
-    const name = ((await askText('Nova pessoa', 'quem mais tá no evento?', 'nome')) || '').trim();
-    if (!name) return;
-    if (nomeExiste(name)) return toast('Já existe alguém com esse nome');
-    state.people.push({ id: uid(), name, at: Date.now() });
-    commit();
-  };
   $('#toggleAll').onclick = () => {
     showAll = !showAll;
     render();
@@ -2013,13 +1995,6 @@
         () => toast('Pix copia e cola copiado. Cola no app do banco.'),
         () => showCopy('Pix copia e cola', code),
       );
-    }
-    const cb = near('[data-cobrar]');
-    if (cb) {
-      const [from, cents] = cb.dataset.cobrar.split('|');
-      const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
-      abreZap(`👀 ${nameOf(from)}, tá faltando ${money(+cents / 100)} do *${evento()}*${pix}\n${shareUrl()}`);
-      return;
     }
     const un = near('[data-undo]');
     if (un) {

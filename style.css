@@ -456,6 +456,8 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 @media (prefers-reduced-motion:reduce){.seg:before,.seg button,.seg button:before{transition:none}}
 .toast{position:fixed;top:17vh;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);text-align:center;box-shadow:3px 3px 0 rgba(0,0,0,.25);background:var(--ink);color:var(--paper);padding:8px 14px;font-size:17px;opacity:0;pointer-events:none;z-index:20;text-transform:uppercase}
 .toast.recebe{background:var(--green)}
+/* chave comprida no cartão de quem é você: o "meu pix" fica inteiro e a chave é que ganha as reticências */
+#whoPix .row .l{flex:none} #whoPix .row .v{min-width:0;overflow:hidden;text-overflow:ellipsis}
 /* o aviso sobe de baixo devagar, para, e na saída continua subindo enquanto esmaece.
    O de dinheiro recebido dá uma piscadela quando para, como o ✔ */
 .toast.show{animation:avisoEntra 1.5s cubic-bezier(.15,.9,.25,1) both} .toast.sai{animation:avisoSai 1.3s ease-in both}

@@ -1,7 +1,8 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
 /** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', by?: string, shares?: Record<string, number> }} Expense */
-/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[] }} Room */
+/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, goneAt: number, to?: string }} Gone */
+/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
   // ---------- config ----------
@@ -191,7 +192,7 @@
     saving = false;
 
   /** @returns {Room} */
-  const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [] });
+  const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [], gone: [] });
   const room = () => gaveta(roomKey(groupId)),
     setRoom = (campo, v) =>
       mexe(roomKey(groupId), (o) => {
@@ -249,6 +250,21 @@
         }
         return o;
       });
+    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição
+    const gone = (Array.isArray(d.gone) ? d.gone : [])
+      .filter((g) => g && okId(g.id) && Number.isFinite(+g.amount))
+      .map((g) => {
+        const o = {
+          id: g.id,
+          desc: str(g.desc, 60),
+          amount: Math.round(+g.amount * 100) / 100,
+          at: +g.at || 0,
+          by: str(g.by, 30),
+          goneAt: +g.goneAt || 0,
+        };
+        if (okId(g.to)) o.to = g.to;
+        return o;
+      });
     return {
       v: 2,
       name: str(d.name, 40),
@@ -256,6 +272,7 @@
       people,
       expenses,
       deleted: (Array.isArray(d.deleted) ? d.deleted : []).filter(okId),
+      gone,
     };
   }
   // Firebase devolve chaves em ordem alfabética; compara sem depender da ordem
@@ -283,6 +300,8 @@
     };
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
+    const gone = new Map();
+    for (const g of [...a.gone, ...b.gone]) if (deleted.has(g.id) && !gone.has(g.id)) gone.set(g.id, g);
     return {
       v: 2,
       name: a.name || b.name || '',
@@ -290,6 +309,7 @@
       people: [...people.values()].sort((x, y) => (x.at || 0) - (y.at || 0)),
       expenses: [...expenses.values()].sort((x, y) => x.at - y.at),
       deleted: [...deleted].slice(-500),
+      gone: [...gone.values()].sort((x, y) => x.goneAt - y.goneAt).slice(-50),
     };
   }
 
@@ -1122,11 +1142,12 @@
   /** a lista dos itens, do mais novo pro mais velho, separada por dia quando tem mais de um */
   function renderItens() {
     const items = state.expenses.filter((e) => e.kind !== 'payment');
-    const all = [...items].reverse(),
-      list = showAll ? all : all.slice(0, 10);
+    const all = [...items].reverse();
+    const linhas = [...all, ...state.gone.filter((g) => !g.to)].sort((x, y) => y.at - x.at),
+      list = showAll ? linhas : linhas.slice(0, 10);
     const dayOf = (e) =>
       new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
-    const days = new Set(all.map(dayOf));
+    const days = new Set(linhas.map(dayOf));
     let lastDay = null;
     $('#expenses').innerHTML =
       list
@@ -1139,6 +1160,13 @@
               lastDay = d;
             }
           }
+          if ('goneAt' in e)
+            return (
+              head +
+              `<div class="item apagado" data-gone="${e.id}">` +
+              linha(esc(e.desc), num(Math.round(e.amount * 100))) +
+              `<div class="small"><span>apagado${e.by ? ` por ${nmByName(e.by)}` : ''} · ${new Date(e.goneAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span></div></div>`
+            );
           const by = e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nmByName(e.by)}</span>` : '';
           const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
           const mexe = meu
@@ -1153,7 +1181,7 @@
         })
         .join('') || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll');
-    tg.classList.toggle('hidden', all.length <= 10);
+    tg.classList.toggle('hidden', linhas.length <= 10);
     tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     if (itemsOpen) anim.viuItens = true;
     $('#itemsCount').textContent =
@@ -1885,9 +1913,19 @@
     $('#expenseForm button.big').textContent = 'Salvar';
     openSheet();
   }
-  const apagaItem = (e) => {
+  /** o item sai da conta e fica riscado na lista com quem apagou; `to` é quem tomou o lugar dele */
+  const apagaItem = (e, to) => {
     state.expenses = state.expenses.filter((x) => x.id !== e.id);
     state.deleted.push(e.id);
+    state.gone.push({
+      id: e.id,
+      desc: e.desc,
+      amount: e.amount,
+      at: e.at,
+      by: me ? nameOf(me) : '',
+      goneAt: Date.now(),
+      ...(to ? { to } : {}),
+    });
   };
   // a nota subindo passa por baixo do ✎ e do zap: cada um fica meio transparente quando
   // o texto chega nele, não os dois de uma vez. O de baixo é alcançado primeiro. A régua é
@@ -1944,7 +1982,7 @@
     const velho = editando && state.expenses.find((x) => x.id === editando);
     if (velho) {
       exp.at = velho.at;
-      apagaItem(velho);
+      apagaItem(velho, exp.id);
     }
     state.expenses.push(exp);
     state.expenses.sort((x, y) => x.at - y.at);
@@ -1996,7 +2034,7 @@
       it.classList.toggle('open');
     };
     if (!near('a,button,input,label')) {
-      const it = near('.item');
+      const it = near('.item[data-item]');
       if (it) abreItem(it);
     }
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também

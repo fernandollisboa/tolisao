@@ -78,6 +78,16 @@ Funcionalidade: Anotar um gasto
     Quando eu digito "1234567" no valor
     Então o valor fica "5.001.234,56"
 
+  Cenário: apagar um item deixa ele riscado, com quem apagou
+    Quando eu abro o evento como Lia
+    E eu abro a lista de itens
+    E eu apago o "Uber ida"
+    Então o "Uber ida" aparece riscado, apagado por Lia
+    E o total dos itens fica 721,34
+    Quando eu abro o evento como Fernando em outro aparelho
+    E eu abro a lista de itens
+    Então o "Uber ida" aparece riscado, apagado por Lia
+
   Cenário: editar um item
     Quando eu abro o evento como Lia
     E eu abro a lista de itens
@@ -85,7 +95,7 @@ Funcionalidade: Anotar um gasto
     Então o formulário vem com R$ 32,50 de "Uber volta"
     Quando eu troco o valor pra R$ 40,00 e salvo
     Então o "Uber volta" fica de 40,00
-    E a lista tem 6 itens
+    E nenhum item aparece riscado
     Quando eu abro o evento como Fernando em outro aparelho
     E eu abro a lista de itens
     Então o "Uber volta" fica de 40,00

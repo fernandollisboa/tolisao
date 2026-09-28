@@ -63,7 +63,8 @@ Funcionalidade: Entrar no evento
     Quando eu toco em voltar
     Então o cartão fecha
     Quando eu toco no meu nome
-    Então o cartão de quem é você não tem botão de sair
+    Então o cartão de quem é você já vem com Lia escolhida
+    E o cartão de quem é você não tem botão de sair
 
   Cenário: tocar no código do cartão do evento copia ele
     Dado o evento "bailedamada" com Fernando, Júlia e Lia

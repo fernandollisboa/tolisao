@@ -19,7 +19,7 @@ class Banco {
         if (m === 'GET') return filho === 'key' ? json(200, cur ? cur.key : null) : nega();
         if (m !== 'PUT' || filho) return nega();
         const novo = JSON.parse(rq.postData() || 'null');
-        if (cur && cur.tok !== novo?.tok) return nega();
+        if (cur && cur.key !== '' && cur.tok !== novo?.tok) return nega();
         if (!this.congelado) (this.arvore.pix[sala] ||= {})[pessoa] = novo;
         return json(200, novo);
       }

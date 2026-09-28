@@ -406,6 +406,9 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 .item .by,.item .who{display:none}
 .item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}
 .item{cursor:default}
+.item.apagado .row .l,.item.apagado .row .v{text-decoration:line-through;color:var(--muted)}
+.item.apagado .small{color:var(--muted)}
+#gone>.c{margin-top:10px} #goneToggle{color:var(--muted)}
 button.edita{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 6px;display:none}
 .item:hover button.edita,.item.open button.edita{display:inline-block}
 .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}

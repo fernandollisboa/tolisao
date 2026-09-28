@@ -1,7 +1,8 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
 /** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', by?: string, shares?: Record<string, number> }} Expense */
-/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[] }} Room */
+/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, goneAt: number, to?: string }} Gone */
+/** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
   // ---------- config ----------
@@ -191,7 +192,7 @@
     saving = false;
 
   /** @returns {Room} */
-  const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [] });
+  const fresh = (name = '') => ({ v: 2, name, updatedAt: Date.now(), people: [], expenses: [], deleted: [], gone: [] });
   const room = () => gaveta(roomKey(groupId)),
     setRoom = (campo, v) =>
       mexe(roomKey(groupId), (o) => {
@@ -249,6 +250,21 @@
         }
         return o;
       });
+    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição
+    const gone = (Array.isArray(d.gone) ? d.gone : [])
+      .filter((g) => g && okId(g.id) && Number.isFinite(+g.amount))
+      .map((g) => {
+        const o = {
+          id: g.id,
+          desc: str(g.desc, 60),
+          amount: Math.round(+g.amount * 100) / 100,
+          at: +g.at || 0,
+          by: str(g.by, 30),
+          goneAt: +g.goneAt || 0,
+        };
+        if (okId(g.to)) o.to = g.to;
+        return o;
+      });
     return {
       v: 2,
       name: str(d.name, 40),
@@ -256,6 +272,7 @@
       people,
       expenses,
       deleted: (Array.isArray(d.deleted) ? d.deleted : []).filter(okId),
+      gone,
     };
   }
   // Firebase devolve chaves em ordem alfabética; compara sem depender da ordem
@@ -283,6 +300,8 @@
     };
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
+    const gone = new Map();
+    for (const g of [...a.gone, ...b.gone]) if (deleted.has(g.id) && !gone.has(g.id)) gone.set(g.id, g);
     return {
       v: 2,
       name: a.name || b.name || '',
@@ -290,6 +309,7 @@
       people: [...people.values()].sort((x, y) => (x.at || 0) - (y.at || 0)),
       expenses: [...expenses.values()].sort((x, y) => x.at - y.at),
       deleted: [...deleted].slice(-500),
+      gone: [...gone.values()].sort((x, y) => x.goneAt - y.goneAt).slice(-50),
     };
   }
 
@@ -499,6 +519,7 @@
     return p ? nm(p.id) : esc(name);
   };
   let showAll = false,
+    showGone = false,
     itemsOpen = false;
   const openItems = new Set();
   // ---------- fila das animações ----------
@@ -710,9 +731,11 @@
           'Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)',
         );
       if (!r.ok) return toast('Erro ao salvar: HTTP ' + r.status);
-      pixKeys[pid] = key;
+      // apagar grava a chave vazia: o nó fica, e a regra deixa qualquer aparelho cadastrar de novo
+      if (key) pixKeys[pid] = key;
+      else delete pixKeys[pid];
       render();
-      toast('Chave Pix salva');
+      toast(key ? 'Chave Pix salva' : 'Chave Pix apagada');
     } catch (e) {
       toast('Erro ao salvar: ' + e.message);
     }
@@ -1154,6 +1177,27 @@
         .join('') || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll');
     tg.classList.toggle('hidden', all.length <= 10);
+    // os apagados ficam recolhidos no fim: a lista não se enche de risco, e "cadê a janta?" está a um toque
+    const gone = state.gone.filter((g) => !g.to).reverse();
+    const dia = (t) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    $('#gone').innerHTML = gone.length
+      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${gone.length} ${gone.length === 1 ? 'item apagado' : 'itens apagados'}</a></div>` +
+        (showGone
+          ? gone
+              .map(
+                (g) =>
+                  `<div class="item apagado" data-gone="${g.id}">` +
+                  linha(esc(g.desc), num(Math.round(g.amount * 100))) +
+                  `<div class="small"><span>apagado${g.by ? ` por ${nmByName(g.by)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
+              )
+              .join('')
+          : '')
+      : '';
+    if (gone.length)
+      $('#goneToggle').onclick = () => {
+        showGone = !showGone;
+        render();
+      };
     tg.textContent = showAll ? 'ver menos' : `ver todos os ${all.length} itens`;
     if (itemsOpen) anim.viuItens = true;
     $('#itemsCount').textContent =
@@ -1520,11 +1564,14 @@
     rejogaDiva();
   }
   function showWho() {
-    const opts = state.people.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    // quem já é alguém vê o próprio nome escolhido; o menu só abre se tocar pra trocar
+    const opts = state.people
+      .map((p) => `<option value="${p.id}"${p.id === me ? ' selected' : ''}>${esc(p.name)}</option>`)
+      .join('');
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
-      <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
+      <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
+        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>${whoPix()}`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
     const entra = souEu;
     $('#whoSel').onchange = () => {
@@ -1543,8 +1590,21 @@
       commit();
       entra(p.id);
     };
-    $('#whoSel').focus();
+    if ($('#whoPix')) {
+      $('#pixTroca').onclick = savePix;
+      $('#pixApaga').onclick = async () => {
+        if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
+      };
+    }
+    // no iPhone o focus já abre o menu: só pra quem ainda não escolheu
+    if (!me) $('#whoSel').focus();
   }
+  // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
+  const whoPix = () =>
+    me && pixKeys[me] && (room().pixTokens || {})[me]
+      ? `<div id="whoPix"><div class="hr"></div>${linha('meu pix', esc(pixKeys[me]), '', '', '', ' style="text-transform:none"')}
+        <div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div></div>`
+      : '';
   function showLost() {
     clearInterval(pollTimer);
     $('#app').classList.add('loading', 'nospin');
@@ -1631,6 +1691,7 @@
       lastSeen = +r.lastSeen || 0;
     }
     showAll = false;
+    showGone = false;
     $('#app').classList.add('loading');
     $('#app').classList.remove('nospin');
     state = cacheLoad();
@@ -1885,9 +1946,19 @@
     $('#expenseForm button.big').textContent = 'Salvar';
     openSheet();
   }
-  const apagaItem = (e) => {
+  /** o item sai da conta e fica riscado na lista com quem apagou; `to` é quem tomou o lugar dele */
+  const apagaItem = (e, to) => {
     state.expenses = state.expenses.filter((x) => x.id !== e.id);
     state.deleted.push(e.id);
+    state.gone.push({
+      id: e.id,
+      desc: e.desc,
+      amount: e.amount,
+      at: e.at,
+      by: me ? nameOf(me) : '',
+      goneAt: Date.now(),
+      ...(to ? { to } : {}),
+    });
   };
   // a nota subindo passa por baixo do ✎ e do zap: cada um fica meio transparente quando
   // o texto chega nele, não os dois de uma vez. O de baixo é alcançado primeiro. A régua é
@@ -1944,7 +2015,7 @@
     const velho = editando && state.expenses.find((x) => x.id === editando);
     if (velho) {
       exp.at = velho.at;
-      apagaItem(velho);
+      apagaItem(velho, exp.id);
     }
     state.expenses.push(exp);
     state.expenses.sort((x, y) => x.at - y.at);
@@ -1996,7 +2067,7 @@
       it.classList.toggle('open');
     };
     if (!near('a,button,input,label')) {
-      const it = near('.item');
+      const it = near('.item[data-item]');
       if (it) abreItem(it);
     }
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também

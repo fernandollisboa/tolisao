@@ -66,6 +66,10 @@ Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#ov
 When('eu toco na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle .empty.anota'); });
 Then('o formulário de anotar abre', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).not.toHaveClass(/\bhidden\b/); });
 When('eu toco no meu nome', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#whoSel'); });
+Then('o cartão de quem é você já vem com {word} escolhida/escolhido', async ({ mundo }, quem) => {
+  await expect(mundo.p.locator('#whoSel option:checked')).toHaveText(quem);
+  await expect(mundo.p.locator('#whoSel')).not.toBeFocused();
+});
 Then('o cartão de quem é você não tem botão de sair', async ({ mundo }) => { await expect(mundo.p.locator('#leaveBtn')).toHaveCount(0); });
 
 Then('aparece o aviso {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#toast')).toHaveText(txt); });

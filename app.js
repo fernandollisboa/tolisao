@@ -362,19 +362,26 @@
   });
 
   // ---------- contas ----------
-  const fmt = (n) => {
-    const [i, d] = Math.abs(n).toFixed(2).split('.');
+  // dinheiro é sempre centavo inteiro. O banco guarda `amount` em reais (formato antigo),
+  // então quem lê um gasto passa por centavos(e), e só os formatadores abaixo dividem por 100
+  /** @param {{ amount: number }} e */
+  const centavos = (e) => Math.round(e.amount * 100);
+  /** 123456 → "1.234,56" (sem sinal: quem chama diz se deve ou recebe) */
+  const reais = (c) => {
+    const [i, d] = (Math.abs(c) / 100).toFixed(2).split('.');
     return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d;
   };
-  const num = (c) => fmt(c / 100);
-  const money = (n) => `${CURRENCY}\u00a0${fmt(n)}`;
-  const val = (n) => `<span class="cur">${CURRENCY}</span><span class="num">${fmt(n)}</span>`;
-  // no teclado do celular o separador é vírgula; aceita 12,50 e 1.234,56 além de 12.50
-  const numVal = (v) => {
+  /** 123456 → "R$ 1.234,56" */
+  const comSifrao = (c) => `${CURRENCY}\u00a0${reais(c)}`;
+  /** o mesmo, em html, com o R$ e o número em spans separados */
+  const valorHtml = (c) => `<span class="cur">${CURRENCY}</span><span class="num">${reais(c)}</span>`;
+  /** o que a pessoa digitou → centavos (ou NaN). No teclado do celular o separador é
+   *  vírgula; aceita 12,50 e 1.234,56 além de 12.50 */
+  const lerCentavos = (v) => {
     let s = String(v).trim().replace(/\s/g, '');
     if (!s) return NaN;
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-    return parseFloat(s);
+    return Math.round(parseFloat(s) * 100);
   };
   const nameOf = (id) => (state.people.find((p) => p.id === id) || { name: '?' }).name;
   const nomeExiste = (n) => state.people.some((p) => p.name.toLowerCase() === n.toLowerCase());
@@ -391,11 +398,11 @@
       for (const id of ids) o[id] = e.shares[id] || 0;
       return o;
     }
-    return shares(Math.round(e.amount * 100), ids);
+    return shares(centavos(e), ids);
   };
   const howText = (e, name = nameOf, html = false) => {
     const loan = !e.among.includes(e.payer);
-    if (e.shares) return e.among.map((id) => `${name(id)} ${fmt((e.shares[id] || 0) / 100)}`).join(', ');
+    if (e.shares) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
     if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length === 1 ? '' : 'm'} tudo`;
     if (!html) return `÷${e.among.length}`;
     return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`;
@@ -408,8 +415,7 @@
     for (const e of s.expenses) {
       const ids = e.among.filter((id) => id in b);
       if (!ids.length || !(e.payer in b)) continue;
-      const cents = Math.round(e.amount * 100);
-      b[e.payer] += cents;
+      b[e.payer] += centavos(e);
       const sh = shareOf(e, ids);
       for (const id of ids) b[id] -= sh[id];
     }
@@ -740,7 +746,7 @@
   // costume. Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
   const mascara = (el) => {
     const d = el.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
-    el.value = d ? fmt(+d / 100) : '';
+    el.value = d ? reais(+d) : '';
   };
   // na captura, antes de quem lê o campo (o quanto falta das partes)
   document.addEventListener(
@@ -1035,11 +1041,11 @@
       return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`;
     };
     const valor = (t) =>
-      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${num(t.cents)}">${num(t.cents)}</a>`;
+      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
-        ? acerto.filter((t) => t.to === me).map((t) => linha(nm(t.from), val(t.cents / 100), 'sub'))
+        ? acerto.filter((t) => t.to === me).map((t) => linha(nm(t.from), valorHtml(t.cents), 'sub'))
         : meus.map((t, i) =>
             linha(
               `<span class="n">${nm(t.to)}</span><span class="dupla">${okB(t, i)}${pixB(t)}</span>`,
@@ -1051,7 +1057,7 @@
     $('#mineRows').innerHTML =
       (bal === 0
         ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
-        : linha(bal > 0 ? 'me devem' : 'eu devo', val(Math.abs(bal) / 100), bal > 0 ? 'pos' : 'neg')) + quem.join('');
+        : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) + quem.join('');
   }
   /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */
   function renderForm() {
@@ -1086,11 +1092,11 @@
         return (
           linha(
             `${nm(t.from)} → ${nm(t.to)}`,
-            val(t.cents / 100),
+            valorHtml(t.cents),
             meu ? 'mine' + (desenha ? ' risca' : '') : '',
             '',
             meu ? markStyle(t.from + t.to, markForte(me)) + (desenha ? `;--rd2:${o * VOLTA_GAP - dtS}ms` : '') : '',
-            meu ? ` data-copy-value="${num(t.cents)}" title="copiar valor"` : '',
+            meu ? ` data-copy-value="${reais(t.cents)}" title="copiar valor"` : '',
           ) + cobrar
         );
       })
@@ -1106,7 +1112,9 @@
         const desfaz = DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : '';
         const carimbo = `<span class="stampbox"><span class="stamp" style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
         const por = e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '';
-        return linha(quem + desfaz + carimbo, val(e.amount), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por;
+        return (
+          linha(quem + desfaz + carimbo, valorHtml(centavos(e)), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por
+        );
       })
       .join('');
     $('#settle').innerHTML = (deve || nada) + pagos;
@@ -1139,7 +1147,7 @@
           return (
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
-            linha(`${tagNovo(e)}${esc(e.desc)}`, num(Math.round(e.amount * 100))) +
+            linha(`${tagNovo(e)}${esc(e.desc)}`, reais(centavos(e))) +
             `<div class="small"><span>${nm(e.payer)} pagou · ${howText(e, nm, true)}${by}</span>${mexe}</div></div>`
           );
         })
@@ -1163,16 +1171,15 @@
       ih.classList.add(anim.suave ? 'suave' : 'pisca');
     }
     $('#itemsBody').classList.toggle('hidden', !itemsOpen);
-    $('#total').innerHTML = val(items.reduce((a, e) => a + Math.round(e.amount * 100), 0) / 100);
+    $('#total').innerHTML = valorHtml(items.reduce((a, e) => a + centavos(e), 0));
   }
   let splitMode = 'equal';
   const customShares = () => {
     const o = {};
-    for (const i of inputs('#sharesBox input[data-share]'))
-      o[i.dataset.share] = Math.round((numVal(i.value) || 0) * 100);
+    for (const i of inputs('#sharesBox input[data-share]')) o[i.dataset.share] = lerCentavos(i.value) || 0;
     return o;
   };
-  const totalDigitado = () => Math.round((numVal($('#amount').value) || 0) * 100);
+  const totalDigitado = () => lerCentavos($('#amount').value) || 0;
   /** o jeito de dividir são duas abas: "igual" (os chips de quem divide) e "partes
    *  diferentes" (uma linha por pessoa, com o ✔ de quem entra e o valor dela). A lista
    *  é uma só: nas partes diferentes os chips somem, e marcar a linha marca o chip */
@@ -1204,7 +1211,7 @@
             return (
               `<div class="row lin${on ? '' : ' off'}"><label class="ck"><input type="checkbox" data-quem="${p.id}" ${on ? 'checked' : ''} aria-label="${esc(p.name)} divide"></label><span class="l">${nm(p.id)}</span><span class="d"></span>` +
               (on
-                ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? fmt(prev[p.id] / 100) : ''}">`
+                ? `<button type="button" class="resto" data-resto="${p.id}">o resto</button><input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-share="${p.id}" value="${prev[p.id] ? reais(prev[p.id]) : ''}">`
                 : '<span class="fora">fora</span>') +
               '</div>'
             );
@@ -1259,16 +1266,16 @@
     const total = totalDigitado(),
       sh = customShares();
     const resta = total - Object.values(sh).reduce((a, b) => a + b, 0);
-    const vazios = inputs('#sharesBox input[data-share]').filter((i) => !numVal(i.value));
+    const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
     const f = $('#falta');
     f.className = 'falta ' + (!total ? 'neutro' : resta === 0 ? 'ok' : 'erro');
     f.innerHTML = !total
       ? 'digite o valor do gasto lá em cima.'
       : resta === 0
-        ? `✔ fechou ${money(total / 100)}.`
+        ? `✔ fechou ${comSifrao(total)}.`
         : resta > 0
-          ? `faltam <b>${money(resta / 100)}</b> pra fechar ${money(total / 100)}.${vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : ''}`
-          : `sobram <b>${money(-resta / 100)}</b> além de ${money(total / 100)}.`;
+          ? `faltam <b>${comSifrao(resta)}</b> pra fechar ${comSifrao(total)}.${vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : ''}`
+          : `sobram <b>${comSifrao(-resta)}</b> além de ${comSifrao(total)}.`;
     for (const b of inputs('#sharesBox [data-resto]'))
       b.classList.toggle('hidden', resta <= 0 || sh[b.dataset.resto] > 0);
     // o campo tem a largura do número: os pontinhos da linha correm até perto do valor
@@ -1298,20 +1305,20 @@
       const i = /** @type {HTMLInputElement} */ ($(`#sharesBox input[data-share="${resto.dataset.resto}"]`));
       const r = falta();
       if (i && r > 0) {
-        i.value = fmt(r / 100);
+        i.value = reais(r);
         atualizaFalta();
       }
       return;
     }
     if (tgt.closest('#restoIgual')) {
-      const vazios = inputs('#sharesBox input[data-share]').filter((i) => !numVal(i.value));
+      const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
       const r = falta();
       if (vazios.length && r > 0) {
         const o = shares(
           r,
           vazios.map((i) => i.dataset.share),
         );
-        for (const i of vazios) i.value = fmt(o[i.dataset.share] / 100);
+        for (const i of vazios) i.value = reais(o[i.dataset.share]);
         atualizaFalta();
       }
     }
@@ -1658,7 +1665,7 @@
     sync();
     loadPixKeys();
   }
-  function showQuitado(to, amount) {
+  function showQuitado(to, cents) {
     overlay(`<h2 style="margin-top:0">Quitado!</h2>
       <p class="muted" style="margin:0 0 14px;text-align:center">avise ${nm(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
@@ -1671,7 +1678,7 @@
     $('#quitOk').onclick = fecha;
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
-      abreZap(`✅ ${nameOf(to)}, te paguei ${money(amount)} do *${evento()}* 👍\n${shareUrl()}`);
+      abreZap(`✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl()}`);
       fecha();
     };
   }
@@ -1771,13 +1778,7 @@
           eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
           b = s && eu ? balances(s)[eu.id] : null;
         const [cls, v] =
-          b === null
-            ? ['ok', '—']
-            : b > 0
-              ? ['pos', money(b / 100)]
-              : b < 0
-                ? ['neg', money(b / 100)]
-                : ['ok', 'quite'];
+          b === null ? ['ok', '—'] : b > 0 ? ['pos', comSifrao(b)] : b < 0 ? ['neg', comSifrao(b)] : ['ok', 'quite'];
         const n = s ? s.people.length : 0,
           sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : '']
             .filter(Boolean)
@@ -1867,7 +1868,7 @@
     limpaForm();
     editando = e.id;
     render();
-    $('#amount').value = fmt(e.amount);
+    $('#amount').value = reais(centavos(e));
     $('#desc').value = e.desc;
     $('#payer').value = e.payer;
     for (const c of inputs('#splitChips input')) {
@@ -1877,7 +1878,7 @@
     splitMode = e.shares ? 'custom' : 'equal';
     updateHint();
     if (e.shares) {
-      for (const i of inputs('#sharesBox input[data-share]')) i.value = fmt((e.shares[i.dataset.share] || 0) / 100);
+      for (const i of inputs('#sharesBox input[data-share]')) i.value = reais(e.shares[i.dataset.share] || 0);
       atualizaFalta();
     }
     $('#sheet h2').textContent = 'Editar';
@@ -1914,14 +1915,14 @@
   $('#expenseForm').onsubmit = (ev) => {
     ev.preventDefault();
     const among = inputs('#splitChips input:checked').map((i) => i.value);
-    const amount = numVal($('#amount').value);
+    const total = lerCentavos($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro');
     if (!among.length) return toast('Marque quem divide esse gasto');
-    if (!(amount > 0)) return toast('Valor inválido');
+    if (!(total > 0)) return toast('Valor inválido');
     const exp = {
       id: uid(),
       desc: $('#desc').value.trim(),
-      amount: Math.round(amount * 100) / 100,
+      amount: total / 100,
       payer: $('#payer').value,
       among,
       at: Date.now(),
@@ -1929,13 +1930,10 @@
     };
     if (splitMode === 'custom') {
       const sh = customShares();
-      const total = Math.round(amount * 100);
       const sum = among.reduce((a, id) => a + (sh[id] || 0), 0);
       if (sum !== total)
         return toast(
-          sum < total
-            ? `Faltam ${money((total - sum) / 100)} nas partes`
-            : `Sobram ${money((sum - total) / 100)} nas partes`,
+          sum < total ? `Faltam ${comSifrao(total - sum)} nas partes` : `Sobram ${comSifrao(sum - total)} nas partes`,
         );
       exp.shares = {};
       for (const id of among) exp.shares[id] = sh[id] || 0;
@@ -2018,7 +2016,7 @@
     if (cb) {
       const [from, cents] = cb.dataset.cobrar.split('|');
       const pix = me && pixKeys[me] ? `\npix: ${pixKeys[me]}` : '';
-      abreZap(`👀 ${nameOf(from)}, tá faltando ${money(+cents / 100)} do *${evento()}*${pix}\n${shareUrl()}`);
+      abreZap(`👀 ${nameOf(from)}, tá faltando ${comSifrao(+cents)} do *${evento()}*${pix}\n${shareUrl()}`);
       return;
     }
     const un = near('[data-undo]');
@@ -2026,7 +2024,13 @@
       const id = un.dataset.undo;
       const e = state.expenses.find((x) => x.id === id);
       if (!e) return;
-      if (!(await ask('Desfazer o pagamento?', `${nm(e.payer)} → ${nm(e.among[0])} · ${money(e.amount)}`, 'desfazer')))
+      if (
+        !(await ask(
+          'Desfazer o pagamento?',
+          `${nm(e.payer)} → ${nm(e.among[0])} · ${comSifrao(centavos(e))}`,
+          'desfazer',
+        ))
+      )
         return;
       state.expenses = state.expenses.filter((x) => x.id !== id);
       state.deleted.push(id);
@@ -2037,15 +2041,15 @@
     }
     const st = near('[data-settle]');
     if (st) {
-      const [from, to, cents] = st.dataset.settle.split('|');
-      const amount = +cents / 100;
+      const [from, to, cs] = st.dataset.settle.split('|');
+      const cents = +cs;
       const r = st.getBoundingClientRect(),
         fx = r.left + r.width / 2,
         fy = r.top + r.height / 2;
       if (
         !(await ask(
           'Quitar?',
-          `${nm(from)} pagou <b style="color:var(--green)">${money(amount)}</b> pra ${nm(to)}`,
+          `${nm(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nm(to)}`,
           'quitei',
         ))
       )
@@ -2054,7 +2058,7 @@
         id: uid(),
         kind: 'payment',
         desc: 'Pagamento',
-        amount,
+        amount: cents / 100,
         payer: from,
         among: [to],
         at: Date.now(),
@@ -2064,7 +2068,7 @@
       commit();
       festa(fx, fy);
       toast('Quitado! 🎉');
-      showQuitado(to, amount);
+      showQuitado(to, cents);
     }
     const cv = near('[data-copy-value]');
     if (cv) {
@@ -2080,7 +2084,7 @@
       const id = de.dataset.delExpense;
       const e = state.expenses.find((x) => x.id === id);
       if (!e) return;
-      if (!(await ask('Excluir item?', `${esc(e.desc)} · ${money(e.amount)}`, 'excluir'))) return;
+      if (!(await ask('Excluir item?', `${esc(e.desc)} · ${comSifrao(centavos(e))}`, 'excluir'))) return;
       apagaItem(e);
       commit();
     }
@@ -2118,7 +2122,7 @@
       '',
       ...st.map(
         (t) =>
-          `💸 ${nameOf(t.from)} paga ${money(t.cents / 100)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`,
+          `💸 ${nameOf(t.from)} paga ${comSifrao(t.cents)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`,
       ),
       '',
       `tudo aqui 👉 ${shareUrl()}`,
@@ -2130,7 +2134,7 @@
     const b = balances(),
       st = settlements(b);
     const items = [...state.expenses.filter((e) => e.kind !== 'payment')].reverse();
-    const totalCents = items.reduce((a, e) => a + Math.round(e.amount * 100), 0);
+    const totalCents = items.reduce((a, e) => a + centavos(e), 0);
     const W = 720,
       M = 24,
       P = 36,
@@ -2239,7 +2243,7 @@
         c = fit(nameOf(t.to), 12);
       mark(0, a.length, markForte(t.from));
       mark(a.length + 6, c.length, markForte(t.to));
-      line(leader(`${a} PAGA ${c}`, 'R$ ' + num(t.cents)));
+      line(leader(`${a} PAGA ${c}`, 'R$ ' + reais(t.cents)));
     }
     {
       const quites = state.people.filter((p) => (b[p.id] || 0) === 0);
@@ -2258,8 +2262,7 @@
     blank();
     if (!items.length) line('NADA ANOTADO');
     for (const e of items) {
-      const cents = Math.round(e.amount * 100);
-      line(leader(e.desc, num(cents)));
+      line(leader(e.desc, reais(centavos(e))));
       const pn = fit(nameOf(e.payer), 14);
       mark(2, pn.length, markForte(e.payer));
       if (e.shares) {
@@ -2270,7 +2273,7 @@
         ]);
         e.among.forEach((id, i) => {
           const n = fit(nameOf(id), 14),
-            v = ' ' + num(e.shares[id] || 0);
+            v = ' ' + reais(e.shares[id] || 0);
           segs.push({ t: n, id, w: n.length + v.length }, { t: v + (i < e.among.length - 1 ? ', ' : '') });
         });
         flow(segs);
@@ -2307,7 +2310,7 @@
       line(t.trimEnd(), INK2);
     }
     blank();
-    line(leader('TOTAL', 'R$ ' + num(totalCents)), INK2);
+    line(leader('TOTAL', 'R$ ' + reais(totalCents)), INK2);
     dash();
     blank();
     center('* * *');

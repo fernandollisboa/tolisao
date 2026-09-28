@@ -148,6 +148,13 @@ const CENAS = {
     acao: async p => { await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
       await p.type('#amount', '12000'); await p.fill('#desc', 'Janta'); await p.waitForTimeout(900);
       for (const modo of ['custom', 'equal', 'custom']) { await p.click(`#splitSeg [data-modo="${modo}"]`); await p.waitForTimeout(1600); } } },
+  aviso: { nome: 'a Mengla paga e o aviso verde sobe, para e vai embora subindo', quem: 'Fernando', atrasoPix: 0,
+    acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1500);
+      const pago = { ...DADOS, expenses: [...DADOS.expenses, { id: 'pgnovo', kind: 'payment', desc: 'Pagamento', amount: 87.13,
+        payer: 'mengla', among: ['fernando'], at: Date.now(), by: 'Mengla' }] };
+      await p.route(/fake-db.*\/rooms\//, r => r.request().method() === 'GET' ? r.fulfill({ json: pago }) : r.fulfill({ json: {} }));
+      await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+      await p.waitForTimeout(7000); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

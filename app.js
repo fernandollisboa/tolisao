@@ -3037,12 +3037,15 @@
   }
   armaOlho();
   let tt;
-  function toast(msg, ms = 2200, cls = '') {
+  function toast(msg, ms = 3500, cls = '') {
     const t = $('#toast');
     t.textContent = msg;
+    // tira a classe e mede antes de pôr de novo: aviso em cima de aviso recomeça a subida
+    t.className = 'toast';
+    void t.offsetWidth;
     t.className = 'toast show' + (cls ? ' ' + cls : '');
     clearTimeout(tt);
-    tt = setTimeout(() => t.classList.remove('show'), ms);
+    tt = setTimeout(() => t.classList.replace('show', 'sai'), ms);
   }
 
   // ---------- código de barras (Code 128 C) ----------

@@ -17,9 +17,13 @@ Then('o banco guarda a chave do/da {word} {string}', async ({ mundo }, nome, cha
 });
 Then('o cabeçalho diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#whoLine')).toHaveText(new RegExp(`^\\s*${txt}\\s*$`, 'i')); });
 Then('não aparece o botão de cadastrar pix', async ({ mundo }) => { await expect(mundo.p.locator('#pixBtn')).toHaveCount(0); });
-Then('o cartão de quem é você não tem campo de pix', async ({ mundo }) => {
+Then('o cartão de quem é você mostra a chave, cadastrada em outro aparelho', async ({ mundo }) => {
   await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#whoSel');
-  await expect(mundo.p.locator('#whoPix')).toHaveCount(0); await mundo.fechaCartao();
+  await expect(mundo.p.locator('#pixOutro')).toBeVisible();
+  await expect(mundo.p.locator('#pixTroca, #pixApaga')).toHaveCount(0); await mundo.fechaCartao();
+});
+When('eu cadastro a chave pix {string} pelo cartão de quem é você', async ({ mundo }, chave) => {
+  const p = mundo.p; await p.click('#whoBtn'); await p.click('#pixNova'); await p.fill('#askInput', chave); await p.click('#askForm button.big');
 });
 When('eu tento gravar a chave do/da {word} {string} direto no banco', async ({ mundo }, nome, chave) => {
   mundo.nota.status = await mundo.p.evaluate(async ([url, chave]) => (await fetch(url, { method: 'PUT', body: JSON.stringify({ key: chave, tok: 'tok-deste-aparelho' }) })).status,

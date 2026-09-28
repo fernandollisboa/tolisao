@@ -58,7 +58,7 @@
     "pix": {
       "$room": {
         "$person": {
-          ".write": "!data.exists() || data.child('tok').val() === newData.child('tok').val()",
+          ".write": "!data.exists() || data.child('key').val() === '' || data.child('tok').val() === newData.child('tok').val()",
           ".validate": "newData.hasChildren(['key','tok']) && newData.child('key').isString() && newData.child('key').val().length <= 80 && newData.child('tok').isString()",
           "key": { ".read": true }
         }

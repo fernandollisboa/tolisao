@@ -1,7 +1,7 @@
 # language: pt
 Funcionalidade: Cadastrar a chave pix
   Só chave aleatória ou e-mail. Quem cadastra guarda um segredo no aparelho,
-  e só esse aparelho consegue trocar a chave depois.
+  e só esse aparelho consegue trocar ou apagar a chave depois, no cartão de quem é você.
 
   Contexto:
     Dado o evento "bailedamada" com Fernando, Júlia, Lia, Mengla e Klinsmann
@@ -45,4 +45,27 @@ Funcionalidade: Cadastrar a chave pix
     E o cartão de quem é você não tem campo de pix
     Quando eu tento gravar a chave do Fernando "hacker@mal.com" direto no banco
     Então o banco recusa
+    Quando eu tento gravar a chave do Fernando "" direto no banco
+    Então o banco recusa
     E o banco guarda a chave do Fernando "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
+
+  Cenário: trocar a chave no aparelho que cadastrou
+    Quando eu abro o evento como Fernando
+    E eu cadastro a chave pix "fernando@exemplo.com"
+    E eu toco no meu nome
+    E eu toco em trocar a chave pix
+    E eu troco a chave por "fernando@novo.com"
+    Então aparece o aviso "Chave Pix salva"
+    E o banco guarda a chave do Fernando "fernando@novo.com"
+
+  # apagar grava a chave vazia: sem chave, qualquer aparelho cadastra de novo, como no começo
+  Cenário: apagar a chave, e outro aparelho cadastrar de novo
+    Quando eu abro o evento como Fernando
+    E eu cadastro a chave pix "fernando@exemplo.com"
+    E eu toco no meu nome
+    E eu apago a chave pix
+    Então aparece o aviso "Chave Pix apagada"
+    E o banco guarda a chave do Fernando ""
+    Quando eu abro o evento como Fernando em outro aparelho
+    E eu cadastro a chave pix "fernando@outro.com"
+    Então o banco guarda a chave do Fernando "fernando@outro.com"

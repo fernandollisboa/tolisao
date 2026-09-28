@@ -3,6 +3,8 @@ const { Given, When, Then, expect, idDe } = require('./_mundo.cjs');
 When('eu cadastro a chave pix {string}', async ({ mundo }, chave) => {
   const p = mundo.p; await p.click('#pixBtn'); await p.fill('#askInput', chave); await p.click('#askForm button.big');
 });
+When('eu toco em trocar a chave pix', async ({ mundo }) => { await mundo.p.click('#pixTroca'); await mundo.p.waitForSelector('#askInput'); });
+When('eu apago a chave pix', async ({ mundo }) => { await mundo.p.click('#pixApaga'); await mundo.p.click('#okBtn'); });
 When('eu troco a chave por {string}', async ({ mundo }, chave) => { await mundo.p.fill('#askInput', chave); await mundo.p.click('#askForm button.big'); });
 Then('o cartão barra a chave em vermelho', async ({ mundo }) => {
   const p = mundo.p; await expect(p.locator('#overlay')).not.toHaveClass(/\bhidden\b/);

@@ -731,9 +731,11 @@
           'Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)',
         );
       if (!r.ok) return toast('Erro ao salvar: HTTP ' + r.status);
-      pixKeys[pid] = key;
+      // apagar grava a chave vazia: o nó fica, e a regra deixa qualquer aparelho cadastrar de novo
+      if (key) pixKeys[pid] = key;
+      else delete pixKeys[pid];
       render();
-      toast('Chave Pix salva');
+      toast(key ? 'Chave Pix salva' : 'Chave Pix apagada');
     } catch (e) {
       toast('Erro ao salvar: ' + e.message);
     }
@@ -1566,7 +1568,7 @@
     overlay(`<h2 style="margin-top:0">Quem é você?</h2>
       <form id="whoForm"><select id="whoSel"><option value="">— escolha seu nome —</option>${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>`);
+        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>${whoPix()}`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
     const entra = souEu;
     $('#whoSel').onchange = () => {
@@ -1585,8 +1587,20 @@
       commit();
       entra(p.id);
     };
+    if ($('#whoPix')) {
+      $('#pixTroca').onclick = savePix;
+      $('#pixApaga').onclick = async () => {
+        if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
+      };
+    }
     $('#whoSel').focus();
   }
+  // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
+  const whoPix = () =>
+    me && pixKeys[me] && (room().pixTokens || {})[me]
+      ? `<div id="whoPix"><div class="hr"></div>${linha('meu pix', esc(pixKeys[me]), '', '', '', ' style="text-transform:none"')}
+        <div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div></div>`
+      : '';
   function showLost() {
     clearInterval(pollTimer);
     $('#app').classList.add('loading', 'nospin');

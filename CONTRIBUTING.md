@@ -35,7 +35,7 @@ os testes são cucumber em português: a especificação fica em `specs/features
 
 - flag em maiúscula no topo do `app.js` liga e desliga coisa (`COBRAR`, `MEMBROS`, `INSTALAR`, `PEGA_FICHA`, `DESFAZER`). coisa meio pronta entra atrás de flag.
 - o banco é hostil: id só passa se casar `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`.
-- dinheiro é centavo inteiro até virar texto em `fmt()`/`money()`/`val()`.
+- dinheiro é centavo inteiro até virar texto em `reais()`/`comSifrao()`/`valorHtml()`. o `amount` do banco é em reais: leia com `centavos(e)`.
 - cor de gente sai de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe.
 - animação nova entra na fila do `agenda()` e só roda com a seção na tela.
 - teste não pode deixar o CI lento: cenário que precisa esperar animação não entra. animação se confere no vídeo.

@@ -721,8 +721,8 @@
     return p + crc16(p);
   }
   // valor digitado como no app do banco: os dígitos entram pela direita, pelos centavos
-  // (5 → 0,05, 50 → 0,50, 5000 → 50,00). A usuária da QA digitava o 00 do fim por
-  // costume. Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
+  // (5 → 0,05, 50 → 0,50, 5000 → 50,00), que é o costume de quem usa app de banco.
+  // Refaz o campo inteiro a cada tecla, então apagar tira o último dígito
   const mascara = (el) => {
     const d = el.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
     el.value = d ? reais(+d) : '';
@@ -1363,19 +1363,16 @@
   // "tô lisa" se digita sozinho no cartão do código, a tela de estreia — só na primeira
   // visita deste aparelho, e uma vez só. No cabeçalho do evento ele fica quieto: ali
   // a pessoa veio ver a conta, não o título.
-  // É tudo em JS (troca de textContent), não CSS: um clip-path animado já deu bug de
-  // verdade num navegador (o relógio da animação simplesmente não andava, sem
-  // getAnimations() nenhum rodando) — trocar texto por setTimeout não depende de
-  // nenhum relógio de animação, só do event loop normal.
+  // É troca de textContent com setTimeout, não animação CSS: um clip-path animado
+  // travava num navegador, e setTimeout não depende do relógio de animação.
   let tituloJaAnimou = false;
   function digitaTitulo(el) {
     if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
     tituloJaAnimou = true;
     document.fonts.ready.then(() => {
       if (!el.isConnected) return; // a tela pode ter trocado enquanto a fonte carregava
-      // a cadência é de gente de verdade, não de metrônomo: os intervalos abaixo
-      // foram medidos quadro a quadro de um vídeo do usuário digitando isso na
-      // barra do navegador. `d` é a espera *antes* daquele texto aparecer.
+      // a cadência é de gente de verdade (medida de um vídeo de alguém digitando).
+      // `d` é a espera *antes* daquele texto aparecer.
       const BASE = 'tô lisa';
       const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
       const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
@@ -2125,9 +2122,8 @@
     ? location.origin + location.pathname
     : 'https://tolisa.com.br/';
   const shareUrl = () => `${SITE}?senha=${encodeURIComponent(roomName)}`;
-  // api.whatsapp.com, não wa.me: o wa.me redireciona pra cá e, no caminho, troca todo
-  // emoji astral (🧾 💸 👉, acima de U+FFFF) por U+FFFD. No celular o link abre o app
-  // direto e passa longe do redirecionamento, então o estrago só aparecia na web.
+  // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
+  // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
   $('#shareBtn').onclick = async () => {
@@ -2619,10 +2615,9 @@
     sorteiaVaga();
     if ('ResizeObserver' in window) new ResizeObserver(posiciona).observe($('#app'));
     window.addEventListener('resize', posiciona);
-    // a ficha espera a pessoa chegar no fim da página. Antes bastava o código de barras
-    // aparecer, e numa tela alta (o app instalado, sem barra de navegador) ele já estava
-    // à vista na abertura: a ficha caía junto com o resto se animando, sem ninguém ver.
-    // Na fila ela vem logo depois dos riscos, antes do Sou Fulano e do ✎, que esperam ela.
+    // a ficha espera a pessoa chegar no fim da página (numa tela alta o código de barras
+    // já aparece na abertura, e ela cairia sem ninguém ver). Na fila ela vem logo depois
+    // dos riscos, antes do Sou Fulano e do ✎, que esperam ela.
     const DIVA_MS = 1100,
       FOLGA = 8;
     const noFim = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - FOLGA;

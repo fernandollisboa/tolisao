@@ -87,10 +87,11 @@ Funcionalidade: Entrar no evento
     E eu toco em quem é você
     Então o cartão mostra:
       """
-      *** QUEM TÁ NO EVENTO? ***
-      ninguém ainda
-      ADICIONAR
-      CONTINUAR
+      Quem vai?
+      enter pula pra próxima
+      1
+      + OUTRA PESSOA
+      PRONTO
       SAIR
       """
     Quando eu ponho Fernando, Júlia e Lia na lista
@@ -101,6 +102,16 @@ Funcionalidade: Entrar no evento
     Então o site pergunta quem é você
     Quando eu escolho Lia
     Então o cabeçalho diz "sou Lia"
+    E o evento no banco tem Fernando e Lia
+
+  Cenário: o nome que ficou na caixa entra no pronto
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    E eu crio o evento
+    E eu toco em quem é você
+    E eu ponho Fernando na lista
+    E eu escrevo Lia e aperto pronto sem dar enter
+    Então o site pergunta quem é você
     E o evento no banco tem Fernando e Lia
 
   Cenário: evento de uma pessoa só não pergunta quem é você

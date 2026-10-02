@@ -1540,35 +1540,44 @@
       }
     };
   }
-  /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você */
+  /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
+   * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela */
   function showSetup() {
-    const list = state.people.length
-      ? state.people
-          .map(
-            (p) =>
-              `<div class="row"><span class="l">${nomeHtml(p.id)}</span><span class="d"></span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
-          )
-          .join('')
-      : '<div class="empty">ninguém ainda</div>';
+    const bola = (p) =>
+      `<span class="bola" style="background:${colorOf(p.id)}">${esc([...p.name][0].toUpperCase())}</span>`;
+    const list = state.people
+      .map(
+        (p) =>
+          `<div class="row pessoa">${bola(p)}<span class="l">${esc(p.name)}</span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
+      )
+      .join('');
+    const n = state.people.length;
     overlay(
-      `<h2 class="longo">*** Quem tá no evento? ***</h2>
+      `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">enter pula pra próxima</div>
       ${list}
-      <div class="hr"></div>
-      <form id="setupForm" autocomplete="off" style="grid-template-columns:1fr auto;align-items:center">
-        <input id="setupName" placeholder="nome" maxlength="30"><button class="small">adicionar</button></form>
-      <button id="setupGo" class="big" style="margin-top:16px" ${state.people.length ? '' : 'disabled'}>Continuar</button>
+      <form id="setupForm" autocomplete="off" class="pessoa nova">
+        <span class="bola">${n + 1}</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
+      <button id="setupMais" class="ghost casinha">+ outra pessoa</button>
+      <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
       <div class="c voltar"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`,
       true,
     );
-    $('#setupForm').onsubmit = (ev) => {
-      ev.preventDefault();
+    // o nome que ficou na caixa também entra: no Pronto e no +, ninguém perde o que digitou
+    // no Pronto, um nome repetido na caixa só fica de fora: a pessoa já está na lista
+    const poe = (pronto = false) => {
       const name = $('#setupName').value.trim();
-      if (!name) return;
-      if (nomeExiste(name)) return toast('Já existe alguém com esse nome');
+      if (!name) return true;
+      if (nomeExiste(name)) return pronto || (toast('Já existe alguém com esse nome'), false);
       state.people.push({ id: uid(), name, at: Date.now() });
       commit();
-      showSetup();
+      return true;
     };
+    $('#setupName').oninput = () => ($('#setupGo').disabled = !state.people.length && !$('#setupName').value.trim());
+    $('#setupForm').onsubmit = (ev) => {
+      ev.preventDefault();
+      if ($('#setupName').value.trim() && poe()) showSetup();
+    };
+    $('#setupMais').onclick = () => (poe() ? showSetup() : $('#setupName').focus());
     // o ✕ vai pro deleted também: senão o merge() traz a pessoa de volta do banco no próximo sync
     for (const b of inputs('#overlayBox [data-drop]'))
       b.onclick = () => {
@@ -1579,7 +1588,7 @@
       };
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela
     $('#setupGo').onclick = () => {
-      if (!state.people.length) return;
+      if (!poe(true) || !state.people.length) return;
       if (state.people.length === 1) return souEu(state.people[0].id);
       closeOverlay();
       showWho();

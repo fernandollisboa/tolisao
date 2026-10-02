@@ -733,11 +733,12 @@
     // no próprio cartão, que não fecha — um toast no pé da tela a pessoa nem via
     const k = await askText(
       'Chave Pix',
-      'só NÃO pode CPF nem telefone (melhor evitar).',
+      '',
       'chave aleatória ou e-mail',
       pixKeys[me] || '',
       'salvar',
       (v) => !!validPixKey(v),
+      'sem CPF<br>sem tel',
     );
     if (k === null) return;
     const key = validPixKey(k);
@@ -1423,10 +1424,12 @@
     });
   }
   /** `valida` barra o que não serve sem fechar o cartão: o recado e a caixa ficam vermelhos e dão um tranco pro lado */
-  function askText(title, desc, placeholder, value = '', okLabel = 'confirmar', valida = null) {
+  /** `carimbo` troca o recado por um carimbo do lado da caixa: a regra fica colada onde se digita */
+  function askText(title, desc, placeholder, value = '', okLabel = 'confirmar', valida = null, carimbo = '') {
     return new Promise((res) => {
+      const caixa = `<input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}">`;
       overlay(
-        `<h2>${title}</h2>${desc ? `<p class="muted recado" id="askDesc">${desc}</p>` : ''}<form id="askForm" autocomplete="off"><input id="askInput" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="big">${okLabel}</button></form><div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
+        `<h2>${title}</h2>${desc ? `<p class="muted recado" id="askDesc">${desc}</p>` : ''}<form id="askForm" autocomplete="off">${carimbo ? `<div class="carimbado">${caixa}<span class="carimbo" id="askDesc">${carimbo}</span></div>` : caixa}<button class="big">${okLabel}</button></form><div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);
       const erro = ['#askInput', '#askDesc'].map((q) => $(q)).filter(Boolean);

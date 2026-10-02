@@ -529,3 +529,8 @@ h2.pergunta{text-transform:none;letter-spacing:0;font-size:30px;line-height:1.1;
 .pessoa.nova input{flex:1}
 #overlay .pessoa input::placeholder{text-transform:none}
 button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8px;margin-top:6px}
+/* a chave pix: o carimbo do lado da caixa diz o que não passa; o rotate solto não briga com o tranco do erro */
+.carimbado{display:flex;align-items:center;gap:12px}
+.carimbado input{flex:1;min-width:0}
+.carimbo{flex:none;rotate:-7deg;border:3px double var(--red);color:var(--red);padding:2px 8px;font-size:16px;line-height:1.1;text-align:center;text-transform:uppercase;letter-spacing:1px;background:var(--paper)}
+#askDesc.carimbo.erro{background:var(--red);color:var(--paper);-webkit-text-stroke:0}

@@ -43,7 +43,7 @@ Funcionalidade: Meus eventos
     E o saldo do "praia" é verde
     E o saldo do "churras" é vermelho
     Quando eu toco no "churras" da lista
-    Então o endereço termina em "?senha=churras"
+    Então o endereço termina em "?evento=churras"
     E o cabeçalho diz "sou Lia"
 
   Cenário: o endereço sem código é a lista de eventos
@@ -63,10 +63,10 @@ Funcionalidade: Meus eventos
       """
     E o código do evento não pega o foco sozinho
     Quando eu digito o código "praia"
-    Então o endereço termina em "?senha=praia"
+    Então o endereço termina em "?evento=praia"
     Quando eu abro o site sem código
     E eu toco no "churras" da lista
-    Então o endereço termina em "?senha=churras"
+    Então o endereço termina em "?evento=churras"
     E o cabeçalho diz "sou Lia"
 
   Cenário: o ✕ esquece o evento só da lista, e ele volta lembrando quem eu sou

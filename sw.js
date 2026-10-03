@@ -9,7 +9,7 @@ self.addEventListener('fetch', e => {
   // o HTML sempre revalida: é ele que carrega a versão (?v=) do css e do js.
   // sem isso, o cache de 10 min do Pages segura o HTML velho e o app abre com assets antigos
   const pedido = nav ? new Request(e.request.url, { cache: 'no-cache' }) : e.request;
-  // a navegação leva o ?senha= do evento: guarda pela URL sem query, senão cada
+  // a navegação leva o ?evento= do evento: guarda pela URL sem query, senão cada
   // evento visitado virava uma cópia igual do mesmo index.html no cache
   const chave = nav ? new Request(url.origin + url.pathname) : e.request;
   // o clone tem que sair antes de devolver r: se esperar o caches.open() abrir pra

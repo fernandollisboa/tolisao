@@ -18,7 +18,7 @@
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
-  const DESFAZER = true; // link pra remover um pagamento, útil pra testar
+  const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
   const INSTALAR = true;
@@ -1180,12 +1180,10 @@
         const st = stampStyle(e.id),
           cor = colorOf(e.payer);
         const quem = `<span class="n">${tagNovo(e)}${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])}</span>`;
-        const desfaz = DESFAZER ? `<a class="link undo" data-undo="${e.id}" title="desfazer este pagamento">✕</a>` : '';
-        const carimbo = `<span class="stampbox"><span class="stamp" style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
+        const desfaz = DESFAZER ? ` data-undo="${e.id}"` : '';
+        const carimbo = `<span class="stampbox"><span class="stamp"${desfaz} style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
         const por = e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '';
-        return (
-          linha(quem + desfaz + carimbo, valorHtml(centavos(e)), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por
-        );
+        return linha(quem + carimbo, valorHtml(centavos(e)), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por;
       })
       .join('');
     $('#settle').innerHTML = (deve || nada) + pagos;
@@ -2125,6 +2123,18 @@
       'Pix copia e cola',
     );
   }
+  // desfazer é escondido: três toques seguidos no carimbo. Guarda o id, não o elemento,
+  // porque o render do sync troca o carimbo no meio dos toques
+  let toques = { id: '', n: 0, at: 0 };
+  function tocaCarimbo(el) {
+    const agora = Date.now();
+    if (toques.id !== el.dataset.undo || agora - toques.at > 600) toques = { id: el.dataset.undo, n: 0, at: 0 };
+    toques.n++;
+    toques.at = agora;
+    if (toques.n < 3) return;
+    toques = { id: '', n: 0, at: 0 };
+    desfazPagamento(el);
+  }
   async function desfazPagamento(el) {
     const e = achaGasto(el.dataset.undo);
     if (!e) return;
@@ -2212,7 +2222,7 @@
     ['#settle .empty.anota', () => $('#fab').click()],
     ['[data-among]', (el) => abreItem(el.closest('.item'))],
     ['[data-pix]', copiaPix],
-    ['[data-undo]', desfazPagamento],
+    ['[data-undo]', tocaCarimbo],
     ['[data-settle]', quita],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],

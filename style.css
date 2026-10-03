@@ -529,8 +529,6 @@ h2.pergunta{text-transform:none;letter-spacing:0;font-size:30px;line-height:1.1;
 .pessoa.nova input{flex:1}
 #overlay .pessoa input::placeholder{text-transform:none}
 button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8px;margin-top:6px}
-/* a chave pix: o carimbo do lado da caixa, reto e da mesma altura dela, diz o que não passa */
-.carimbado{display:flex;align-items:stretch;gap:12px}
-.carimbado input{flex:1;min-width:0}
-.carimbo{flex:none;display:flex;flex-direction:column;justify-content:center;border:3px double var(--red);color:var(--red);padding:2px 8px;font-size:16px;line-height:1.1;text-align:center;text-transform:uppercase;letter-spacing:1px;background:var(--paper)}
+/* a chave pix: o carimbo em cima da caixa, na largura dela, diz o que não passa */
+.carimbo{border:3px double var(--red);color:var(--red);padding:6px;font-size:18px;line-height:1.1;text-align:center;text-transform:uppercase;letter-spacing:1px;background:var(--paper)}
 #askDesc.carimbo.erro{background:var(--red);color:var(--paper);-webkit-text-stroke:0}

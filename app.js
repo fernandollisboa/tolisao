@@ -2278,16 +2278,17 @@
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
-  /** o link pode já dizer quem vai abrir: cada pessoa uma bolinha, e o "qualquer um" no pé.
+  /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa pílula com a bolinha dela.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
   function linkPraQuem() {
     const outros = state.people.filter((p) => p.id !== me);
     if (!outros.length) return Promise.resolve('');
     return new Promise((res) => {
       overlay(
-        `<h2 class="pergunta">Link pra quem?</h2><div class="c muted recado" style="text-transform:none">quem abrir já entra com o nome</div>
-      ${outros.map((p) => `<button class="pessoa linkpra" data-link-pra="${p.id}">${bolinha(p)}<span class="l">${esc(p.name)}</span></button>`).join('')}
-      <button class="ghost casinha" data-link-pra="">qualquer um</button>
+        `<h2 class="pergunta">Mandar pra quem?</h2>
+      <button class="big" data-link-pra="">👥 pro grupo todo</button>
+      <div class="c muted linkou">ou um link que já entra como:</div>
+      <div class="linkpras">${outros.map((p) => `<button class="linkpra" data-link-pra="${p.id}">${bolinha(p)}${esc(p.name)}</button>`).join('')}</div>
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);

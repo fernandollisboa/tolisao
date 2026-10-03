@@ -49,6 +49,8 @@ Funcionalidade: Acertar as contas
     E eu quito a primeira linha de Minha conta
     E eu começo a desfazer o pagamento "Lia → Fernando" e volto atrás
     Então o pagamento "Lia → Fernando" continua carimbado
+    Quando eu toco duas vezes no carimbo do pagamento "Lia → Fernando"
+    Então nenhum cartão abre
     Quando eu desfaço o pagamento "Lia → Fernando"
     Então nenhum pagamento está carimbado
     E falta pagar:

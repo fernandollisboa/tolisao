@@ -532,3 +532,6 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 /* a chave pix: o carimbo em cima da caixa, na largura dela, diz o que não passa */
 .carimbo{border:3px double var(--red);color:var(--red);padding:6px;font-size:18px;line-height:1.1;text-align:center;text-transform:uppercase;letter-spacing:1px;background:var(--paper)}
 #askDesc.carimbo.erro{background:var(--red);color:var(--paper);-webkit-text-stroke:0}
+/* link pra quem: a mesma bolinha do quem vai, a linha inteira é o botão */
+button.pessoa.linkpra{width:100%;background:transparent;border:0;padding:0;text-transform:none;font-size:21px;letter-spacing:0;text-align:left}
+button.pessoa.linkpra .l{flex:1;border-bottom:2px solid var(--ink);line-height:1.6}

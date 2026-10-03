@@ -76,7 +76,7 @@ Then('aparece o aviso {string}', async ({ mundo }, txt) => { await expect(mundo.
 
 // evento sem ninguém: o "quem é você?" vira a lista de gente
 // a sala aberta é a gaveta que guarda o código que está no endereço
-const salaAberta = mundo => mundo.p.evaluate(() => { const c = new URLSearchParams(location.search).get('senha');
+const salaAberta = mundo => mundo.p.evaluate(() => { const c = new URLSearchParams(location.search).get('evento');
   return Object.keys(localStorage).find(k => k.startsWith('tolisa:') && JSON.parse(localStorage.getItem(k) || '{}').code === c)?.slice(7); });
 When('eu toco em quem é você', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#overlayBox h2'); });
 When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
@@ -118,3 +118,18 @@ Then('o aparelho esquece o evento', async ({ mundo }) => {
   const g = await mundo.p.evaluate(k => JSON.parse(localStorage.getItem(k) || '{}'), `tolisa:${mundo.sala}`);
   expect(g.hidden).toBe(true); expect(g.snapshot).toBeTruthy();
 });
+
+// o link pode dizer quem vai abrir (&quem=); ?senha= é o nome antigo do parâmetro
+// o link do zap é a última coisa da mensagem
+const linkDoZap = mundo => mundo.p.evaluate(() => decodeURIComponent(window.__aberto.split('text=')[1]).trim().split(/\s+/).pop());
+Then('o link do zap entra como {word}', async ({ mundo }, quem) => {
+  await expect.poll(() => linkDoZap(mundo)).toBe(`${mundo.link}&quem=${mundo.pessoa(quem).id}`);
+});
+When('eu abro o link do zap em outro aparelho', async ({ mundo }) => {
+  const link = await linkDoZap(mundo); await mundo.abre({ link }); await mundo.p.waitForSelector('#app:not(.loading)');
+});
+When('eu colo o link do evento pra {word} na mesma aba', async ({ mundo }, quem) => {
+  await mundo.p.evaluate(q => { location.search = q; }, `?evento=${mundo.evento.name}&quem=${mundo.pessoa(quem).id}`);
+  await mundo.p.waitForSelector('#app:not(.loading)');
+});
+When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre({ link: mundo.base + '/' + q }); await mundo.p.waitForSelector('#app:not(.loading)'); });

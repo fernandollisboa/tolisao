@@ -24,11 +24,11 @@ Funcionalidade: Entrar no evento
     Dado que eu abro o site sem evento
     Quando eu digito o código "Bailedamada"
     E eu crio o evento
-    Então o endereço é "?senha=bailedamada-" com um final sorteado
+    Então o endereço é "?evento=bailedamada-" com um final sorteado
     E o nome do evento no cabeçalho é "bailedamada"
     Quando eu recarrego a página
     Então o site não pergunta nada
-    Quando eu colo o link "?senha=bailedamada" na mesma aba
+    Quando eu colo o link "?evento=bailedamada" na mesma aba
     Então o site pergunta se é um evento novo
 
   Cenário: evento que já existe abre pelo código de sempre
@@ -36,8 +36,32 @@ Funcionalidade: Entrar no evento
     E que eu abro o site sem evento
     Quando eu digito o código "churras"
     Então o site não pergunta nada
-    E o endereço termina em "?senha=churras"
+    E o endereço termina em "?evento=churras"
     E o nome do evento no cabeçalho é "churras"
+
+  Cenário: o link pode dizer quem vai abrir
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    E os gastos:
+      | o quê | valor | pagou    | divide entre          |
+      | Pizza | 90,00 | Fernando | Fernando, Júlia, Lia |
+    Quando eu abro o evento como Fernando
+    E eu toco em enviar pra Lia
+    Então o link do zap entra como Lia
+    Quando eu abro o link do zap em outro aparelho
+    Então o cabeçalho diz "sou Lia"
+    E o endereço termina em "?evento=churras"
+
+  Cenário: o quem do link não troca quem o aparelho já é
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Fernando
+    E eu colo o link do evento pra Lia na mesma aba
+    Então o cabeçalho diz "sou Fernando"
+
+  Cenário: link antigo, com ?senha=, continua abrindo
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o endereço "?senha=churras"
+    Então o nome do evento no cabeçalho é "churras"
+    E o endereço termina em "?evento=churras"
 
   Cenário: o cartão do evento
     Dado o evento "bailedamada" com Fernando, Júlia e Lia

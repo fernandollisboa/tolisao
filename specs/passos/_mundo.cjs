@@ -18,11 +18,11 @@ class Mundo {
     this.evento = null; this.sala = ''; this.p = null; this.nota = {};
     this.erros = []; this.dialogos = []; this.contextos = []; this.antes = null;
   }
-  get link() { return `${this.base}/?senha=${this.evento.name}`; }
+  get link() { return `${this.base}/?evento=${this.evento.name}`; }
   pessoa(nome) { const eu = this.evento.people.find(x => x.name === nome); if (!eu) throw new Error(`${nome} não está no evento`); return eu; }
   criaEvento(dados) { this.evento = dados; this.sala = this.banco.sala(dados); return dados; }
 
-  async abre({ quem, toque = false, semEvento = false } = {}) {
+  async abre({ quem, toque = false, semEvento = false, link = '' } = {}) {
     const ctx = await this.browser.newContext({ acceptDownloads: true, hasTouch: toque, isMobile: toque, timezoneId: 'America/Sao_Paulo' });
     await ctx.clock.setSystemTime(AGORA);
     this.contextos.push(ctx);
@@ -47,7 +47,7 @@ class Mundo {
     const p = await ctx.newPage(); this.p = p; await cobertura.liga(p);
     p.on('pageerror', e => this.erros.push(e.message));
     p.on('dialog', d => { this.dialogos.push(d.message()); d.accept(); });
-    await p.goto(semEvento ? this.base + '/' : this.link);
+    await p.goto(semEvento ? this.base + '/' : link || this.link);
     if (quem) await this.souEu(quem);
     return p;
   }

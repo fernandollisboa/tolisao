@@ -13,7 +13,7 @@
   //   → fila das animações → desenhos (ícones) → pix → a nota (render) → o anotar
   //   → cartões (overlays) → entrar num evento → meus eventos → botões → cliques
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
-  // tudo começa na última seção, "início": lê o ?senha= do endereço e abre o evento.
+  // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
 
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
@@ -158,6 +158,7 @@
   /** o código inteiro, com o final sorteado ("churras-k7f3q9") */ let roomName = '';
   /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
   /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
+  /** o &quem= do link compartilhado: quem abre já entra como essa pessoa @type {string|null} */ let quemDoLink = null;
   /** quando esta pessoa viu o evento pela última vez: o que chegou depois ganha "novo" */ let lastSeen = 0;
   /** pessoa → chave pix, lida do banco @type {Record<string, string>} */ let pixKeys = {};
   /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
@@ -1541,15 +1542,16 @@
       }
     };
   }
+  /** a bolinha da pessoa: a inicial no círculo da cor dela */
+  const bolinha = (p) =>
+    `<span class="bola" style="background:${colorOf(p.id)}">${esc([...p.name][0].toUpperCase())}</span>`;
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
    * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela */
   function showSetup() {
-    const bola = (p) =>
-      `<span class="bola" style="background:${colorOf(p.id)}">${esc([...p.name][0].toUpperCase())}</span>`;
     const list = state.people
       .map(
         (p) =>
-          `<div class="row pessoa">${bola(p)}<span class="l">${esc(p.name)}</span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
+          `<div class="row pessoa">${bolinha(p)}<span class="l">${esc(p.name)}</span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
       )
       .join('');
     const n = state.people.length;
@@ -1730,8 +1732,9 @@
   }
   async function openGroup(code, id) {
     // o código fica no endereço: copiar a URL da barra já manda o evento
-    if (code && location.search !== '?senha=' + encodeURIComponent(code))
-      history.replaceState(null, '', location.pathname + '?senha=' + encodeURIComponent(code) + location.hash);
+    // (sem o &quem=: a barra copiada não pode mandar o próximo entrar como outra pessoa)
+    if (code && location.search !== '?evento=' + encodeURIComponent(code))
+      history.replaceState(null, '', location.pathname + '?evento=' + encodeURIComponent(code) + location.hash);
     roomName = code;
     groupId = id;
     if (code)
@@ -1776,6 +1779,10 @@
       setStatus('Offline · ' + e.message, true);
     }
     $('#app').classList.remove('loading');
+    // o link veio com &quem=: o aparelho que ainda não é ninguém no evento já entra como essa pessoa
+    const quem = quemDoLink;
+    quemDoLink = null;
+    if (!me && quem && state.people.some((p) => p.id === quem)) souEu(quem);
     // ninguém é interrompido na chegada: a tela de estreia e o "quem é você?"
     // esperam o toque no botão do cabeçalho
     startPolling();
@@ -1913,7 +1920,7 @@
   function ligaEventos(evs, esquece) {
     const abre = (e) => {
       if (e.id === groupId) return closeOverlay();
-      location.href = location.pathname + '?senha=' + encodeURIComponent(e.code);
+      location.href = location.pathname + '?evento=' + encodeURIComponent(e.code);
     };
     for (const el of inputs('#overlayBox [data-ev]')) {
       const e = evs.find((x) => x.id === el.dataset.ev);
@@ -2265,13 +2272,42 @@
   const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
     ? location.origin + location.pathname
     : 'https://tolisa.com.br/';
-  const shareUrl = () => `${SITE}?senha=${encodeURIComponent(roomName)}`;
+  /** `quem` vai no &quem=: quem abrir já entra como essa pessoa */
+  const shareUrl = (quem = '') => `${SITE}?evento=${encodeURIComponent(roomName)}${quem ? '&quem=' + quem : ''}`;
   // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  /** o link pode já dizer quem vai abrir: cada pessoa uma bolinha, e o "qualquer um" no pé.
+   * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
+  function linkPraQuem() {
+    const outros = state.people.filter((p) => p.id !== me);
+    if (!outros.length) return Promise.resolve('');
+    return new Promise((res) => {
+      overlay(
+        `<h2 class="pergunta">Link pra quem?</h2><div class="c muted recado" style="text-transform:none">quem abrir já entra com o nome</div>
+      ${outros.map((p) => `<button class="pessoa linkpra" data-link-pra="${p.id}">${bolinha(p)}<span class="l">${esc(p.name)}</span></button>`).join('')}
+      <button class="ghost casinha" data-link-pra="">qualquer um</button>
+      <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
+      );
+      overlayCancel = () => res(null);
+      for (const b of inputs('#overlayBox [data-link-pra]'))
+        b.onclick = () => {
+          overlayCancel = null;
+          closeOverlay();
+          res(b.dataset.linkPra || '');
+        };
+      $('#cancelBtn').onclick = () => {
+        overlayCancel = null;
+        closeOverlay();
+        res(null);
+      };
+    });
+  }
   $('#shareBtn').onclick = async () => {
-    const url = shareUrl();
+    const quem = await linkPraQuem();
+    if (quem === null) return;
+    const url = shareUrl(quem);
     try {
       await navigator.clipboard.writeText(url);
       toast('Link copiado. Quem abrir cai neste evento.');
@@ -2279,10 +2315,10 @@
       showCopy('Link do evento', url);
     }
   };
-  function summaryText() {
+  function summaryText(quem = '') {
     const st = settlements(balances());
     const ev = evento() || 'acerto';
-    if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl()}`;
+    if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl(quem)}`;
     return [
       `🧾 acerto do *${ev}*`,
       '',
@@ -2291,7 +2327,7 @@
           `💸 ${nameOf(t.from)} paga ${comSifrao(t.cents)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`,
       ),
       '',
-      `tudo aqui 👉 ${shareUrl()}`,
+      `tudo aqui 👉 ${shareUrl(quem)}`,
     ].join('\n');
   }
   // ---------- imagem da comanda (canvas) ----------
@@ -2527,9 +2563,12 @@
     p.drawImage(rascunho, 0, 0, LARGURA * ESCALA, ALTURA * ESCALA, 0, 0, LARGURA, ALTURA);
     return new Promise((res) => papel.toBlob(res, 'image/png'));
   }
-  const waText = () => abreZap(summaryText());
+  // compartilhar começa perguntando pra quem é o link: quem abrir já entra como essa pessoa
   $('#waBtn').onclick = async () => {
     const btn = $('#waBtn');
+    const quem = await linkPraQuem();
+    if (quem === null) return;
+    const waText = () => abreZap(summaryText(quem));
     btn.disabled = true;
     toast('Gerando a imagem…');
     try {
@@ -2537,7 +2576,7 @@
       const file = new File([blob], `evento-${evento() || 'grupo'}.png`, { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], text: summaryText() });
+          await navigator.share({ files: [file], text: summaryText(quem) });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
@@ -3149,7 +3188,11 @@
   // ---------- início ----------
   // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
   (async () => {
-    const c = new URLSearchParams(location.search).get('senha');
+    // ?senha= é o nome antigo do parâmetro: link velho no zap continua abrindo
+    const q = new URLSearchParams(location.search);
+    const c = q.get('evento') || q.get('senha');
+    const quem = q.get('quem');
+    if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
     if (c) {
       const code = c.trim().toLowerCase(),
         id = await sha(code);

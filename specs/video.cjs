@@ -189,7 +189,7 @@ async function video(opts = {}) {
     if (opts.js) await p.addInitScript(opts.js);
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
-    await p.goto(`http://localhost:${porta}/?senha=${dados.name}`);
+    await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
     if (opts.css) await p.addStyleTag({ content: opts.css });
     await p.waitForSelector('#mine:not(.hidden)', { timeout: 8000 });
     await c.acao(p);

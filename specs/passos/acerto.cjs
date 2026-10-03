@@ -53,9 +53,13 @@ Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
 Then('fica copiado o pix copia e cola:', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt.trim()); });
 
-When('eu toco em enviar', async ({ mundo }) => {
-  const [baixou] = await Promise.all([mundo.p.waitForEvent('download'), mundo.p.click('#waBtn')]); mundo.nota.download = baixou;
-});
+// enviar pergunta antes pra quem é o link: "qualquer um" é o data-link-pra vazio
+const envia = async (mundo, id) => {
+  await mundo.p.click('#waBtn');
+  const [baixou] = await Promise.all([mundo.p.waitForEvent('download'), mundo.p.click(`[data-link-pra="${id}"]`)]); mundo.nota.download = baixou;
+};
+When('eu toco em enviar', async ({ mundo }) => { await envia(mundo, ''); });
+When('eu toco em enviar pra {word}', async ({ mundo }, quem) => { await envia(mundo, mundo.pessoa(quem).id); });
 Then('baixa a imagem {string}', async ({ mundo }, nome) => {
   const d = mundo.nota.download; expect(d.suggestedFilename()).toBe(nome);
   const arq = path.join(os.tmpdir(), 'receipt.png'); await d.saveAs(arq);

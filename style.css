@@ -534,7 +534,8 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 /* a chave pix: o carimbo em cima da caixa, na largura dela, diz o que não passa */
 .carimbo{border:3px double var(--red);color:var(--red);padding:6px;font-size:18px;line-height:1.1;text-align:center;text-transform:uppercase;letter-spacing:1px;background:var(--paper)}
 #askDesc.carimbo.erro{background:var(--red);color:var(--paper);-webkit-text-stroke:0}
-/* mandar pra quem: o grupo todo é o botão grande; cada pessoa, uma pílula na cor dela */
+/* mandar pra quem: o grupo todo é o botão grande; cada pessoa, uma cápsula com contorno e pontinho na cor dela */
 .linkou{margin:14px 0 0;text-transform:none;font-size:17px;text-align:center}
 .linkpras{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
-button.linkpra{color:#fff;font-size:22px;text-transform:none;letter-spacing:0;border-radius:999px;padding:4px 16px;box-shadow:2px 2px 0 var(--ink)}
+button.linkpra{display:inline-flex;align-items:center;gap:8px;color:var(--ink);background:#fff8e6;border-color:var(--cor);font-size:20px;text-transform:none;letter-spacing:0;border-radius:999px;padding:3px 14px 3px 10px;box-shadow:2px 2px 0 var(--cor)}
+button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}

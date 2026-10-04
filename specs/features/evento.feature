@@ -113,7 +113,7 @@ Funcionalidade: Entrar no evento
       """
       Quem vai?
       enter pula pra próxima
-      1
+      +
       + OUTRA PESSOA
       PRONTO
       SAIR

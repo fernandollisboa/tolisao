@@ -526,6 +526,8 @@ h2.pergunta{text-transform:none;letter-spacing:0;font-size:30px;line-height:1.1;
 .pessoa.row .l{flex:1;border-bottom:2px solid var(--ink);line-height:1.6;text-transform:none}
 .pessoa.nova{display:flex}
 .pessoa.nova .bola{border-style:dashed;color:var(--muted)}
+/* gente já posta: só a cor, menor e sem contorno, no meio da casinha de 36 */
+.pessoa.row .bola{width:26px;height:26px;border:0;margin:0 5px}
 .pessoa.nova input{flex:1}
 #overlay .pessoa input::placeholder{text-transform:none}
 button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8px;margin-top:6px}

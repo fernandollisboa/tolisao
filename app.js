@@ -1542,9 +1542,8 @@
       }
     };
   }
-  /** a bolinha da pessoa: a inicial no círculo da cor dela */
-  const bolinha = (p) =>
-    `<span class="bola" style="background:${colorOf(p.id)}">${esc([...p.name][0].toUpperCase())}</span>`;
+  /** a bolinha da pessoa: só a cor dela, sem letra */
+  const bolinha = (p) => `<span class="bola" style="background:${colorOf(p.id)}"></span>`;
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
    * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela */
   function showSetup() {
@@ -1559,7 +1558,7 @@
       `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">enter pula pra próxima</div>
       ${list}
       <form id="setupForm" autocomplete="off" class="pessoa nova">
-        <span class="bola">${n + 1}</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
+        <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
       <div class="c voltar"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`,

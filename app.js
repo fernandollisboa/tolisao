@@ -2277,7 +2277,7 @@
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
-  /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa pílula na cor dela.
+  /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa cápsula com contorno e pontinho na cor dela.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
   function linkPraQuem() {
     const outros = state.people.filter((p) => p.id !== me);
@@ -2287,7 +2287,7 @@
         `<h2 class="pergunta">Mandar pra quem?</h2>
       <button class="big" data-link-pra="">👥 pro grupo todo</button>
       <div class="c muted linkou">ou um link que já entra como:</div>
-      <div class="linkpras">${outros.map((p) => `<button class="linkpra" data-link-pra="${p.id}" style="background:${colorOf(p.id)}">${esc(p.name)}</button>`).join('')}</div>
+      <div class="linkpras">${outros.map((p) => `<button class="linkpra" data-link-pra="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);

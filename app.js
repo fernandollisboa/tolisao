@@ -334,6 +334,17 @@
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
   }
 
+  // o merge() deixa o banco ganhar na mesma pessoa: o nome trocado aqui segura até o banco gravar ele
+  /** @type {Record<string, string>} */ const renomes = {};
+  function renomeia(st, remote) {
+    for (const [id, nome] of Object.entries(renomes)) {
+      const p = st.people.find((x) => x.id === id);
+      if (p) p.name = nome;
+      const r = remote && remote.people && remote.people.find((x) => x.id === id);
+      if (!p || (r && r.name === nome)) delete renomes[id];
+    }
+    return st;
+  }
   async function sync() {
     // baixa, mescla e sobe se houver novidade
     if (!groupId || saving) return;
@@ -342,7 +353,7 @@
       // outro aparelho gravou no meio: baixa de novo e mescla por cima do que ele gravou
       for (let vez = 1; ; vez++) {
         const { data: remote, etag } = await baixa(groupId);
-        const merged = merge(state, remote);
+        const merged = renomeia(merge(state, remote), remote);
         const changed = canon(merged) !== canon(remote);
         state = merged;
         cacheSave();
@@ -1550,14 +1561,14 @@
     const list = state.people
       .map(
         (p) =>
-          `<div class="row pessoa">${bolinha(p)}<span class="l">${esc(p.name)}</span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
+          `<div class="row pessoa" style="--cor:${colorOf(p.id)}">${bolinha(p)}<span class="l" contenteditable="plaintext-only" spellcheck="false" data-renome="${p.id}">${esc(p.name)}</span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
       )
       .join('');
     const n = state.people.length;
     overlay(
       `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">enter pula pra próxima</div>
       ${list}
-      <form id="setupForm" autocomplete="off" class="pessoa nova">
+      <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${PALETTE[n % PALETTE.length]}">
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
@@ -1573,7 +1584,38 @@
       commit();
       return true;
     };
-    $('#setupName').oninput = () => ($('#setupGo').disabled = !state.people.length && !$('#setupName').value.trim());
+    // a cor de quem entra já é sabida (é a próxima da PALETTE): a casinha pinta na primeira letra
+    $('#setupName').oninput = () => {
+      const tem = !!$('#setupName').value.trim();
+      $('#setupForm').classList.toggle('digitando', tem);
+      $('#setupGo').disabled = !state.people.length && !tem;
+    };
+    // tocar no nome deixa editar ali mesmo: enter ou sair da caixa grava; vazio ou repetido volta ao que era
+    for (const el of inputs('#overlayBox [data-renome]')) {
+      const p = state.people.find((x) => x.id === el.dataset.renome);
+      if (!p) continue;
+      el.onkeydown = (ev) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          el.blur();
+        }
+        if (ev.key === 'Escape') {
+          el.textContent = p.name;
+          el.blur();
+        }
+      };
+      el.onblur = () => {
+        const novo = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+        if (novo === p.name) return void (el.textContent = p.name);
+        if (!novo || state.people.some((x) => x.id !== p.id && x.name.toLowerCase() === novo.toLowerCase())) {
+          if (novo) toast('Já existe alguém com esse nome');
+          return void (el.textContent = p.name);
+        }
+        p.name = renomes[p.id] = novo;
+        el.textContent = novo;
+        commit();
+      };
+    }
     $('#setupForm').onsubmit = (ev) => {
       ev.preventDefault();
       if ($('#setupName').value.trim() && poe()) showSetup();

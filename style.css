@@ -540,3 +540,20 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 .linkpras{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
 button.linkpra{display:inline-flex;align-items:center;gap:8px;color:var(--ink);background:#fff8e6;border-color:var(--cor);font-size:20px;text-transform:none;letter-spacing:0;border-radius:999px;padding:3px 14px 3px 10px;box-shadow:2px 2px 0 var(--cor)}
 button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
+/* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
+.pessoa.row .l[contenteditable]{outline:0;cursor:text}
+.pessoa.row .l[contenteditable]:focus{border-bottom-style:dashed;background:#fff8e6}
+/* a casinha vazia pinta na cor de quem vai entrar assim que a primeira letra aparece */
+.pessoa.nova.digitando .bola{background:var(--cor);border-style:solid;border-color:var(--ink);color:transparent}
+/* o quem vai em cápsulas, como o mandar pra quem: contorno, sombra e pontinho na cor de cada um.
+   A casinha vazia é cápsula tracejada; na primeira letra ela já ganha a cor de quem vai entrar */
+#overlayBox .row.pessoa{border:2px solid var(--cor);border-radius:999px;padding:2px 6px 2px 12px;box-shadow:2px 2px 0 var(--cor);background:#fff8e6;margin:10px 0}
+#overlayBox .row.pessoa .bola{width:14px;height:14px;border:0;margin:0}
+#overlayBox .row.pessoa .l{border-bottom:0}
+#overlayBox .row.pessoa .l:focus{background:transparent;text-decoration:underline dashed}
+#overlayBox .row.pessoa button.ico{border:0;background:transparent}
+#overlayBox .pessoa.nova{border:2px dashed var(--rule);border-radius:999px;padding:0 12px;margin:10px 0}
+#overlayBox .pessoa.nova .bola{width:14px;height:14px;margin:0;font-size:0;border-width:2px}
+#overlayBox .pessoa.nova input{border:0;box-shadow:none;background:transparent;outline:0}
+#overlayBox .pessoa.nova.digitando{border-style:solid;border-color:var(--cor);box-shadow:2px 2px 0 var(--cor);background:#fff8e6}
+#overlayBox .pessoa.nova.digitando .bola{border:0}

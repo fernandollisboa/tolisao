@@ -88,6 +88,10 @@ When('eu tiro o/a {word} da lista', async ({ mundo }, nome) => {
   await expect(mundo.p.locator('#overlayBox .row', { hasText: nome })).toHaveCount(0);
 });
 When('eu escrevo {word} e aperto pronto sem dar enter', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.click('#setupGo'); });
+When('eu troco o nome da/do {word} pra {word} na lista', async ({ mundo }, de, pra) => {
+  const el = mundo.p.locator('#overlayBox [data-renome]', { hasText: de }); await el.click();
+  await mundo.p.keyboard.press('ControlOrMeta+A'); await mundo.p.keyboard.type(pra); await mundo.p.keyboard.press('Enter');
+});
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
 Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });
 When('eu escolho {word}', async ({ mundo }, quem) => { await mundo.p.selectOption('#whoSel', { label: quem }); });

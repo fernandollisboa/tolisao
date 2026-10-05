@@ -1,4 +1,4 @@
-const { When, Then, expect } = require('./_mundo.cjs');
+const { Given, When, Then, expect, AGORA } = require('./_mundo.cjs');
 
 // o banco pode ter vários eventos; o mundo passa a falar do que foi nomeado
 const usa = (mundo, nome) => { const rooms = mundo.banco.arvore.rooms;
@@ -36,3 +36,12 @@ Then('a lista do cartão tem só {string}', async ({ mundo }, nome) => {
   await expect(mundo.p.locator('#overlayBox .ev .l')).toHaveText([nome]);
 });
 Then('a lista de eventos está vazia', async ({ mundo }) => { await expect(mundo.p.locator('#overlayBox .ev')).toHaveCount(0); });
+
+// a data da lista é a última mudança no evento (updatedAt), não a última vez que alguém abriu
+Given('que o {string} mudou pela última vez há {int} dias', async ({ mundo }, nome, dias) => {
+  Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome).updatedAt = AGORA - dias * 86400000;
+});
+Then('a lista de eventos é:', async ({ mundo }, tabela) => {
+  const lidos = await mundo.p.$$eval('#overlayBox .ev', evs => evs.map(e => [e.querySelector('.l').textContent.trim(), e.querySelector('.sub span:last-child').textContent.trim()]));
+  expect(lidos).toEqual(tabela.raw());
+});

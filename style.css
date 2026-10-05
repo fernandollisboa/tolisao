@@ -540,3 +540,8 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 .linkpras{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
 button.linkpra{display:inline-flex;align-items:center;gap:8px;color:var(--ink);background:#fff8e6;border-color:var(--cor);font-size:20px;text-transform:none;letter-spacing:0;border-radius:999px;padding:3px 14px 3px 10px;box-shadow:2px 2px 0 var(--cor)}
 button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
+/* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
+.pessoa.row .l[contenteditable]{outline:0;cursor:text}
+.pessoa.row .l[contenteditable]:focus{border-bottom-style:dashed;background:#fff8e6}
+/* a casinha vazia pinta na cor de quem vai entrar assim que a primeira letra aparece */
+.pessoa.nova.digitando .bola{background:var(--cor);border-style:solid;border-color:var(--ink);color:transparent}

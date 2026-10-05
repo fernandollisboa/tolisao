@@ -144,6 +144,16 @@ Funcionalidade: Entrar no evento
       SAIR
       """
 
+  Cenário: tocar no nome deixa corrigir sem apagar a pessoa
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    E eu crio o evento
+    E eu ponho Fernando e Julai na lista
+    E eu troco o nome da Julai pra Júlia na lista
+    E eu troco o nome do Fernando pra Júlia na lista
+    Então aparece o aviso "Já existe alguém com esse nome"
+    E o evento no banco tem Fernando e Júlia
+
   Cenário: o nome que ficou na caixa entra no pronto
     Dado que eu abro o site sem evento
     Quando eu digito o código "praia"

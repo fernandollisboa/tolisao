@@ -1561,8 +1561,7 @@
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
-      <div class="c voltar"><button id="setupLeave" class="ghost" style="color:var(--red)">sair</button></div>`,
-      true,
+      <div class="c voltar"><button id="setupLeave" class="ghost">sair</button></div>`,
     );
     // o nome que ficou na caixa também entra: no Pronto e no +, ninguém perde o que digitou
     // no Pronto, um nome repetido na caixa só fica de fora: a pessoa já está na lista
@@ -1595,9 +1594,8 @@
       closeOverlay();
       showWho();
     };
-    $('#setupLeave').onclick = async () => {
-      if (await ask('Sair do evento?', '', 'sair', true)) leave();
-    };
+    // sair (ou tocar fora) só fecha: a nota fica esperando o toque no "quem é você?"
+    $('#setupLeave').onclick = closeOverlay;
     $('#setupName').focus();
   }
   // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
@@ -1697,6 +1695,7 @@
     } catch (e) {
       if (!e.notFound) throw new Error('Sem conexão com o banco: ' + e.message);
     }
+    let criou = false;
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
     if (!existing && !seed) {
       if (
@@ -1710,6 +1709,7 @@
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
       // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
       const nome = code;
+      criou = true;
       code = `${code}-${sorteia(6)}`;
       id = await sha(code);
       await apiPut(id, fresh(nome));
@@ -1728,6 +1728,8 @@
       history.replaceState(null, '', location.pathname);
     }
     await openGroup(code, id);
+    // evento recém-criado já abre na lista de gente; fechou, cai na nota pedindo o "quem é você?"
+    if (criou && !state.people.length) showSetup();
   }
   async function openGroup(code, id) {
     // o código fica no endereço: copiar a URL da barra já manda o evento

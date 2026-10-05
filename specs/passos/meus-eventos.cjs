@@ -42,6 +42,10 @@ Given('que o {string} mudou pela última vez há {int} dias', async ({ mundo }, 
   Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome).updatedAt = AGORA - dias * 86400000;
 });
 Then('a lista de eventos é:', async ({ mundo }, tabela) => {
-  const lidos = await mundo.p.$$eval('#overlayBox .ev', evs => evs.map(e => [e.querySelector('.l').textContent.trim(), e.querySelector('.sub span:last-child').textContent.trim()]));
-  expect(lidos).toEqual(tabela.raw());
+  // a data do banco chega depois do cartão abrir: espera a lista redesenhar
+  await expect.poll(() => mundo.p.$$eval('#overlayBox .ev', evs => evs.map(e => [e.querySelector('.l').textContent.trim(), e.querySelector('.sub span:last-child').textContent.trim()])))
+    .toEqual(tabela.raw());
+});
+Given('alguém mexe no {string} ontem, em outro aparelho', async ({ mundo }, nome) => {
+  Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome).updatedAt = AGORA - 86400000;
 });

@@ -14,6 +14,16 @@ Funcionalidade: Meus eventos
       | o quê | valor  | pagou | divide entre |
       | Casa  | 200,00 | Lia   | Lia, Mengla  |
 
+  Cenário: a lista vem pela última mudança no evento, e só abrir não sobe ele
+    Dado que o "churras" mudou pela última vez há 3 dias
+    E que o "praia" mudou pela última vez há 10 dias
+    Quando eu abro o evento "churras" como Lia
+    E eu entro no evento "praia" como Lia
+    E eu toco no nome do evento
+    Então a lista de eventos é:
+      | churras | há 3 dias   |
+      | praia   | há 1 semana |
+
   Cenário: os eventos em que entrei ficam no cartão do evento, com o meu saldo
     Quando eu abro o evento "churras" como Lia
     E eu entro no evento "praia" como Lia

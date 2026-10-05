@@ -1870,7 +1870,9 @@
           id,
           code: o.code,
           nome: (snap && snap.name) || o.code,
-          at: +o.openedAt || 0,
+          // a data e a ordem são da última mudança no evento (gasto, pagamento, gente), não de quando
+          // foi aberto: só olhar não sobe o evento na lista
+          at: (snap && snap.updatedAt) || +o.openedAt || 0,
           me: okId(o.me) ? o.me : null,
           snap,
         };

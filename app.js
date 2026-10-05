@@ -69,7 +69,7 @@
   };
   // o que fica no aparelho, em duas gavetas de JSON:
   //   tolisa         { visits, installPrompted, itemsOpened, boringMode }
-  //   tolisa:<sala>  { code, openedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot }
+  //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -1533,6 +1533,7 @@
     );
     digitaTitulo($('#tituloGate'));
     ligaEventos(evs);
+    atualizaDatas(evs, false);
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button');
@@ -1872,7 +1873,8 @@
         () => showCopy('Código do evento', roomName),
       );
     $('#evOutro').onclick = leave;
-    ligaEventos(evs, async (e) => {
+    /** @param {MeuEvento} e */
+    const esquece = async (e) => {
       if (
         !(await ask(
           `Esquecer ${esc(e.nome)}?`,
@@ -1885,7 +1887,9 @@
       esconde(e.id);
       if (e.id === groupId) return leave();
       showRoom();
-    });
+    };
+    ligaEventos(evs, esquece);
+    atualizaDatas(evs, true, esquece);
   }
   /** o endereço sem código é a lista de eventos (ou o cartão do código, pra quem nunca entrou em nenhum) */
   function leave() {
@@ -1914,7 +1918,7 @@
           nome: (snap && snap.name) || o.code,
           // a data e a ordem são da última mudança no evento (gasto, pagamento, gente), não de quando
           // foi aberto: só olhar não sobe o evento na lista
-          at: (snap && snap.updatedAt) || +o.openedAt || 0,
+          at: Math.max((snap && snap.updatedAt) || 0, +o.changedAt || 0) || +o.openedAt || 0,
           me: okId(o.me) ? o.me : null,
           snap,
         };
@@ -1940,6 +1944,30 @@
     return d.getFullYear() === hoje.getFullYear() ? `em ${mes}` : `em ${mes} de ${d.getFullYear()}`;
   }
   /** cada evento com o seu saldo nele, contado da cópia do aparelho: abre sem internet */
+  /** a cópia do aparelho só sabe o que ele viu: a lista pergunta ao banco o updatedAt de cada evento
+   * (um número por evento, nada de listar) e, se algum mudou, redesenha a lista no lugar */
+  function atualizaDatas(evs, comX, esquece) {
+    let mudou = false;
+    Promise.all(
+      evs.map(async (e) => {
+        try {
+          const r = await fetch(`${DB}/rooms/${e.id}/updatedAt.json`, { cache: 'no-store' });
+          const v = r.ok ? await r.json() : null;
+          if (typeof v !== 'number' || !(v > e.at) || v > Date.now() + 86400000) return;
+          mexe(roomKey(e.id), (o) => {
+            o.changedAt = v;
+          });
+          mudou = true;
+        } catch {}
+      }),
+    ).then(() => {
+      const caixa = $('#overlayBox .evs');
+      if (!mudou || !caixa) return;
+      const novos = meusEventos();
+      caixa.outerHTML = listaEventos(novos, comX);
+      ligaEventos(novos, esquece);
+    });
+  }
   function listaEventos(evs, comX) {
     return `<div class="evs">${evs
       .map((e) => {

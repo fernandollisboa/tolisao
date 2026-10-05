@@ -108,7 +108,6 @@ Funcionalidade: Entrar no evento
     Dado que eu abro o site sem evento
     Quando eu digito o código "praia"
     E eu crio o evento
-    E eu toco em quem é você
     Então o cartão mostra:
       """
       Quem vai?
@@ -128,11 +127,27 @@ Funcionalidade: Entrar no evento
     Então o cabeçalho diz "sou Lia"
     E o evento no banco tem Fernando e Lia
 
+  Cenário: fechar a lista de gente volta pra nota, e o quem é você abre ela de novo
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    E eu crio o evento
+    E eu toco fora do cartão
+    Então o cartão fecha
+    Quando eu toco em quem é você
+    Então o cartão mostra:
+      """
+      Quem vai?
+      enter pula pra próxima
+      +
+      + OUTRA PESSOA
+      PRONTO
+      SAIR
+      """
+
   Cenário: o nome que ficou na caixa entra no pronto
     Dado que eu abro o site sem evento
     Quando eu digito o código "praia"
     E eu crio o evento
-    E eu toco em quem é você
     E eu ponho Fernando na lista
     E eu escrevo Lia e aperto pronto sem dar enter
     Então o site pergunta quem é você
@@ -142,7 +157,6 @@ Funcionalidade: Entrar no evento
     Dado que eu abro o site sem evento
     Quando eu digito o código "praia"
     E eu crio o evento
-    E eu toco em quem é você
     E eu ponho Lia na lista
     E eu continuo
     Então o cabeçalho diz "sou Lia"

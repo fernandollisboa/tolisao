@@ -1559,10 +1559,13 @@
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
    * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela */
   function showSetup() {
+    // quem já tem conta no evento (ou é você) não sai pelo ✕: o Quem vai? reabre pelo "faltou gente?"
+    const temConta = (id) =>
+      id === me || state.expenses.some((e) => e.payer === id || e.among.includes(id) || (e.shares && id in e.shares));
     const list = state.people
       .map(
         (p) =>
-          `<div class="row pessoa" style="--cor:${colorOf(p.id)}">${bolinha(p)}<span class="l" contenteditable="plaintext-only" spellcheck="false" data-renome="${p.id}">${esc(p.name)}</span><span class="v"><button class="ico" data-drop="${p.id}" title="tirar">✕</button></span></div>`,
+          `<div class="row pessoa" style="--cor:${colorOf(p.id)}">${bolinha(p)}<span class="l" contenteditable="plaintext-only" spellcheck="false" data-renome="${p.id}">${esc(p.name)}</span><span class="v">${temConta(p.id) ? '' : `<button class="ico" data-drop="${p.id}" title="tirar">✕</button>`}</span></div>`,
       )
       .join('');
     const n = state.people.length;
@@ -1631,8 +1634,10 @@
         showSetup();
       };
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela
+    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era
     $('#setupGo').onclick = () => {
       if (!poe(true) || !state.people.length) return;
+      if (me && state.people.some((p) => p.id === me)) return void (closeOverlay(), render());
       if (state.people.length === 1) return souEu(state.people[0].id);
       closeOverlay();
       showWho();
@@ -1661,7 +1666,10 @@
     overlay(`<h2>Quem é você?</h2>
       <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
       <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>${whoPix()}`);
+        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>
+      <div class="c"><button id="whoMais" class="ghost casinha">+ faltou gente? adicionar</button></div>${whoPix()}`);
+    // quem apertou Pronto cedo demais volta pro Quem vai? sem deixar de ser quem é
+    $('#whoMais').onclick = showSetup;
     /** escolher já é confirmar: quem é você não tem botão de continuar */
     const entra = souEu;
     $('#whoSel').onchange = () => {

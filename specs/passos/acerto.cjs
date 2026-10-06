@@ -50,6 +50,9 @@ Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
   expect(await mundo.p.evaluate(() => window.__aberto)).toContain('https://api.whatsapp.com/send?text=');
 });
 
+When('eu cobro o/a {word} no zap', async ({ mundo }, nome) => {
+  await mundo.p.locator('#mineRows .row.sub').filter({ has: mundo.p.locator('.nm', { hasText: nome }) }).locator('[data-cobra]').click();
+});
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
 Then('fica copiado o pix copia e cola:', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt.trim()); });
 

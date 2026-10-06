@@ -522,6 +522,10 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 .ev.aqui .l:before{content:"▸ "}
 .ev.aqui .l{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .ev .x{margin-left:8px}
+/* a soma de todos, em cima; e o selo do evento parado em que te devem (verde: é dinheiro a receber) */
+.evtotal{text-align:center;font-size:20px;padding:0 0 5px;margin-bottom:3px;border-bottom:1px dashed var(--rule)}
+.evtotal b{font-weight:normal}
+.ev .parado{display:inline-block;margin:3px 0 2px;padding:0 6px;font-size:15px;line-height:1.35;color:var(--green);border:1px dashed currentColor;border-radius:2px}
 /* o quem vai: cada pessoa uma bolinha na cor dela, e a casinha tracejada do fim espera a próxima */
 h2.pergunta{text-transform:none;letter-spacing:0;font-size:30px;line-height:1.1;text-align:center;margin:0 0 4px}
 .pessoa{display:flex;align-items:center;gap:10px;margin:8px 0}
@@ -560,3 +564,10 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 #overlayBox .pessoa.nova input{border:0;box-shadow:none;background:transparent;outline:0}
 #overlayBox .pessoa.nova.digitando{border-style:solid;border-color:var(--cor);box-shadow:2px 2px 0 var(--cor);background:#fff8e6}
 #overlayBox .pessoa.nova.digitando .bola{border:0}
+/* a chegada: quem veio pelo link do grupo escolhe o nome no topo da nota */
+#chegada h2{margin-top:0}
+#chegada .linkpras{margin:4px 0 10px}
+#chegada .c{text-transform:none;font-size:17px}
+#chegada .hr{margin-top:14px}
+/* o cobrar da linha de quem me deve */
+#mineRows button.ico.cobra svg{width:14px;height:14px}

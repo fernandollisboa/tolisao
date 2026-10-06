@@ -8,7 +8,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 
 ## onde fica o quê
 
-- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. o sumário logo abaixo é o mapa das seções; o estado da página fica junto em "o estado da página"; os cliques ficam na tabela `CLIQUES`. flags em maiúscula no topo ligam e desligam coisa meio pronta.
+- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. o sumário logo abaixo é o mapa das seções, cada uma num `// #region` (o `_regras.cjs` confere que o sumário bate); o estado da página fica junto em "o estado da página"; os cliques ficam na tabela `CLIQUES`. flags em maiúscula no topo ligam e desligam coisa meio pronta.
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
@@ -47,7 +47,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **sem dependência no site, sem framework, sem build.** `package.json` é só ferramenta. edição pequena (a única exceção foi a formatação do prettier).
 - **aspas simples no `const DB = '...'`:** o `specs/_serve.cjs` troca essa linha pelo banco falso, e sem ela o `app.js` nem sai pros testes.
 - **o banco é hostil.** id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`, tudo que vem do banco ou do cache passa por `clean()`.
-- **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário.
+- **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário. `visitas/<dia>` só se soma (+1 por aparelho por dia, `CONTA_VISITAS`): sem `.read`, sem apagar, o dono lê no console.
 - **CSP** no `<meta>` do `index.html`: só o próprio site e `*.firebaseio.com`. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.

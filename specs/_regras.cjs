@@ -40,6 +40,15 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     else if (v && typeof v === 'object') pix(v, [...caminho, k]); } };
   pix(banco.rules.pix || {}, []);
   regra('o tok do pix não se lê', lidos.join('; '));
+  // visitas é só um +1 por dia: ninguém lista, ninguém apaga (.validate não roda em delete), ninguém pula de 1000 em 1000
+  const vis = banco.rules.visitas, dia = vis?.$dia || {}, erros = [];
+  if (!vis) erros.push('não achei visitas no database.rules.json');
+  else {
+    if (JSON.stringify(vis).includes('".read"')) erros.push('visitas tem .read');
+    if (!/newData\.exists\(\)/.test(dia['.write'] || '')) erros.push('o .write de visitas/$dia não exige newData.exists()');
+    if (!(dia['.validate'] || '').includes('data.val() + 1')) erros.push('o .validate de visitas/$dia não exige data.val() + 1');
+  }
+  regra('visitas só se soma', erros.join('; '));
 }
 
 // ---------- clean() e .validate de rooms/$room contam o mesmo ----------
@@ -62,6 +71,27 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   if (!idApp) errados.push('não achei o okId no app.js');
   else if (idsBanco.some(r => r !== idApp)) errados.push(`id: okId ${idApp}, banco ${idsBanco.join(' ')}`);
   regra('clean() corta no mesmo tamanho que o banco valida', !corpo ? 'não achei o clean() no app.js' : errados.join('; '));
+}
+
+// ---------- o sumário do app.js lista as seções, na ordem ----------
+// cada seção é um `// #region nome` (o editor dobra) seguido do `// ---------- nome ----------`
+{
+  const linhas = app.split('\n'), erros = [];
+  const ini = linhas.findIndex(l => l.startsWith('  //   ')), sumario = [];
+  for (let i = ini; i >= 0 && linhas[i]?.startsWith('  //   '); i++) sumario.push(linhas[i].slice(7));
+  const listadas = sumario.join(' ').split('→').map(s => s.trim()).filter(Boolean);
+  const secoes = [];
+  let aberta = false;
+  linhas.forEach((l, i) => {
+    const r = l.match(/^\s*\/\/ #(region|endregion)\b ?(.*)$/);
+    if (!r) { if (/^\s*\/\/ -{10} /.test(l) && !/#region /.test(linhas[i - 1])) erros.push(`app.js:${i + 1} tem "// ----------" sem #region em cima`); return; }
+    if (r[1] === 'region') { if (aberta) erros.push(`app.js:${i + 1} abre "${r[2]}" sem fechar a anterior`); aberta = true; secoes.push(r[2].trim()); }
+    else { if (!aberta) erros.push(`app.js:${i + 1} fecha sem abrir`); aberta = false; }
+  });
+  if (aberta) erros.push('a última #region não fecha');
+  const difere = listadas.length !== secoes.length || listadas.some((s, i) => s !== secoes[i]);
+  if (difere) erros.push(`sumário: ${listadas.join(' → ') || 'não achei'}\n    seções: ${secoes.join(' → ')}`);
+  regra('o sumário do app.js lista as seções, na ordem', erros.join('; '));
 }
 
 // ---------- imagens do link abaixo de ~300 KB, senão o WhatsApp ignora ----------

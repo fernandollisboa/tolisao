@@ -65,3 +65,5 @@ a `main` é protegida: branch → PR → check `test` verde → merge. quem publ
 ## banco
 
 firebase no plano gratuito, por REST direto do navegador. as regras tão no `database.rules.json`, e uma não se negocia: **o `.read` fica dentro do `$room`, nunca em `rooms`**, senão um `GET /rooms.json` baixa o banco inteiro.
+
+o `visitas/<dia>` conta aparelhos por dia (`CONTA_VISITAS`): só aceita um `.sv increment` de +1, não tem `.read` e não deixa apagar. o número se lê no console do firebase. o `npm run regras` confere ("visitas só se soma").

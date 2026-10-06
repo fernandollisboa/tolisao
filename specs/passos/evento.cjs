@@ -158,3 +158,14 @@ When('eu colo o link do evento pra {word} na mesma aba', async ({ mundo }, quem)
   await mundo.p.waitForSelector('#app:not(.loading)');
 });
 When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre({ link: mundo.base + '/' + q }); await mundo.p.waitForSelector('#app:not(.loading)'); });
+
+// a chegada pelo link do grupo: a nota pergunta quem é você no topo, sem cartão
+When('eu abro o link do grupo', async ({ mundo }) => { await mundo.abre(); await mundo.p.waitForSelector('#app:not(.loading)'); });
+Then('a nota pergunta quem eu sou entre {gente}', async ({ mundo }, gente) => {
+  await expect(mundo.p.locator('#chegada [data-chegou]')).toHaveText(gente);
+});
+Then('a nota não pergunta quem eu sou', async ({ mundo }) => { await expect(mundo.p.locator('#chegada')).toBeHidden(); });
+When('eu toco no meu nome, {word}, no topo da nota', async ({ mundo }, quem) => {
+  await mundo.p.click(`#chegada [data-chegou="${mundo.pessoa(quem).id}"]`);
+});
+When('eu digo que não tô na turma', async ({ mundo }) => { await mundo.p.click('#chegouFora'); await mundo.p.waitForSelector('#setupName'); });

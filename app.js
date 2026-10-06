@@ -1,6 +1,6 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
-/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', by?: string, shares?: Record<string, number> }} Expense */
+/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, shares?: Record<string, number> }} Expense */
 /** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, goneAt: number, to?: string }} Gone */
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
@@ -24,6 +24,7 @@
   const INSTALAR = true;
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
+  const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const CURRENCY = 'R$';
 
@@ -233,6 +234,7 @@
           at: +e.at || 0,
         };
         if (e.kind === 'payment') o.kind = 'payment';
+        if (o.kind && e.forgiven === true) o.forgiven = true; // pagamento perdoado: conta igual, carimbo PERDOADO
         if (typeof e.by === 'string') o.by = str(e.by, 30);
         if (e.shares && typeof e.shares === 'object') {
           o.shares = {};
@@ -667,7 +669,14 @@
     const novos = pays.filter((e) => !vistos.has(e.id));
     if (!novos.length && Array.isArray(r.paysSeen)) return;
     setRoom('paysSeen', [...vistos, ...novos.map((e) => e.id)].slice(-200));
-    const pra = novos.filter((e) => me && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
+    const pra = novos.filter((e) => me && !e.forgiven && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
+    // perdão avisa o outro lado: quem devia e ficou quite sem tocar em nada
+    const perdoes = novos.filter((e) => me && e.forgiven && e.payer === me && e.by !== nameOf(me));
+    if (!pra.length && perdoes.length) {
+      const credores = [...new Set(perdoes.map((e) => nameOf(e.among[0])))];
+      const soma = comSifrao(perdoes.reduce((s, e) => s + centavos(e), 0));
+      toast(`🙏 ${credores.join(' e ')} ${credores.length > 1 ? 'perdoaram' : 'perdoou'} teus ${soma}`, 5000, 'recebe');
+    }
     if (!pra.length) return;
     const total = comSifrao(pra.reduce((s, e) => s + centavos(e), 0));
     const quem = [...new Set(pra.map((e) => nameOf(e.payer)))];
@@ -1109,10 +1118,26 @@
     };
     const valor = (t) =>
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
+    // quem recebe também age: "recebi" quando pagaram por fora e ninguém tocou no ✔, e
+    // "perdoar" quando a dívida é pequena demais pra cobrar. Os dois viram pagamento
+    const botoesRecebe = (t) => {
+      const d = `${t.from}|${t.to}|${t.cents}`;
+      const perdoa =
+        t.cents < PERDOA_ATE ? `<button class="ico" data-perdoa="${d}" title="perdoar a dívida">perdoar</button>` : '';
+      return `<button class="ico ok" data-recebi="${d}" title="marcar como recebido">✔ recebi</button>${perdoa}`;
+    };
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
-        ? acerto.filter((t) => t.to === me).map((t) => linha(nomeHtml(t.from), valorHtml(t.cents), 'sub'))
+        ? acerto
+            .filter((t) => t.to === me)
+            .map((t) =>
+              linha(
+                `<span class="n">${nomeHtml(t.from)}</span><span class="dupla">${botoesRecebe(t)}</span>`,
+                valorHtml(t.cents),
+                'sub',
+              ),
+            )
         : meus.map((t, i) =>
             linha(
               `<span class="n">${nomeHtml(t.to)}</span><span class="dupla">${botaoPaguei(t, i)}${botaoCopiarPix(t)}</span>`,
@@ -1193,8 +1218,11 @@
           cor = colorOf(e.payer);
         const quem = `<span class="n">${tagNovo(e)}${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])}</span>`;
         const desfaz = DESFAZER ? ` data-undo="${e.id}"` : '';
-        const carimbo = `<span class="stampbox"><span class="stamp"${desfaz} style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
-        const por = e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '';
+        // perdão é pagamento com outro carimbo; o "por" aparece quando quem perdoou não é quem recebe
+        const [selo, quando] = e.forgiven ? ['PERDOADO', 'perdoado'] : ['PAGO', 'pago'];
+        const carimbo = `<span class="stampbox"><span class="stamp"${desfaz} style="color:${cor};${st.css}" title="${quando} em ${new Date(e.at).toLocaleDateString('pt-BR')}">${selo}</span></span>`;
+        const dono = e.forgiven ? e.among[0] : e.payer;
+        const por = e.by && e.by !== nameOf(dono) ? `<div class="small">por ${esc(e.by)}</div>` : '';
         return linha(quem + carimbo, valorHtml(centavos(e)), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por;
       })
       .join('');
@@ -2219,7 +2247,7 @@
     const e = achaGasto(el.dataset.undo);
     if (!e) return;
     const certeza = await ask(
-      'Desfazer o pagamento?',
+      e.forgiven ? 'Desfazer o perdão?' : 'Desfazer o pagamento?',
       `${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])} · ${comSifrao(centavos(e))}`,
       'desfazer',
     );
@@ -2231,17 +2259,20 @@
     commit();
     toast('Desfeito');
   }
-  /** o ✔ paguei: vira um gasto do tipo 'payment' de quem deve pra quem recebe */
+  /** o ✔ paguei de quem deve, e o ✔ recebi e o perdoar de quem recebe: todos viram um
+   *  gasto do tipo 'payment' de quem deve pra quem recebe; o perdão leva `forgiven` */
   async function quita(el) {
-    const [from, to, cs] = el.dataset.settle.split('|');
+    const modo = el.dataset.perdoa ? 'perdoa' : el.dataset.recebi ? 'recebi' : 'paguei';
+    const [from, to, cs] = (el.dataset.perdoa || el.dataset.recebi || el.dataset.settle).split('|');
     const cents = +cs;
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
-    const certeza = await ask(
-      'Quitar?',
-      `${nomeHtml(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}`,
-      'quitei',
-    );
+    const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
+    const certeza = await (modo === 'perdoa'
+      ? ask('Perdoar?', `${nomeHtml(from)} não te deve mais ${valor}`, 'perdoar')
+      : modo === 'recebi'
+        ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
+        : ask('Quitar?', `${nomeHtml(from)} pagou ${valor} pra ${nomeHtml(to)}`, 'quitei'));
     if (!certeza) return;
     state.expenses.push({
       id: uid(),
@@ -2252,7 +2283,15 @@
       among: [to],
       at: Date.now(),
       by: me ? nameOf(me) : undefined,
+      forgiven: modo === 'perdoa' || undefined,
     });
+    if (modo !== 'paguei') {
+      // quem recebe não tem quem avisar no zap: quem devia fica sabendo pelo aviso
+      commit();
+      if (modo === 'recebi') festa(r.left + r.width / 2, r.top + r.height / 2);
+      toast(modo === 'perdoa' ? 'Perdoado 🙏' : 'Recebido! 🎉');
+      return;
+    }
     seguraRisco = true;
     commit();
     festa(r.left + r.width / 2, r.top + r.height / 2);
@@ -2303,7 +2342,7 @@
     ['[data-among]', (el) => abreItem(el.closest('.item'))],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
-    ['[data-settle]', quita],
+    ['[data-settle], [data-recebi], [data-perdoa]', quita],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],
     [

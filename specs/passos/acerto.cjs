@@ -1,5 +1,5 @@
 const os = require('os'), path = require('path'), fs = require('fs');
-const { When, Then, expect } = require('./_mundo.cjs');
+const { Given, When, Then, expect, AGORA } = require('./_mundo.cjs');
 
 const num = t => Number(t.replace(/[^\d,]/g, '').replace(',', '.'));
 const linhasDoAcerto = p => p.$$eval('#settle .row:not(.paid)', l => l.map(r => {
@@ -41,6 +41,12 @@ When('eu começo a desfazer o pagamento {string} e volto atrás', async ({ mundo
 When('eu toco duas vezes no carimbo do pagamento {string}', async ({ mundo }, txt) => { await pago(mundo.p, txt).locator('[data-undo]').click({ clickCount: 2 }); await mundo.p.waitForTimeout(650); });
 Then('nenhum cartão abre', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toBeHidden(); });
 When('eu desfaço o pagamento {string}', async ({ mundo }, txt) => { await desfaz(mundo.p, txt); await mundo.p.click('#okBtn'); });
+Then('o pagamento {string} está carimbado {string}', async ({ mundo }, txt, selo) => { await expect(pago(mundo.p, txt).locator('.stamp', { hasText: selo })).toHaveCount(1); });
+Then('o pagamento {string} está carimbado {string} por {word}', async ({ mundo }, txt, selo, quem) => {
+  const l = pago(mundo.p, txt).filter({ has: mundo.p.locator('.stamp', { hasText: selo }) });
+  await expect(l.locator('.stamp')).toHaveText(selo);
+  await expect(l.locator('xpath=following-sibling::*[1]')).toHaveText(`por ${quem}`);
+});
 Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => { await expect(pago(mundo.p, txt).locator('.stamp')).toHaveText('PAGO'); });
 Then('nenhum pagamento está carimbado', async ({ mundo }) => { await expect(mundo.p.locator('#settle .row.paid')).toHaveCount(0); });
 Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
@@ -78,13 +84,13 @@ Then('a área do ✔ tem menos de {int}px', async ({ mundo }, n) => { expect(awa
 
 // o outro aparelho grava o pagamento no banco; a volta pra aba faz o sync na hora, sem esperar o poll.
 // Pronto quando a gaveta anota o id: o aviso (ou a falta dele) já foi decidido
-const pagaNoBanco = async (mundo, pagos) => {
+const pagaNoBanco = async (mundo, pagos, extra = {}) => {
   const sala = mundo.banco.arvore.rooms[mundo.sala], ids = [];
   for (const [quem, pra, valor] of pagos) {
     const id = 'pg' + ids.length + Date.now().toString(36);
     ids.push(id);
     sala.expenses = [...(sala.expenses || []), { id, kind: 'payment', desc: 'Pagamento', amount: valor,
-      payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: Date.now(), by: quem }];
+      payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: Date.now(), by: quem, ...extra }];
   }
   await mundo.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect.poll(() => mundo.p.evaluate(([k, ids]) => { const v = JSON.parse(localStorage.getItem(k) || '{}').paysSeen || [];
@@ -100,3 +106,22 @@ When('o app sincroniza', async ({ mundo }) => {
   await expect(mundo.p.locator('#status')).toHaveText(/Sincronizado \d/);
 });
 Then('não aparece aviso de pagamento', async ({ mundo }) => { await expect(mundo.p.locator('#toast')).not.toContainText('te pag'); });
+
+// quem recebe age na própria linha de Minha conta: recebi (pagaram por fora) e perdoar (dívida pequena)
+const linhaDe = (p, nome) => p.locator('#mineRows .row.sub').filter({ has: p.locator('.nm', { hasText: nome }) });
+When('eu marco que recebi da/do {word}', async ({ mundo }, nome) => { await linhaDe(mundo.p, nome).locator('[data-recebi]').click(); await mundo.p.click('#okBtn'); });
+When('eu perdoo a/o {word}', async ({ mundo }, nome) => { await linhaDe(mundo.p, nome).locator('[data-perdoa]').click(); await mundo.p.click('#okBtn'); });
+Then('só a/o {word} tem perdoar em Minha conta', async ({ mundo }, nome) => {
+  await expect.poll(() => mundo.p.$$eval('#mineRows .row.sub:has([data-perdoa]) .nm', l => l.map(n => n.textContent))).toEqual([nome]);
+});
+When('eu começo a desfazer o perdão {string}', async ({ mundo }, txt) => {
+  await pago(mundo.p, txt).locator('[data-undo]', { hasText: 'PERDOADO' }).click({ clickCount: 3 }); await mundo.p.waitForSelector('#okBtn');
+});
+Then('o cartão pergunta {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#overlayBox h2')).toHaveText(txt); });
+Given('que o/a {word} já pagou R$ {num} pro/pra {word}', async ({ mundo }, quem, valor, pra) => {
+  mundo.evento.expenses.push({ id: 'pg' + mundo.evento.expenses.length, kind: 'payment', desc: 'Pagamento', amount: valor,
+    payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: AGORA - 86400000, by: quem });
+});
+When('o/a {word} perdoa os R$ {num} da/do {word} em outro aparelho', async ({ mundo }, quem, valor, devedor) => {
+  await pagaNoBanco(mundo, [[devedor, quem, valor]], { forgiven: true, by: quem });
+});

@@ -1,4 +1,14 @@
-const { Given, When, Then, expect } = require('./_mundo.cjs');
+const { Given, When, Then, expect, AGORA } = require('./_mundo.cjs');
+
+// o que o aparelho já guardava de outros eventos, antes desta visita (as gavetas se somam)
+const naGaveta = (mundo, k, o) => { const a = (mundo.antes ||= {}); a[k] = JSON.stringify({ ...JSON.parse(a[k] || '{}'), ...o }); };
+Given('que neste aparelho eu sou {word} no {string}', async ({ mundo }, quem, nome) => {
+  const rooms = mundo.banco.arvore.rooms, sala = Object.keys(rooms).find(id => rooms[id].name === nome), ev = rooms[sala];
+  naGaveta(mundo, `tolisa:${sala}`, { code: nome, openedAt: AGORA - 86400000, me: ev.people.find(p => p.name === quem).id,
+    snapshot: JSON.parse(JSON.stringify({ v: 2, updatedAt: AGORA - 86400000, gone: [], ...ev })) });
+});
+Given('que eu já usei a chave pix {string} em outro evento', async ({ mundo }, chave) => { naGaveta(mundo, 'tolisa', { pixKey: chave }); });
+Given('que da última vez, em outro evento, eu fui {string}', async ({ mundo }, nome) => { naGaveta(mundo, 'tolisa', { myName: nome }); });
 
 const gaveta = (mundo, k) => mundo.p.evaluate(k => JSON.parse(localStorage.getItem(k) || 'null'), k);
 

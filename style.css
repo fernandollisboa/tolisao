@@ -571,3 +571,13 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 #chegada .hr{margin-top:14px}
 /* o cobrar da linha de quem me deve */
 #mineRows button.ico.cobra svg{width:14px;height:14px}
+/* a turma de outro evento: cada pessoa uma cápsula na cor dela; tocar deixa de fora (tracejada e riscada) */
+#overlayBox .chips.turma{justify-content:center;margin:12px 0}
+#overlayBox .turma .chip{text-transform:none;border-radius:999px;border-style:dashed;border-color:var(--rule);color:var(--muted);text-decoration:line-through;padding:3px 12px}
+#overlayBox .turma .chip.on{border:2px solid var(--cor);box-shadow:2px 2px 0 var(--cor);background:#fff8e6;color:var(--ink);text-decoration:none}
+#overlayBox .turma .chip .bola{width:12px;height:12px;border-radius:50%;background:var(--cor);opacity:.35}
+#overlayBox .turma .chip.on .bola{opacity:1}
+#overlayBox .turmaPix{margin-top:6px}
+#overlayBox .turmaPix .chip{text-transform:none}
+#overlayBox .turmaPix .muted{text-transform:none;margin-top:4px;word-break:break-all}
+@media (hover:hover){#overlayBox .turma .chip:hover:not(:disabled){background:#fff8e6;color:var(--ink)}}

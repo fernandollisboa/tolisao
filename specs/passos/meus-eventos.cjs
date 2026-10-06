@@ -16,7 +16,10 @@ When('eu entro no evento {string} como {word}', async ({ mundo }, nome, quem) =>
   await mundo.p.waitForSelector('#app:not(.loading)'); await mundo.souEu(quem);
 });
 When('eu abro o site sem código', async ({ mundo }) => { await recarrega(mundo, () => mundo.p.goto(mundo.base + '/')); await mundo.p.waitForSelector('#gateCode'); });
-When('eu toco em entrar em outro evento', async ({ mundo }) => { await recarrega(mundo, () => mundo.p.click('#evOutro')); await mundo.p.waitForSelector('#gateCode'); });
+When('eu digito o código {string} no cartão do evento', async ({ mundo }, codigo) => {
+  usa(mundo, codigo); await mundo.p.fill('#gateCode', codigo);
+  await recarrega(mundo, () => mundo.p.click('#gateForm button')); await mundo.p.waitForSelector('#app:not(.loading)');
+});
 When('eu toco no {string} da lista', async ({ mundo }, nome) => {
   usa(mundo, nome); await recarrega(mundo, () => ev(mundo, nome).click()); await mundo.p.waitForSelector('#app:not(.loading)');
 });

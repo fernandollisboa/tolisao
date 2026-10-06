@@ -177,13 +177,11 @@ Funcionalidade: Entrar no evento
     Então o cabeçalho diz "sou Fernando"
     E o evento no banco tem Fernando, Júlia, Lia, Mel e Rui
 
-  Cenário: cada pessoa tem uma cor só dela, mesmo passando de 10
-    A paleta tem 10 cores; da 11ª pessoa em diante a cor é gerada e não repete.
-    Dado que eu abro o site sem evento
-    Quando eu digito o código "praia"
-    E eu crio o evento
-    E eu ponho Ana, Bia, Caio, Duda, Edu, Fê, Gil, Hugo, Iara, Jão, Kika e Léo na lista
-    Então as 12 pessoas da lista têm cores diferentes
+  Cenário: ninguém divide cor, por maior que seja a turma
+    Cada pessoa é reconhecida pela cor dela na nota inteira: duas iguais confundem quem deve a quem.
+    Dado um evento de 12 pessoas
+    Quando eu abro a lista de quem vai
+    Então cada pessoa da lista tem uma cor diferente
 
   Cenário: evento de uma pessoa só não pergunta quem é você
     Dado que eu abro o site sem evento

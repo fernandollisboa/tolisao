@@ -18,6 +18,13 @@ const poeGastos = (mundo, linhas) => {
 
 Given('o evento {string} com {gente}', async ({ mundo }, nome, gente) => { poeGente(mundo, nome, gente); });
 
+// turma grande em que os nomes não importam, só quantas pessoas são
+const NOMES = 'Ana Bia Caio Duda Edu Fê Gil Hugo Iara Jão Kika Léo Mel Nina Otto Pri Quel Rui Sol Téo'.split(' ');
+Given('um evento de {int} pessoas', async ({ mundo }, n) => {
+  if (n > NOMES.length) throw new Error(`só tem ${NOMES.length} nomes em NOMES`);
+  poeGente(mundo, 'turma', NOMES.slice(0, n));
+});
+
 Given('os gastos:', async ({ mundo }, tabela) => { poeGastos(mundo, tabela.hashes()); });
 
 // a mesma festa que o acerto e o anotar usam, de specs/_festa.cjs
@@ -97,9 +104,14 @@ Then('só a/o {word} tem ✕ na lista', async ({ mundo }, nome) => {
   await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toHaveCount(1);
   await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toContainText(nome);
 });
-Then('as {int} pessoas da lista têm cores diferentes', async ({ mundo }, n) => {
+Then('cada pessoa da lista tem uma cor diferente', async ({ mundo }) => {
   const cores = await mundo.p.$$eval('#overlayBox .row.pessoa .bola', bs => bs.map(b => getComputedStyle(b).backgroundColor));
-  expect(cores).toHaveLength(n); expect(new Set(cores).size).toBe(n);
+  expect(cores).toHaveLength(mundo.evento.people.length); expect(new Set(cores).size).toBe(cores.length);
+});
+// o Quem vai? de quem já está no evento: entra como a primeira pessoa e reabre pelo faltou gente
+When('eu abro a lista de quem vai', async ({ mundo }) => {
+  await mundo.abre({ quem: mundo.evento.people[0].name });
+  await mundo.p.click('#whoBtn'); await mundo.p.click('#whoMais'); await mundo.p.waitForSelector('#setupName');
 });
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
 Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });

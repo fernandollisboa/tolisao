@@ -518,6 +518,8 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 .ev + .ev{border-top:1px dotted rgba(122,106,74,.45)}
 .ev .row{line-height:1.45}
 .ev .sub{font-size:16px;color:var(--ink2);line-height:1.2;display:flex;justify-content:space-between;gap:10px}
+/* uma linha só: o "sou fulano · N pessoas" encurta com reticências antes de a data quebrar */
+.ev .sub>span{white-space:nowrap} .ev .sub>span:first-child{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ev .v.ok{color:var(--muted)}
 .ev.aqui .l:before{content:"▸ "}
 .ev.aqui .l{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}

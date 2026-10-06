@@ -2235,7 +2235,7 @@
       // parado e me devem: no lugar da data, há quanto tempo ninguém mexe (o valor já está em cima)
       const data =
         b > 0 && dias >= PARADO_DIAS
-          ? `<span class="parado">⏳ parado há ${dias} dias</span>`
+          ? `<span class="parado">⏳ há ${dias} dias</span>`
           : `<span>${quando(e.at)}</span>`;
       return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
         <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>

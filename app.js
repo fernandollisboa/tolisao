@@ -29,6 +29,7 @@
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
+  const QUITADO_DIAS = 15; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
   const CURRENCY = 'R$';
 
@@ -2194,14 +2195,16 @@
     ).then(() => {
       const caixa = $('#overlayBox .evs');
       if (!mudou || !caixa) return;
-      const novos = meusEventos();
+      const novos = meusEventos(),
+        aberto = !!caixa.querySelector('details.antigos[open]');
       caixa.outerHTML = listaEventos(novos, comX);
+      if (aberto) $('#overlayBox details.antigos')?.setAttribute('open', '');
       ligaEventos(novos, esquece);
     });
   }
   /** cada evento com o meu saldo nele, contado da cópia do aparelho: abre sem internet.
    * Em cima, a soma dos saldos (com dois eventos ou mais, e se não der zero); no evento parado
-   * em que me devem, um selo de cobrança */
+   * em que me devem, "parado há N dias" no lugar da data; os quites antigos, recolhidos no fim */
   function listaEventos(evs, comX) {
     /** @param {MeuEvento} e @returns {number|null} */
     const saldo = (e) => {
@@ -2214,30 +2217,41 @@
       saldos.length > 1 && total
         ? `<div class="evtotal">no total: <b class="${total > 0 ? 'pos' : 'neg'}">${total > 0 ? 'te devem' : 'você deve'} ${comSifrao(total)}</b></div>`
         : '';
-    return `<div class="evs">${topo}${evs
-      .map((e) => {
-        const s = e.snap,
-          eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
-          b = saldo(e),
-          dias = e.at ? diasDesde(e.at) : 0;
-        let cls = 'ok',
-          v = '—';
-        if (b > 0) [cls, v] = ['pos', comSifrao(b)];
-        else if (b < 0) [cls, v] = ['neg', comSifrao(b)];
-        else if (b === 0) v = 'quite';
-        const n = s ? s.people.length : 0,
-          sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : '']
-            .filter(Boolean)
-            .join(' · ');
-        return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
+    /** @param {MeuEvento} e */
+    const cartao = (e) => {
+      const s = e.snap,
+        eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
+        b = saldo(e),
+        dias = e.at ? diasDesde(e.at) : 0;
+      let cls = 'ok',
+        v = '—';
+      if (b > 0) [cls, v] = ['pos', comSifrao(b)];
+      else if (b < 0) [cls, v] = ['neg', comSifrao(b)];
+      else if (b === 0) v = 'quite';
+      const n = s ? s.people.length : 0,
+        sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : '']
+          .filter(Boolean)
+          .join(' · ');
+      // parado e me devem: no lugar da data, há quanto tempo ninguém mexe (o valor já está em cima)
+      const data =
+        b > 0 && dias >= PARADO_DIAS
+          ? `<span class="parado">parado há ${dias} dias</span>`
+          : `<span>${quando(e.at)}</span>`;
+      return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
         <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>
-        <div class="sub"><span>${sub}</span><span>${quando(e.at)}</span></div>${
-          b > 0 && dias >= PARADO_DIAS
-            ? `<div class="parado">parado há ${dias} dias · te devem ${comSifrao(b)}</div>`
-            : ''
-        }</div>`;
-      })
-      .join('')}</div>`;
+        <div class="sub"><span>${sub}</span>${data}</div></div>`;
+    };
+    // quite e parado há tempo desce pro fim, recolhido como os itens apagados; o evento aberto fica sempre à vista
+    const antigo = (e) => e.id !== groupId && saldo(e) === 0 && e.at && diasDesde(e.at) >= QUITADO_DIAS;
+    const antigos = evs.filter(antigo);
+    return `<div class="evs">${topo}${evs
+      .filter((e) => !antigo(e))
+      .map(cartao)
+      .join('')}${
+      antigos.length
+        ? `<details class="antigos"><summary>${antigos.length} ${antigos.length === 1 ? 'quitado antigo' : 'quitados antigos'}</summary>${antigos.map(cartao).join('')}</details>`
+        : ''
+    }</div>`;
   }
   /** a linha inteira abre o evento; o ✕ dela chama `esquece` @param {MeuEvento[]} evs @param {(e: MeuEvento) => void} [esquece] */
   function ligaEventos(evs, esquece) {

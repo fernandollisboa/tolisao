@@ -1217,15 +1217,16 @@
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
     // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi"
     // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
-    // e piscam como o ✔ de quem deve, linha atrás da linha, cada botão na cor dele
-    const piscaRecebe = (i) => {
-      const esp = i * PISCA_GAP,
+    // e piscam como o ✔ de quem deve, linha atrás da linha, cada botão na cor dele; na mesma
+    // linha, o segundo vem meio passo depois do cobrar: em cadência, nunca em uníssono
+    const piscaRecebe = (i, k = 0) => {
+      const esp = i * PISCA_GAP + (k * PISCA_GAP) / 2,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
       return anim.tocouOk || dt >= esp + PISCA_MS ? '' : ` pisca" style="animation-delay:${esp - dt}ms`;
     };
     const botoesRecebe = (t, i) => {
       const d = `${t.from}|${t.to}|${t.cents}`,
-        pi = piscaRecebe(i);
+        pi = piscaRecebe(i, 1);
       return t.cents < PERDOA_ATE
         ? `<button class="ico${pi}" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`
         : `<button class="ico${pi}" data-recebi="${d}" title="marcar como recebido">🫱🏿‍🫲🏻 recebi</button>`;
@@ -1272,7 +1273,11 @@
         o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me];
       });
     const n = meus.length || recebe;
-    const fim = !n ? 0 : (n - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+    const fim = !n
+      ? 0
+      : (n - 1) * PISCA_GAP +
+        (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS) +
+        (meus.length ? 0 : PISCA_GAP / 2);
     anim.mine = agenda(n ? (n - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
   }
   /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */

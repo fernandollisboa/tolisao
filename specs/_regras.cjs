@@ -64,12 +64,20 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   regra('clean() corta no mesmo tamanho que o banco valida', !corpo ? 'não achei o clean() no app.js' : errados.join('; '));
 }
 
-// ---------- og6.jpg abaixo de ~300 KB, senão o WhatsApp ignora ----------
+// ---------- imagens do link abaixo de ~300 KB, senão o WhatsApp ignora ----------
+// o index.html e cada pasta de preview (c/h, c/i, c/j, pago, quitado: as que o shareUrl() monta)
 {
-  const og = html.match(/property="og:image" content="https:\/\/tolisa\.com\.br\/([^"]+)"/)?.[1];
-  const kb = og && fs.existsSync(path.join(raiz, og)) ? fs.statSync(path.join(raiz, og)).size / 1024 : NaN;
-  regra('a imagem do link cabe no WhatsApp', !og ? 'não achei o og:image no index.html'
-    : Number.isNaN(kb) ? `${og} não existe` : kb > 300 && `${og} tem ${kb.toFixed(0)} KB, o WhatsApp ignora acima de ~300`);
+  const pastas = ['', 'c/h/', 'c/i/', 'c/j/', 'pago/', 'quitado/'];
+  const erros = pastas.map(d => {
+    const arq = d + 'index.html';
+    if (!fs.existsSync(path.join(raiz, arq))) return `${arq} não existe`;
+    const og = le(arq).match(/property="og:image" content="https:\/\/tolisa\.com\.br\/([^"]+)"/)?.[1];
+    if (!og) return `não achei o og:image no ${arq}`;
+    if (!fs.existsSync(path.join(raiz, og))) return `${og} não existe`;
+    const kb = fs.statSync(path.join(raiz, og)).size / 1024;
+    return kb > 300 && `${og} tem ${kb.toFixed(0)} KB, o WhatsApp ignora acima de ~300`;
+  }).filter(Boolean);
+  regra('as imagens do link cabem no WhatsApp', erros.join('; '));
 }
 
 if (falhas.length) { console.error('\n' + falhas.join('\n')); process.exit(1); }

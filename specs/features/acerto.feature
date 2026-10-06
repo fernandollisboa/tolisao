@@ -75,7 +75,7 @@ Funcionalidade: Acertar as contas
     Então o zap abre com a mensagem:
       """
       ✅ Fernando, te paguei R$ 117,84 do *bailedamada* 👍
-      {link do evento}
+      {site}/pago/?evento=bailedamada
       """
 
   Cenário: copiar o pix já com o valor
@@ -101,7 +101,7 @@ Funcionalidade: Acertar as contas
       💸 Klinsmann paga R$ 73,61 pra Fernando (pix: fernando@exemplo.com)
       💸 Klinsmann paga R$ 34,72 pra Júlia
 
-      tudo aqui 👉 {link do evento}
+      tudo aqui 👉 {site}/c/j/?evento=bailedamada
       """
 
   Cenário: os botões dizem o que fazem

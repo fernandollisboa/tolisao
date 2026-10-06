@@ -12,7 +12,8 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
-- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, `og6.jpg`). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
+- preview do link no zap: o `index.html` usa `og/inicio.jpg` (o pin 😳 é fixo nele); `c/h`, `c/i`, `c/j` (cobrança, a figurinha sai do código do evento), `pago/` e `quitado/` são páginas só com as `og:`, imagem em `og/`; o `vai.js` repassa pro app. quem escolhe a pasta é o `shareUrl()`.
+- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, imagens do link). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `docs/qa.md`: roteiro e achados das sessões de QA.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
 
@@ -52,10 +53,12 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.
 - **dinheiro** é centavo inteiro até virar texto. o banco guarda `amount` em reais: leia com `centavos(e)`; `reais()`, `comSifrao()` e `valorHtml()` recebem centavos.
-- **`og6.jpg`** abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.
+- **imagens do link** (`og/`) abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.
 - **fontes** em `fonts/` são OFL 1.1 e Apache 2.0, não MIT.
 
 ## convenções
+
+- **resposta ao usuário: em português e curta.** sem rodeio, só o que importa pra decidir.
 
 - cores de gente saem de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe; nada de amarelo.
 - animação entra na fila do `agenda()`, na ordem da página, e só roda com a seção na tela.

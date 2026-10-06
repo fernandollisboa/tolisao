@@ -45,7 +45,7 @@ Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => { awai
 Then('nenhum pagamento está carimbado', async ({ mundo }) => { await expect(mundo.p.locator('#settle .row.paid')).toHaveCount(0); });
 Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/\u00a0/g, ' ').trim() : null))
-    .toBe(txt.replace('{link do evento}', mundo.link).trim());
+    .toBe(txt.replace('{site}', mundo.base).trim());
   // pelo wa.me n\u00e3o: ele redireciona pra c\u00e1 trocando emoji astral (\ud83e\uddfe \ud83d\udcb8 \ud83d\udc49) por U+FFFD
   expect(await mundo.p.evaluate(() => window.__aberto)).toContain('https://api.whatsapp.com/send?text=');
 });

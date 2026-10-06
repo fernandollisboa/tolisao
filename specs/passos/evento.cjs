@@ -127,7 +127,8 @@ Then('o aparelho esquece o evento', async ({ mundo }) => {
 // o link do zap é a última coisa da mensagem
 const linkDoZap = mundo => mundo.p.evaluate(() => decodeURIComponent(window.__aberto.split('text=')[1]).trim().split(/\s+/).pop());
 Then('o link do zap entra como {word}', async ({ mundo }, quem) => {
-  await expect.poll(() => linkDoZap(mundo)).toBe(`${mundo.link}&quem=${mundo.pessoa(quem).id}`);
+  // a pasta c/h, c/i ou c/j só escolhe a figurinha do preview
+  await expect.poll(() => linkDoZap(mundo)).toMatch(new RegExp(`^${mundo.base}/c/[hij]/\\?evento=${mundo.evento.name}&quem=${mundo.pessoa(quem).id}$`));
 });
 When('eu abro o link do zap em outro aparelho', async ({ mundo }) => {
   const link = await linkDoZap(mundo); await mundo.abre({ link }); await mundo.p.waitForSelector('#app:not(.loading)');

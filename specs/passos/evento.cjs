@@ -107,9 +107,10 @@ Then('ninguém tem a mesma cor', async ({ mundo }) => {
   expect(cores).toHaveLength(TURMA.length); expect(new Set(cores).size).toBe(TURMA.length);
 });
 // o Quem vai? de quem já está no evento: entra como a primeira da turma (quem é não muda nada aqui)
+// e escolhe "+ outra pessoa" no quem é você
 When('eu abro o Quem vai?', async ({ mundo }) => {
   await mundo.abre({ quem: mundo.evento.people[0].name });
-  await mundo.p.click('#whoBtn'); await mundo.p.click('#whoMais'); await mundo.p.waitForSelector('#setupName');
+  await mundo.p.click('#whoBtn'); await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName');
 });
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
 Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });

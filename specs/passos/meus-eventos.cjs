@@ -61,11 +61,15 @@ Then('em cima da lista diz {string}, em {word}', async ({ mundo }, txt, cor) => 
   await expect(t).toHaveText(txt); await expect(t.locator('b')).toHaveCSS('color', cores[cor]);
 });
 Then('o saldo do {string} na lista é {string}', async ({ mundo }, nome, txt) => { await expect(ev(mundo, nome).locator('.v')).toHaveText(txt); });
-Then('o {string} tem o selo {string}', async ({ mundo }, nome, txt) => {
-  const s = ev(mundo, nome).locator('.parado');
-  await expect(s).toHaveText(txt); await expect(s).toHaveCSS('color', cores.verde);
+// os quites antigos ficam num recolhido no fim da lista, fechado
+Then('a lista à vista tem só {string}', async ({ mundo }, nome) => {
+  await expect.poll(() => mundo.p.$$eval('#overlayBox .evs > .ev .l', l => l.map(n => n.textContent.trim()))).toEqual([nome]);
 });
-Then('o {string} não tem selo', async ({ mundo }, nome) => { await expect(ev(mundo, nome).locator('.parado')).toHaveCount(0); });
+Then('embaixo diz {string}, com o {string} dentro', async ({ mundo }, txt, nome) => {
+  const a = mundo.p.locator('#overlayBox details.antigos');
+  await expect(a.locator('summary')).toHaveText(txt); await expect(a).not.toHaveAttribute('open', '');
+  await expect(a.locator('.ev .l')).toHaveText(nome);
+});
 // o banco ganha o pagamento e o updatedAt anda: é assim que a lista sabe que o evento mudou
 When('a/o {word} paga R$ {num} pra/pro {word} no {string}, em outro aparelho', async ({ mundo }, quem, valor, pra, nome) => {
   const sala = Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome), id = n => sala.people.find(p => p.name === n).id;

@@ -1,6 +1,6 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
-/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', by?: string, shares?: Record<string, number> }} Expense */
+/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, shares?: Record<string, number> }} Expense */
 /** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, goneAt: number, to?: string }} Gone */
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
@@ -26,8 +26,10 @@
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
+  const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
+  const QUITADO_DIAS = 15; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
   const CURRENCY = 'R$';
 
@@ -254,6 +256,7 @@
           at: +e.at || 0,
         };
         if (e.kind === 'payment') o.kind = 'payment';
+        if (o.kind && e.forgiven === true) o.forgiven = true; // pagamento perdoado: conta igual, carimbo PERDOADO
         if (typeof e.by === 'string') o.by = str(e.by, 30);
         if (e.shares && typeof e.shares === 'object') {
           o.shares = {};
@@ -707,7 +710,14 @@
     const novos = pays.filter((e) => !vistos.has(e.id));
     if (!novos.length && Array.isArray(r.paysSeen)) return;
     setRoom('paysSeen', [...vistos, ...novos.map((e) => e.id)].slice(-200));
-    const pra = novos.filter((e) => me && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
+    const pra = novos.filter((e) => me && !e.forgiven && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
+    // perdão avisa o outro lado: quem devia e ficou quite sem tocar em nada
+    const perdoes = novos.filter((e) => me && e.forgiven && e.payer === me && e.by !== nameOf(me));
+    if (!pra.length && perdoes.length) {
+      const credores = [...new Set(perdoes.map((e) => nameOf(e.among[0])))];
+      const soma = comSifrao(perdoes.reduce((s, e) => s + centavos(e), 0));
+      toast(`🙏 ${credores.join(' e ')} ${credores.length > 1 ? 'perdoaram' : 'perdoou'} teus ${soma}`, 5000, 'recebe');
+    }
     if (!pra.length) return;
     const total = comSifrao(pra.reduce((s, e) => s + centavos(e), 0));
     const quem = [...new Set(pra.map((e) => nameOf(e.payer)))];
@@ -1204,6 +1214,14 @@
     };
     const valor = (t) =>
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
+    // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi"
+    // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
+    const botoesRecebe = (t) => {
+      const d = `${t.from}|${t.to}|${t.cents}`;
+      return t.cents < PERDOA_ATE
+        ? `<button class="ico" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`
+        : `<button class="ico" data-recebi="${d}" title="marcar como recebido">🫱🏿‍🫲🏻 recebi</button>`;
+    };
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
@@ -1211,7 +1229,7 @@
             .filter((t) => t.to === me)
             .map((t) =>
               linha(
-                `<span class="n">${nomeHtml(t.from)}</span><span class="dupla"><button class="ico cobra" data-cobra="${t.from}|${t.cents}" title="cobrar no zap">${WA_SVG} cobrar</button></span>`,
+                `<span class="n">${nomeHtml(t.from)}</span><span class="dupla"><button class="ico cobra" data-cobra="${t.from}|${t.cents}" title="cobrar no zap">${WA_SVG} cobrar</button>${botoesRecebe(t)}</span>`,
                 valorHtml(t.cents),
                 'sub',
               ),
@@ -1296,8 +1314,11 @@
           cor = colorOf(e.payer);
         const quem = `<span class="n">${tagNovo(e)}${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])}</span>`;
         const desfaz = DESFAZER ? ` data-undo="${e.id}"` : '';
-        const carimbo = `<span class="stampbox"><span class="stamp"${desfaz} style="color:${cor};${st.css}" title="pago em ${new Date(e.at).toLocaleDateString('pt-BR')}">PAGO</span></span>`;
-        const por = e.by && e.by !== nameOf(e.payer) ? `<div class="small">por ${esc(e.by)}</div>` : '';
+        // perdão é pagamento com outro carimbo; o "por" aparece quando quem perdoou não é quem recebe
+        const [selo, quando] = e.forgiven ? ['PERDOADO', 'perdoado'] : ['PAGO', 'pago'];
+        const carimbo = `<span class="stampbox"><span class="stamp"${desfaz} style="color:${cor};${st.css}" title="${quando} em ${new Date(e.at).toLocaleDateString('pt-BR')}">${selo}</span></span>`;
+        const dono = e.forgiven ? e.among[0] : e.payer;
+        const por = e.by && e.by !== nameOf(dono) ? `<div class="small">por ${esc(e.by)}</div>` : '';
         return linha(quem + carimbo, valorHtml(centavos(e)), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por;
       })
       .join('');
@@ -2174,14 +2195,16 @@
     ).then(() => {
       const caixa = $('#overlayBox .evs');
       if (!mudou || !caixa) return;
-      const novos = meusEventos();
+      const novos = meusEventos(),
+        aberto = !!caixa.querySelector('details.antigos[open]');
       caixa.outerHTML = listaEventos(novos, comX);
+      if (aberto) $('#overlayBox details.antigos')?.setAttribute('open', '');
       ligaEventos(novos, esquece);
     });
   }
   /** cada evento com o meu saldo nele, contado da cópia do aparelho: abre sem internet.
    * Em cima, a soma dos saldos (com dois eventos ou mais, e se não der zero); no evento parado
-   * em que me devem, um selo de cobrança */
+   * em que me devem, "parado há N dias" no lugar da data; os quites antigos, recolhidos no fim */
   function listaEventos(evs, comX) {
     /** @param {MeuEvento} e @returns {number|null} */
     const saldo = (e) => {
@@ -2194,30 +2217,41 @@
       saldos.length > 1 && total
         ? `<div class="evtotal">no total: <b class="${total > 0 ? 'pos' : 'neg'}">${total > 0 ? 'te devem' : 'você deve'} ${comSifrao(total)}</b></div>`
         : '';
-    return `<div class="evs">${topo}${evs
-      .map((e) => {
-        const s = e.snap,
-          eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
-          b = saldo(e),
-          dias = e.at ? diasDesde(e.at) : 0;
-        let cls = 'ok',
-          v = '—';
-        if (b > 0) [cls, v] = ['pos', comSifrao(b)];
-        else if (b < 0) [cls, v] = ['neg', comSifrao(b)];
-        else if (b === 0) v = 'quite';
-        const n = s ? s.people.length : 0,
-          sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : '']
-            .filter(Boolean)
-            .join(' · ');
-        return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
+    /** @param {MeuEvento} e */
+    const cartao = (e) => {
+      const s = e.snap,
+        eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
+        b = saldo(e),
+        dias = e.at ? diasDesde(e.at) : 0;
+      let cls = 'ok',
+        v = '—';
+      if (b > 0) [cls, v] = ['pos', comSifrao(b)];
+      else if (b < 0) [cls, v] = ['neg', comSifrao(b)];
+      else if (b === 0) v = 'quite';
+      const n = s ? s.people.length : 0,
+        sub = [eu ? `sou ${esc(eu.name)}` : '', n ? `${n} pessoa${n === 1 ? '' : 's'}` : '']
+          .filter(Boolean)
+          .join(' · ');
+      // parado e me devem: no lugar da data, há quanto tempo ninguém mexe (o valor já está em cima)
+      const data =
+        b > 0 && dias >= PARADO_DIAS
+          ? `<span class="parado">⏳ parado há ${dias} dias</span>`
+          : `<span>${quando(e.at)}</span>`;
+      return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
         <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>
-        <div class="sub"><span>${sub}</span><span>${quando(e.at)}</span></div>${
-          b > 0 && dias >= PARADO_DIAS
-            ? `<div class="parado">parado há ${dias} dias · te devem ${comSifrao(b)}</div>`
-            : ''
-        }</div>`;
-      })
-      .join('')}</div>`;
+        <div class="sub"><span>${sub}</span>${data}</div></div>`;
+    };
+    // quite e parado há tempo desce pro fim, recolhido como os itens apagados; o evento aberto fica sempre à vista
+    const antigo = (e) => e.id !== groupId && saldo(e) === 0 && e.at && diasDesde(e.at) >= QUITADO_DIAS;
+    const antigos = evs.filter(antigo);
+    return `<div class="evs">${topo}${evs
+      .filter((e) => !antigo(e))
+      .map(cartao)
+      .join('')}${
+      antigos.length
+        ? `<details class="antigos"><summary>${antigos.length} ${antigos.length === 1 ? 'quitado antigo' : 'quitados antigos'}</summary>${antigos.map(cartao).join('')}</details>`
+        : ''
+    }</div>`;
   }
   /** a linha inteira abre o evento; o ✕ dela chama `esquece` @param {MeuEvento[]} evs @param {(e: MeuEvento) => void} [esquece] */
   function ligaEventos(evs, esquece) {
@@ -2453,7 +2487,7 @@
     const e = achaGasto(el.dataset.undo);
     if (!e) return;
     const certeza = await ask(
-      'Desfazer o pagamento?',
+      e.forgiven ? 'Desfazer o perdão?' : 'Desfazer o pagamento?',
       `${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])} · ${comSifrao(centavos(e))}`,
       'desfazer',
     );
@@ -2465,17 +2499,20 @@
     commit();
     toast('Desfeito');
   }
-  /** o ✔ paguei: vira um gasto do tipo 'payment' de quem deve pra quem recebe */
+  /** o ✔ paguei de quem deve, e o ✔ recebi e o perdoar de quem recebe: todos viram um
+   *  gasto do tipo 'payment' de quem deve pra quem recebe; o perdão leva `forgiven` */
   async function quita(el) {
-    const [from, to, cs] = el.dataset.settle.split('|');
+    const modo = el.dataset.perdoa ? 'perdoa' : el.dataset.recebi ? 'recebi' : 'paguei';
+    const [from, to, cs] = (el.dataset.perdoa || el.dataset.recebi || el.dataset.settle).split('|');
     const cents = +cs;
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
-    const certeza = await ask(
-      'Quitar?',
-      `${nomeHtml(from)} pagou <b style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}`,
-      'quitei',
-    );
+    const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
+    const certeza = await (modo === 'perdoa'
+      ? ask('Perdoar?', `${nomeHtml(from)} não te deve mais ${valor}`, 'perdoar')
+      : modo === 'recebi'
+        ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
+        : ask('Quitar?', `${nomeHtml(from)} pagou ${valor} pra ${nomeHtml(to)}`, 'quitei'));
     if (!certeza) return;
     state.expenses.push({
       id: uid(),
@@ -2486,7 +2523,15 @@
       among: [to],
       at: Date.now(),
       by: me ? nameOf(me) : undefined,
+      forgiven: modo === 'perdoa' || undefined,
     });
+    if (modo !== 'paguei') {
+      // quem recebe não tem quem avisar no zap: quem devia fica sabendo pelo aviso
+      commit();
+      if (modo === 'recebi') festa(r.left + r.width / 2, r.top + r.height / 2);
+      toast(modo === 'perdoa' ? 'Perdoado 🙏' : 'Recebido! 🎉');
+      return;
+    }
     seguraRisco = true;
     commit();
     festa(r.left + r.width / 2, r.top + r.height / 2);
@@ -2537,7 +2582,7 @@
     ['[data-among]', (el) => abreItem(el.closest('.item'))],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
-    ['[data-settle]', quita],
+    ['[data-settle], [data-recebi], [data-perdoa]', quita],
     ['[data-cobra]', cobra],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],
@@ -2599,7 +2644,7 @@
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
     abreZap(
-      `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n${shareUrl(quem)}`,
+      `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`,
     );
   }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa cápsula com contorno e pontinho na cor dela.

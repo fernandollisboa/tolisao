@@ -16,24 +16,24 @@ Funcionalidade: Meus eventos
 
   Cenário: a lista vem pela última mudança no evento, e só abrir não sobe ele
     Dado que o "churras" mudou pela última vez há 3 dias
-    E que o "praia" mudou pela última vez há 10 dias
+    E que o "praia" mudou pela última vez há 5 dias
     Quando eu abro o evento "churras" como Lia
     E eu entro no evento "praia" como Lia
     E eu toco no nome do evento
     Então a lista de eventos é:
-      | churras | há 3 dias   |
-      | praia   | há 1 semana |
+      | churras | há 3 dias |
+      | praia   | há 5 dias |
 
   Cenário: a data da lista vem do banco, mesmo do que mudou em outro aparelho
     Dado que o "churras" mudou pela última vez há 3 dias
-    E que o "praia" mudou pela última vez há 10 dias
+    E que o "praia" mudou pela última vez há 5 dias
     Quando eu abro o evento "churras" como Lia
     E eu entro no evento "praia" como Lia
     E alguém mexe no "churras" ontem, em outro aparelho
     E eu toco no nome do evento
     Então a lista de eventos é:
-      | churras | ontem       |
-      | praia   | há 1 semana |
+      | churras | ontem     |
+      | praia   | há 5 dias |
 
   Cenário: os eventos em que entrei ficam no cartão do evento, com o meu saldo
     Quando eu abro o evento "churras" como Lia
@@ -127,16 +127,29 @@ Funcionalidade: Meus eventos
     Então o saldo do "praia" na lista é "quite"
     E em cima da lista diz "no total: você deve R$ 30,00", em vermelho
 
-  Cenário: evento parado em que me devem ganha um selo de cobrança
-    Uma semana sem mudança e com dinheiro pra receber: a lista lembra de cobrar.
-    O evento parado em que eu devo não ganha selo.
+  Cenário: evento parado em que me devem diz há quanto tempo está parado
+    Uma semana sem mudança e com dinheiro pra receber: no lugar da data, a lista lembra de cobrar.
+    O evento parado em que eu devo fica só com a data.
     Dado que o "churras" mudou pela última vez há 10 dias
     E que o "praia" mudou pela última vez há 12 dias
     Quando eu abro o evento "churras" como Lia
     E eu entro no evento "praia" como Lia
     E eu toco no nome do evento
-    Então o "praia" tem o selo "parado há 12 dias · te devem R$ 100,00"
-    Mas o "churras" não tem selo
+    Então a lista de eventos é:
+      | churras | há 1 semana          |
+      | praia   | ⏳ parado há 12 dias |
+
+  Cenário: evento quite e antigo desce pros quitados antigos
+    Duas semanas sem mudança e ninguém devendo nada: sai do caminho, recolhido no fim da lista.
+    O evento aberto fica sempre à vista.
+    Dado que a Mengla já pagou R$ 100,00 pra Lia
+    E que o "praia" mudou pela última vez há 20 dias
+    Quando eu abro o evento "churras" como Lia
+    E eu entro no evento "praia" como Lia
+    E eu entro no evento "churras" como Lia
+    E eu toco no nome do evento
+    Então a lista à vista tem só "churras"
+    E embaixo diz "1 quitado antigo", com o "praia" dentro
 
   Cenário: a cobrança de evento parado muda o tom
     Dado que o "churras" mudou pela última vez há 10 dias

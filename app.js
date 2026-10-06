@@ -1220,7 +1220,7 @@
       const d = `${t.from}|${t.to}|${t.cents}`;
       return t.cents < PERDOA_ATE
         ? `<button class="ico" data-perdoa="${d}" title="perdoar a dívida">🙏 perdoar</button>`
-        : `<button class="ico" data-recebi="${d}" title="marcar como recebido">💰 recebi</button>`;
+        : `<button class="ico" data-recebi="${d}" title="marcar como recebido">🫱🏻‍🫲🏿 recebi</button>`;
     };
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =

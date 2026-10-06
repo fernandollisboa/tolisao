@@ -575,7 +575,7 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 #chegada .c{text-transform:none;font-size:17px}
 #chegada .hr{margin-top:14px}
 /* o cobrar da linha de quem me deve */
-#mineRows button.ico.cobra svg{width:14px;height:14px}
+#mineRows button.ico.cobra svg{width:14px;height:14px;color:#25d366;fill:#25d366} /* o ícone no verde do zap; o botão segue neutro pra não virar o verde de receber */
 /* a turma de outro evento: cada pessoa uma cápsula na cor dela; tocar deixa de fora (tracejada e riscada) */
 #overlayBox .chips.turma{justify-content:center;margin:12px 0}
 #overlayBox .turma .chip{text-transform:none;border-radius:999px;border-style:dashed;border-color:var(--rule);color:var(--muted);text-decoration:line-through;padding:3px 12px}

@@ -374,10 +374,11 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .dupla>.ok{--tc:var(--green)}
 #mineRows .dupla>button.ico:not(.ok){--tc:var(--ink)}
 /* quem recebe: cada botão na sua cor, sem o verde de receber (que fica no valor) e sem neon:
-   cobrar no verde-azulado do zap, recebi azul, perdoar roxo. Piscam uma vez como o ✔ */
+   cobrar no verde-azulado do zap, recebi azul, perdoar terracota. O cobrar pisca como o ✔,
+   e o recebi/perdoar brota de trás dele como o copiar pix */
 #mineRows .dupla>button.ico.cobra{--tc:#2a7a6e}
 #mineRows .dupla>button.ico[data-recebi]{--tc:#3b6592}
-#mineRows .dupla>button.ico[data-perdoa]{--tc:#6f5490}
+#mineRows .dupla>button.ico[data-perdoa]{--tc:#a65a3a}
 #mineRows .dupla>button.ico.cobra,#mineRows .dupla>button.ico[data-recebi],#mineRows .dupla>button.ico[data-perdoa]{color:var(--tc);border-color:var(--tc);box-shadow:2px 2px 0 var(--tc)}
 #mineRows .dupla>button.ico.pisca:not(.ok){animation:piscaCor .9s ease-in-out both}
 @keyframes piscaCor{

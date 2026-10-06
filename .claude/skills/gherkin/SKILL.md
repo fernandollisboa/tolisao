@@ -5,59 +5,55 @@ description: Escreve e revisa cenários cucumber do tô lisa (specs/features/*.f
 
 # Cenário no tô lisa
 
-O `.feature` é a especificação: quem não programa lê e entende o que o app faz. O passo em `specs/passos/*.cjs` é onde mora o como. Se a frase do cenário só faz sentido pra quem leu o `app.js`, ela está no lugar errado.
+O app é pequeno e a spec também. O `.feature` diz o que o app faz, pra quem só usa ele; o passo em `specs/passos/*.cjs` guarda o como. Tudo aqui é ideia pra ajudar, não lei: se o cenário fica mais claro quebrando uma, quebre.
 
-## As regras
+Base: a doc oficial do Cucumber ([referência](https://cucumber.io/docs/gherkin/reference/), [better Gherkin](https://cucumber.io/docs/bdd/better-gherkin/), [BRIEF](https://cucumber.io/blog/bdd/keep-your-scenarios-brief/), [antipadrões](https://cucumber.io/docs/guides/anti-patterns/)).
 
-1. **Diz o comportamento, não a implementação.** Nada de `PALETTE`, `localStorage`, `id`, seletor, nome de função, "gera". O banco aparece só no `Então`, quando o efeito combinado é ele ("o evento no banco tem…", "o banco guarda a chave…"), nunca no `Dado` nem no `Quando`. Pergunta-teste: a frase continua verdadeira se o código for reescrito do zero?
-2. **Um comportamento por cenário.** O título diz a regra, como quem explica pra um amigo: "ninguém divide cor, por maior que seja a turma", não "teste de cores". Vários `Então` que retratam a mesma tela num mesmo momento são um comportamento só ("a nota de quem deve", em `acerto.feature`, confere valor, botões e subtítulo juntos, e tá certo: cada cenário abre um navegador e o CI tem que ser rápido). Separe quando o título deixa de dizer tudo que o cenário confere.
-3. **`Dado` é estado, não caminho.** Monte o mundo direto ("Dado um evento de 12 pessoas"), em vez de clicar até ele ("abro o site, digito o código, crio o evento, ponho Ana, Bia…"). Clicar pra chegar só vale quando o caminho é o que está sendo testado: "evento de uma pessoa só não pergunta quem é você", em `evento.feature`, cria o evento pela tela de propósito, porque é a criação que ele confere. Esse não se "conserta".
-4. **`Quando` é uma intenção da pessoa**, no vocabulário da tela: "eu toco em faltou gente", "eu quito a primeira linha". Se a intenção precisa de três cliques, o passo esconde os cliques; mas quem você é aparece na frase ("como Ana"), nunca fica escondido no passo. Alternar `Quando`/`Então`/`Quando` só quando a própria sequência é o comportamento (o Esquema do `pix.feature`: digita, barra, corrige, passa).
-5. **`Então` é o que a pessoa vê** (texto, cor, botão, aviso, o link do zap) ou o que fica no banco quando isso é o efeito combinado. Nunca estado interno.
-6. **Só o detalhe que importa.** Nome, valor e data aparecem quando mudam o resultado. Doze nomes listados só pra contar até doze é ruído: diga "12 pessoas". Valor que entra na conta, deixe na tabela, porque quem lê confere a soma.
-7. **A descrição embaixo do `Cenário:` explica o porquê**, em uma ou duas frases de regra de produto ("código curto se adivinha testando o hash no banco"). Não conta como o código faz.
-8. **Reaproveite antes de criar passo.** Procure em `specs/passos/` um passo que já diga a mesma coisa (`grep -n "Given\|When\|Then" specs/passos/*.cjs`) e leia os `defineParameterType` do `_mundo.cjs` (`{gente}`, `{num}`). **Cuidado:** `{gente}` engole qualquer texto, então uma frase nova parecida com um passo antigo pode cair nele sem erro ("o evento \"praia\" com 12 pessoas" vira uma pessoa chamada "12 pessoas"). Rode o cenário e confira que ele usa o passo que você quis. Passo novo tem frase de tela, e a parte técnica fica dentro dele.
-9. **Fala do mesmo jeito que o app.** Português da tela, na pessoa do usuário ("eu"), com os nomes das seções como estão na tela: Minha conta, Falta pagar, Quem vai?, Quem é você?.
+## O jeito
 
-## Contexto, evento de exemplo e Esquema
+- **O quê, não o como.** A pergunta da doc: "essa frase muda se a implementação mudar?" Se muda, ela tá no lugar errado. Nada de `PALETTE`, seletor, `localStorage`, "gera".
+- **Uma regra por cenário, com título de gente.** "ninguém divide cor, por maior que seja a turma", não "teste de cores". Vários `Então` sobre a mesma tela tudo bem: cada cenário abre um navegador, e CI lento é pior.
+- **Curto.** A doc sugere uns 3 a 5 passos e Contexto de até 4 linhas. Passou muito, talvez caiba um passo de nível mais alto.
+- **`Dado` é estado, `Quando` é a ação da pessoa, `Então` é o que ela vê.** Monte o mundo direto ("Dado um evento com uma turma grande"), sem clicar até ele, a não ser que o caminho seja o próprio teste (o "evento de uma pessoa só" cria pela tela de propósito).
+- **Só o dado que muda o resultado.** Concreto onde a conta é conferida (valores, datas, quem paga quem: deixe na tabela). Abstrato onde o número é só "muitos": "uma turma grande", e o 20 fica dentro do passo, com um comentário dizendo por quê. Pergunta de bolso: trocando esse dado por outro, a regra muda? Se não muda, é ruído.
+- **Fala como a tela.** "eu", e os nomes das seções como aparecem: Minha conta, Falta pagar, Quem vai?, Quem é você?. A mesma ação, sempre com a mesma frase.
+- **O porquê vai na descrição**, embaixo do título, em uma ou duas frases de produto. `#` é pra nota de quem mantém ("tabela repetida de propósito").
+- **Banco no `Então` é exceção nossa.** A doc prefere o que a pessoa vê; aqui vale conferir o banco quando ele é o resultado combinado ("o evento no banco tem…"), nunca no `Dado` ou `Quando`.
 
-- **`Contexto:`** só com o estado que todos os cenários do arquivo usam. Se um cenário precisa de outro mundo, ele vai pra outro arquivo ou monta o próprio `Dado`.
-- **A festa padrão** é `Dado o evento de exemplo "bailedamada"` (`specs/_festa.cjs`). Quando os números entram na conta, repita a tabela no `.feature`, como em `acerto.feature`: quem lê confere a soma sem abrir outro arquivo.
-- **`Esquema do Cenário:`** com `Exemplos:` quando a regra é a mesma e só o dado muda. A coluna que diferencia vira o título (`<tipo> não passa`).
+## Ferramentas, quando caírem bem
 
-## O que fica de fora
+- **`Regra:`** agrupa cenários de uma regra de negócio e pode ter o próprio `Contexto:`; debaixo dela, `Exemplo:` lê melhor que `Cenário:`. Bom quando só parte do arquivo usa a mesma montagem.
+- **`Esquema do Cenário:` + `Exemplos:`** quando a regra é a mesma e só o dado muda (o `<tipo> não passa` do `pix.feature`).
+- **`Contexto:`** só com o que todos os cenários (do arquivo ou da Regra) usam. A festa padrão é `Dado o evento de exemplo "bailedamada"` (`specs/_festa.cjs`); quando os números entram na conta, repita a tabela no `.feature`.
+- **`Mas`** pra contraste ("Mas não aparece aviso"), `"""` pra texto longo (o zap, o cartão).
 
-- Animação: não vira cenário (CLAUDE.md). Confere no vídeo (`specs/video.cjs`).
-- Validação do banco: não vira cenário. É o `npm run regras`.
-- Cenário que espera tempo: não existe. O relógio é falso (`AGORA` em `_mundo.cjs`); o passo avança o relógio, não espera.
+## Passos
+
+- **Procure antes de criar**: `grep -n "Given\|When\|Then" specs/passos/*.cjs`. Achou um quase igual, use ou junte. Os passos são por assunto (evento, gasto, pix, aparelho), não por feature.
+- **Um passo faz uma coisa.** "eu confirmo, e a página recarrega" são dois `E`.
+- **Parâmetros:** `{word}`, `{string}`, `{int}`, `{num}` (valor em reais) e `{gente}` (só lista de nomes com maiúscula: "Ana, Bia e Caio"). Rode o cenário e confira que ele caiu no passo que você quis.
+- **O `mundo` é por cenário.** Se um passo troca de evento, a frase diz ("eu entro no evento \"praia\"").
+
+## Fica de fora
+
+- Animação: confere no vídeo (`specs/video.cjs`), não em cenário.
+- Validação do banco: `npm run regras`.
+- Esperar tempo: o relógio é falso (`AGORA` em `_mundo.cjs`); o passo avança o relógio.
 
 ## Exemplo
-
-Ruim, porque descreve a implementação, monta o mundo clicando e lista nomes que não importam:
-
-```gherkin
-  Cenário: cada pessoa tem uma cor só dela, mesmo passando de 10
-    A paleta tem 10 cores; da 11ª pessoa em diante a cor é gerada e não repete.
-    Dado que eu abro o site sem evento
-    Quando eu digito o código "praia"
-    E eu crio o evento
-    E eu ponho Ana, Bia, Caio, Duda, Edu, Fê, Gil, Hugo, Iara, Jão, Kika e Léo na lista
-    Então as 12 pessoas da lista têm cores diferentes
-```
-
-Bom:
 
 ```gherkin
   Cenário: ninguém divide cor, por maior que seja a turma
     Cada pessoa é reconhecida pela cor dela na nota inteira: duas iguais confundem quem deve a quem.
-    Vale também depois que acabam as cores de sempre.
-    Dado um evento de 12 pessoas
-    Quando eu abro o Quem vai? como Ana
-    Então cada uma das 12 pessoas tem uma cor diferente
+    Dado um evento com uma turma grande
+    Quando eu abro o Quem vai?
+    Então ninguém tem a mesma cor
 ```
+
+A primeira versão dizia "Dado que eu abro o site sem evento / digito o código / crio o evento / ponho Ana, Bia, Caio… (12 nomes)" e "a paleta tem 10 cores": caminho no lugar de estado, nomes e número que não mudam a regra, e implementação na descrição.
 
 ## Antes de entregar
 
-- Leia o cenário em voz alta sem olhar o código. Faz sentido pra quem só usa o app?
-- O cenário falha se a regra quebrar? Rode contra o código antigo ou desfaça a mudança e confira que fica vermelho.
-- `npm test -- <arquivo>` verde, e `npm run qualidade` antes do PR.
+- Leia sem olhar o código: faz sentido pra quem só usa o app?
+- Quebre a regra no código (ou volte a mudança) e veja o cenário ficar vermelho.
+- `npm test -- <arquivo>` verde; `npm run qualidade` antes do PR.

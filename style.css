@@ -507,7 +507,9 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 @keyframes pulsaAnota{0%,50%,100%{scale:1;outline-offset:0;outline-color:rgba(154,91,0,0)}18%,68%{scale:1.06;outline-offset:2px;outline-color:rgba(154,91,0,.45)}40%,90%{outline-offset:6px;outline-color:rgba(154,91,0,0)}}
 #fab.pulsa{animation:pulsaAnota 2.2s ease-in-out}
 @keyframes sublinha{0%{background-size:0 3px}40%,75%{background-size:100% 3px}100%{background-size:100% 1px}}
-#whoBtn:not(.amb){text-decoration:none;background:linear-gradient(currentColor,currentColor) no-repeat 0 100%/100% 1px;padding-bottom:1px}
+/* nome do evento e "sou fulano": sublinhado pontilhado, de link de papel, diz que dá pra tocar.
+   É fundo, não text-decoration: o cutuca anima o background-size */
+#roomLabel,#whoBtn:not(.amb){text-decoration:none;background:repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 4px) no-repeat 0 100%/100% 2px;padding-bottom:2px}
 #whoBtn.cutuca{animation:sublinha 1.2s ease-out}
 @media (prefers-reduced-motion:reduce){#fab.pulsa,#whoBtn.cutuca{animation:none}}
 /* meus eventos: a linha inteira abre o evento, com o saldo de quem você é nele */

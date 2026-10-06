@@ -5,7 +5,9 @@ const { Banco } = require('../_banco.cjs');
 const cobertura = require('../_cobertura.cjs');
 
 defineParameterType({ name: 'num', regexp: /\d+(?:\.\d{3})*(?:,\d+)?/, transformer: s => Number(s.replace(/\./g, '').replace(',', '.')) });
-defineParameterType({ name: 'gente', regexp: /[^"]+?/, transformer: s => s.split(/\s*,\s*|\s+e\s+/).filter(Boolean) });
+// {gente} é só lista de nomes ("Ana, Bia e Caio"): nome começa com maiúscula. Assim "12 pessoas" ou "R$ 10"
+// viram passo indefinido, em vez de cair aqui calados como uma pessoa com esse nome
+defineParameterType({ name: 'gente', regexp: /[A-ZÀ-Ý][A-Za-zÀ-ÿ]*(?:(?:, | e )[A-ZÀ-Ý][A-Za-zÀ-ÿ]*)*/, useForSnippets: false, transformer: s => s.split(/\s*,\s*|\s+e\s+/).filter(Boolean) });
 
 // o relógio dos testes: toda aba nasce nessa hora, em São Paulo, e o tempo anda dali
 const AGORA = Date.parse('2026-03-10T15:00:00-03:00');

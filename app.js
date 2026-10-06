@@ -532,11 +532,20 @@
       0,
       state.people.findIndex((p) => p.id === id),
     );
-  const colorOf = (id) => PALETTE[indiceDaPessoa(id) % PALETTE.length];
+  // da 11ª pessoa em diante a cor é gerada, pra nunca repetir: o matiz anda pela razão áurea
+  // dentro da faixa do ciano ao magenta (longe do vermelho e do verde de deve/recebe e do âmbar),
+  // e o claro/escuro alterna de três em três. As 10 primeiras ficam com as cores de sempre.
+  /** @param {number} i */
+  const matiz = (i) => (182 + (((i - PALETTE.length) * 0.618033988749895) % 1) * 153).toFixed(2);
+  /** a cor de quem está na posição i @param {number} i */
+  const corDe = (i) => (i < PALETTE.length ? PALETTE[i] : `hsl(${matiz(i)} 55% ${[40, 31, 48][i % 3]}%)`);
+  /** o marca-texto de quem está na posição i @param {number} i */
+  const forteDe = (i) => (i < MARKR.length ? MARKR[i] : `hsl(${matiz(i)} 80% ${[72, 64, 79][i % 3]}%)`);
+  const colorOf = (id) => corDe(indiceDaPessoa(id));
   // o emoji da conta fechada varia, mas não pisca a cada render: sai do evento e do dia
   const FESTA = ['🎉', '🙌', '🙏', '❣️', '🥂', '✨'];
   const festeja = () => FESTA[hash32((groupId || '') + new Date().toDateString()) % FESTA.length];
-  const markForte = (id) => MARKR[indiceDaPessoa(id) % MARKR.length]; // o mesmo tom, firme: recibo em png e a volta da caneta
+  const markForte = (id) => forteDe(indiceDaPessoa(id)); // o mesmo tom, firme: recibo em png e a volta da caneta
   /** o nome da pessoa, na cor dela, pronto pra innerHTML */
   const nomeHtml = (id) => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
   const nomeHtmlPorNome = (name) => {
@@ -1569,7 +1578,7 @@
     overlay(
       `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">enter pula pra próxima</div>
       ${list}
-      <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${PALETTE[n % PALETTE.length]}">
+      <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${corDe(n)}">
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
@@ -1585,7 +1594,7 @@
       commit();
       return true;
     };
-    // a cor de quem entra já é sabida (é a próxima da PALETTE): a casinha pinta na primeira letra
+    // a cor de quem entra já é sabida (é a da próxima posição, corDe(n)): a casinha pinta na primeira letra
     $('#setupName').oninput = () => {
       const tem = !!$('#setupName').value.trim();
       $('#setupForm').classList.toggle('digitando', tem);
@@ -2775,7 +2784,7 @@
       const s = document.createElement('i');
       const ang = Math.random() * Math.PI * 2,
         d = 50 + Math.random() * 130;
-      s.style.cssText = `--dx:${(Math.cos(ang) * d).toFixed(0)}px;--dy:${(Math.sin(ang) * d - 60).toFixed(0)}px;--rot:${(Math.random() * 900 - 450).toFixed(0)}deg;--del:${(Math.random() * 90).toFixed(0)}ms;background:${PALETTE[i % PALETTE.length]}`;
+      s.style.cssText = `--dx:${(Math.cos(ang) * d).toFixed(0)}px;--dy:${(Math.sin(ang) * d - 60).toFixed(0)}px;--rot:${(Math.random() * 900 - 450).toFixed(0)}deg;--del:${(Math.random() * 90).toFixed(0)}ms;background:${corDe(i)}`;
       box.appendChild(s);
     }
     document.body.appendChild(box);

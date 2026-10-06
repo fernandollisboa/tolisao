@@ -92,6 +92,10 @@ When('eu troco o nome da/do {word} pra {word} na lista', async ({ mundo }, de, p
   const el = mundo.p.locator('#overlayBox [data-renome]', { hasText: de }); await el.click();
   await mundo.p.keyboard.press('ControlOrMeta+A'); await mundo.p.keyboard.type(pra); await mundo.p.keyboard.press('Enter');
 });
+Then('as {int} pessoas da lista têm cores diferentes', async ({ mundo }, n) => {
+  const cores = await mundo.p.$$eval('#overlayBox .row.pessoa .bola', bs => bs.map(b => getComputedStyle(b).backgroundColor));
+  expect(cores).toHaveLength(n); expect(new Set(cores).size).toBe(n);
+});
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
 Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });
 When('eu escolho {word}', async ({ mundo }, quem) => { await mundo.p.selectOption('#whoSel', { label: quem }); });

@@ -79,7 +79,7 @@ Funcionalidade: Meus eventos
       R$ 30,00
       sou Lia · 3 pessoas
       agora
-      OUTRO EVENTO
+      *** OUTRO EVENTO ***
       ENTRAR
       """
     E o código do evento não pega o foco sozinho

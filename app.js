@@ -1866,7 +1866,7 @@
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
           : ''
       }
-      <div class="hr"></div><h2>Outro evento</h2>
+      <div class="hr"></div><h2>*** Outro evento ***</h2>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
         <input id="gateCode" placeholder="código do evento" required autocapitalize="none"><button class="small">entrar</button></form>
       <div class="hr"></div>

@@ -58,7 +58,7 @@ Funcionalidade: Meus eventos
       sou Lia · 3 pessoas
       agora
       o ✕ tira da lista só neste aparelho
-      OUTRO EVENTO
+      *** OUTRO EVENTO ***
       ENTRAR
       VOLTAR
       """

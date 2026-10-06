@@ -24,6 +24,7 @@
   const INSTALAR = true;
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
+  const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const CURRENCY = 'R$';
 
@@ -68,7 +69,7 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, installPrompted, itemsOpened, boringMode }
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode }
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
@@ -152,6 +153,16 @@
   // visitas contadas neste aparelho: o convite de instalar e o aperto dos itens leem daqui
   const visitas = (+device().visits || 0) + 1;
   setDevice('visits', visitas);
+  // aparelhos por dia: um +1 no banco, que ninguém lê (só o dono, no console). O dia é o de Brasília (2026-10-06)
+  const hojeBR = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  if (CONTA_VISITAS && DB && device().countedDay !== hojeBR)
+    fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
+      method: 'PUT',
+      body: '{".sv":{"increment":1}}',
+      keepalive: true,
+    })
+      .then((r) => r.ok && setDevice('countedDay', hojeBR))
+      .catch(() => {});
   // ---------- o estado da página ----------
   // tudo que muda enquanto a página está aberta. O resto do arquivo lê e escreve aqui
   /** o id do evento no banco: sha-256 do código @type {string|null} */ let groupId = null;

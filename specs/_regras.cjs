@@ -40,6 +40,15 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     else if (v && typeof v === 'object') pix(v, [...caminho, k]); } };
   pix(banco.rules.pix || {}, []);
   regra('o tok do pix não se lê', lidos.join('; '));
+  // visitas é só um +1 por dia: ninguém lista, ninguém apaga (.validate não roda em delete), ninguém pula de 1000 em 1000
+  const vis = banco.rules.visitas, dia = vis?.$dia || {}, erros = [];
+  if (!vis) erros.push('não achei visitas no database.rules.json');
+  else {
+    if (JSON.stringify(vis).includes('".read"')) erros.push('visitas tem .read');
+    if (!/newData\.exists\(\)/.test(dia['.write'] || '')) erros.push('o .write de visitas/$dia não exige newData.exists()');
+    if (!(dia['.validate'] || '').includes('data.val() + 1')) erros.push('o .validate de visitas/$dia não exige data.val() + 1');
+  }
+  regra('visitas só se soma', erros.join('; '));
 }
 
 // ---------- clean() e .validate de rooms/$room contam o mesmo ----------

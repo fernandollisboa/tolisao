@@ -46,7 +46,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **sem dependência no site, sem framework, sem build.** `package.json` é só ferramenta. edição pequena (a única exceção foi a formatação do prettier).
 - **aspas simples no `const DB = '...'`:** o `specs/_serve.cjs` troca essa linha pelo banco falso, e sem ela o `app.js` nem sai pros testes.
 - **o banco é hostil.** id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`, tudo que vem do banco ou do cache passa por `clean()`.
-- **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário.
+- **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário. `visitas/<dia>` só se soma (+1 por aparelho por dia, `CONTA_VISITAS`): sem `.read`, sem apagar, o dono lê no console.
 - **CSP** no `<meta>` do `index.html`: só o próprio site e `*.firebaseio.com`. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.

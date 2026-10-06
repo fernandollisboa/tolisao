@@ -57,6 +57,8 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 
 ## convenções
 
+- **resposta ao usuário: em português e curta.** sem rodeio, só o que importa pra decidir.
+
 - cores de gente saem de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe; nada de amarelo.
 - animação entra na fila do `agenda()`, na ordem da página, e só roda com a seção na tela.
 - **teste não pode deixar o CI lento.** cenário que precisa esperar animação não existe: animação se confere no vídeo.

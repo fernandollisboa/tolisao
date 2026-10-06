@@ -61,7 +61,6 @@ Then('em cima da lista diz {string}, em {word}', async ({ mundo }, txt, cor) => 
   await expect(t).toHaveText(txt); await expect(t.locator('b')).toHaveCSS('color', cores[cor]);
 });
 Then('o saldo do {string} na lista é {string}', async ({ mundo }, nome, txt) => { await expect(ev(mundo, nome).locator('.v')).toHaveText(txt); });
-Then('o "parado" do {string} está em verde', async ({ mundo }, nome) => { await expect(ev(mundo, nome).locator('.parado')).toHaveCSS('color', cores.verde); });
 // os quites antigos ficam num recolhido no fim da lista, fechado
 Then('a lista à vista tem só {string}', async ({ mundo }, nome) => {
   await expect.poll(() => mundo.p.$$eval('#overlayBox .evs > .ev .l', l => l.map(n => n.textContent.trim()))).toEqual([nome]);

@@ -136,9 +136,8 @@ Funcionalidade: Meus eventos
     E eu entro no evento "praia" como Lia
     E eu toco no nome do evento
     Então a lista de eventos é:
-      | churras | há 1 semana       |
-      | praia   | parado há 12 dias |
-    E o "parado" do "praia" está em verde
+      | churras | há 1 semana          |
+      | praia   | ⏳ parado há 12 dias |
 
   Cenário: evento quite e antigo desce pros quitados antigos
     Duas semanas sem mudança e ninguém devendo nada: sai do caminho, recolhido no fim da lista.

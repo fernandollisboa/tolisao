@@ -97,6 +97,10 @@ Then('só a/o {word} tem ✕ na lista', async ({ mundo }, nome) => {
   await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toHaveCount(1);
   await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toContainText(nome);
 });
+Then('as {int} pessoas da lista têm cores diferentes', async ({ mundo }, n) => {
+  const cores = await mundo.p.$$eval('#overlayBox .row.pessoa .bola', bs => bs.map(b => getComputedStyle(b).backgroundColor));
+  expect(cores).toHaveLength(n); expect(new Set(cores).size).toBe(n);
+});
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
 Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });
 When('eu escolho {word}', async ({ mundo }, quem) => { await mundo.p.selectOption('#whoSel', { label: quem }); });

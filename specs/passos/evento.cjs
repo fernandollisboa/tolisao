@@ -18,13 +18,10 @@ const poeGastos = (mundo, linhas) => {
 
 Given('o evento {string} com {gente}', async ({ mundo }, nome, gente) => { poeGente(mundo, nome, gente); });
 
-// turma grande em que os nomes não importam, só quantas pessoas são.
-// o cenário das cores usa 12 porque passa das 10 cores fixas (PALETTE): se a paleta crescer, suba o número
-const NOMES = 'Ana Bia Caio Duda Edu Fê Gil Hugo Iara Jão Kika Léo Mel Nina Otto Pri Quel Rui Sol Téo'.split(' ');
-Given('um evento de {int} pessoas', async ({ mundo }, n) => {
-  if (n > NOMES.length) throw new Error(`só tem ${NOMES.length} nomes em NOMES`);
-  poeGente(mundo, 'turma', NOMES.slice(0, n));
-});
+// turma grande: o dobro das 10 cores fixas (PALETTE), pra passar com folga do ponto em que
+// a cor começa a ser gerada. Os nomes e o número não importam pro cenário, só que é muita gente
+const TURMA = 'Ana Bia Caio Duda Edu Fê Gil Hugo Iara Jão Kika Léo Mel Nina Otto Pri Quel Rui Sol Téo'.split(' ');
+Given('um evento com uma turma grande', async ({ mundo }) => { poeGente(mundo, 'turma', TURMA); });
 
 Given('os gastos:', async ({ mundo }, tabela) => { poeGastos(mundo, tabela.hashes()); });
 
@@ -105,14 +102,13 @@ Then('só a/o {word} tem ✕ na lista', async ({ mundo }, nome) => {
   await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toHaveCount(1);
   await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toContainText(nome);
 });
-// o número vem da frase, não do evento: se o Dado cair em outro passo, a conta não fecha e o cenário falha
-Then('cada uma das {int} pessoas tem uma cor diferente', async ({ mundo }, n) => {
+Then('ninguém tem a mesma cor', async ({ mundo }) => {
   const cores = await mundo.p.$$eval('#overlayBox .row.pessoa .bola', bs => bs.map(b => getComputedStyle(b).backgroundColor));
-  expect(cores).toHaveLength(n); expect(new Set(cores).size).toBe(n);
+  expect(cores).toHaveLength(TURMA.length); expect(new Set(cores).size).toBe(TURMA.length);
 });
-// o Quem vai? de quem já está no evento: entra como a pessoa e reabre pelo faltou gente
-When('eu abro o Quem vai? como {word}', async ({ mundo }, quem) => {
-  await mundo.abre({ quem });
+// o Quem vai? de quem já está no evento: entra como a primeira da turma (quem é não muda nada aqui)
+When('eu abro o Quem vai?', async ({ mundo }) => {
+  await mundo.abre({ quem: mundo.evento.people[0].name });
   await mundo.p.click('#whoBtn'); await mundo.p.click('#whoMais'); await mundo.p.waitForSelector('#setupName');
 });
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });

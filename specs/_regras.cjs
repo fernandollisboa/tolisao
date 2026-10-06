@@ -102,9 +102,9 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
 }
 
 // ---------- imagens do link abaixo de ~300 KB, senão o WhatsApp ignora ----------
-// o index.html e cada pasta de preview (c/h, c/i, c/j, pago, quitado: as que o shareUrl() monta)
+// o index.html e cada pasta de preview (semverba, sextou, fiado, pago, quitado: as que o shareUrl() monta; c/h, c/i, c/j dos links velhos)
 {
-  const pastas = ['', 'c/h/', 'c/i/', 'c/j/', 'pago/', 'quitado/'];
+  const pastas = ['', 'semverba/', 'sextou/', 'fiado/', 'c/h/', 'c/i/', 'c/j/', 'pago/', 'quitado/'];
   const erros = pastas.map(d => {
     const arq = d + 'index.html';
     if (!fs.existsSync(path.join(raiz, arq))) return `${arq} não existe`;

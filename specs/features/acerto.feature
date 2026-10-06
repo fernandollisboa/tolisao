@@ -156,11 +156,12 @@ Funcionalidade: Acertar as contas
       | Klinsmann | Júlia    | 34,72  |
     E o pagamento "Lia → Fernando" está carimbado "PAGO" por Fernando
 
-  # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar
+  # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar; dívida grande não se perdoa, só se dá baixa
   Cenário: só dívida pequena se perdoa
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
     Quando eu abro o evento como Fernando
     Então só o Klinsmann tem perdoar em Minha conta
+    E os outros têm recebi
     Quando eu perdoo o Klinsmann
     Então falta pagar:
       | quem      | paga pra | valor  |

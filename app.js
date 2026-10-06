@@ -1213,13 +1213,13 @@
     };
     const valor = (t) =>
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
-    // quem recebe também age: "recebi" quando pagaram por fora e ninguém tocou no ✔, e
-    // "perdoar" quando a dívida é pequena demais pra cobrar. Os dois viram pagamento
+    // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi"
+    // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
     const botoesRecebe = (t) => {
       const d = `${t.from}|${t.to}|${t.cents}`;
-      const perdoa =
-        t.cents < PERDOA_ATE ? `<button class="ico" data-perdoa="${d}" title="perdoar a dívida">perdoar</button>` : '';
-      return `<button class="ico ok" data-recebi="${d}" title="marcar como recebido">✔ recebi</button>${perdoa}`;
+      return t.cents < PERDOA_ATE
+        ? `<button class="ico" data-perdoa="${d}" title="perdoar a dívida">🙏 perdoar</button>`
+        : `<button class="ico" data-recebi="${d}" title="marcar como recebido">💰 recebi</button>`;
     };
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =

@@ -117,6 +117,9 @@ When('eu perdoo a/o {word}', async ({ mundo }, nome) => { await linhaDe(mundo.p,
 Then('só a/o {word} tem perdoar em Minha conta', async ({ mundo }, nome) => {
   await expect.poll(() => mundo.p.$$eval('#mineRows .row.sub:has([data-perdoa]) .nm', l => l.map(n => n.textContent))).toEqual([nome]);
 });
+Then('os outros têm recebi', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.$$eval('#mineRows .row.sub', l => l.every(r => !!r.querySelector('[data-perdoa]') !== !!r.querySelector('[data-recebi]')))).toBe(true);
+});
 When('eu começo a desfazer o perdão {string}', async ({ mundo }, txt) => {
   await pago(mundo.p, txt).locator('[data-undo]', { hasText: 'PERDOADO' }).click({ clickCount: 3 }); await mundo.p.waitForSelector('#okBtn');
 });

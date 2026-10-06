@@ -12,7 +12,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `style.css`: papel e madeira, fonte VT323.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
-- preview do link no zap: `c/h`, `c/i`, `c/j` (cobrança, a figurinha sai do código do evento), `pago/` e `quitado/` são páginas só com as `og:`, imagem em `og/`; o `vai.js` repassa pro app. quem escolhe a pasta é o `shareUrl()`.
+- preview do link no zap: o `index.html` usa `og/inicio.jpg` (o pin 😳 é fixo nele); `c/h`, `c/i`, `c/j` (cobrança, a figurinha sai do código do evento), `pago/` e `quitado/` são páginas só com as `og:`, imagem em `og/`; o `vai.js` repassa pro app. quem escolhe a pasta é o `shareUrl()`.
 - `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, imagens do link). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `docs/qa.md`: roteiro e achados das sessões de QA.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.

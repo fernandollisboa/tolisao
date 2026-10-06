@@ -163,6 +163,20 @@ Funcionalidade: Entrar no evento
     Então o site pergunta quem é você
     E o evento no banco tem Fernando e Lia
 
+  Cenário: faltou gente: dá pra pôr mais pessoas depois, sem virar elas
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    E os gastos:
+      | o quê | valor | pagou    | divide entre    |
+      | Pizza | 60,00 | Fernando | Fernando, Júlia |
+    Quando eu abro o evento como Fernando
+    E eu toco em quem é você
+    E eu toco em faltou gente
+    Então só a Lia tem ✕ na lista
+    Quando eu ponho Mel e Rui na lista
+    E eu continuo
+    Então o cabeçalho diz "sou Fernando"
+    E o evento no banco tem Fernando, Júlia, Lia, Mel e Rui
+
   Cenário: cada pessoa tem uma cor só dela, mesmo passando de 10
     A paleta tem 10 cores; da 11ª pessoa em diante a cor é gerada e não repete.
     Dado que eu abro o site sem evento

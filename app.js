@@ -1180,8 +1180,9 @@
   /** Minha conta: o saldo de quem está vendo e, devendo, um ✔ e um copiar pix por pessoa */
   function renderMinha(bal, acerto) {
     $('#mine').classList.remove('hidden');
-    const meus = bal < 0 ? acerto.filter((t) => t.from === me) : [];
-    agendaMinha(meus);
+    const meus = bal < 0 ? acerto.filter((t) => t.from === me) : [],
+      recebe = bal > 0 ? acerto.filter((t) => t.to === me) : [];
+    agendaMinha(meus, recebe.length);
     // o copiar pix corre por fora da fila: brota de trás do ✔ assim que a chave chega, e
     // brotar já conta que chegou (nada de spinner). O #mineRows é refeito a cada poll: o
     // atraso negativo retoma a animação de onde estava, aqui e na piscada
@@ -1216,24 +1217,29 @@
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
     // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi"
     // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
-    const botoesRecebe = (t) => {
-      const d = `${t.from}|${t.to}|${t.cents}`;
+    // e piscam como o ✔ de quem deve, linha atrás da linha, cada botão na cor dele
+    const piscaRecebe = (i) => {
+      const esp = i * PISCA_GAP,
+        dt = anim.mine ? Date.now() - anim.mine : Infinity;
+      return anim.tocouOk || dt >= esp + PISCA_MS ? '' : ` pisca" style="animation-delay:${esp - dt}ms`;
+    };
+    const botoesRecebe = (t, i) => {
+      const d = `${t.from}|${t.to}|${t.cents}`,
+        pi = piscaRecebe(i);
       return t.cents < PERDOA_ATE
-        ? `<button class="ico" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`
-        : `<button class="ico" data-recebi="${d}" title="marcar como recebido">🫱🏿‍🫲🏻 recebi</button>`;
+        ? `<button class="ico${pi}" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`
+        : `<button class="ico${pi}" data-recebi="${d}" title="marcar como recebido">🫱🏿‍🫲🏻 recebi</button>`;
     };
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
-        ? acerto
-            .filter((t) => t.to === me)
-            .map((t) =>
-              linha(
-                `<span class="n">${nomeHtml(t.from)}</span><span class="dupla"><button class="ico cobra" data-cobra="${t.from}|${t.cents}" title="cobrar no zap">${WA_SVG} cobrar</button>${botoesRecebe(t)}</span>`,
-                valorHtml(t.cents),
-                'sub',
-              ),
-            )
+        ? recebe.map((t, i) =>
+            linha(
+              `<span class="n">${nomeHtml(t.from)}</span><span class="dupla"><button class="ico cobra${piscaRecebe(i)}" data-cobra="${t.from}|${t.cents}" title="cobrar no zap">${WA_SVG} cobrar</button>${botoesRecebe(t, i)}</span>`,
+              valorHtml(t.cents),
+              'sub',
+            ),
+          )
         : meus.map((t, i) =>
             linha(
               `<span class="n">${nomeHtml(t.to)}</span><span class="dupla">${botaoPaguei(t, i)}${botaoCopiarPix(t)}</span>`,
@@ -1250,7 +1256,8 @@
   /** Minha conta pega a vez assim que chega na tela, sem esperar a chave do pix (senão o
    *  Falta pagar tomava a frente). A fila só segura o começo das piscadas: quem vem depois
    *  não espera elas acabarem, e sem linha nenhuma não há o que segurar */
-  function agendaMinha(meus) {
+  /** @param {Transfer[]} meus @param {number} [recebe] quantas linhas de quem me deve: piscam sem natal */
+  function agendaMinha(meus, recebe = 0) {
     if (!anim.naTela.mine || anim.mine) return;
     // o pisca-pisca de natal é presente de quem deve pra dois ou mais: sempre na
     // primeira vez que a pessoa vê a própria conta assim, depois cara ou coroa
@@ -1264,10 +1271,9 @@
       mexe(roomKey(groupId), (o) => {
         o.lightsSeen = [...(Array.isArray(o.lightsSeen) ? o.lightsSeen : []), me];
       });
-    const fim = !meus.length
-      ? 0
-      : (meus.length - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
-    anim.mine = agenda(meus.length ? (meus.length - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
+    const n = meus.length || recebe;
+    const fim = !n ? 0 : (n - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+    anim.mine = agenda(n ? (n - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
   }
   /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */
   function renderForm() {

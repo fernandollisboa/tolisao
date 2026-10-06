@@ -347,7 +347,7 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
   22%{opacity:1}
   38%,78%,100%{opacity:1;transform:none;background:#fff8e6;color:#9a5b00}
   58%{opacity:1;transform:scale(1.12);background:#9a5b00;color:#fff8e6}}
-@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#mineRows .dupla>.ok.pisca.natal,#pixLine #pixBtn,#mineRows .dupla>button.ico.tocou{animation:none}}
+@media (prefers-reduced-motion:reduce){#mineRows .dupla>.brota{animation:none;opacity:1}#mineRows .dupla>.ok.pisca,#mineRows .dupla>.ok.pisca.natal,#mineRows .dupla>button.ico.pisca,#pixLine #pixBtn,#mineRows .dupla>button.ico.tocou{animation:none}}
 /* o dedo acerta mais que 26px: a área de toque dos botões do acerto passa dos 44px
    que a Apple pede, sem mudar o desenho. Na horizontal quase nada, que os dois são vizinhos */
 #mineRows .dupla>button.ico{position:relative}
@@ -373,6 +373,16 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
    !important — e a piscada não volta depois, que o convite já foi respondido */
 #mineRows .dupla>.ok{--tc:var(--green)}
 #mineRows .dupla>button.ico:not(.ok){--tc:var(--ink)}
+/* quem recebe: cada botão na sua cor, sem o verde de receber (que fica no valor) e sem neon:
+   cobrar no verde-azulado do zap, recebi azul, perdoar roxo. Piscam uma vez como o ✔ */
+#mineRows .dupla>button.ico.cobra{--tc:#2a7a6e}
+#mineRows .dupla>button.ico[data-recebi]{--tc:#3b6592}
+#mineRows .dupla>button.ico[data-perdoa]{--tc:#6f5490}
+#mineRows .dupla>button.ico.cobra,#mineRows .dupla>button.ico[data-recebi],#mineRows .dupla>button.ico[data-perdoa]{color:var(--tc);border-color:var(--tc);box-shadow:2px 2px 0 var(--tc)}
+#mineRows .dupla>button.ico.pisca:not(.ok){animation:piscaCor .9s ease-in-out both}
+@keyframes piscaCor{
+  0%,100%{background:#fff8e6;color:var(--tc);transform:none}
+  45%{background:var(--tc);color:#fff8e6;transform:scale(1.14)}}
 #mineRows .dupla>button.ico.tocou{animation:toque .28s ease-out both}
 @keyframes toque{
   0%,40%{background:var(--tc);color:#fff8e6}
@@ -577,7 +587,7 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 #chegada .c{text-transform:none;font-size:17px}
 #chegada .hr{margin-top:14px}
 /* o cobrar da linha de quem me deve */
-#mineRows button.ico.cobra svg{width:14px;height:14px;color:#25d366;fill:#25d366} /* o ícone no verde do zap; o botão segue neutro pra não virar o verde de receber */
+#mineRows button.ico.cobra svg{width:14px;height:14px}
 /* a turma de outro evento: cada pessoa uma cápsula na cor dela; tocar deixa de fora (tracejada e riscada) */
 #overlayBox .chips.turma{justify-content:center;margin:12px 0}
 #overlayBox .turma .chip{text-transform:none;border-radius:999px;border-style:dashed;border-color:var(--rule);color:var(--muted);text-decoration:line-through;padding:3px 12px}

@@ -179,9 +179,10 @@ Funcionalidade: Entrar no evento
 
   Cenário: ninguém divide cor, por maior que seja a turma
     Cada pessoa é reconhecida pela cor dela na nota inteira: duas iguais confundem quem deve a quem.
+    Vale também depois que acabam as cores de sempre.
     Dado um evento de 12 pessoas
-    Quando eu abro a lista de quem vai
-    Então cada pessoa da lista tem uma cor diferente
+    Quando eu abro o Quem vai? como Ana
+    Então cada uma das 12 pessoas tem uma cor diferente
 
   Cenário: evento de uma pessoa só não pergunta quem é você
     Dado que eu abro o site sem evento

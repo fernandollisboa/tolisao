@@ -87,7 +87,7 @@ Funcionalidade: Acertar as contas
       """
       💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
 
-      {site}/c/j/?evento=bailedamada&quem=mengla
+      {site}/fiado/?evento=bailedamada&quem=mengla
       """
 
   Cenário: copiar o pix já com o valor
@@ -113,7 +113,7 @@ Funcionalidade: Acertar as contas
       💸 Klinsmann paga R$ 73,61 pra Fernando (pix: fernando@exemplo.com)
       💸 Klinsmann paga R$ 34,72 pra Júlia
 
-      tudo aqui 👉 {site}/c/j/?evento=bailedamada
+      tudo aqui 👉 {site}/fiado/?evento=bailedamada
       """
 
   Cenário: os botões dizem o que fazem

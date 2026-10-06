@@ -2625,12 +2625,14 @@
   const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
     ? location.origin + location.pathname
     : 'https://tolisa.com.br/';
+  // as figurinhas de cobrança, uma pasta cada: nome que se lê no link (as velhas c/h, c/i e c/j seguem de pé pros links já mandados)
+  const COBRA_PASTAS = ['semverba', 'sextou', 'fiado'];
   /** a pasta escolhe o preview do link no zap: cada uma tem as suas og: e o vai.js manda pro app.
    * Sem `pasta` é cobrança, e a figurinha sai do código do evento: cada evento fica sempre com a mesma.
    * `quem` vai no &quem=: quem abrir já entra como essa pessoa
    * @param {string} [quem] @param {'pago'|'quitado'} [pasta] */
   const shareUrl = (quem = '', pasta) => {
-    const dir = pasta || 'c/' + 'hij'[[...roomName].reduce((a, c) => a + c.charCodeAt(0), 0) % 3];
+    const dir = pasta || COBRA_PASTAS[[...roomName].reduce((a, c) => a + c.charCodeAt(0), 0) % COBRA_PASTAS.length];
     return `${SITE}${dir}/?evento=${encodeURIComponent(roomName)}${quem ? '&quem=' + quem : ''}`;
   };
   // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de

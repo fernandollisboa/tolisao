@@ -39,6 +39,7 @@ os testes são cucumber em português: a especificação fica em `specs/features
 - cor de gente sai de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe.
 - animação nova entra na fila do `agenda()` e só roda com a seção na tela.
 - teste não pode deixar o CI lento: cenário que precisa esperar animação não entra. animação se confere no vídeo.
+- cenário diz o comportamento, não a implementação: quem só usa o app lê e entende. `Dado` monta o estado direto (não clica até ele), `Quando` é uma ação da pessoa, `Então` é o que ela vê. nome, valor e data só quando mudam o resultado. a parte técnica fica dentro do passo. o guia completo, com exemplo, está em `.claude/skills/gherkin/SKILL.md`.
 
 ## mudou a tela? manda imagem
 

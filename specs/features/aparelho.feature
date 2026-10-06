@@ -36,7 +36,7 @@ Funcionalidade: O que fica guardado no aparelho
       R$ 100,00
       sou Lia · 3 pessoas
       agora
-      OUTRO EVENTO
+      *** OUTRO EVENTO ***
       ENTRAR
       """
     E o aparelho não guarda mais o último evento na gaveta dele

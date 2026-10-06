@@ -1535,9 +1535,9 @@
       </div>`;
     const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, false)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>${evs.length ? 'Outro evento' : 'Evento'}</h2>${msg || !evs.length ? `<p class="muted recado">${msg || ''}</p>` : ''}
-      <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required${evs.length ? '' : ' autofocus'} autocapitalize="none">
-      <p id="gateErr" class="status err" style="margin:0"></p><button class="big">${botao}</button></form>`,
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado">${msg || ''}</p>` : ''}
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="código do evento" required${evs.length ? '' : ' autofocus'} autocapitalize="none"><button class="small">${botao}</button></form>
+      <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
     digitaTitulo($('#tituloGate'));

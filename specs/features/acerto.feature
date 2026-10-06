@@ -1,7 +1,8 @@
 # language: pt
 Funcionalidade: Acertar as contas
   Minha conta diz quanto eu devo ou tenho a receber, e é de lá que eu ajo:
-  o ✔ quita e o copiar pix já vai com o valor. Falta pagar só mostra.
+  o ✔ quita, o copiar pix já vai com o valor e o cobrar manda no zap o link
+  de quem me deve. Falta pagar só mostra.
 
   # a mesma festa do anotar.feature, repetida de propósito: as contas daqui saem desta
   # tabela, e quem lê confere os números sem abrir outro arquivo
@@ -76,6 +77,16 @@ Funcionalidade: Acertar as contas
       """
       ✅ Fernando, te paguei R$ 117,84 do *bailedamada* 👍
       {link do evento}
+      """
+
+  Cenário: cobrar no zap quem me deve
+    O link da cobrança já entra como quem deve: a pessoa abre e cai na própria conta.
+    Quando eu abro o evento como Fernando
+    E eu cobro a Mengla no zap
+    Então o zap abre com a mensagem:
+      """
+      💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
+      {link do evento pra Mengla}
       """
 
   Cenário: copiar o pix já com o valor

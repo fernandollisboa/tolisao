@@ -45,11 +45,14 @@ Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => { awai
 Then('nenhum pagamento está carimbado', async ({ mundo }) => { await expect(mundo.p.locator('#settle .row.paid')).toHaveCount(0); });
 Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/\u00a0/g, ' ').trim() : null))
-    .toBe(txt.replace('{link do evento}', mundo.link).trim());
+    .toBe(txt.replace('{link do evento}', mundo.link).replace(/\{link do evento pra (\S+)\}/, (_, q) => `${mundo.link}&quem=${mundo.pessoa(q).id}`).trim());
   // pelo wa.me n\u00e3o: ele redireciona pra c\u00e1 trocando emoji astral (\ud83e\uddfe \ud83d\udcb8 \ud83d\udc49) por U+FFFD
   expect(await mundo.p.evaluate(() => window.__aberto)).toContain('https://api.whatsapp.com/send?text=');
 });
 
+When('eu cobro o/a {word} no zap', async ({ mundo }, nome) => {
+  await mundo.p.locator('#mineRows .row.sub').filter({ has: mundo.p.locator('.nm', { hasText: nome }) }).locator('[data-cobra]').click();
+});
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
 Then('fica copiado o pix copia e cola:', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt.trim()); });
 

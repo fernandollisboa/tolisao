@@ -34,8 +34,8 @@ async function preview(opts = {}) {
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
     await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
-    await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
-    await p.selectOption('#whoSel', { label: quem });
+    // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é
+    if (quem) { await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: quem }); }
     await p.waitForTimeout(900);
 
     const tirar = async destino => recorte ? p.screenshot({ path: destino, clip: recorte })
@@ -73,7 +73,7 @@ if (require.main === module) {
   const op = a => (args.find(x => x.startsWith('--' + a + '=')) || '').split('=')[1];
   const varArq = op('variantes');
   preview({
-    alvo, quem: op('quem') || 'Lia', saida: op('saida'),
+    alvo, quem: args.includes('--ninguem') ? '' : op('quem') || 'Lia', saida: op('saida'),
     largura: +op('largura') || 390,
     recorte: op('recorte') ? (([x,y,width,height]) => ({x,y,width,height}))(op('recorte').split(',').map(Number)) : null,
     variantes: varArq ? require(path.resolve(varArq)) : null,

@@ -100,6 +100,45 @@ Then('o evento no banco tem {gente}', async ({ mundo }, gente) => {
   await expect.poll(() => (mundo.banco.pega(['rooms', sala, 'people']) || []).map(p => p.name)).toEqual(gente);
 });
 
+// a turma de outro evento: o cartão dela abre pela lista de gente do evento novo
+When('eu trago a turma do {string}', async ({ mundo }, nome) => {
+  await mundo.p.locator('#overlayBox [data-turma]', { hasText: nome }).click(); await mundo.p.click('#turmaGo'); await mundo.p.waitForSelector('#setupGo');
+});
+When('eu trago a turma do {string} sem o/a {word}', async ({ mundo }, nome, fora) => {
+  await mundo.p.locator('#overlayBox [data-turma]', { hasText: nome }).click();
+  await mundo.p.locator('#overlayBox .turma .chip', { hasText: fora }).click();
+  await mundo.p.click('#turmaGo'); await mundo.p.waitForSelector('#setupGo');
+});
+const pessoaNoBanco = (mundo, sala, nome) => (mundo.banco.pega(['rooms', sala, 'people']) || []).find(p => p.name === nome);
+Then('{gente} são as mesmas pessoas do {string}', async ({ mundo }, gente, nome) => {
+  const sala = await salaAberta(mundo), antigo = Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome);
+  for (const n of gente) expect(pessoaNoBanco(mundo, sala, n).id).toBe(antigo.people.find(p => p.name === n).id);
+});
+Then('o evento novo não tem nenhum gasto', async ({ mundo }) => {
+  expect(mundo.banco.pega(['rooms', await salaAberta(mundo), 'expenses']) || []).toEqual([]);
+});
+Then('o evento novo guarda a chave pix da/do {word} {string}', async ({ mundo }, nome, chave) => {
+  const sala = await salaAberta(mundo);
+  await expect.poll(() => mundo.banco.pega(['pix', sala, pessoaNoBanco(mundo, sala, nome)?.id, 'key'])).toBe(chave);
+});
+Then('o evento novo não tem a chave pix da/do {word}', async ({ mundo }, nome) => {
+  const sala = await salaAberta(mundo);
+  expect(mundo.banco.pega(['pix', sala, pessoaNoBanco(mundo, sala, nome).id])).toBeNull();
+});
+// o segredo nasce no evento novo: fica na gaveta dele e não sai em link nenhum
+Then('o segredo da chave da/do {word} no evento novo é só deste evento', async ({ mundo }, nome) => {
+  const sala = await salaAberta(mundo), id = pessoaNoBanco(mundo, sala, nome).id, tok = mundo.banco.pega(['pix', sala, id, 'tok']);
+  const gavetas = await mundo.p.evaluate(() => Object.fromEntries(Object.keys(localStorage).map(k => [k, JSON.parse(localStorage.getItem(k) || '{}')])));
+  expect(gavetas[`tolisa:${sala}`].pixTokens[id]).toBe(tok);
+  for (const [k, g] of Object.entries(gavetas)) if (k !== `tolisa:${sala}`) expect(JSON.stringify(g)).not.toContain(tok);
+  expect(await mundo.p.evaluate(() => location.href)).not.toContain(tok);
+});
+
+// o palpite de quem eu sou mora no cabeçalho, no lugar do "quem é você?"
+Then('o cabeçalho pergunta {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#whoLine a.amb')).toHaveText(txt); });
+When('eu respondo que sim', async ({ mundo }) => { await mundo.p.click('#whoSugere'); });
+When('eu respondo que não', async ({ mundo }) => { await mundo.p.click('#whoBtn'); });
+
 // o evento some do banco com o aparelho ainda guardando a cópia
 When('o evento some do banco', async ({ mundo }) => {
   await mundo.p.waitForSelector('#app:not(.loading)');

@@ -68,7 +68,8 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, installPrompted, itemsOpened, boringMode }
+  //   tolisa         { visits, installPrompted, itemsOpened, boringMode, myName, pixKey }
+  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot }
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
@@ -747,7 +748,7 @@
       'Chave Pix',
       '',
       'chave aleatória ou e-mail',
-      pixKeys[me] || '',
+      pixKeys[me] || minhaChave(),
       'salvar',
       (v) => !!validPixKey(v),
       '✋ CPF e celular não ✋',
@@ -757,6 +758,8 @@
     if (!key) return;
     await putPix(me, key);
   }
+  /** a última chave que cadastrei neste aparelho, se ainda serve: vem escrita no cadastro de um evento novo */
+  const minhaChave = () => (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '';
   async function putPix(pid, key) {
     let tok = (room().pixTokens || {})[pid];
     if (typeof tok !== 'string' || !tok) {
@@ -772,6 +775,11 @@
           'Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)',
         );
       if (!r.ok) return toast('Erro ao salvar: HTTP ' + r.status);
+      // a minha chave fica lembrada no aparelho, pra oferecer no próximo evento (só a chave: o tok é de cada evento)
+      if (pid === me) {
+        if (key) setDevice('pixKey', key);
+        else if (device().pixKey === pixKeys[pid]) setDevice('pixKey', undefined);
+      }
       // apagar grava a chave vazia: o nó fica, e a regra deixa qualquer aparelho cadastrar de novo
       if (key) pixKeys[pid] = key;
       else delete pixKeys[pid];
@@ -924,6 +932,20 @@
     return SIGNOFF.even;
   }
   const temMe = () => !!me && state.people.some((p) => p.id === me);
+  /** quem eu sou nos meus outros eventos (lido ao abrir este): a turma trazida leva os mesmos ids @type {Set<string>} */
+  let meusIds = new Set();
+  /** quem não disse quem é ganha um palpite de um toque: a pessoa que eu já sou em outro evento
+   *  (mesmo id) ou, sem ela, a do último nome que escolhi. Só palpite: dois ids batendo, nada */
+  function palpite() {
+    if (temMe()) return null;
+    const porId = state.people.filter((p) => meusIds.has(p.id));
+    if (porId.length) return porId.length === 1 ? porId[0] : null;
+    const nome = device().myName;
+    return (
+      (typeof nome === 'string' && nome && state.people.find((p) => p.name.toLowerCase() === nome.toLowerCase())) ||
+      null
+    );
+  }
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) =>
     lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : '';
@@ -969,16 +991,20 @@
     document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
     $('#roomLabel').onclick = showRoom;
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
-    const wl = $('#whoLine');
+    const wl = $('#whoLine'),
+      sug = hasMe ? null : palpite();
     const html = hasMe
       ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
-      : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
+      : sug
+        ? `<a class="link amb" id="whoSugere" data-quem="${sug.id}">você é ${esc(sug.name)}?</a> <a class="link" id="whoBtn">não</a>`
+        : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
     if (wl.dataset.k !== html) {
       wl.innerHTML = html;
       wl.dataset.k = html;
     }
     // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
     $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
+    if ($('#whoSugere')) $('#whoSugere').onclick = () => souEu($('#whoSugere').dataset.quem);
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
   }
@@ -1566,12 +1592,26 @@
       )
       .join('');
     const n = state.people.length;
+    // lista vazia: a turma de um dos meus eventos vem num toque, da cópia do aparelho (abre sem internet)
+    const turmas = n
+      ? []
+      : meusEventos()
+          .filter((e) => e.id !== groupId && e.snap && e.snap.people.length)
+          .slice(0, 3);
+    const trazer = turmas.length
+      ? `<div class="hr"></div><div class="c muted recado" style="text-transform:none">ou traga a turma de</div><div class="evs turmas">${turmas
+          .map(
+            (e) =>
+              `<div class="ev" data-turma="${e.id}" role="button" tabindex="0"><div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v">${e.snap.people.length} pessoa${e.snap.people.length === 1 ? '' : 's'}</span></div><div class="sub"><span>${esc(e.snap.people.map((p) => p.name).join(', '))}</span></div></div>`,
+          )
+          .join('')}</div>`
+      : '';
     overlay(
       `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">enter pula pra próxima</div>
       ${list}
       <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${PALETTE[n % PALETTE.length]}">
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
-      <button id="setupMais" class="ghost casinha">+ outra pessoa</button>
+      <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${trazer}
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
       <div class="c voltar"><button id="setupLeave" class="ghost">sair</button></div>`,
     );
@@ -1630,9 +1670,21 @@
         commit();
         showSetup();
       };
-    // evento de uma pessoa só: não há o que perguntar, quem criou é ela
+    for (const el of inputs('#overlayBox [data-turma]')) {
+      const e = turmas.find((x) => x.id === el.dataset.turma);
+      if (!e) continue;
+      el.onclick = () => showTurma(e);
+      el.onkeydown = (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          showTurma(e);
+        }
+      };
+    }
+    // evento de uma pessoa só: não há o que perguntar, quem criou é ela. Quem veio com a turma já é alguém
     $('#setupGo').onclick = () => {
       if (!poe(true) || !state.people.length) return;
+      if (temMe()) return closeOverlay();
       if (state.people.length === 1) return souEu(state.people[0].id);
       closeOverlay();
       showWho();
@@ -1641,11 +1693,64 @@
     $('#setupLeave').onclick = closeOverlay;
     $('#setupName').focus();
   }
+  /** a turma de outro evento: as mesmas pessoas, com os mesmos ids e na mesma ordem (a cor de
+   *  cada uma vem junto), e eu continuo sendo quem eu era lá. Gasto nenhum vem. Chave pix, só
+   *  a minha, gravada de novo com um tok deste evento: a dos outros travaria a deles aqui
+   *  @param {MeuEvento} e */
+  function showTurma(e) {
+    const gente = /** @type {Room} */ (e.snap).people,
+      fora = new Set(),
+      chave = e.me ? minhaChave() : '';
+    const desenha = () => {
+      const ficam = gente.filter((p) => !fora.has(p.id)),
+        vem = ficam.length;
+      // a cor é a que a pessoa vai ter no evento novo: quem fica de fora empurra as de trás
+      const cor = (p) => PALETTE[Math.max(0, ficam.indexOf(p)) % PALETTE.length];
+      overlay(
+        `<h2 class="pergunta">A turma de ${esc(e.nome)}</h2><div class="c muted recado" style="text-transform:none">toque em quem não vai</div>
+        <div class="chips turma">${gente
+          .map(
+            (p) =>
+              `<button class="chip${fora.has(p.id) ? '' : ' on'}" data-quem="${p.id}" style="--cor:${cor(p)}"><span class="bola"></span>${esc(p.name)}${p.id === e.me ? ' (eu)' : ''}</button>`,
+          )
+          .join('')}</div>
+        ${chave && !fora.has(e.me) ? `<div class="c turmaPix"><label class="chip on"><input type="checkbox" id="turmaPix" checked>usar minha chave pix</label><div class="muted">${esc(chave)}</div></div>` : ''}
+        <button id="turmaGo" class="big" style="margin-top:14px" ${vem ? '' : 'disabled'}>trazer ${vem} pessoa${vem === 1 ? '' : 's'}</button>
+        <div class="c voltar"><button id="turmaVolta" class="ghost">voltar</button></div>`,
+      );
+      for (const b of inputs('#overlayBox [data-quem]'))
+        b.onclick = () => {
+          const id = b.dataset.quem;
+          if (fora.has(id)) fora.delete(id);
+          else fora.add(id);
+          desenha();
+        };
+      if ($('#turmaPix'))
+        $('#turmaPix').onchange = () => $('#turmaPix').closest('.chip').classList.toggle('on', $('#turmaPix').checked);
+      $('#turmaVolta').onclick = showSetup;
+      $('#turmaGo').onclick = () => {
+        const comPix = !!$('#turmaPix') && $('#turmaPix').checked;
+        const jaTem = (p) => state.people.some((x) => x.id === p.id || x.name.toLowerCase() === p.name.toLowerCase());
+        for (const p of gente)
+          if (!fora.has(p.id) && !state.deleted.includes(p.id) && !jaTem(p))
+            state.people.push({ id: p.id, name: p.name, at: p.at });
+        state.people.sort((a, b) => a.at - b.at);
+        commit();
+        if (e.me && state.people.some((p) => p.id === e.me)) {
+          souEu(e.me);
+          if (comPix) putPix(e.me, chave);
+        }
+        showSetup();
+      };
+    };
+    desenha();
+  }
   // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
   // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
   function souEu(v) {
     me = v;
     setRoom('me', me);
+    if (temMe()) setDevice('myName', nameOf(me)); // o palpite de quem eu sou num evento que não tem a minha turma
     rearmaAnims();
     closeOverlay();
     render();
@@ -1792,6 +1897,11 @@
       me = typeof r.me === 'string' ? r.me : null;
       lastSeen = +r.lastSeen || 0;
     }
+    meusIds = new Set(
+      meusEventos()
+        .filter((e) => e.id !== id && e.me)
+        .map((e) => /** @type {string} */ (e.me)),
+    );
     showAll = false;
     showGone = false;
     $('#app').classList.add('loading');

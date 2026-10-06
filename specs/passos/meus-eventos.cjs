@@ -7,6 +7,7 @@ const recarrega = async (mundo, acao) => { await Promise.all([mundo.p.waitForEve
 const ev = (mundo, nome) => mundo.p.locator('#overlayBox .ev', { hasText: nome });
 
 When('eu abro o evento {string} como {word}', async ({ mundo }, nome, quem) => { usa(mundo, nome); await mundo.abre({ quem }); });
+When('eu abro o evento {string}', async ({ mundo }, nome) => { usa(mundo, nome); await mundo.abre(); await mundo.p.waitForSelector('#app:not(.loading)'); });
 When('eu entro no evento {string}', async ({ mundo }, nome) => {
   usa(mundo, nome); await recarrega(mundo, () => mundo.p.evaluate(q => { location.search = q; }, '?evento=' + nome));
   await mundo.p.waitForSelector('#app:not(.loading)');

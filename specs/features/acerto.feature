@@ -86,6 +86,7 @@ Funcionalidade: Acertar as contas
     Então o zap abre com a mensagem:
       """
       💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
+
       {site}/c/j/?evento=bailedamada&quem=mengla
       """
 

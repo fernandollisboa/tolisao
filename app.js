@@ -2644,7 +2644,7 @@
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
     abreZap(
-      `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n${shareUrl(quem)}`,
+      `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`,
     );
   }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa cápsula com contorno e pontinho na cor dela.

@@ -374,16 +374,13 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 #mineRows .dupla>.ok{--tc:var(--green)}
 #mineRows .dupla>button.ico:not(.ok){--tc:var(--ink)}
 /* quem recebe: cada botão na sua cor, sem o verde de receber (que fica no valor) e sem neon:
-   cobrar no verde-azulado do zap, recebi azul, perdoar terracota. O cobrar pisca como o ✔,
-   e o recebi/perdoar brota de trás dele como o copiar pix */
+   cobrar no verde-azulado do zap, recebi azul, perdoar terracota. O recebi/perdoar brota
+   de trás do cobrar como o copiar pix (o cobrar fica por cima enquanto ele sai) */
+#mineRows .dupla>button.ico.cobra{z-index:2}
 #mineRows .dupla>button.ico.cobra{--tc:#2a7a6e}
 #mineRows .dupla>button.ico[data-recebi]{--tc:#3b6592}
 #mineRows .dupla>button.ico[data-perdoa]{--tc:#a65a3a}
 #mineRows .dupla>button.ico.cobra,#mineRows .dupla>button.ico[data-recebi],#mineRows .dupla>button.ico[data-perdoa]{color:var(--tc);border-color:var(--tc);box-shadow:2px 2px 0 var(--tc)}
-#mineRows .dupla>button.ico.pisca:not(.ok){animation:piscaCor .9s ease-in-out both}
-@keyframes piscaCor{
-  0%,100%{background:#fff8e6;color:var(--tc);transform:none}
-  45%{background:var(--tc);color:#fff8e6;transform:scale(1.14)}}
 #mineRows .dupla>button.ico.tocou{animation:toque .28s ease-out both}
 @keyframes toque{
   0%,40%{background:var(--tc);color:#fff8e6}

@@ -1217,15 +1217,9 @@
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
     // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi"
     // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
-    // o cobrar pisca como o ✔ de quem deve, linha atrás da linha; o recebi (ou o perdoar)
-    // brota de trás dele no meio da piscada, como o copiar pix sai de trás do ✔
-    const piscaCobra = (i) => {
-      const esp = i * PISCA_GAP,
-        dt = anim.mine ? Date.now() - anim.mine : Infinity;
-      return anim.tocouOk || dt >= esp + PISCA_MS ? '' : ` pisca" style="animation-delay:${esp - dt}ms`;
-    };
+    // o recebi (ou o perdoar) brota de trás do cobrar, linha atrás da linha, como o copiar pix sai de trás do ✔
     const brotaRecebe = (i) => {
-      const esp = i * PISCA_GAP + PISCA_MS / 2,
+      const esp = i * PISCA_GAP,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
       return anim.tocouOk || dt >= esp + PIX_MS ? '' : ` brota" style="animation-delay:${esp - dt}ms`;
     };
@@ -1241,7 +1235,7 @@
       bal > 0
         ? recebe.map((t, i) =>
             linha(
-              `<span class="n">${nomeHtml(t.from)}</span><span class="dupla"><button class="ico cobra${piscaCobra(i)}" data-cobra="${t.from}|${t.cents}" title="cobrar no zap">${WA_SVG} cobrar</button>${botoesRecebe(t, i)}</span>`,
+              `<span class="n">${nomeHtml(t.from)}</span><span class="dupla"><button class="ico cobra" data-cobra="${t.from}|${t.cents}" title="cobrar no zap">${WA_SVG} cobrar</button>${botoesRecebe(t, i)}</span>`,
               valorHtml(t.cents),
               'sub',
             ),
@@ -1280,7 +1274,7 @@
     const n = meus.length || recebe;
     const fim = !n
       ? 0
-      : (n - 1) * PISCA_GAP + (anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS) + (meus.length ? 0 : PIX_MS);
+      : (n - 1) * PISCA_GAP + (!meus.length ? PIX_MS : anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
     anim.mine = agenda(n ? (n - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
   }
   /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */

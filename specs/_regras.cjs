@@ -71,6 +71,13 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   if (!idApp) errados.push('não achei o okId no app.js');
   else if (idsBanco.some(r => r !== idApp)) errados.push(`id: okId ${idApp}, banco ${idsBanco.join(' ')}`);
   regra('clean() corta no mesmo tamanho que o banco valida', !corpo ? 'não achei o clean() no app.js' : errados.join('; '));
+  // campo do item que o banco aceita e o clean() descarta some no primeiro sync; o contrário,
+  // o clean() guardando o que o banco recusa, trava o PUT do evento inteiro
+  const doBanco = Object.keys(item).filter(k => !k.startsWith('$') && !k.startsWith('.'));
+  const doClean = [...corpo.matchAll(/\bo\.(\w+) =/g)].map(m => m[1]).filter(k => !(k in sala.gone.$i));
+  const faltam = [...doBanco.filter(k => !new RegExp(`\\be\\.${k}\\b`).test(corpo)).map(k => `${k}: o banco aceita, clean() descarta`),
+    ...doClean.filter(k => !doBanco.includes(k)).map(k => `${k}: clean() guarda, o banco recusa`)];
+  regra('clean() e o banco aceitam os mesmos campos no item', faltam.join('; '));
 }
 
 // ---------- o sumário do app.js lista as seções, na ordem ----------

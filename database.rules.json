@@ -29,6 +29,7 @@
             },
             "at": { ".validate": "newData.isNumber()" },
             "kind": { ".validate": "newData.val() === 'payment'" },
+            "forgiven": { ".validate": "newData.val() === true && newData.parent().child('kind').val() === 'payment'" },
             "by": { ".validate": "newData.isString() && newData.val().length <= 30" },
             "shares": {
               "$p": { ".validate": "$p.matches(/^[a-z0-9]{1,32}$/) && newData.isNumber() && newData.val() >= 0" }

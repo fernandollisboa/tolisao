@@ -144,3 +144,42 @@ Funcionalidade: Acertar as contas
     Quando eu abro o evento como Lia
     E a Mengla paga R$ 174,43 pro Fernando em outro aparelho
     Então não aparece aviso de pagamento
+
+  Cenário: quem recebe marca o que pagaram por fora
+    Pagaram em dinheiro ou num pix fora daqui, e quem devia esqueceu do ✔: quem recebeu dá baixa.
+    Quando eu abro o evento como Fernando
+    E eu marco que recebi da Lia
+    Então falta pagar:
+      | quem      | paga pra | valor  |
+      | Mengla    | Fernando | 174,43 |
+      | Klinsmann | Fernando | 73,61  |
+      | Klinsmann | Júlia    | 34,72  |
+    E o pagamento "Lia → Fernando" está carimbado "PAGO" por Fernando
+
+  # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar
+  Cenário: só dívida pequena se perdoa
+    Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
+    Quando eu abro o evento como Fernando
+    Então só o Klinsmann tem perdoar em Minha conta
+    Quando eu perdoo o Klinsmann
+    Então falta pagar:
+      | quem      | paga pra | valor  |
+      | Mengla    | Fernando | 174,43 |
+      | Lia       | Fernando | 117,84 |
+      | Klinsmann | Júlia    | 34,72  |
+    E o pagamento "Klinsmann → Fernando" está carimbado "PERDOADO"
+
+  Cenário: desfazer um perdão
+    Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
+    Quando eu abro o evento como Fernando
+    E eu perdoo o Klinsmann
+    E eu começo a desfazer o perdão "Klinsmann → Fernando"
+    Então o cartão pergunta "Desfazer o perdão?"
+    Quando eu confirmo
+    Então o Klinsmann me deve R$ 3,61
+
+  Cenário: quem devia fica sabendo do perdão
+    Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
+    Quando eu abro o evento como Klinsmann
+    E o Fernando perdoa os R$ 3,61 do Klinsmann em outro aparelho
+    Então aparece o aviso "🙏 Fernando perdoou teus R$ 3,61"

@@ -73,6 +73,27 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   regra('clean() corta no mesmo tamanho que o banco valida', !corpo ? 'não achei o clean() no app.js' : errados.join('; '));
 }
 
+// ---------- o sumário do app.js lista as seções, na ordem ----------
+// cada seção é um `// #region nome` (o editor dobra) seguido do `// ---------- nome ----------`
+{
+  const linhas = app.split('\n'), erros = [];
+  const ini = linhas.findIndex(l => l.startsWith('  //   ')), sumario = [];
+  for (let i = ini; i >= 0 && linhas[i]?.startsWith('  //   '); i++) sumario.push(linhas[i].slice(7));
+  const listadas = sumario.join(' ').split('→').map(s => s.trim()).filter(Boolean);
+  const secoes = [];
+  let aberta = false;
+  linhas.forEach((l, i) => {
+    const r = l.match(/^\s*\/\/ #(region|endregion)\b ?(.*)$/);
+    if (!r) { if (/^\s*\/\/ -{10} /.test(l) && !/#region /.test(linhas[i - 1])) erros.push(`app.js:${i + 1} tem "// ----------" sem #region em cima`); return; }
+    if (r[1] === 'region') { if (aberta) erros.push(`app.js:${i + 1} abre "${r[2]}" sem fechar a anterior`); aberta = true; secoes.push(r[2].trim()); }
+    else { if (!aberta) erros.push(`app.js:${i + 1} fecha sem abrir`); aberta = false; }
+  });
+  if (aberta) erros.push('a última #region não fecha');
+  const difere = listadas.length !== secoes.length || listadas.some((s, i) => s !== secoes[i]);
+  if (difere) erros.push(`sumário: ${listadas.join(' → ') || 'não achei'}\n    seções: ${secoes.join(' → ')}`);
+  regra('o sumário do app.js lista as seções, na ordem', erros.join('; '));
+}
+
 // ---------- og6.jpg abaixo de ~300 KB, senão o WhatsApp ignora ----------
 {
   const og = html.match(/property="og:image" content="https:\/\/tolisa\.com\.br\/([^"]+)"/)?.[1];

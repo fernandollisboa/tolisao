@@ -6,7 +6,7 @@
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
   // o app inteiro mora neste arquivo. As seções, na ordem (cada uma abre com um
-  // "// ---------- nome ----------", é só procurar):
+  // "// ---------- nome ----------" e mora num "// #region nome", que o editor dobra):
   //   config → o que fica no aparelho (localStorage) → o estado da página
   //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
@@ -15,6 +15,7 @@
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
 
+  // #region config
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const POLL_MS = 6000;
@@ -44,6 +45,8 @@
       .join('');
   const semMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const semCartao = () => document.querySelector('#overlay').classList.contains('hidden');
+  // #endregion
+  // #region o que fica no aparelho (localStorage)
   // ---------- o que fica no aparelho (localStorage) ----------
   /** localStorage que não quebra: em aba anônima ou com o armazenamento cheio ele lança erro */
   const ls = {
@@ -163,6 +166,8 @@
     })
       .then((r) => r.ok && setDevice('countedDay', hojeBR))
       .catch(() => {});
+  // #endregion
+  // #region o estado da página
   // ---------- o estado da página ----------
   // tudo que muda enquanto a página está aberta. O resto do arquivo lê e escreve aqui
   /** o id do evento no banco: sha-256 do código @type {string|null} */ let groupId = null;
@@ -208,6 +213,8 @@
     }
   };
 
+  // #endregion
+  // #region a conta: limpar e mesclar (clean, merge)
   // ---------- a conta: limpar e mesclar (união por id; exclusões vencem) ----------
   // dados do banco/cache são de terceiros: só ids [a-z0-9] entram em atributos HTML, tudo o mais vira string curta ou número
   const okId = (id) => typeof id === 'string' && /^[a-z0-9]{1,32}$/.test(id);
@@ -314,6 +321,8 @@
     };
   }
 
+  // #endregion
+  // #region o banco (sync)
   // ---------- o banco (Firebase via REST) ----------
   const setStatus = (msg, err) => {
     const el = $('#status');
@@ -411,6 +420,8 @@
     if (!document.hidden) sync();
   });
 
+  // #endregion
+  // #region dinheiro
   // ---------- dinheiro ----------
   // dinheiro é sempre centavo inteiro. O banco guarda `amount` em reais (formato antigo),
   // então quem lê um gasto passa por centavos(e), e só os formatadores abaixo dividem por 100
@@ -433,6 +444,8 @@
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
     return Math.round(parseFloat(s) * 100);
   };
+  // #endregion
+  // #region a conta: saldos e quem paga quem (balances, settlements)
   // ---------- a conta: saldos e quem paga quem ----------
   const nameOf = (id) => (state.people.find((p) => p.id === id) || { name: '?' }).name;
   const nomeExiste = (n) => state.people.some((p) => p.name.toLowerCase() === n.toLowerCase());
@@ -510,6 +523,8 @@
     return out;
   }
 
+  // #endregion
+  // #region cores
   // ---------- cores ----------
   const PALETTE = [
     '#8a5345',
@@ -554,6 +569,8 @@
     const p = state.people.find((q) => q.name === name);
     return p ? nomeHtml(p.id) : esc(name);
   };
+  // #endregion
+  // #region fila das animações
   // ---------- fila das animações ----------
   // nada anima fora da tela, e cada bloco entra na fila atrás do de cima: a nota se
   // preenche de cima pra baixo, na ordem em que a pessoa leria. Tudo que a fila guarda
@@ -697,6 +714,8 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) markSeen();
   });
+  // #endregion
+  // #region desenhos (ícones)
   // ---------- desenhos (ícones) ----------
   const KEY_SVG =
     '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12.65 10A6 6 0 0 0 1 12a6 6 0 0 0 11.65 2H18v3h4v-7h-9.35zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>';
@@ -712,6 +731,8 @@
     '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg>';
   const WA_SVG =
     '<svg class="wa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
+  // #endregion
+  // #region pix
   // ---------- pix ----------
   const PIX_MS = 420,
     PISCA_MS = 900,
@@ -871,6 +892,8 @@
     ],
     none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
   };
+  // #endregion
+  // #region a nota (render)
   // ---------- a nota (render) ----------
   const luck = Math.random();
   const pick = (list) => list[Math.floor(luck * list.length)];
@@ -1287,6 +1310,8 @@
     $('#itemsBody').classList.toggle('hidden', !itemsOpen);
     $('#total').innerHTML = valorHtml(items.reduce((a, e) => a + centavos(e), 0));
   }
+  // #endregion
+  // #region o anotar
   // ---------- o anotar (o formulário de gasto) ----------
   const customShares = () => {
     const o = {};
@@ -1404,6 +1429,8 @@
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta();
   });
 
+  // #endregion
+  // #region cartões (overlays)
   // ---------- cartões (overlays) ----------
   let overlayCancel = null,
     overlaySticky = false;
@@ -1738,6 +1765,8 @@
     };
   }
 
+  // #endregion
+  // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
   async function enterRoom(code) {
     if (!code) throw new Error('Digite um código.');
@@ -1907,6 +1936,8 @@
     location.href = location.pathname;
   }
 
+  // #endregion
+  // #region meus eventos
   // ---------- meus eventos (só deste aparelho: o banco não deixa listar nada) ----------
   /** @typedef {{ id: string, code: string, nome: string, at: number, me: string|null, snap: Room|null }} MeuEvento */
   /** os eventos que este aparelho já abriu, do último aberto pro mais antigo @returns {MeuEvento[]} */
@@ -2026,6 +2057,8 @@
     }
   }
 
+  // #endregion
+  // #region botões
   // ---------- botões ----------
   $('#toggleAll').onclick = () => {
     showAll = !showAll;
@@ -2190,6 +2223,8 @@
     },
     true,
   );
+  // #endregion
+  // #region cliques
   // ---------- cliques ----------
   // cada botão diz o que é num data-* (ou num id), e esta lista diz o que cada um faz.
   // Um clique só no document atende a página toda, inclusive o que o render() refaz.
@@ -2415,6 +2450,8 @@
       `tudo aqui 👉 ${shareUrl(quem)}`,
     ].join('\n');
   }
+  // #endregion
+  // #region imagem da comanda
   // ---------- imagem da comanda (canvas) ----------
   // a comanda é uma nota de papel impressa em fonte de máquina: cada letra tem a mesma
   // largura, então tudo se conta em colunas, como numa impressora de cupom
@@ -2684,6 +2721,8 @@
   if ('serviceWorker' in navigator && location.protocol === 'https:')
     navigator.serviceWorker.register('sw.js').catch(() => {});
 
+  // #endregion
+  // #region instalar
   // ---------- instalar na tela de início ----------
   // O navegador avisa que dá (beforeinstallprompt) e espera o site pedir. O #instalar
   // do rodapé pede; o toque do ✎ também convida, uma vez só, na segunda visita e só
@@ -2786,6 +2825,8 @@
     document.body.appendChild(box);
     setTimeout(() => box.remove(), 1400);
   }
+  // #endregion
+  // #region a ficha do rodapé
   // ---------- a ficha do rodapé (a diva) ----------
   // a diva só é jogada quando o código de barras entra na tela. O lugar sai de
   // uma lista de cantos ao redor do código, sempre acima do "sincronizado", e o
@@ -3246,6 +3287,8 @@
     tt = setTimeout(() => t.classList.replace('show', 'sai'), ms);
   }
 
+  // #endregion
+  // #region código de barras
   // ---------- código de barras (Code 128 C) ----------
   function code128Widths(digits) {
     const P =
@@ -3270,6 +3313,8 @@
       `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none" fill="#222" aria-hidden="true">${rects}</svg>`;
   })();
 
+  // #endregion
+  // #region início
   // ---------- início ----------
   // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
   (async () => {
@@ -3292,4 +3337,5 @@
     }
     showGate();
   })();
+  // #endregion
 })();

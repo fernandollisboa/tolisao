@@ -1867,8 +1867,8 @@
           : ''
       }
       <div class="hr"></div><h2>Outro evento</h2>
-      <form id="gateForm" autocomplete="off"><input id="gateCode" placeholder="código do evento" required autocapitalize="none">
-      <button class="big">Entrar</button></form>
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
+        <input id="gateCode" placeholder="código do evento" required autocapitalize="none"><button class="small">entrar</button></form>
       <div class="hr"></div>
       <button id="evBack" class="sec">voltar</button>`);
     $('#evBack').onclick = closeOverlay;

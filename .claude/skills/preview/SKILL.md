@@ -14,6 +14,7 @@ O gerador fica em `specs/preview.cjs` e sobe o app com dados falsos (cinco pesso
 ```sh
 node specs/preview.cjs '#mine'                      # recorte de uma seção
 node specs/preview.cjs '#settle' --quem=Fernando    # quem você está vendo como
+node specs/preview.cjs --ninguem --recorte=0,0,390,600  # quem chegou pelo link do grupo
 node specs/preview.cjs --saida=/tmp/tudo.png        # página inteira
 node specs/preview.cjs --recorte=0,0,390,240        # pedaço por coordenadas (cabeçalho, rodapé)
 node specs/preview.cjs '#settle' --variantes=/tmp/v.cjs --saida=/tmp/opts.png

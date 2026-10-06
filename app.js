@@ -963,6 +963,7 @@
     const nMeus = acerto.filter((t) => t.from === me).length;
 
     renderCabecalho(hasMe, bal, allEven);
+    renderChegada(hasMe);
     if (hasMe && !vazio) renderMinha(bal, acerto);
     else $('#mine').classList.add('hidden');
     mostraSecoes(hasMe, bal, vazio, allEven);
@@ -992,6 +993,29 @@
     $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
+  }
+  /** quem chega pelo link do grupo ainda não é ninguém: no topo da nota, um nome por pessoa,
+   *  na cor dela, e o "não tô aqui" pra quem falta na lista. É convite, não cartão: ninguém é
+   *  interrompido na chegada, e some quando a pessoa diz quem é */
+  function renderChegada(hasMe) {
+    const el = $('#chegada'),
+      quer = !hasMe && state.people.length > 0;
+    const html = quer
+      ? `<h2>*** Quem é você? ***</h2>
+      <div class="linkpras">${state.people.map((p) => `<button class="linkpra" data-chegou="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
+      <div class="c"><a class="link" id="chegouFora">não tô aqui</a></div><div class="hr"></div>`
+      : '';
+    el.classList.toggle('hidden', !quer);
+    if (el.dataset.k === html) return;
+    el.innerHTML = html;
+    el.dataset.k = html;
+    for (const b of inputs('#chegada [data-chegou]'))
+      b.onclick = () => {
+        souEu(b.dataset.chegou);
+        const m = $('#mine');
+        if (!m.classList.contains('hidden')) m.scrollIntoView({ behavior: semMovimento() ? 'auto' : 'smooth' });
+      };
+    if (quer) $('#chegouFora').onclick = showSetup;
   }
   /** o que aparece e o que some: o ✎, o zap, a ficha, o Falta pagar e os itens */
   function mostraSecoes(hasMe, bal, vazio, allEven) {
@@ -1123,7 +1147,15 @@
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
       bal > 0
-        ? acerto.filter((t) => t.to === me).map((t) => linha(nomeHtml(t.from), valorHtml(t.cents), 'sub'))
+        ? acerto
+            .filter((t) => t.to === me)
+            .map((t) =>
+              linha(
+                `<span class="n">${nomeHtml(t.from)}</span><span class="dupla"><button class="ico cobra" data-cobra="${t.from}|${t.cents}" title="cobrar no zap">${WA_SVG} cobrar</button></span>`,
+                valorHtml(t.cents),
+                'sub',
+              ),
+            )
         : meus.map((t, i) =>
             linha(
               `<span class="n">${nomeHtml(t.to)}</span><span class="dupla">${botaoPaguei(t, i)}${botaoCopiarPix(t)}</span>`,
@@ -2351,6 +2383,7 @@
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
     ['[data-settle]', quita],
+    ['[data-cobra]', cobra],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],
     [
@@ -2404,6 +2437,16 @@
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
+   *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
+  function cobra(el) {
+    const [quem, cents] = el.dataset.cobra.split('|');
+    if (!state.people.some((p) => p.id === quem)) return;
+    const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
+    abreZap(
+      `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n${shareUrl(quem)}`,
+    );
+  }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa cápsula com contorno e pontinho na cor dela.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
   function linkPraQuem() {

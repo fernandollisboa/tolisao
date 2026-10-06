@@ -86,7 +86,7 @@ Funcionalidade: Acertar as contas
     Então o zap abre com a mensagem:
       """
       💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
-      {link do evento pra Mengla}
+      {site}/c/j/?evento=bailedamada&quem=mengla
       """
 
   Cenário: copiar o pix já com o valor

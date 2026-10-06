@@ -149,7 +149,7 @@ Funcionalidade: Meus eventos
       💸 Fernando paga R$ 30,00 pra Júlia
       💸 Lia paga R$ 30,00 pra Júlia
 
-      tudo aqui 👉 {link do evento}
+      tudo aqui 👉 {site}/c/i/?evento=churras
       """
 
   Cenário: depois de um mês parado, quem cobra é a diva

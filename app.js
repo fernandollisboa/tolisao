@@ -25,6 +25,8 @@
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
+  const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
+  const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -1930,11 +1932,16 @@
     mexe(roomKey(id), (o) => {
       o.hidden = true;
     });
+  /** dias de calendário de `at` até hoje (ontem é 1, mesmo que tenha sido há 2 horas) */
+  function diasDesde(at) {
+    const dia = (t) => new Date(new Date(t).toDateString()).getTime();
+    return Math.round((dia(Date.now()) - dia(at)) / 86400000);
+  }
   function quando(at) {
     if (!at) return '';
     const d = new Date(at),
       hoje = new Date(),
-      dias = Math.round((new Date(hoje.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86400000);
+      dias = diasDesde(at);
     if (Date.now() - at < 3600000) return 'agora';
     if (dias <= 0) return 'hoje';
     if (dias === 1) return 'ontem';
@@ -1943,9 +1950,9 @@
     const mes = d.toLocaleDateString('pt-BR', { month: 'long' });
     return d.getFullYear() === hoje.getFullYear() ? `em ${mes}` : `em ${mes} de ${d.getFullYear()}`;
   }
-  /** cada evento com o seu saldo nele, contado da cópia do aparelho: abre sem internet */
   /** a cópia do aparelho só sabe o que ele viu: a lista pergunta ao banco o updatedAt de cada evento
-   * (um número por evento, nada de listar) e, se algum mudou, redesenha a lista no lugar */
+   * (um número por evento, nada de listar). O que mudou em outro aparelho vem inteiro (só esse evento)
+   * e entra na cópia, senão o saldo da lista fica velho; aí redesenha a lista no lugar */
   function atualizaDatas(evs, comX, esquece) {
     let mudou = false;
     Promise.all(
@@ -1958,6 +1965,13 @@
             o.changedAt = v;
           });
           mudou = true;
+          const rr = await fetch(`${DB}/rooms/${e.id}.json`, { cache: 'no-store' });
+          const remoto = rr.ok ? clean(await rr.json()) : null;
+          // merge e não troca: a cópia pode ter algo anotado sem internet que o banco ainda não viu
+          if (remoto)
+            mexe(roomKey(e.id), (o) => {
+              o.snapshot = merge(o.snapshot, remoto);
+            });
         } catch {}
       }),
     ).then(() => {
@@ -1968,12 +1982,27 @@
       ligaEventos(novos, esquece);
     });
   }
+  /** cada evento com o meu saldo nele, contado da cópia do aparelho: abre sem internet.
+   * Em cima, a soma dos saldos (com dois eventos ou mais, e se não der zero); no evento parado
+   * em que me devem, um selo de cobrança */
   function listaEventos(evs, comX) {
-    return `<div class="evs">${evs
+    /** @param {MeuEvento} e @returns {number|null} */
+    const saldo = (e) => {
+      const eu = e.snap && e.me ? e.snap.people.find((p) => p.id === e.me) : null;
+      return eu ? balances(e.snap)[eu.id] || 0 : null;
+    };
+    const saldos = evs.map(saldo).filter((b) => b !== null),
+      total = saldos.reduce((a, b) => a + b, 0);
+    const topo =
+      saldos.length > 1 && total
+        ? `<div class="evtotal">no total: <b class="${total > 0 ? 'pos' : 'neg'}">${total > 0 ? 'te devem' : 'você deve'} ${comSifrao(total)}</b></div>`
+        : '';
+    return `<div class="evs">${topo}${evs
       .map((e) => {
         const s = e.snap,
           eu = s && e.me ? s.people.find((p) => p.id === e.me) : null,
-          b = s && eu ? balances(s)[eu.id] : null;
+          b = saldo(e),
+          dias = e.at ? diasDesde(e.at) : 0;
         let cls = 'ok',
           v = '—';
         if (b > 0) [cls, v] = ['pos', comSifrao(b)];
@@ -1985,7 +2014,11 @@
             .join(' · ');
         return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
         <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>
-        <div class="sub"><span>${sub}</span><span>${quando(e.at)}</span></div></div>`;
+        <div class="sub"><span>${sub}</span><span>${quando(e.at)}</span></div>${
+          b > 0 && dias >= PARADO_DIAS
+            ? `<div class="parado">parado há ${dias} dias · te devem ${comSifrao(b)}</div>`
+            : ''
+        }</div>`;
       })
       .join('')}</div>`;
   }
@@ -2393,8 +2426,17 @@
     const st = settlements(balances());
     const ev = evento() || 'acerto';
     if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl(quem)}`;
+    // evento parado muda o tom: lembra, e depois de um mês a diva cobra (o modo chato só lembra)
+    const dias = state.updatedAt ? diasDesde(state.updatedAt) : 0,
+      pendurado = comSifrao(st.reduce((a, t) => a + t.cents, 0));
+    const abre =
+      dias >= ESQUECIDO_DIAS && !chato
+        ? `💅 meu bem, o *${ev}* faz ${dias} dias e tem ${pendurado} pendurado. fiado tem limite, viu?`
+        : dias >= PARADO_DIAS
+          ? `👀 lembra do *${ev}*? faz ${dias} dias e ainda tem ${pendurado} pendurado…`
+          : `🧾 acerto do *${ev}*`;
     return [
-      `🧾 acerto do *${ev}*`,
+      abre,
       '',
       ...st.map(
         (t) =>

@@ -47,6 +47,7 @@ Funcionalidade: Meus eventos
       ENTRA QUEM TEM
       a senha
       *** MEUS EVENTOS ***
+      no total: te devem R$ 70,00
       PRAIA
       R$ 100,00
       ✕
@@ -108,3 +109,50 @@ Funcionalidade: Meus eventos
     E eu confirmo, e a página recarrega
     Então aparece o cartão do código
     E a lista de eventos está vazia
+
+  Cenário: o que mudou em outro aparelho entra no saldo da lista e na soma
+    Com dois eventos ou mais, a soma dos saldos fica em cima da lista.
+    Quando eu abro o evento "praia" como Lia
+    E eu entro no evento "churras" como Lia
+    E a Mengla paga R$ 100,00 pra Lia no "praia", em outro aparelho
+    E eu toco no nome do evento
+    Então o saldo do "praia" na lista é "quite"
+    E em cima da lista diz "no total: você deve R$ 30,00", em vermelho
+
+  Cenário: evento parado em que me devem ganha um selo de cobrança
+    Uma semana sem mudança e com dinheiro pra receber: a lista lembra de cobrar.
+    O evento parado em que eu devo não ganha selo.
+    Dado que o "churras" mudou pela última vez há 10 dias
+    E que o "praia" mudou pela última vez há 12 dias
+    Quando eu abro o evento "churras" como Lia
+    E eu entro no evento "praia" como Lia
+    E eu toco no nome do evento
+    Então o "praia" tem o selo "parado há 12 dias · te devem R$ 100,00"
+    Mas o "churras" não tem selo
+
+  Cenário: a cobrança de evento parado muda o tom
+    Dado que o "churras" mudou pela última vez há 10 dias
+    Quando eu abro o evento "churras" como Lia
+    E eu toco em enviar
+    Então o zap abre com a mensagem:
+      """
+      👀 lembra do *churras*? faz 10 dias e ainda tem R$ 60,00 pendurado…
+
+      💸 Fernando paga R$ 30,00 pra Júlia
+      💸 Lia paga R$ 30,00 pra Júlia
+
+      tudo aqui 👉 {link do evento}
+      """
+
+  Cenário: depois de um mês parado, quem cobra é a diva
+    Dado que o "churras" mudou pela última vez há 40 dias
+    Quando eu abro o evento "churras" como Lia
+    E eu toco em enviar
+    Então a mensagem do zap começa com "💅 meu bem, o *churras* faz 40 dias e tem R$ 60,00 pendurado. fiado tem limite, viu?"
+
+  Cenário: no modo chato a diva não cobra, só lembra
+    Dado que o "churras" mudou pela última vez há 40 dias
+    E que este aparelho está no modo chato
+    Quando eu abro o evento "churras" como Lia
+    E eu toco em enviar
+    Então a mensagem do zap começa com "👀 lembra do *churras*? faz 40 dias e ainda tem R$ 60,00 pendurado…"

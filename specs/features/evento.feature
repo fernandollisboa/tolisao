@@ -81,7 +81,8 @@ Funcionalidade: Entrar no evento
       sou Lia · 3 pessoas
       agora
       o ✕ tira da lista só neste aparelho
-      + entrar em outro evento
+      *** OUTRO EVENTO ***
+      ENTRAR
       VOLTAR
       """
     Quando eu toco em voltar
@@ -163,14 +164,15 @@ Funcionalidade: Entrar no evento
     Então o site pergunta quem é você
     E o evento no banco tem Fernando e Lia
 
-  Cenário: faltou gente: dá pra pôr mais pessoas depois, sem virar elas
+  Cenário: outra pessoa no quem é você abre a lista de gente, sem trocar quem eu sou
+    Quem apertou Pronto cedo demais põe o resto da turma depois, de uma vez.
     Dado o evento "churras" com Fernando, Júlia e Lia
     E os gastos:
       | o quê | valor | pagou    | divide entre    |
       | Pizza | 60,00 | Fernando | Fernando, Júlia |
     Quando eu abro o evento como Fernando
     E eu toco em quem é você
-    E eu toco em faltou gente
+    E eu escolho outra pessoa
     Então só a Lia tem ✕ na lista
     Quando eu ponho Mel e Rui na lista
     E eu continuo

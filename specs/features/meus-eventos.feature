@@ -58,7 +58,8 @@ Funcionalidade: Meus eventos
       sou Lia · 3 pessoas
       agora
       o ✕ tira da lista só neste aparelho
-      + entrar em outro evento
+      *** OUTRO EVENTO ***
+      ENTRAR
       VOLTAR
       """
     E o saldo do "praia" é verde
@@ -69,8 +70,7 @@ Funcionalidade: Meus eventos
 
   Cenário: o endereço sem código é a lista de eventos
     Quando eu abro o evento "churras" como Lia
-    E eu toco no nome do evento
-    E eu toco em entrar em outro evento
+    E eu abro o site sem código
     Então o cartão mostra:
       """
       TÔ LISA
@@ -89,6 +89,14 @@ Funcionalidade: Meus eventos
     E eu toco no "churras" da lista
     Então o endereço termina em "?evento=churras"
     E o cabeçalho diz "sou Lia"
+
+  Cenário: dá pra ir pra outro evento direto do cartão do evento
+    O cartão do evento tem o mesmo campo da tela inicial: não precisa voltar pra ela.
+    Quando eu abro o evento "churras" como Lia
+    E eu toco no nome do evento
+    E eu digito o código "praia" no cartão do evento
+    Então o endereço termina em "?evento=praia"
+    E o nome do evento no cabeçalho é "praia"
 
   Cenário: o ✕ esquece o evento só da lista, e ele volta lembrando quem eu sou
     Quando eu abro o evento "churras" como Lia

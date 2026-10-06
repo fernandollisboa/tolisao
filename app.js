@@ -1568,7 +1568,7 @@
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
    * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela */
   function showSetup() {
-    // quem já tem conta no evento (ou é você) não sai pelo ✕: o Quem vai? reabre pelo "faltou gente?"
+    // quem já tem conta no evento (ou é você) não sai pelo ✕: o Quem vai? reabre pelo "+ outra pessoa"
     const temConta = (id) =>
       id === me || state.expenses.some((e) => e.payer === id || e.among.includes(id) || (e.shares && id in e.shares));
     const list = state.people
@@ -1673,30 +1673,17 @@
       .map((p) => `<option value="${p.id}"${p.id === me ? ' selected' : ''}>${esc(p.name)}</option>`)
       .join('');
     overlay(`<h2>Quem é você?</h2>
-      <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">Outra pessoa (me adicionar)</option></select>
-      <div id="whoNewBox" class="hidden" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="whoNew" placeholder="seu nome" maxlength="30"><button class="small">entrar</button></div></form>
-      <div class="c"><button id="whoMais" class="ghost casinha">+ faltou gente? adicionar</button></div>${whoPix()}`);
-    // quem apertou Pronto cedo demais volta pro Quem vai? sem deixar de ser quem é
-    $('#whoMais').onclick = showSetup;
+      <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">+ outra pessoa</option></select></form>${whoPix()}`);
     /** escolher já é confirmar: quem é você não tem botão de continuar */
     const entra = souEu;
+    // "+ outra pessoa" leva pro Quem vai?, onde dá pra pôr uma ou várias de uma vez,
+    // sem deixar de ser quem você é (quem ainda não é ninguém volta aqui pra escolher)
     $('#whoSel').onchange = () => {
       const v = $('#whoSel').value;
-      $('#whoNewBox').classList.toggle('hidden', v !== '__new');
-      if (v === '__new') return $('#whoNew').focus();
+      if (v === '__new') return showSetup();
       if (v) entra(v);
     };
-    $('#whoForm').onsubmit = (ev) => {
-      ev.preventDefault();
-      const n = $('#whoNew').value.trim();
-      if (!n) return;
-      if (nomeExiste(n)) return toast('Já existe alguém com esse nome');
-      const p = { id: uid(), name: n, at: Date.now() };
-      state.people.push(p);
-      commit();
-      entra(p.id);
-    };
+    $('#whoForm').onsubmit = (ev) => ev.preventDefault();
     if ($('#pixTroca')) $('#pixTroca').onclick = savePix;
     if ($('#pixNova')) $('#pixNova').onclick = savePix;
     if ($('#pixApaga'))
@@ -1879,7 +1866,9 @@
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
           : ''
       }
-      <div class="c" style="margin-top:6px;text-transform:none;font-size:17px"><a class="link" id="evOutro">+ entrar em outro evento</a></div>
+      <div class="hr"></div><h2>*** Outro evento ***</h2>
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
+        <input id="gateCode" placeholder="código do evento" required autocapitalize="none"><button class="small">entrar</button></form>
       <div class="hr"></div>
       <button id="evBack" class="sec">voltar</button>`);
     $('#evBack').onclick = closeOverlay;
@@ -1889,7 +1878,15 @@
         () => toast('Código copiado.'),
         () => showCopy('Código do evento', roomName),
       );
-    $('#evOutro').onclick = leave;
+    // o mesmo campo da tela inicial: entra (ou cria) outro evento sem voltar pra ela. O endereço
+    // novo carrega o código, e o começo do app faz o resto (inclusive o "Evento novo?")
+    $('#gateForm').onsubmit = (ev) => {
+      ev.preventDefault();
+      const code = $('#gateCode').value.trim().toLowerCase();
+      if (!code) return;
+      if (code === roomName) return closeOverlay();
+      location.href = location.pathname + '?evento=' + encodeURIComponent(code);
+    };
     /** @param {MeuEvento} e */
     const esquece = async (e) => {
       if (

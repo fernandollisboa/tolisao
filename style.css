@@ -180,7 +180,8 @@ button.big{font-size:22px;padding:10px 16px;box-shadow:4px 4px 0 var(--ink);widt
 @media (prefers-reduced-motion:reduce){#waBtn.wafab{transition:none}}
 /* o ✎ fica preenchido de âmbar: é a ação principal da nota */
 #fab.chamando{background:#9a5b00;color:#fff;border-color:var(--ink)}
-#whoNewBox button{background:#9a5b00;color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
+/* botão âmbar à direita do campo (era do "me adicionar"; hoje, o entrar do cartão do evento) */
+form.lado button{background:#9a5b00;color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
 button.small{padding:0 8px;font-size:16px;display:inline-flex;align-items:center;gap:6px;line-height:1.6}
 button.small svg{display:block}
 button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}
@@ -240,7 +241,7 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   /* o ✔ e o cadastrar chave param com a piscada montada (`both`); só o !important
      passa na frente dela, e cancelar a animação faria a piscada rodar de novo na saída */
   button.ico.ok:hover:not(:disabled){background:var(--green) !important;color:var(--paper) !important}
-  button.ico.amb:hover:not(:disabled),#whoNewBox button:hover:not(:disabled){background:#9a5b00 !important;color:#fff !important}
+  button.ico.amb:hover:not(:disabled),form.lado button:hover:not(:disabled){background:#9a5b00 !important;color:#fff !important}
   button.ico.okl:hover:not(:disabled){background:#5aa46a;color:#fff}
   button.danger:hover:not(:disabled){background:var(--red);color:var(--paper)}
   button.big.perigo:hover:not(:disabled){background:#7a1414;color:#fff}

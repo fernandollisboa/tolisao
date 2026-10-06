@@ -52,3 +52,26 @@ Then('a lista de eventos é:', async ({ mundo }, tabela) => {
 Given('alguém mexe no {string} ontem, em outro aparelho', async ({ mundo }, nome) => {
   Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome).updatedAt = AGORA - 86400000;
 });
+
+// soma e selo da lista: chegam depois do cartão abrir quando o banco trouxe novidade
+const cores = { verde: 'rgb(21, 112, 58)', vermelho: 'rgb(155, 28, 28)' };
+Then('em cima da lista diz {string}, em {word}', async ({ mundo }, txt, cor) => {
+  const t = mundo.p.locator('#overlayBox .evtotal');
+  await expect(t).toHaveText(txt); await expect(t.locator('b')).toHaveCSS('color', cores[cor]);
+});
+Then('o saldo do {string} na lista é {string}', async ({ mundo }, nome, txt) => { await expect(ev(mundo, nome).locator('.v')).toHaveText(txt); });
+Then('o {string} tem o selo {string}', async ({ mundo }, nome, txt) => {
+  const s = ev(mundo, nome).locator('.parado');
+  await expect(s).toHaveText(txt); await expect(s).toHaveCSS('color', cores.verde);
+});
+Then('o {string} não tem selo', async ({ mundo }, nome) => { await expect(ev(mundo, nome).locator('.parado')).toHaveCount(0); });
+// o banco ganha o pagamento e o updatedAt anda: é assim que a lista sabe que o evento mudou
+When('a/o {word} paga R$ {num} pra/pro {word} no {string}, em outro aparelho', async ({ mundo }, quem, valor, pra, nome) => {
+  const sala = Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome), id = n => sala.people.find(p => p.name === n).id;
+  sala.expenses = [...(sala.expenses || []), { id: 'pgfora', kind: 'payment', desc: 'Pagamento', amount: valor, payer: id(quem), among: [id(pra)], at: AGORA + 60000, by: quem }];
+  sala.updatedAt = AGORA + 60000;
+});
+Given('que este aparelho está no modo chato', async ({ mundo }) => { mundo.antes = { ...mundo.antes, tolisa: JSON.stringify({ boringMode: true }) }; });
+Then('a mensagem do zap começa com {string}', async ({ mundo }, txt) => {
+  await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/ /g, ' ').split('\n')[0] : null)).toBe(txt);
+});

@@ -2033,8 +2033,7 @@
       `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${
         aberto
           ? `<div class="hr"></div><h2>*** Evento ***</h2>
-      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
-      <div class="c"><button id="evQr" class="qrbtn colado">${QR_ICONE} mostrar QR</button></div>`
+      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a><button id="evQr" class="qrmini" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}</button></span></div>`
           : ''
       }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>

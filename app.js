@@ -2039,10 +2039,7 @@
       }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${
-        aberto
-          ? `<div class="c"><button id="evNovo" class="ghost">+ criar outro ${esc(evento())}</button></div>
-      <div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>`
-          : ''
+        aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }`,
       !aberto,
     );
@@ -2052,11 +2049,6 @@
       $('#evLink').onclick = () => copia(shareUrl(), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
       // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
       $('#evQr').onclick = mostraQr;
-      // o nome de um evento da lista abre ele: quem faz churras todo mês cria o próximo daqui,
-      // com o mesmo nome. O ?novo= cai direto no evento novo, sem procurar o nome na lista nem no banco
-      $('#evNovo').onclick = () => {
-        location.href = location.pathname + '?novo=' + encodeURIComponent(evento());
-      };
     }
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
@@ -2370,22 +2362,19 @@
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
     return { code: meu ? meu.code : code, quem: null };
   }
-  /** `novo` cria um evento com esse nome mesmo que ele já exista (o "criar outro" do cartão do evento) */
-  async function enterRoom(code, novo = false) {
+  async function enterRoom(code) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
       existing = null;
-    if (!novo)
-      try {
-        existing = await apiGet(id);
-      } catch (e) {
-        if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
-      }
+    try {
+      existing = await apiGet(id);
+    } catch (e) {
+      if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
+    }
     let criou = false;
-    const seed = !novo && location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    // quem pediu o "criar outro" já disse que quer o evento novo: nada de perguntar de novo
-    if (!existing && !seed && !novo) {
+    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
+    if (!existing && !seed) {
       // código com cara de final sorteado (6 letras e números, com algum número) é link velho ou cortado,
       // não nome novo: "esse nome tá livre" ali faria a pessoa criar um evento fantasma
       const veioDeLink = /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
@@ -4336,16 +4325,6 @@
     const c = q.get('evento') || q.get('senha');
     const quem = q.get('quem');
     if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
-    // o "criar outro" do cartão do evento: o endereço já sai do ?novo=, e recarregar não cria mais um
-    const novo = (q.get('novo') || '').trim().toLowerCase();
-    if (novo) {
-      history.replaceState(null, '', location.pathname);
-      try {
-        return await enterRoom(novo, true);
-      } catch (e) {
-        return showGate(e.message);
-      }
-    }
     if (c) {
       const code = c.trim().toLowerCase(),
         id = await sha(code);

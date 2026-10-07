@@ -32,6 +32,13 @@ Given('a/o {word} pagou R$ {num} dividido igual entre todo mundo', async ({ mund
     payer: mundo.pessoa(quem).id, among: mundo.evento.people.map(p => p.id), at: AGORA - 86400000 });
 });
 
+// gastos miúdos de uma viagem longa, todos depois dos que já estão no evento: Lanche 1 é o mais velho
+Given('mais {int} gastos de R$ {num} pagos pela/pelo {word}, divididos entre todo mundo', async ({ mundo }, n, valor, quem) => {
+  const ultimo = Math.max(0, ...mundo.evento.expenses.map(e => e.at));
+  for (let i = 1; i <= n; i++)
+    mundo.evento.expenses.push({ id: 'g' + (mundo.evento.expenses.length + 1), desc: 'Lanche ' + i, amount: valor,
+      payer: mundo.pessoa(quem).id, among: mundo.evento.people.map(p => p.id), at: ultimo + i * 60000 });
+});
 Given('os gastos:', async ({ mundo }, tabela) => { poeGastos(mundo, tabela.hashes()); });
 
 // a mesma festa que o acerto e o anotar usam, de specs/_festa.cjs

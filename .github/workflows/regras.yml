@@ -1,0 +1,28 @@
+name: Publica as regras do banco
+# o database.rules.json mudou na main: publica no Firebase com a conta de serviço (secret FIREBASE_SA).
+# roda junto com o pages.yml; mudança de regra tem que ser compatível com o app que já está no ar
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'database.rules.json'
+      - '.github/workflows/regras.yml'
+      - '.github/scripts/regras.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: regras
+  cancel-in-progress: false
+jobs:
+  publica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: node .github/scripts/regras.mjs
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}

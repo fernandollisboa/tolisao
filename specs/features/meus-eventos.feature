@@ -63,7 +63,6 @@ Funcionalidade: Meus eventos
       qualquer nome cria o evento.
       BORA
       VOLTAR
-      apagar meus dados deste aparelho
       """
     E o saldo do "praia" é verde
     E o saldo do "churras" é vermelho
@@ -87,7 +86,6 @@ Funcionalidade: Meus eventos
       *** OUTRO EVENTO ***
       qualquer nome cria o evento.
       BORA
-      apagar meus dados deste aparelho
       """
     E o código do evento não pega o foco sozinho
     Quando eu digito o código "praia"
@@ -208,6 +206,7 @@ Funcionalidade: Meus eventos
     E que neste aparelho eu sou Lia no "praia"
     E que neste aparelho eu cadastrei a chave pix "lia@email.com" da Lia no "praia"
     E que eu esqueci o "praia" neste aparelho
+    E que eu pedi pra testar o apagar meus dados
     E que eu abro o site sem evento
     Quando eu toco em apagar meus dados deste aparelho
     Então o site pergunta "Apagar meus dados deste aparelho?" com o botão vermelho
@@ -219,6 +218,7 @@ Funcionalidade: Meus eventos
     Sem confirmação do banco, o segredo da chave fica no aparelho: sem ele, ninguém mais tira a chave.
     Dado que neste aparelho eu sou Lia no "praia"
     E que neste aparelho eu cadastrei a chave pix "lia@email.com" da Lia no "praia"
+    E que eu pedi pra testar o apagar meus dados
     E que eu abro o site sem evento
     E que o banco não deixa tirar chave pix agora
     Quando eu toco em apagar meus dados deste aparelho

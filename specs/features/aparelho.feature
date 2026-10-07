@@ -41,6 +41,5 @@ Funcionalidade: O que fica guardado no aparelho
       *** OUTRO EVENTO ***
       qualquer nome cria o evento.
       BORA
-      apagar meus dados deste aparelho
       """
     E o aparelho não guarda mais o último evento na gaveta dele

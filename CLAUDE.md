@@ -32,7 +32,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 a `main` é o que tá no ar, exige o check `test` e recusa push direto. quando o usuário escolhe uma opção que você ofereceu, isso já é o aval: commite, mergeie e suba sem perguntar de novo.
 
 1. `npm run qualidade` verde.
-2. branch, PR, check verde, merge (`--merge --delete-branch`). check verde basta.
+2. branch, PR, check verde, merge (`--merge --delete-branch`). check verde basta. o PR que resolve issue diz `Closes #N` na descrição (em inglês, uma linha por issue): é o que faz o GitHub fechar ela no merge. resolveu só uma parte, `Refs #N` e diga o que falta na issue.
 3. `git checkout main && git pull origin main`.
 4. espere o `pages.yml` terminar verde. só depois diga que tá no ar.
 

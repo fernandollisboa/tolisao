@@ -1,5 +1,7 @@
 ## O que muda
 
+<!-- Resolve issue? `Closes #N` (em inglês, uma por linha) fecha ela no merge. Só uma parte: `Refs #N`. -->
+
 <!-- Uma ou duas frases, do ponto de vista de quem usa o site. -->
 
 ## Como conferir

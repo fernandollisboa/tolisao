@@ -379,7 +379,9 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
    e depois o recebi/perdoar brota de trás dele sem piscar (o cobrar fica por cima enquanto ele sai) */
 #mineRows .dupla>button.ico.cobra{z-index:2}
 /* o cobrar pisca como o ✔ paguei: enche na cor dele e dá o pulinho, uma vez */
-#mineRows .dupla>button.ico.cobra.pisca{animation:piscaCobra .9s ease-in-out both}
+#mineRows .dupla>button.ico.cobra.pisca{animation:piscaCobra .55s ease-in-out both}
+/* o recebi/perdoar abre mais ligeiro que o copiar pix */
+#mineRows .dupla>button.ico.brota[data-recebi],#mineRows .dupla>button.ico.brota[data-perdoa]{animation-duration:.22s}
 @keyframes piscaCobra{
   0%,100%{background:#fff8e6;color:var(--tc);transform:none}
   45%{background:var(--tc);color:#fff8e6;transform:scale(1.14)}}

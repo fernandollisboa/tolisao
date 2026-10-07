@@ -21,6 +21,7 @@
   const API = 'https://tolisa-api.fernando-costa-fd0.workers.dev'; // o worker do aviso no celular (servidor/)
   const POLL_MS = 6000;
   const REDE_MS = 8000; // prazo de cada ida ao banco: rede engasgada no bar vira "Offline" em vez de prender o sync
+  const SEM_REDE = 'a rede não respondeu'; // o rodapé diz isso e não o erro cru (HTTP 401, "Failed to fetch"…)
   const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do topo, e o toque do ✎.
@@ -398,7 +399,7 @@
    *  @param {string} url @param {RequestInit} [op] */
   const noBanco = (url, op = {}) => {
     const c = new AbortController();
-    setTimeout(() => c.abort(new Error('a rede não respondeu')), REDE_MS);
+    setTimeout(() => c.abort(new Error(SEM_REDE)), REDE_MS);
     return fetch(url, { ...op, signal: c.signal });
   };
   // a sala vem com o ETag dela: o sync grava com if-match, e se outro aparelho gravou entre
@@ -467,7 +468,7 @@
       );
     } catch (e) {
       if (e.notFound) return showLost();
-      setStatus('Offline · ' + e.message, true);
+      setStatus('Offline · ' + SEM_REDE, true);
     } finally {
       saving = false;
     }
@@ -1125,7 +1126,7 @@
   /** a API com o mesmo prazo do banco: sem ele o "Apagando…" ficava preso na rede engasgada */
   const postaApi = (rota, corpo) => {
     const c = new AbortController();
-    setTimeout(() => c.abort(new Error('a rede não respondeu')), REDE_MS);
+    setTimeout(() => c.abort(new Error(SEM_REDE)), REDE_MS);
     return fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo), signal: c.signal });
   };
   let mexendoAviso = false;
@@ -1133,11 +1134,16 @@
   async function tocaAviso() {
     if (!me || !groupId || mexendoAviso) return;
     if (avisoLigado()) return;
-    if (iPhoneSemApp())
-      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, daí o código
-      return ensinaInstalar(
-        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento <b>${esc(roomName)}</b> e toca no 🔔.`,
+    if (iPhoneSemApp()) {
+      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, e o link é que leva
+      // até ele (digitar o nome lá criaria outro evento). Fora do Safari, o "copiar o link" já é esse link
+      ensinaInstalar(
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo e toca no 🔔.${foraDoSafari() ? '' : ' <a class="link" id="instEvLink">copiar link do evento</a>'}`,
       );
+      const link = $('#instEvLink');
+      if (link) link.onclick = () => copia(shareUrl(me), 'Link copiado. Cola no tô lisa instalado.', 'Link do evento');
+      return;
+    }
     const quem = me,
       sala = groupId;
     mexendoAviso = true;
@@ -2086,7 +2092,7 @@
     if (!aberto) $('#app').classList.add('loading', 'nospin');
     // quem já tem evento neste aparelho cai na lista; o convite e o foco no campo são pra quem chega
     const evs = meusEventos(),
-      botao = evs.length ? 'Entrar' : 'Bora';
+      botao = 'Bora';
     const chegou = !msg && !evs.length && !aberto;
     // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
     const intro = chegou
@@ -2104,7 +2110,7 @@
       <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
       <div class="c"><button id="evQr" class="qrbtn colado">${QR_ICONE} mostrar QR</button></div>`
           : ''
-      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
+      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
@@ -2153,7 +2159,7 @@
         return;
       }
       btn.disabled = true;
-      btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
+      btn.textContent = 'Abrindo…';
       const code = $('#gateCode').value;
       try {
         const c = codigoDoCampo(code);
@@ -2207,7 +2213,7 @@
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${trazer}
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
-      <div class="c voltar"><button id="setupLeave" class="ghost">sair</button></div>`,
+      <div class="c voltar"><button id="setupLeave" class="ghost">fechar</button></div>`,
     );
     // o nome que ficou na caixa também entra: no Pronto e no +, ninguém perde o que digitou
     // no Pronto, um nome repetido na caixa só fica de fora: a pessoa já está na lista
@@ -2403,7 +2409,7 @@
     $('#app').classList.add('loading', 'nospin');
     const cached = cacheLoad();
     overlay(
-      `<h2>Sumiu!</h2><p class="muted recado">${cached ? 'esse evento não tá mais aqui, mas teu celular guardou uma cópia.' : 'esse evento não tá mais aqui. confere o nome com quem te mandou.'}</p>
+      `<h2>Sumiu!</h2><p class="muted recado">${cached ? 'esse evento não tá mais aqui, mas teu celular guardou uma cópia.' : 'esse evento não tá mais aqui. confere o link com quem te mandou.'}</p>
       ${cached ? `<button id="restoreBtn" class="big">trazer de volta</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`,
       true,
     );
@@ -2453,6 +2459,7 @@
   function pareceLink(code) {
     return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
   }
+  const ENGASGOU = 'a internet engasgou. tenta de novo?';
   /** `digitou` é o nome escrito no campo, que cria sem perguntar */
   async function enterRoom(code, digitou = false) {
     if (!code) throw new Error('digita um nome.');
@@ -2462,7 +2469,7 @@
     try {
       existing = await apiGet(id);
     } catch (e) {
-      if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
+      if (!e.notFound) throw new Error(ENGASGOU);
     }
     let criou = false;
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
@@ -2490,7 +2497,9 @@
       criou = true;
       code = `${code}-${sorteia(6)}`;
       id = await sha(code);
-      await apiPut(id, fresh(nome));
+      await apiPut(id, fresh(nome)).catch(() => {
+        throw new Error(ENGASGOU);
+      });
     } else if (!existing) {
       // #seed=: restaura uma cópia com o mesmo código, sem sortear nada
       let data = fresh(code);
@@ -2502,7 +2511,9 @@
           updatedAt: Date.now(),
         };
       } catch {}
-      await apiPut(id, data);
+      await apiPut(id, data).catch(() => {
+        throw new Error(ENGASGOU);
+      });
       history.replaceState(null, '', location.pathname);
     }
     await openGroup(code, id);
@@ -2560,7 +2571,7 @@
         state = fresh(code);
         render();
       }
-      setStatus('Offline · ' + e.message, true);
+      setStatus('Offline · ' + SEM_REDE, true);
     }
     $('#app').classList.remove('loading');
     // o link veio com &quem=: o aparelho que ainda não é ninguém no evento já entra como essa pessoa
@@ -4016,10 +4027,10 @@
       a.download = file.name;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      toast('Imagem baixada. Abrindo o WhatsApp com o texto…');
+      toast('Imagem baixada. Abrindo o zap…');
       waText();
     } catch (e) {
-      toast('Não consegui gerar a imagem: ' + e.message);
+      toast('A imagem não saiu. Vai só o texto.');
       waText();
     } finally {
       btn.disabled = false;

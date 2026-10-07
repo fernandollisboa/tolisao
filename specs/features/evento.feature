@@ -182,7 +182,8 @@ Funcionalidade: Entrar no evento
       agora
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      ENTRAR
+      qualquer nome cria o evento.
+      BORA
       VOLTAR
       apagar meus dados deste aparelho
       """
@@ -215,7 +216,7 @@ Funcionalidade: Entrar no evento
       +
       + OUTRA PESSOA
       PRONTO
-      SAIR
+      FECHAR
       """
     Quando eu ponho Fernando, Júlia e Lia na lista
     E eu tiro a Júlia da lista
@@ -239,7 +240,7 @@ Funcionalidade: Entrar no evento
       +
       + OUTRA PESSOA
       PRONTO
-      SAIR
+      FECHAR
       """
 
   Cenário: tocar no nome deixa corrigir sem apagar a pessoa

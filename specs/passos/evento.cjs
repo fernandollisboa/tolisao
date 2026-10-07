@@ -22,6 +22,15 @@ Given('o evento {string} com {gente}', async ({ mundo }, nome, gente) => { poeGe
 // a cor começa a ser gerada. Os nomes e o número não importam pro cenário, só que é muita gente
 const TURMA = 'Ana Bia Caio Duda Edu Fê Gil Hugo Iara Jão Kika Léo Mel Nina Otto Pri Quel Rui Sol Téo'.split(' ');
 Given('um evento com uma turma grande', async ({ mundo }) => { poeGente(mundo, 'turma', TURMA); });
+// formatura: mais gente do que costuma dividir um gasto. Só a primeira e a última têm nome de
+// gente porque são as únicas que o cenário cita; o resto é turma
+Given('uma formatura com {int} pessoas, da Ana à Zoe', async ({ mundo }, n) => {
+  poeGente(mundo, 'formatura', ['Ana', ...Array.from({ length: n - 2 }, (_, i) => `Aluno${i + 2}`), 'Zoe']);
+});
+Given('a/o {word} pagou R$ {num} dividido igual entre todo mundo', async ({ mundo }, quem, valor) => {
+  mundo.evento.expenses.push({ id: 'g' + (mundo.evento.expenses.length + 1), desc: 'Buffet', amount: valor,
+    payer: mundo.pessoa(quem).id, among: mundo.evento.people.map(p => p.id), at: AGORA - 86400000 });
+});
 
 Given('os gastos:', async ({ mundo }, tabela) => { poeGastos(mundo, tabela.hashes()); });
 
@@ -95,8 +104,10 @@ When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
 });
 When('eu tento pôr {word} na lista de novo', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); });
 When('eu tiro o/a {word} da lista', async ({ mundo }, nome) => {
-  await mundo.p.locator('#overlayBox .row', { hasText: nome }).locator('[data-drop]').click();
-  await expect(mundo.p.locator('#overlayBox .row', { hasText: nome })).toHaveCount(0);
+  // o nome inteiro: "Lia" também está dentro de "Júlia"
+  const linha = mundo.p.locator('#overlayBox .row').filter({ has: mundo.p.locator('[data-renome]', { hasText: new RegExp(`^${nome}$`) }) });
+  await linha.locator('[data-drop]').click();
+  await expect(linha).toHaveCount(0);
 });
 When('eu escrevo {word} e aperto pronto sem dar enter', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.click('#setupGo'); });
 When('eu troco o nome da/do {word} pra {word} na lista', async ({ mundo }, de, pra) => {

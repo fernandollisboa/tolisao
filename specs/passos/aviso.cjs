@@ -11,18 +11,13 @@ Then('Minha conta não oferece aviso no celular', async ({ mundo }) => {
   await expect(botao(mundo.p)).toHaveCount(0);
 });
 
-When('eu ligo o aviso no celular', async ({ mundo }) => { await botao(mundo.p).click(); await expect(botao(mundo.p)).toHaveClass(/ligado/); });
-When('eu desligo o aviso no celular', async ({ mundo }) => { await botao(mundo.p).click(); await mundo.p.click('#okBtn'); await expect(botao(mundo.p)).not.toHaveClass(/ligado/); });
+When('eu ligo o aviso no celular', async ({ mundo }) => { await botao(mundo.p).click(); await expect.poll(() => pedidos(mundo, '/inscreve').length).toBe(1); });
+Then('o botão do aviso sai de Minha conta', async ({ mundo }) => { await expect(botao(mundo.p)).toHaveCount(0); });
 
 Then('o celular fica inscrito pra receber o aviso da/do {word}', async ({ mundo }, nome) => {
   const [i] = pedidos(mundo, '/inscreve');
   expect(i).toMatchObject({ sala: mundo.sala, pessoa: mundo.pessoa(nome).id, sub: { endpoint: expect.any(String) } });
   expect(i.tok).toMatch(/^[a-z0-9]{16,64}$/);
-});
-Then('o celular deixa de receber o aviso da/do {word}', async ({ mundo }, nome) => {
-  await expect.poll(() => pedidos(mundo, '/desinscreve')).toEqual([
-    { sala: mundo.sala, pessoa: mundo.pessoa(nome).id, endpoint: pedidos(mundo, '/inscreve')[0].sub.endpoint, tok: pedidos(mundo, '/inscreve')[0].tok },
-  ]);
 });
 
 Then('o/a {word} é avisado/avisada no celular do pagamento da/do {word}', async ({ mundo }, quem, pagou) => {

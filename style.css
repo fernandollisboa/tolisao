@@ -618,13 +618,11 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 .fichinha.ponto.foge{margin-left:-6px;animation:foge 1.1s cubic-bezier(.4,0,.9,.6) both}
 @media (prefers-reduced-motion:reduce){.fichinha.ponto{display:none}}
 @keyframes foge{from{transform:rotate(-10deg);opacity:1}to{transform:translate(260px,6px) rotate(900deg);opacity:0}}
-/* a comandinha espera o título chegar no "tô lisa!!!" (.roda): antes disso nem a caixa aparece, e o tempo
+/* a comandinha espera o título chegar no "tô lisa!!!" (.roda): antes disso só a caixa vazia aparece, e o tempo
    de cada passo conta da .roda. O fim dela (3,5 s) é o COMANDA_MS do app.js, quando o título volta a digitar */
 .comandinha{position:relative;max-width:300px;margin:8px auto 12px;padding:6px 12px 8px;border:2px dashed var(--rule);background:#fff8e6;transform:rotate(-1.2deg);pointer-events:none}
-.comandinha:not(.roda):not(.parada){opacity:0}
+.comandinha:not(.roda):not(.parada) .row{opacity:0}
 .comandinha:not(.roda) .row:after{animation:none}
-.comandinha.roda{animation:aparece .3s ease both}
-@keyframes aparece{from{opacity:0}}
 .comandinha .row{font-size:18px;line-height:1.6}
 .comandinha.roda .row{animation:fadein .35s ease both}
 .comandinha.roda .f2{animation-delay:.5s}
@@ -641,4 +639,4 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 @keyframes passa{to{translate:40px -28px;opacity:0}}
 .comandinha.parada *,.comandinha.parada .row:after{animation:none !important}
 .comandinha.parada .fichinha.cai{display:none}
-@media (prefers-reduced-motion:reduce){.comandinha,.comandinha *,.comandinha .row:after{animation:none !important}.comandinha{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
+@media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}

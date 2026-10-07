@@ -95,12 +95,36 @@ Funcionalidade: Acertar as contas
     O link da cobrança já entra como quem deve: a pessoa abre e cai na própria conta.
     Quando eu abro o evento como Fernando
     E eu cobro a Mengla no zap
+    E eu pulo o número dela
     Então o zap abre com a mensagem:
       """
       💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
 
       {site}/fiado/?evento=bailedamada&quem=mengla
       """
+
+  Cenário: quem pulou o número não é perguntado de novo
+    Quando eu abro o evento como Fernando
+    E eu cobro a Mengla no zap
+    E eu pulo o número dela
+    E eu cobro a Mengla no zap
+    Então o zap abre sem perguntar o número
+    E o zap abre na escolha de contato
+
+  Cenário: dar o número na primeira cobrança já cai na conversa dela
+    O número fica só neste aparelho, nunca no evento: lá ele ficaria à vista de quem tem o link.
+    Quando eu abro o evento como Fernando
+    E eu cobro a Mengla no zap
+    E eu dou o número "(81) 99876-5432"
+    Então o zap abre na conversa do 5581998765432
+    E o evento no banco não tem o número 998765432
+
+  Cenário: o número guardado vale em qualquer evento
+    Dado que este aparelho já guardou o número "5581998765432" da Mengla, em outro evento
+    Quando eu abro o evento como Fernando
+    E eu cobro a Mengla no zap
+    Então o zap abre sem perguntar o número
+    E o zap abre na conversa do 5581998765432
 
   Cenário: copiar o pix já com o valor
     Dado que o Fernando tem a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"

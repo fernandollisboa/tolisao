@@ -82,8 +82,10 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey }
-  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok)
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey,
+  //                  phones: {nome: '55…' ou '' de pulado} }
+  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
+  //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
@@ -2500,7 +2502,10 @@
     $('#quitOk').onclick = fecha;
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
-      abreZap(`✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`);
+      abreZap(
+        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`,
+        zapDe(to) || '',
+      );
       fecha();
     };
   }
@@ -3161,17 +3166,93 @@
   const linkDoQr = () => `${SITE}?evento=${encodeURIComponent(roomName)}`;
   // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
-  const abreZap = (txt) =>
-    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  // com o número (55 + DDD + número), o zap cai direto na conversa da pessoa
+  const abreZap = (txt, tel = '') =>
+    window.open(
+      'https://api.whatsapp.com/send?' + (tel ? `phone=${tel}&` : '') + 'text=' + encodeURIComponent(txt),
+      '_blank',
+      'noopener',
+    );
+  // o zap de cada pessoa fica só neste aparelho (gaveta `tolisa`, em `phones`), pelo nome: vale em
+  // qualquer evento. Nunca vai pro banco: lá ele ficaria à vista de quem tem o link, como o pix sem telefone.
+  // '' é o "pular": não pergunta mais
+  const chaveDoNome = (n) =>
+    n
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  /** o número guardado ('55…'), '' se pulou, null se nunca perguntei @returns {string|null} */
+  const zapDe = (id) => {
+    const ps = device().phones,
+      v = ps && typeof ps === 'object' ? ps[chaveDoNome(nameOf(id))] : undefined;
+    return v === '' || (typeof v === 'string' && /^55\d{10,11}$/.test(v)) ? v : null;
+  };
+  const guardaZap = (id, tel) =>
+    mexe(DEVICE, (o) => {
+      o.phones = { ...(o.phones && typeof o.phones === 'object' ? o.phones : {}), [chaveDoNome(nameOf(id))]: tel };
+    });
+  /** número de celular ou fixo do Brasil, do jeito que vier: '55' + DDD + número, ou null */
+  const telBR = (v) => {
+    let d = String(v).replace(/\D/g, '').replace(/^0+/, '');
+    if (/^55\d{10,11}$/.test(d)) d = d.slice(2);
+    return /^\d{10,11}$/.test(d) ? '55' + d : null;
+  };
+  /** a primeira cobrança de alguém pede o zap dela, uma vez só. O zap abre do próprio toque
+   *  no cobrar ou no pular, sem await no meio (senão o celular barra o pop-up) */
+  function pedeZap(quem, msg) {
+    // a agenda do celular (Contact Picker, Chrome no Android) só preenche a caixa
+    const nav = /** @type {any} */ (navigator),
+      agenda = nav.contacts && typeof nav.contacts.select === 'function';
+    overlay(
+      `<h2 class="pergunta">Zap de ${nomeHtml(quem)}?</h2>
+      <p class="muted recado" id="askDesc">com o número, a cobrança já cai na conversa. ele fica só neste aparelho</p>
+      <form id="zapForm" autocomplete="off"><input id="askInput" type="tel" inputmode="tel" placeholder="(81) 99999-9999">${agenda ? '<div class="c"><button type="button" id="zapAgenda" class="ghost">📇 pegar da agenda</button></div>' : ''}<button class="big">${WA_SVG} cobrar</button></form>
+      <div class="c voltar"><button id="zapPular" class="ghost">pular</button></div>`,
+    );
+    const caixa = $('#askInput'),
+      erro = [caixa, $('#askDesc')];
+    caixa.addEventListener('input', () => erro.forEach((e) => e.classList.remove('erro')));
+    const manda = (tel) => {
+      guardaZap(quem, tel);
+      closeOverlay();
+      abreZap(msg, tel);
+    };
+    $('#zapForm').onsubmit = (ev) => {
+      ev.preventDefault();
+      if (!caixa.value.trim()) return manda('');
+      const tel = telBR(caixa.value);
+      if (tel) return manda(tel);
+      erro.forEach((e) => {
+        e.classList.remove('erro');
+        void e.offsetWidth;
+        e.classList.add('erro');
+      });
+      caixa.focus();
+    };
+    $('#zapPular').onclick = () => manda('');
+    if (agenda)
+      $('#zapAgenda').onclick = () =>
+        nav.contacts.select(['tel']).then(
+          (cs) => {
+            const t = cs && cs[0] && cs[0].tel && cs[0].tel[0];
+            if (t && caixa.isConnected) caixa.value = t;
+          },
+          () => {},
+        );
+    caixa.focus();
+  }
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
     const [quem, cents] = el.dataset.cobra.split('|');
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    abreZap(
-      `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`,
-    );
+    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`;
+    const tel = zapDe(quem);
+    if (tel === null) pedeZap(quem, msg);
+    else abreZap(msg, tel);
   }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa cápsula com contorno e pontinho na cor dela.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */

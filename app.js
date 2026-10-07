@@ -2041,33 +2041,91 @@
    * e o título espera ela acabar (`rodaComanda`). Roda uma vez por página: o cartão volta depois de
    * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
+  // a chuva copia o telão do BaianaSystem em Magnata, devagar: três camadas, atrás miúdas e lentas,
+  // na frente grandes e rápidas. Quantas, tamanho em px, segundos pra cruzar a tela, opacidade
+  /** @type {[number, [number, number], [number, number], number][]} */
   const CHUVA = [
-    // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor (as da ficha do rodapé)
-    [8, 34, 11, -2, 40, 500, ''],
-    [78, 46, 14, -9, -60, -300, 'quite'],
-    [30, 28, 12, -5, 30, 700, 'recebe'],
-    [60, 40, 16, -12, -40, -500, ''],
-    [90, 30, 10, -1, -30, 400, 'deve'],
-    [18, 52, 15, -7, 50, -720, 'quite'],
-    [46, 24, 13, -3, 20, 360, ''],
-    [68, 36, 12, -6, 30, 600, 'recebe'],
-    [36, 44, 17, -14, -50, -400, 'deve'],
+    [18, [14, 24], [18.9, 24.4], 0.55],
+    [20, [30, 46], [11.1, 14.4], 1],
+    [6, [78, 120], [5.6, 7.8], 1],
   ];
+  const CORES_CHUVA = ['', 'quite', 'ouro', 'deve']; // âmbar, rosa, dourada e vermelha
+  /** as fichas da chuva, sempre as mesmas (sorteio de semente fixa): o preview não muda à toa */
+  function fichasDaChuva() {
+    // tela larga espalha as mesmas fichas e a chuva fica rala: até o dobro delas no desktop
+    const mais = Math.min(2, Math.max(1, innerWidth / 600));
+    let semente = 7;
+    const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+    const entre = (/** @type {[number, number]} */ [a, b]) => a + r() * (b - a);
+    return CHUVA.flatMap(([quantas, tam, seg, op], k) => {
+      const n = Math.round(quantas * mais);
+      return Array.from({ length: n }, (_, i) => {
+        const s = Math.round(entre(tam)),
+          t = entre(seg),
+          x = ((i + r()) / n) * 100,
+          d = -r() * t,
+          vx = Math.round((r() - 0.5) * 40),
+          giro = Math.round((r() - 0.5) * 400),
+          // as do fundo não viram de lado: de perfil, miúdas, viram um risquinho
+          vira = k && r() < 0.4 ? 360 : 0,
+          cor = CORES_CHUVA[Math.floor(r() * CORES_CHUVA.length)];
+        return `<img class="fichinha ${cor}" src="diva.png" alt="" style="--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}">`;
+      });
+    }).join('');
+  }
+  const EXEMPLOS = [
+    'churras',
+    'praia',
+    'rolê',
+    'reggae',
+    'pizza',
+    'almocinho',
+    'brunch',
+    'réveillon',
+    'festival',
+    'churras do zé',
+    'praia do forte',
+    'rolê de domingo',
+    'reggae na praça',
+    'pizza de sexta',
+    'almocinho da firma',
+    'brunch das amigas',
+    'réveillon 2027',
+    'festival de verão',
+  ];
+  /** o "ex:" do campo vai trocando entre três exemplos sorteados, pra mostrar que qualquer nome serve.
+   * Para sozinho quando o campo sai da tela; com movimento reduzido fica no churras
+   * @param {HTMLInputElement} campo */
+  function trocaExemplo(campo) {
+    if (semMovimento()) return;
+    const tres = [...EXEMPLOS].sort(() => Math.random() - 0.5).slice(0, 3);
+    let i = 0;
+    campo.placeholder = `ex: ${tres[0]}`;
+    const t = setInterval(() => {
+      if (!campo.isConnected) return clearInterval(t);
+      i = (i + 1) % tres.length;
+      campo.placeholder = `ex: ${tres[i]}`;
+    }, 2200);
+  }
+  /** a chuva é enfeite: entra vazia e só enche quando o navegador folga, pra não atrasar o cartão */
+  function chove() {
+    const enche = () => {
+      const c = $('#overlayBox .chuva');
+      if (c && !c.childElementCount) c.innerHTML = fichasDaChuva();
+    };
+    if ('requestIdleCallback' in window) requestIdleCallback(enche, { timeout: 1500 });
+    else setTimeout(enche, 300);
+  }
   function estreia() {
     const parada = estreiaRodou || semMovimento(),
       // mesma conta do digitaTitulo: sem título digitando, a comanda não espera por ele
       digita = visitas === 1 && !tituloJaAnimou && !semMovimento();
     estreiaRodou = true;
-    const chuva = semMovimento()
-      ? ''
-      : `<div class="chuva" aria-hidden="true">${CHUVA.map(
-          ([x, s, t, d, vx, r, c]) =>
-            `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
-        ).join('')}</div>`;
+    const chuva = semMovimento() ? '' : '<div class="chuva" aria-hidden="true"></div>';
     return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' roda'}" aria-hidden="true">
-      <div class="row f1"><span class="l">francisquinha pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
-      <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">teobaldo deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
-      <div class="row f3"><span class="l">beleleuson deve</span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f1"><span class="l"><span class="nm" style="color:${corDe(0)}">francisquinha</span> pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
+      <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n"><span class="nm" style="color:${corDe(1)}">teobaldo</span> deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f3"><span class="l"><span class="nm" style="color:${corDe(2)}">beleleuson</span> deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
   }
   /** solta a comandinha e avisa quando ela termina (o tempo é o da última animação dela no style.css) */
@@ -2118,7 +2176,7 @@
       <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
       <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">sem zap, sem desculpa</span><span class="d"></span><span class="v"><button id="evQr" class="qrmini" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}QR</button></span></div>`
           : ''
-      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>
+      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || (evs.length ? 'qualquer nome cria o evento.' : 'qualquer nome serve!')}</p>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
@@ -2133,6 +2191,8 @@
       $('#evQr').onclick = mostraQr;
     }
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
+    if (chegou) chove();
+    trocaExemplo($('#gateCode'));
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
     if (chegou) setTimeout(() => $('#overlayBox .comandinha')?.classList.add('roda'), 6000);
     // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o

@@ -279,6 +279,16 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
 @media (prefers-reduced-motion:reduce){.fab{animation:none}}
 input,select{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:8px 4px;border-radius:0;width:100%}
 input::placeholder{color:#9a8a6a;text-transform:uppercase}
+/* o "ex:" que anda (trocaExemplo): uma camada por cima do campo, na mesma letra e no mesmo lugar do placeholder,
+   que desliza liso. O placeholder de verdade fica transparente, e a camada some quando a pessoa escreve */
+.campoEx{position:relative;display:block;min-width:0}
+.campoEx .exemplo{position:absolute;left:4px;right:4px;top:8px;height:27px;display:none;white-space:pre;color:#9a8a6a;text-transform:uppercase;pointer-events:none}
+.campoEx.anda input::placeholder{color:transparent}
+.campoEx.anda input:placeholder-shown + .exemplo{display:flex}
+.campoEx .janela{flex:1;min-width:0;overflow:hidden}
+.campoEx .exemplo:before{content:"ex:\a0"}
+.campoEx .trilho{display:inline-block}
+.campoEx .trilho:before{content:attr(data-t)}
 form{display:grid;gap:10px}
 .two{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:end}
 .chips{display:flex;gap:8px;flex-wrap:wrap}

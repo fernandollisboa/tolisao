@@ -30,6 +30,7 @@
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
+  const QUANTO_CADA = false; // a frase do anotar diz quanto fica pra cada um ("R$ 30,00 cada"): quebrava em duas linhas
   const RECEBI = false; // "recebi" na linha de quem me deve (pagaram por fora): desligado por enquanto
   const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
@@ -1799,7 +1800,7 @@
     else
       h.innerHTML =
         `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length === 1 ? '' : 's'}</u>` +
-        (total > 0 ? `, ${quinhao(total, among)}.` : '.');
+        (QUANTO_CADA && total > 0 ? `, ${quinhao(total, among)}.` : '.');
   }
   /** quanto fica pra cada um: "R$ 30,00 cada", ou "R$ 33,34 e R$ 33,33" quando sobra centavo
    *  @param {number} total em centavos @param {string[]} ids */

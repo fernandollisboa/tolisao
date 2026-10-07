@@ -17,7 +17,7 @@ const idDe = nome => nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLow
 
 class Mundo {
   constructor(browser, base) {
-    this.browser = browser; this.base = base; this.banco = new Banco(); this.api = new Api(); this.celularComAviso = false;
+    this.browser = browser; this.base = base; this.banco = new Banco(); this.api = new Api(); this.celularComAviso = false; this.aparelho = [];
     this.evento = null; this.sala = ''; this.p = null; this.nota = {};
     this.erros = []; this.dialogos = []; this.contextos = []; this.antes = null;
   }
@@ -32,6 +32,7 @@ class Mundo {
     await this.banco.liga(ctx);
     await this.api.liga(ctx);
     if (this.celularComAviso) await ctx.addInitScript(celularComAviso);
+    for (const f of this.aparelho) await ctx.addInitScript(f); // o jeito do aparelho (iPhone, convite de instalar)
     await ctx.addInitScript(() => {
       const w = window;
       w.open = u => { w.__aberto = u; return null; };

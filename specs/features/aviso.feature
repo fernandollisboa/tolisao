@@ -29,3 +29,19 @@ Funcionalidade: Aviso no celular quando me pagam
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta
     Então o Fernando é avisado no celular do pagamento da Lia
+
+  Cenário: no iPhone sem o app instalado, o 🔔 ensina a instalar
+    No iPhone o aviso só chega com o tô lisa na Tela de Início: sem ele, o 🔔 falhava calado.
+    Dado que meu celular é um iPhone sem o tô lisa instalado
+    Quando eu abro o evento como Júlia
+    E eu toco no 🔔 de Minha conta
+    Então aparece o passo a passo de instalar na Tela de Início
+    Mas o celular não fica inscrito pra receber aviso
+
+  Cenário: ligar o aviso convida a instalar, quando o navegador deixa
+    Instalado, o aviso abre o tô lisa direto. O convite vem uma vez só, e recusar não impede o aviso.
+    Dado que meu navegador oferece instalar o tô lisa
+    Quando eu abro o evento como Júlia
+    E eu ligo o aviso no celular
+    Então o navegador me convida a instalar o tô lisa uma vez
+    E o celular fica inscrito pra receber o aviso da Júlia

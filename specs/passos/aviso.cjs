@@ -27,3 +27,33 @@ Then('o/a {word} é avisado/avisada no celular do pagamento da/do {word}', async
   const pago = mundo.banco.arvore.rooms[mundo.sala].expenses.find(e => e.id === id);
   expect(pago).toMatchObject({ kind: 'payment', payer: mundo.pessoa(pagou).id, among: [mundo.pessoa(quem).id] });
 });
+
+// o Safari do iPhone fora da tela de início: sem Notification nem PushManager, que só existem no app instalado
+Given('que meu celular é um iPhone sem o tô lisa instalado', async ({ mundo }) => {
+  mundo.aparelho.push(() => {
+    const w = /** @type {any} */ (window);
+    Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1' });
+    delete w.Notification; delete w.PushManager;
+  });
+});
+// o Chrome do Android avisa a página que dá pra instalar; o convite anota quantas vezes foi aberto
+Given('que meu navegador oferece instalar o tô lisa', async ({ mundo }) => {
+  mundo.aparelho.push(() => addEventListener('DOMContentLoaded', () => {
+    const w = /** @type {any} */ (window);
+    w.__convites = 0;
+    dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }),
+      { prompt: () => { w.__convites++; }, userChoice: Promise.resolve({ outcome: 'dismissed' }) }));
+  }));
+});
+
+When('eu toco no 🔔 de Minha conta', async ({ mundo }) => { await botao(mundo.p).click(); });
+Then('aparece o passo a passo de instalar na Tela de Início', async ({ mundo }) => {
+  const o = mundo.p.locator('#overlay');
+  await expect(o.locator('h2')).toHaveText('Instalar');
+  await expect(o).toContainText('aviso só chega com o tô lisa na Tela de Início');
+  await expect(o).toContainText('Adicionar à Tela de Início');
+});
+Then('o celular não fica inscrito pra receber aviso', async ({ mundo }) => { expect(pedidos(mundo, '/inscreve')).toHaveLength(0); });
+Then('o navegador me convida a instalar o tô lisa uma vez', async ({ mundo }) => {
+  expect(await mundo.p.evaluate(() => /** @type {any} */ (window).__convites)).toBe(1);
+});

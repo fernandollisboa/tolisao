@@ -2037,7 +2037,7 @@
     });
   }
   /** quem chega pela primeira vez: fichas caindo atrás do cartão e uma comandinha que se anota
-   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). Ela espera o título chegar no "tô lisa!!!"
+   * sozinha (Francisquinha paga, Teobaldo acerta, Beleleuson fica devendo). Ela espera o título chegar no "tô lisa!!!"
    * e o título espera ela acabar (`rodaComanda`). Roda uma vez por página: o cartão volta depois de
    * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
@@ -2065,9 +2065,9 @@
             `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
         ).join('')}</div>`;
     return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' roda'}" aria-hidden="true">
-      <div class="row f1"><span class="l">afonso pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
-      <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">bia deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
-      <div class="row f3"><span class="l">charles deve</span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f1"><span class="l">francisquinha pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
+      <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">teobaldo deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f3"><span class="l">beleleuson deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
   }
   /** solta a comandinha e avisa quando ela termina (o tempo é o da última animação dela no style.css) */

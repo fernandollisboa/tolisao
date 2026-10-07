@@ -93,6 +93,13 @@ Funcionalidade: Entrar no evento
     E a nota não pergunta quem eu sou
     E o endereço termina em "?evento=churras"
 
+  Cenário: na mesa, a turma escaneia o QR e cai no evento
+    A turma tá do lado: em vez de passar o link pelo zap, quem tá com o celular mostra o QR.
+    Dado o evento de exemplo "bailedamada"
+    Quando eu abro o evento como Fernando
+    E eu peço o QR do evento
+    Então o QR na tela leva pro link do grupo
+
   Cenário: quem chega pelo link do grupo diz quem é na própria nota
     O link do grupo não diz quem abriu. A nota já mostra a turma no topo, um nome
     por pessoa, sem cartão na frente: ninguém é interrompido na chegada.
@@ -275,6 +282,16 @@ Funcionalidade: Entrar no evento
     Quando eu trago o evento de volta da minha cópia
     Então o evento volta pro banco com o Carvão
     E o cabeçalho diz "sou Lia"
+
+  Cenário: a rede engasgada vira offline, e a nota tenta de novo
+    No bar o 3G para sem dar erro: a nota avisa que tá offline em vez de fingir que sincronizou,
+    e o que foi anotado sobe quando a rede volta.
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E a rede engasga e o banco para de responder
+    Então o rodapé diz "Offline · a rede não respondeu"
+    Quando a rede volta
+    Então o rodapé diz que sincronizou
 
   Cenário: o evento sumiu do banco e eu desisto dele
     Ele sai da lista de eventos, mas a gaveta fica: é nela que mora a cópia.

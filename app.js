@@ -12,7 +12,7 @@
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
   //   → fila das animações → desenhos (ícones) → pix → aviso no celular → a nota (render) → o anotar
   //   → cartões (overlays) → entrar num evento → meus eventos → botões → cliques
-  //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
+  //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → QR → início
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
 
   // #region config
@@ -20,6 +20,7 @@
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const API = 'https://tolisa-api.fernando-costa-fd0.workers.dev'; // o worker do aviso no celular (servidor/)
   const POLL_MS = 6000;
+  const REDE_MS = 8000; // prazo de cada ida ao banco: rede engasgada no bar vira "Offline" em vez de prender o sync
   const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
@@ -382,11 +383,20 @@
     el.classList.toggle('err', !!err);
   };
   const roomUrl = (id) => `${DB}/rooms/${id}.json`;
+  /** fetch no banco, com prazo: no 3G engasgado a conexão para sem dar erro, e quem espera (o sync, o quita, o anotar)
+   *  ficava preso. Estourou, vira erro comum. O prazo vale até o fim da leitura da resposta, por isso o timer não
+   *  se desliga. setTimeout e não AbortSignal.timeout(): o relógio falso dos testes adianta ele
+   *  @param {string} url @param {RequestInit} [op] */
+  const noBanco = (url, op = {}) => {
+    const c = new AbortController();
+    setTimeout(() => c.abort(new Error('a rede não respondeu')), REDE_MS);
+    return fetch(url, { ...op, signal: c.signal });
+  };
   // a sala vem com o ETag dela: o sync grava com if-match, e se outro aparelho gravou entre
   // a baixada e a subida o banco responde 412 em vez de passar por cima do que ele gravou
   /** @returns {Promise<{ data: any, etag: string | null }>} */
   async function baixa(id) {
-    const r = await fetch(roomUrl(id), { cache: 'no-store', headers: { 'X-Firebase-ETag': 'true' } });
+    const r = await noBanco(roomUrl(id), { cache: 'no-store', headers: { 'X-Firebase-ETag': 'true' } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
     if (data === null) throw Object.assign(new Error('não encontrado'), { notFound: true });
@@ -397,7 +407,7 @@
   async function apiPut(id, data, etag) {
     // passa pelo clean() na ida também: as regras do banco só aceitam a sala nesse formato
     // (nome até 40, pessoa até 30, item até 60…), e um campo a mais recusaria a gravação inteira
-    const r = await fetch(roomUrl(id), {
+    const r = await noBanco(roomUrl(id), {
       method: 'PUT',
       headers: etag ? { 'if-match': etag } : {},
       body: JSON.stringify(clean(data)),
@@ -835,7 +845,7 @@
         // rede engasgou ou o banco falhou: fica a chave que já tinha. Só some quando o banco diz que não tem
         if (pixKeys[p.id]) out[p.id] = pixKeys[p.id];
         try {
-          const r = await fetch(pixUrl(p.id, '/key'), { cache: 'no-store' });
+          const r = await noBanco(pixUrl(p.id, '/key'), { cache: 'no-store' });
           if (r.ok) {
             const v = await r.json();
             const k = typeof v === 'string' ? validPixKey(v) : null;
@@ -905,7 +915,7 @@
       });
     }
     try {
-      const r = await fetch(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
+      const r = await noBanco(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
       if (r.status === 401 || r.status === 403)
         return toast('Essa chave foi cadastrada em outro aparelho: só ele troca');
       if (!r.ok) return toast('A chave não salvou, tenta de novo');
@@ -1926,14 +1936,16 @@
    * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
   const CHUVA = [
-    // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor
+    // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor (as da ficha do rodapé)
     [8, 34, 11, -2, 40, 500, ''],
     [78, 46, 14, -9, -60, -300, 'quite'],
-    [30, 28, 12, -5, 30, 700, ''],
+    [30, 28, 12, -5, 30, 700, 'recebe'],
     [60, 40, 16, -12, -40, -500, ''],
-    [90, 30, 10, -1, -30, 400, ''],
-    [18, 52, 15, -7, 50, -720, ''],
+    [90, 30, 10, -1, -30, 400, 'deve'],
+    [18, 52, 15, -7, 50, -720, 'quite'],
     [46, 24, 13, -3, 20, 360, ''],
+    [68, 36, 12, -6, 30, 600, 'recebe'],
+    [36, 44, 17, -14, -50, -400, 'deve'],
   ];
   function estreia() {
     const parada = estreiaRodou || semMovimento(),
@@ -1983,20 +1995,15 @@
     // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
     const intro = chegou
       ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê.<br>sem app, sem cadastro.</div>
-      ${estreia()}
-      <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
-        <div>1. dá um nome pro rolê</div>
-        <div>2. anota quem pagou o quê</div>
-        <div>3. manda no zap e recebe no pix</div>
-      </div>`
+      ${estreia()}`
       : '';
     const lista = evs.length
       ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
       : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome já cria o rolê.'}</p>` : ''}
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome do rolê" required autocapitalize="none"><button class="small">${botao}</button></form>
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
@@ -2543,14 +2550,14 @@
     Promise.all(
       evs.map(async (e) => {
         try {
-          const r = await fetch(`${DB}/rooms/${e.id}/updatedAt.json`, { cache: 'no-store' });
+          const r = await noBanco(`${DB}/rooms/${e.id}/updatedAt.json`, { cache: 'no-store' });
           const v = r.ok ? await r.json() : null;
           if (typeof v !== 'number' || !(v > e.at) || v > Date.now() + 86400000) return;
           mexe(roomKey(e.id), (o) => {
             o.changedAt = v;
           });
           mudou = true;
-          const rr = await fetch(`${DB}/rooms/${e.id}.json`, { cache: 'no-store' });
+          const rr = await noBanco(`${DB}/rooms/${e.id}.json`, { cache: 'no-store' });
           const remoto = rr.ok ? clean(await rr.json()) : null;
           // merge e não troca: a cópia pode ter algo anotado sem internet que o banco ainda não viu
           if (remoto)
@@ -3153,9 +3160,15 @@
       <button class="big" data-link-pra="">👥 pro grupo todo</button>
       <div class="c muted linkou">ou um link que já entra como:</div>
       <div class="linkpras">${outros.map((p) => `<button class="linkpra" data-link-pra="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
+      <div class="c"><button id="qrBtn" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);
+      $('#qrBtn').onclick = () => {
+        overlayCancel = null;
+        res(null);
+        mostraQr();
+      };
       for (const b of inputs('#overlayBox [data-link-pra]'))
         b.onclick = () => {
           overlayCancel = null;
@@ -3168,6 +3181,22 @@
         res(null);
       };
     });
+  }
+  // na mesa a turma tá do lado: o QR grande do link do grupo, e quem escanear cai no evento
+  const QR_ICONE =
+    '<svg viewBox="0 0 7 7" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 0h3v3H0zM1 1v1h1V1zM4 0h3v3H4zM5 1v1h1V1zM0 4h3v3H0zM1 5v1h1V5zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z" fill-rule="evenodd"/></svg>';
+  function mostraQr() {
+    const url = shareUrl(),
+      svg = qrSvg(url);
+    if (!svg) return showCopy('Link do evento', url); // link comprido demais pro QR
+    overlay(
+      `<h2 class="pergunta">Aponta a câmera</h2>
+      <div class="qr">${svg}</div>
+      <p class="muted recado c">quem escanear cai no ${esc(evento())}</p>
+      <div class="c voltar"><button id="cancelBtn" class="ghost">fechar</button></div>`,
+    );
+    $('#cancelBtn').onclick = closeOverlay;
+    $('#cancelBtn').focus(); // o botão que tinha o foco sumiu com o cartão anterior
   }
   $('#shareBtn').onclick = async () => {
     const quem = await linkPraQuem();
@@ -3392,6 +3421,19 @@
       pula();
       centraliza('* * *');
 
+      // o QR do link do grupo, como o da nota fiscal: a imagem encaminhada sem o texto ainda leva pro evento
+      const qr = qrMatriz(shareUrl());
+      if (qr) {
+        const MODULO = 4,
+          lado = qr.length * MODULO,
+          qx = LARGURA / 2 - lado / 2,
+          qy = Math.round(y); // pixel inteiro: módulo em meio pixel deixa fresta clara entre um e outro
+        ctx.fillStyle = TINTA;
+        qr.forEach((l, i) =>
+          l.forEach((preto, j) => preto && ctx.fillRect(qx + j * MODULO, qy + i * MODULO, MODULO, MODULO)),
+        );
+        y += lado + ENTRELINHA;
+      }
       // o código de barras do rodapé, o mesmo da página
       {
         const barras = code128Widths('420420420420');
@@ -3528,8 +3570,22 @@
     }
     ensinaInstalar();
   };
+  /** o navegador de dentro do Facebook e do Instagram não instala. O Chrome e o Edge do iPhone instalam
+   *  pelo Compartilhar deles desde o iOS 16.4, então seguem com o passo a passo */
+  const foraDoSafari = () => /FBAN|FBAV|Instagram/.test(navigator.userAgent);
   /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 (HTML: já vem escapado) */
   function ensinaInstalar(porque = '') {
+    if (foraDoSafari()) {
+      // o Safari não enxerga o que este navegador guardou: o link do evento já entra como a pessoa
+      const link = groupId ? shareUrl(me || '') : SITE;
+      overlay(`<h2>Instalar</h2>${porque ? `<p class="porque">${porque}</p>` : ''}
+        <p class="porque">Daqui não dá pra instalar: só pelo <b>Safari</b>. Copia o link, abre o Safari e cola lá em cima.</p>
+        <button id="instLink" class="big">copiar o link</button>
+        <div class="c voltar"><button id="instOk" class="ghost">fechar</button></div>`);
+      $('#instLink').onclick = () => copia(link, 'Link copiado. Agora cola no Safari.', 'Link pro Safari');
+      $('#instOk').onclick = closeOverlay;
+      return;
+    }
     // quadrinhos: cada passo com o desenho do que vai aparecer no Safari e o botão a tocar
     // pintado, e uma seta pulando em cima do lugar de verdade. O Safari 26 guarda o
     // Compartilhar no •••, no canto de baixo; o antigo deixa ele no meio da barra de baixo,
@@ -4080,6 +4136,164 @@
     $('#bars').innerHTML =
       `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none" fill="#222" aria-hidden="true">${rects}</svg>`;
   })();
+
+  // #endregion
+  // #region QR
+  // ---------- QR (modo byte, correção M, versões 1 a 6) ----------
+  // escrito à mão como o code128Widths e o crc16: sai uma matriz de sim/não, e quem desenha
+  // é a página (qrSvg) ou a comanda (fillRect). A versão 6 leva 106 bytes, o bastante pro link
+  // do evento. O copia e cola do pix (~150 bytes) vai pedir as versões 7 a 9: bits de versão,
+  // alinhamento em grade e blocos de tamanhos diferentes.
+  // [blocos, bytes de dados por bloco, bytes de correção por bloco], da versão 1 à 6, correção M
+  const QR_BLOCOS = [
+    [1, 16, 10],
+    [1, 28, 16],
+    [1, 44, 26],
+    [2, 32, 18],
+    [2, 43, 24],
+    [4, 27, 16],
+  ];
+  /** a matriz do QR, linha a linha (true é módulo preto), sem a borda branca; null se o texto passa de 106 bytes
+   * @param {string} texto @returns {boolean[][] | null} */
+  function qrMatriz(texto) {
+    const bytes = [...new TextEncoder().encode(texto)];
+    const v = QR_BLOCOS.findIndex(([b, d]) => 12 + 8 * bytes.length <= b * d * 8) + 1;
+    if (!v) return null;
+    const [nb, nd, ne] = QR_BLOCOS[v - 1],
+      cabe = nb * nd * 8;
+    // modo byte (0100), o tamanho em 8 bits, os bytes, até 4 zeros de fim e o byte completado com zero
+    let bits = '0100' + [bytes.length, ...bytes].map((b) => b.toString(2).padStart(8, '0')).join('');
+    bits += '0000'.slice(0, cabe - bits.length);
+    bits += '0'.repeat((8 - (bits.length % 8)) % 8);
+    const dados = bits.match(/.{8}/g).map((b) => parseInt(b, 2));
+    for (let i = 0; dados.length < nb * nd; i++) dados.push(i % 2 ? 0x11 : 0xec); // enchimento: 0xEC, 0x11, 0xEC…
+    // Reed-Solomon no corpo de 256 do QR (x⁸+x⁴+x³+x²+1); o gerador é (x-α⁰)…(x-α^(ne-1))
+    const exp = [],
+      log = [];
+    for (let i = 0, x = 1; i < 255; i++, x = (x << 1) ^ (x & 0x80 ? 0x11d : 0)) {
+      exp[i] = x;
+      log[x] = i;
+    }
+    const vezes = (a, b) => (a && b ? exp[(log[a] + log[b]) % 255] : 0);
+    let gerador = [1];
+    for (let i = 0; i < ne; i++) gerador = [...gerador, 0].map((c, j) => c ^ (j ? vezes(gerador[j - 1], exp[i]) : 0));
+    const blocos = [...Array(nb)].map((_, i) => dados.slice(i * nd, (i + 1) * nd));
+    const correcoes = blocos.map((bloco) => {
+      const resto = Array(ne).fill(0);
+      for (const b of bloco) {
+        const f = b ^ /** @type {number} */ (resto.shift());
+        resto.push(0);
+        for (let i = 0; i < ne; i++) resto[i] ^= vezes(gerador[i + 1], f);
+      }
+      return resto;
+    });
+    // os blocos se intercalam byte a byte: primeiro os dados, depois a correção
+    const palavras = [];
+    for (let i = 0; i < nd; i++) for (const b of blocos) palavras.push(b[i]);
+    for (let i = 0; i < ne; i++) for (const c of correcoes) palavras.push(c[i]);
+
+    const n = 17 + 4 * v;
+    const m = [...Array(n)].map(() => Array(n).fill(false)),
+      fixo = [...Array(n)].map(() => Array(n).fill(false));
+    const poe = (x, y, preto) => {
+      m[y][x] = preto;
+      fixo[y][x] = true;
+    };
+    // os três quadrados dos cantos, já com a faixa branca em volta
+    for (const [cx, cy] of [
+      [3, 3],
+      [n - 4, 3],
+      [3, n - 4],
+    ])
+      for (let dy = -4; dy <= 4; dy++)
+        for (let dx = -4; dx <= 4; dx++) {
+          const d = Math.max(Math.abs(dx), Math.abs(dy));
+          if (cx + dx >= 0 && cx + dx < n && cy + dy >= 0 && cy + dy < n) poe(cx + dx, cy + dy, d !== 2 && d !== 4);
+        }
+    // o pontilhado entre os cantos, o quadradinho de alinhamento (um só até a versão 6) e o módulo preto fixo
+    for (let i = 8; i < n - 8; i++) {
+      poe(i, 6, i % 2 === 0);
+      poe(6, i, i % 2 === 0);
+    }
+    if (v > 1)
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++) poe(n - 7 + dx, n - 7 + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    poe(8, n - 8, true);
+    // o formato (correção e máscara) mora em volta dos cantos, em duas cópias
+    /** @param {number} formato os 15 bits, já com o BCH e o xor */
+    const poeFormato = (formato) => {
+      const bit = (i) => ((formato >> i) & 1) === 1;
+      for (let i = 0; i < 6; i++) poe(8, i, bit(i));
+      poe(8, 7, bit(6));
+      poe(8, 8, bit(7));
+      poe(7, 8, bit(8));
+      for (let i = 9; i < 15; i++) poe(14 - i, 8, bit(i));
+      for (let i = 0; i < 8; i++) poe(n - 1 - i, 8, bit(i));
+      for (let i = 8; i < 15; i++) poe(8, n - 15 + i, bit(i));
+    };
+    poeFormato(0); // reserva o lugar antes dos dados
+    // os dados sobem e descem em colunas de duas, da direita pra esquerda, pulando a coluna 6
+    let k = 0;
+    for (let dir = n - 1; dir >= 1; dir -= 2) {
+      if (dir === 6) dir = 5;
+      for (let i = 0; i < n; i++)
+        for (const x of [dir, dir - 1]) {
+          const y = (dir + 1) & 2 ? i : n - 1 - i;
+          if (fixo[y][x]) continue;
+          m[y][x] = k < palavras.length * 8 && ((palavras[k >> 3] >> (7 - (k & 7))) & 1) === 1;
+          k++;
+        }
+    }
+    // das 8 máscaras fica a que dá menos penalidade (blocos, faixas e falsos cantos que confundem o leitor)
+    const MASCARAS = [
+      (x, y) => (x + y) % 2 === 0,
+      (x, y) => y % 2 === 0,
+      (x) => x % 3 === 0,
+      (x, y) => (x + y) % 3 === 0,
+      (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0,
+      (x, y) => ((x * y) % 2) + ((x * y) % 3) === 0,
+      (x, y) => (((x * y) % 2) + ((x * y) % 3)) % 2 === 0,
+      (x, y) => (((x + y) % 2) + ((x * y) % 3)) % 2 === 0,
+    ];
+    const dado = fixo.map((l) => [...l]),
+      base = m.map((l) => [...l]);
+    let melhor = null,
+      menor = Infinity;
+    MASCARAS.forEach((mascara, qual) => {
+      for (let y = 0; y < n; y++)
+        for (let x = 0; x < n; x++) m[y][x] = dado[y][x] ? base[y][x] : base[y][x] !== mascara(x, y);
+      // correção M é 00; os 10 bits de BCH saem do resto por 0x537
+      let r = qual;
+      for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >> 9) * 0x537);
+      poeFormato(((qual << 10) | r) ^ 0x5412);
+      const linhas = m.map((l) => l.map(Number).join('')),
+        colunas = m.map((_, x) => m.map((l) => +l[x]).join(''));
+      let pena = 0,
+        pretos = 0;
+      for (const s of [...linhas, ...colunas]) {
+        for (const run of s.match(/0+|1+/g) || []) if (run.length >= 5) pena += run.length - 2;
+        // a borda branca conta como claro: falso canto encostado na beira também confunde
+        pena += 40 * (('0000' + s + '0000').match(/(?=10111010000|00001011101)/g) || []).length;
+      }
+      for (let y = 0; y < n; y++)
+        for (let x = 0; x < n; x++) {
+          pretos += +m[y][x];
+          if (x && y && m[y][x] === m[y - 1][x] && m[y][x] === m[y][x - 1] && m[y][x] === m[y - 1][x - 1]) pena += 3;
+        }
+      pena += 10 * Math.floor(Math.abs((pretos * 100) / (n * n) - 50) / 5);
+      if (pena < menor) [menor, melhor] = [pena, m.map((l) => [...l])];
+    });
+    return melhor;
+  }
+  /** o QR em SVG, com a borda branca de 4 módulos que o leitor precisa @param {string} texto */
+  const qrSvg = (texto) => {
+    const m = qrMatriz(texto);
+    if (!m) return '';
+    let d = '';
+    m.forEach((l, y) => l.forEach((preto, x) => preto && (d += `M${x} ${y}h1v1h-1z`)));
+    const t = m.length + 8;
+    return `<svg viewBox="-4 -4 ${t} ${t}" shape-rendering="crispEdges" role="img" aria-label="QR do link"><rect x="-4" y="-4" width="${t}" height="${t}" fill="#fff"/><path d="${d}" fill="#222"/></svg>`;
+  };
 
   // #endregion
   // #region início

@@ -134,6 +134,7 @@ Funcionalidade: Acertar as contas
 
       tudo aqui 👉 {site}/fiado/?evento=bailedamada
       """
+    E o QR da comanda leva pro link do grupo
 
   Cenário: a comanda de uma viagem longa sai inteira
     Uma semana de viagem tem gasto demais pra uma imagem só: a comanda traz os mais novos,

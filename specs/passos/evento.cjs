@@ -1,4 +1,4 @@
-const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
+const { Given, When, Then, expect, idDe, AGORA, leQr } = require('./_mundo.cjs');
 
 const festa = require('../_festa.cjs');
 
@@ -199,6 +199,21 @@ When('o evento some do banco', async ({ mundo }) => {
   await expect.poll(() => mundo.p.evaluate(k => !!JSON.parse(localStorage.getItem(k) || '{}').snapshot, `tolisa:${mundo.sala}`)).toBe(true);
   delete mundo.banco.arvore.rooms[mundo.sala];
 });
+// o banco segura o pedido, e o relógio anda o prazo do app (REDE_MS) com o sync esperando
+When('a rede engasga e o banco para de responder', async ({ mundo }) => {
+  await mundo.p.waitForSelector('#app:not(.loading)');
+  mundo.banco.mudo = true;
+  await mundo.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(() => mundo.banco.segurados || 0).toBeGreaterThan(0);
+  await mundo.p.context().clock.runFor(8000);
+});
+// a pessoa volta pra aba: o sync tenta de novo
+When('a rede volta', async ({ mundo }) => {
+  mundo.banco.mudo = false;
+  await mundo.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+});
+Then('o rodapé diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#status')).toHaveText(txt); });
+Then('o rodapé diz que sincronizou', async ({ mundo }) => { await expect(mundo.p.locator('#status')).toHaveText(/Sincronizado \d/); });
 When('eu abro o site de novo', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#overlayBox h2'); });
 When('eu trago o evento de volta da minha cópia', async ({ mundo }) => {
   await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#restoreBtn')]);
@@ -231,6 +246,20 @@ When('eu colo o link do evento pra {word} na mesma aba', async ({ mundo }, quem)
   await mundo.p.waitForSelector('#app:not(.loading)');
 });
 When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre({ link: mundo.base + '/' + q }); await mundo.p.waitForSelector('#app:not(.loading)'); });
+
+// o QR do link do grupo, do "Mandar pra quem?": o SVG da tela vira imagem e passa pelo leitor
+When('eu peço o QR do evento', async ({ mundo }) => { await mundo.p.click('#waBtn'); await mundo.p.click('#qrBtn'); });
+const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}$`);
+Then('o QR na tela leva pro link do grupo', async ({ mundo }) => {
+  const svg = await mundo.p.locator('#overlayBox .qr svg').evaluate(s => s.outerHTML.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" '));
+  expect(await leQr(mundo.p, 'data:image/svg+xml,' + encodeURIComponent(svg))).toMatch(doGrupo(mundo));
+});
+// a comanda é a que o "baixa a imagem" guardou
+Then('o QR da comanda leva pro link do grupo', async ({ mundo }) => {
+  expect(mundo.nota.comanda, 'a comanda não foi baixada antes').toBeTruthy();
+  const png = 'data:image/png;base64,' + require('fs').readFileSync(mundo.nota.comanda).toString('base64');
+  expect(await leQr(mundo.p, png)).toMatch(doGrupo(mundo));
+});
 
 // a chegada pelo link do grupo: a nota pergunta quem é você no topo, sem cartão
 When('eu abro o link do grupo', async ({ mundo }) => { await mundo.abre(); await mundo.p.waitForSelector('#app:not(.loading)'); });

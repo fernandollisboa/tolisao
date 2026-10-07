@@ -34,8 +34,10 @@ Funcionalidade: O que fica guardado no aparelho
       *** MEUS EVENTOS ***
       BAILEDAMADA
       R$ 100,00
+      ✕
       sou Lia · 3 pessoas
       agora
+      o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
       """

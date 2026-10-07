@@ -78,8 +78,10 @@ Funcionalidade: Meus eventos
       *** MEUS EVENTOS ***
       CHURRAS
       R$ 30,00
+      ✕
       sou Lia · 3 pessoas
       agora
+      o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
       """
@@ -117,6 +119,15 @@ Funcionalidade: Meus eventos
     E eu confirmo, e a página recarrega
     Então aparece o cartão do código
     E a lista de eventos está vazia
+
+  Cenário: a tela inicial também esquece evento
+    Quando eu abro o evento "churras" como Lia
+    E eu entro no evento "praia" como Lia
+    E eu abro o site sem código
+    E eu toco no ✕ do "churras"
+    Então o site pergunta "Esquecer churras?" com o botão vermelho
+    Quando eu confirmo
+    Então a lista do cartão tem só "praia"
 
   Cenário: o que mudou em outro aparelho entra no saldo da lista e na soma
     Com dois eventos ou mais, a soma dos saldos fica em cima da lista.

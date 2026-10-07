@@ -1903,7 +1903,10 @@
         <div>3. manda no zap e recebe no pix</div>
       </div>`
       : '';
-    const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, false)}` : '';
+    const lista = evs.length
+      ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}
+      <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
+      : '';
     overlay(
       `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado">${msg || 'qualquer nome já cria o rolê.'}</p>` : ''}
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome do rolê" required${evs.length ? '' : ' autofocus'} autocapitalize="none"><button class="small">${botao}</button></form>
@@ -1911,8 +1914,10 @@
       true,
     );
     digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined);
-    ligaEventos(evs);
-    atualizaDatas(evs, false);
+    /** @param {MeuEvento} e */
+    const esquece = (e) => esqueceEvento(e, () => showGate());
+    ligaEventos(evs, esquece);
+    atualizaDatas(evs, true, esquece);
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button');
@@ -2344,20 +2349,7 @@
       location.href = location.pathname + '?evento=' + encodeURIComponent(code);
     };
     /** @param {MeuEvento} e */
-    const esquece = async (e) => {
-      if (
-        !(await ask(
-          `Esquecer ${esc(e.nome)}?`,
-          'some da lista só neste aparelho. você volta digitando o código.',
-          'esquecer',
-          true,
-        ))
-      )
-        return showRoom();
-      esconde(e.id);
-      if (e.id === groupId) return leave();
-      showRoom();
-    };
+    const esquece = (e) => esqueceEvento(e, showRoom);
     ligaEventos(evs, esquece);
     atualizaDatas(evs, true, esquece);
   }
@@ -2504,6 +2496,17 @@
         ? `<details class="antigos"><summary>${antigos.length} ${antigos.length === 1 ? 'quitado antigo' : 'quitados antigos'}</summary>${antigos.map(cartao).join('')}</details>`
         : ''
     }</div>`;
+  }
+  /** o ✕ da lista, no cartão do evento e na tela inicial: pergunta, tira só deste aparelho e volta pro
+   * cartão de onde veio (esquecer o evento aberto é sair dele) @param {MeuEvento} e @param {() => void} volta */
+  async function esqueceEvento(e, volta) {
+    if (
+      await ask(`Esquecer ${esc(e.nome)}?`, 'some da lista só neste aparelho. você volta pelo link.', 'esquecer', true)
+    ) {
+      esconde(e.id);
+      if (e.id === groupId) return leave();
+    }
+    volta();
   }
   /** a linha inteira abre o evento; o ✕ dela chama `esquece` @param {MeuEvento[]} evs @param {(e: MeuEvento) => void} [esquece] */
   function ligaEventos(evs, esquece) {

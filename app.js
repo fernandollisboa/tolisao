@@ -2045,9 +2045,9 @@
   // na frente grandes e rápidas. Quantas, tamanho em px, segundos pra cruzar a tela, opacidade
   /** @type {[number, [number, number], [number, number], number][]} */
   const CHUVA = [
-    [18, [14, 24], [18.9, 24.4], 0.55],
-    [20, [30, 46], [11.1, 14.4], 1],
-    [6, [78, 120], [5.6, 7.8], 1],
+    [18, [14, 24], [24.3, 31.4], 0.55],
+    [20, [30, 46], [14.3, 18.5], 1],
+    [6, [78, 120], [7.2, 10], 1],
   ];
   const CORES_CHUVA = ['', 'quite', 'ouro', 'deve']; // âmbar, rosa, dourada e vermelha
   /** as fichas da chuva, sempre as mesmas (sorteio de semente fixa): o preview não muda à toa */
@@ -2093,19 +2093,31 @@
     'réveillon 2027',
     'festival de verão',
   ];
-  /** o "ex:" do campo vai trocando entre três exemplos sorteados, pra mostrar que qualquer nome serve.
-   * Para sozinho quando o campo sai da tela; com movimento reduzido fica no churras
+  /** o "ex:" do campo mostra dois exemplos de cada vez e vai trocando entre três duplas sorteadas, pra mostrar
+   * que qualquer nome serve. Para sozinho quando o campo sai da tela; com movimento reduzido fica em praia, churras
    * @param {HTMLInputElement} campo */
   function trocaExemplo(campo) {
     if (semMovimento()) return;
-    const tres = [...EXEMPLOS].sort(() => Math.random() - 0.5).slice(0, 3);
+    const sobra = [...EXEMPLOS].sort(() => Math.random() - 0.5),
+      duplas = [],
+      raiz = (/** @type {string} */ x) => x.split(' ')[0];
+    // a dupla cabe no campo do celular: até 20 letras somando as duas
+    while (duplas.length < 3 && sobra.length > 1) {
+      const a = /** @type {string} */ (sobra.shift()),
+        j = sobra.findIndex((b) => a.length + b.length <= 20 && raiz(b) !== raiz(a));
+      if (j < 0) continue;
+      const b = sobra.splice(j, 1)[0];
+      duplas.push(`ex: ${a}, ${b}`);
+      // réveillon e réveillon 2027 não aparecem os dois: cada raiz vale uma vez
+      for (let k = sobra.length - 1; k >= 0; k--) if ([raiz(a), raiz(b)].includes(raiz(sobra[k]))) sobra.splice(k, 1);
+    }
     let i = 0;
-    campo.placeholder = `ex: ${tres[0]}`;
+    campo.placeholder = duplas[0];
     const t = setInterval(() => {
       if (!campo.isConnected) return clearInterval(t);
-      i = (i + 1) % tres.length;
-      campo.placeholder = `ex: ${tres[i]}`;
-    }, 2200);
+      i = (i + 1) % duplas.length;
+      campo.placeholder = duplas[i];
+    }, 2600);
   }
   /** a chuva é enfeite: entra vazia e só enche quando o navegador folga, pra não atrasar o cartão */
   function chove() {
@@ -2172,7 +2184,7 @@
           ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome serve!'}</p>`
           : ''
       }
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: praia, churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }${ofereceApagar() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,

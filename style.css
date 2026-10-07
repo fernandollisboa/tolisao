@@ -594,6 +594,7 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 /* o QR é o quadrado do lado do grupo todo, da mesma altura; as pessoas em duas colunas iguais */
 .grupo{display:flex;gap:10px}
 .grupo .big{flex:1}
+.grupo .big svg{position:static}
 .grupo .qrbtn{flex:none;width:56px;margin:0;justify-content:center;box-shadow:4px 4px 0 var(--ink)}
 .grupo .qrbtn svg{width:26px;height:26px}
 .linkou{margin:22px 0 0;text-transform:none;font-size:17px;text-align:center}

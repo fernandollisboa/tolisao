@@ -3681,7 +3681,7 @@
     if (tel === null) pedeZap(quem, msg);
     else abreZap(msg, tel);
   }
-  /** o link pode já dizer quem vai abrir: o grupo todo em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
+  /** o link pode já dizer quem vai abrir: o link do grupo (copiar link) em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
   function linkPraQuem() {
     const outros = state.people.filter((p) => p.id !== me);
@@ -3689,7 +3689,7 @@
     return new Promise((res) => {
       overlay(
         `<h2 class="pergunta">Mandar pra quem?</h2>
-      <div class="grupo"><button class="big" data-link-pra="">👥 pro grupo todo</button><button id="qrBtn" class="qrbtn" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}</button></div>
+      <div class="grupo"><button class="big" data-link-pra="">${ELO_ICONE}copiar link</button><button id="qrBtn" class="qrbtn" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}</button></div>
       <div class="c muted linkou">ou um link que já entra como:</div>
       ${linkpras(outros, 'link-pra')}
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
@@ -3713,6 +3713,9 @@
       };
     });
   }
+  // o link do grupo: um elo de corrente em pixel, do mesmo jeito do QR
+  const ELO_ICONE =
+    '<svg viewBox="0 0 9 9" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M0 3h1v3H0zM1 2h3v1H1zM1 6h3v1H1zM4 3h1v1H4zM3 4h3v1H3zM4 5h1v1H4zM5 2h3v1H5zM5 6h3v1H5zM8 3h1v3H8z"/></svg>';
   // na mesa a turma tá do lado: o QR grande do link do grupo, e quem escanear cai no evento
   const QR_ICONE =
     '<svg viewBox="0 0 7 7" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 0h3v3H0zM1 1v1h1V1zM4 0h3v3H4zM5 1v1h1V1zM0 4h3v3H0zM1 5v1h1V5zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z" fill-rule="evenodd"/></svg>';

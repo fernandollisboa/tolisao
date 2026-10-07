@@ -35,9 +35,13 @@ Then('o formulário pede primeiro o valor e depois o quê', async ({ mundo }) =>
   expect(await mundo.p.$eval('.two', e => [...e.children].map(c => c.id))).toEqual(['amount', 'desc']);
 });
 When('eu preencho R$ {num} de {string}', async ({ mundo }, valor, desc) => { await mundo.p.fill('#amount', dinheiro(valor)); await mundo.p.fill('#desc', desc); });
-When('eu divido só entre {gente}, em partes diferentes', async ({ mundo }, gente) => {
+// deixa marcados nos chips só os nomes da lista
+const marcaSo = async (mundo, gente) => {
   const quero = new Set(gente.map(n => mundo.pessoa(n).id));
   for (const chip of await mundo.p.locator('#splitChips input').all()) if ((await chip.isChecked()) !== quero.has(await chip.inputValue())) await chip.locator('xpath=..').click();
+};
+When('eu divido só entre {gente}, em partes diferentes', async ({ mundo }, gente) => {
+  await marcaSo(mundo, gente);
   await mundo.p.click('#splitSeg [data-modo="custom"]'); await mundo.p.waitForSelector('#sharesBox:not(.hidden)');
 });
 When('eu ponho R$ {num} pra {word}', async ({ mundo }, v, n) => { await mundo.p.fill(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`, dinheiro(v)); });
@@ -58,6 +62,39 @@ Then('o valor fica {string}', async ({ mundo }, v) => { await expect(mundo.p.loc
 
 Then('a frase de como está dividido vem antes das abas', async ({ mundo }) => {
   expect(await mundo.p.$eval('#splitHint', h => !!(h.compareDocumentPosition(document.querySelector('#splitSeg')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+});
+Then('a frase de como está dividido diz {string}', async ({ mundo }, txt) => {
+  await expect.poll(() => mundo.p.$eval('#splitHint', h => h.innerText.replace(/\u00a0/g, ' ').trim())).toBe(txt);
+});
+Then('o cursor continua no valor', async ({ mundo }) => { await expect(mundo.p.locator('#amount')).toBeFocused(); });
+When('eu divido só com {gente}', async ({ mundo }, gente) => {
+  await marcaSo(mundo, gente);
+});
+// quem leva o centavo a mais sai do id do gasto, que é sorteado: aqui o sorteio da página
+// fica fixo, pra o cenário não depender da sorte de dois ids caírem na mesma pessoa
+When('eu anoto {string} e depois {string}, os dois de R$ {num} divididos igualmente', async ({ mundo }, a, b, valor) => {
+  await mundo.p.evaluate(() => { let k = 0; crypto.getRandomValues = a => { for (let i = 0; i < a.length; i++) a[i] = (k++ * 7) % 256; return a; }; });
+  for (const desc of [a, b]) {
+    const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+    await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.click('#expenseForm button.big');
+    // o segundo, de mesmo valor e mesmo pagador, cai no "já anotaram?": anota mesmo assim
+    if (desc === b) await p.click('#okBtn');
+    await p.waitForSelector('#sheet', { state: 'hidden' });
+  }
+});
+Then('no banco, o centavo a mais do {string} e o do {string} ficam com pessoas diferentes', async ({ mundo }, a, b) => {
+  const quemLeva = desc => {
+    const e = (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).find(x => x.desc === desc);
+    if (!e) return undefined;
+    // sem partes gravadas, a divisão igual põe o centavo no primeiro da turma
+    if (!e.shares) return e.among[0];
+    const max = Math.max(...Object.values(e.shares)); return Object.keys(e.shares).find(id => e.shares[id] === max);
+  };
+  await expect.poll(() => [quemLeva(a), quemLeva(b)].every(Boolean)).toBe(true);
+  expect(quemLeva(a)).not.toBe(quemLeva(b));
+});
+Then('a aba igual fica marcada', async ({ mundo }) => {
+  const aba = mundo.p.locator('#splitSeg [data-modo="equal"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');
 });
 When('eu começo a digitar a parte do {word}', async ({ mundo }, n) => { await mundo.p.focus(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`); });
 When('a nota sincroniza', async ({ mundo }) => {

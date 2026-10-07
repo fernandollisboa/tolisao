@@ -22,3 +22,14 @@ Funcionalidade: O service worker guarda cópia sem estragar a resposta
     Então o cache só tem a versão nova desse arquivo
     E os outros arquivos continuam no cache
     E sem rede, o arquivo abre com a versão nova
+
+  Cenário: rede lenta não segura a abertura de quem já tem cópia
+    No 3G engasgado do bar a rede pode levar dezenas de segundos pra desistir. Com uma
+    cópia guardada, o app abre com ela, e a versão nova fica pra próxima vez.
+    Quando o service worker busca um arquivo que já tem cópia e a rede passa do prazo
+    Então ele abre com a cópia guardada
+    E a resposta da rede, quando chega, vai pro cache
+
+  Cenário: rede lenta sem cópia guardada espera a rede
+    Quando o service worker busca um arquivo sem cópia e a rede passa do prazo
+    Então ele abre com a resposta da rede

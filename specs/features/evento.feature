@@ -291,8 +291,7 @@ Funcionalidade: Entrar no evento
   Cenário: depois do pronto, quem é você é perguntado uma vez só, na própria nota
     A nota já mostra a turma no topo, um nome por pessoa: um cartão por cima perguntaria a mesma coisa de novo.
     Dado que eu abro o site sem evento
-    Quando eu digito o código "praia"
-    E eu crio o evento
+    Quando eu crio o evento "praia"
     E eu ponho Fernando e Lia na lista
     E eu continuo
     Então nenhum cartão abre

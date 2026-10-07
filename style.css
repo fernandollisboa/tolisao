@@ -615,7 +615,7 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 .fichinha.quite{--f1:#d94f8a;--f2:#ffe3ef}
 /* fixed com z-index negativo: cobre a tela toda, mas pinta atrás do papel */
 .chuva{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.chuva .fichinha{top:-70px;left:var(--x);box-shadow:2px 4px 6px rgba(0,0,0,.35);animation:chove var(--t) linear var(--d) 3}
+.chuva .fichinha{top:-70px;left:var(--x);box-shadow:2px 4px 6px rgba(0,0,0,.35);animation:chove var(--t) linear var(--d) infinite}
 @keyframes chove{from{transform:translate(0,0) rotate(0)}to{transform:translate(var(--vx),calc(100vh + 140px)) rotate(var(--r))}}
 @media (prefers-reduced-motion:reduce){.chuva{display:none}}
 .fichinha.ponto{--s:18px;z-index:3;margin:var(--pt,.55em) 0 0 calc(-1ch - 6px);--dx:0px;--dy:0px;--vx:160px;--vy:-90px;--rot:-10deg;animation:jogada .85s linear both}

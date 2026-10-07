@@ -2115,7 +2115,8 @@
       `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${
         aberto
           ? `<div class="hr"></div><h2>*** Evento ***</h2>
-      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><button id="evQr" class="qrmini" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}QR</button><span class="v"><a class="link" id="evLink">o link</a></span></div>`
+      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
+      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">sem zap, sem desculpa</span><span class="d"></span><span class="v"><button id="evQr" class="qrmini" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}QR</button></span></div>`
           : ''
       }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
@@ -3681,7 +3682,7 @@
     if (tel === null) pedeZap(quem, msg);
     else abreZap(msg, tel);
   }
-  /** o link pode já dizer quem vai abrir: o link do grupo (copiar link) em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
+  /** o link pode já dizer quem vai abrir: o grupo todo em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
   function linkPraQuem() {
     const outros = state.people.filter((p) => p.id !== me);
@@ -3689,8 +3690,8 @@
     return new Promise((res) => {
       overlay(
         `<h2 class="pergunta">Mandar pra quem?</h2>
-      <div class="grupo"><button class="big" data-link-pra="">${ELO_ICONE}copiar link</button><button id="qrBtn" class="qrbtn" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}</button></div>
-      <div class="c muted linkou">ou um link que já entra como:</div>
+      <div class="grupo"><button class="big" data-link-pra="">${ELO_ICONE}pro grupo todo</button><button id="qrBtn" class="qrbtn" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}</button></div>
+      <div class="c muted linkou">ou só pra:</div>
       ${linkpras(outros, 'link-pra')}
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );

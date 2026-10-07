@@ -44,8 +44,9 @@ Funcionalidade: Meus eventos
       TÔ LISA
       *** EVENTO ***
       ENTRA QUEM TEM
-      QR
       o link
+      SEM ZAP, SEM DESCULPA
+      QR
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA

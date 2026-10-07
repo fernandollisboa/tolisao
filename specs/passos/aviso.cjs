@@ -37,11 +37,11 @@ Given('que meu celular é um iPhone sem o tô lisa instalado', async ({ mundo })
     delete w.Notification; delete w.PushManager;
   });
 });
-// o Chrome do iPhone se apresenta como CriOS; push ele também não tem fora da tela de início
-Given('que meu celular é um iPhone com o link aberto no Chrome', async ({ mundo }) => {
+// o navegador do Instagram põe "Instagram" no fim do userAgent; push ele também não tem
+Given('que meu celular é um iPhone com o link aberto no Instagram', async ({ mundo }) => {
   mundo.aparelho.push(() => {
     const w = /** @type {any} */ (window);
-    Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1' });
+    Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0.0 (iPhone15,2; iOS 18_0; pt_BR; pt-BR; scale=3.00; 1179x2556)' });
     delete w.Notification; delete w.PushManager;
   });
 });

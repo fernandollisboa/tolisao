@@ -44,6 +44,7 @@ Funcionalidade: Meus eventos
       TÔ LISA
       *** EVENTO ***
       ENTRA QUEM TEM
+      QR
       o link
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00

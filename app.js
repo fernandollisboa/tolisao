@@ -2042,12 +2042,12 @@
    * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
   // a chuva copia o telão do BaianaSystem em Magnata, devagar: três camadas, atrás miúdas e lentas,
-  // na frente grandes, rápidas e desfocadas. Quantas, tamanho em px, segundos pra cruzar a tela, desfoque em px, opacidade
-  /** @type {[number, [number, number], [number, number], number, number][]} */
+  // na frente grandes e rápidas. Quantas, tamanho em px, segundos pra cruzar a tela, opacidade
+  /** @type {[number, [number, number], [number, number], number][]} */
   const CHUVA = [
-    [18, [14, 24], [18.9, 24.4], 0, 0.55],
-    [20, [30, 46], [11.1, 14.4], 0, 1],
-    [6, [78, 120], [5.6, 7.8], 2.5, 1],
+    [18, [14, 24], [18.9, 24.4], 0.55],
+    [20, [30, 46], [11.1, 14.4], 1],
+    [6, [78, 120], [5.6, 7.8], 1],
   ];
   const CORES_CHUVA = ['', 'quite', 'ouro', 'deve']; // âmbar, rosa, dourada e vermelha
   /** as fichas da chuva, sempre as mesmas (sorteio de semente fixa): o preview não muda à toa */
@@ -2057,7 +2057,7 @@
     let semente = 7;
     const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
     const entre = (/** @type {[number, number]} */ [a, b]) => a + r() * (b - a);
-    return CHUVA.flatMap(([quantas, tam, seg, blur, op], k) => {
+    return CHUVA.flatMap(([quantas, tam, seg, op], k) => {
       const n = Math.round(quantas * mais);
       return Array.from({ length: n }, (_, i) => {
         const s = Math.round(entre(tam)),
@@ -2069,9 +2069,43 @@
           // as do fundo não viram de lado: de perfil, miúdas, viram um risquinho
           vira = k && r() < 0.4 ? 360 : 0,
           cor = CORES_CHUVA[Math.floor(r() * CORES_CHUVA.length)];
-        return `<img class="fichinha ${cor}" src="diva.png" alt="" style="--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}${blur ? `;filter:blur(${blur}px)` : ''}">`;
+        return `<img class="fichinha ${cor}" src="diva.png" alt="" style="--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}">`;
       });
     }).join('');
+  }
+  const EXEMPLOS = [
+    'churras',
+    'praia',
+    'rolê',
+    'reggae',
+    'pizza',
+    'almocinho',
+    'brunch',
+    'réveillon',
+    'festival',
+    'churras do zé',
+    'praia do forte',
+    'rolê de domingo',
+    'reggae na praça',
+    'pizza de sexta',
+    'almocinho da firma',
+    'brunch das amigas',
+    'réveillon 2027',
+    'festival de verão',
+  ];
+  /** o "ex:" do campo vai trocando entre três exemplos sorteados, pra mostrar que qualquer nome serve.
+   * Para sozinho quando o campo sai da tela; com movimento reduzido fica no churras
+   * @param {HTMLInputElement} campo */
+  function trocaExemplo(campo) {
+    if (semMovimento()) return;
+    const tres = [...EXEMPLOS].sort(() => Math.random() - 0.5).slice(0, 3);
+    let i = 0;
+    campo.placeholder = `ex: ${tres[0]}`;
+    const t = setInterval(() => {
+      if (!campo.isConnected) return clearInterval(t);
+      i = (i + 1) % tres.length;
+      campo.placeholder = `ex: ${tres[i]}`;
+    }, 2200);
   }
   /** a chuva é enfeite: entra vazia e só enche quando o navegador folga, pra não atrasar o cartão */
   function chove() {
@@ -2142,7 +2176,7 @@
       <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
       <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">sem zap, sem desculpa</span><span class="d"></span><span class="v"><button id="evQr" class="qrmini" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}QR</button></span></div>`
           : ''
-      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>
+      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || (evs.length ? 'qualquer nome cria o evento.' : 'qualquer nome serve!')}</p>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
@@ -2158,6 +2192,7 @@
     }
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     if (chegou) chove();
+    trocaExemplo($('#gateCode'));
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
     if (chegou) setTimeout(() => $('#overlayBox .comandinha')?.classList.add('roda'), 6000);
     // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o

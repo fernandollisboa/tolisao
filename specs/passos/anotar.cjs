@@ -2,7 +2,8 @@ const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
 
 const dinheiro = v => v.toFixed(2).replace('.', ',');
 const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
-const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
+// a marca de novo/mudou vem colada na frente do nome do item
+const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^(?:novo|mudou)?\\s*${nome.replace(/[()]/g, '\\$&')}$`) }) });
 
 Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item[data-item]')).toHaveCount(n); });
 Then('o primeiro item da lista é {string} de {word}', async ({ mundo }, nome, valor) => {
@@ -165,11 +166,18 @@ When('outro aparelho anota:', async ({ mundo }, tabela) => {
     amount: Number(g.valor.replace(/\./g, '').replace(',', '.')), payer: id(g.pagou), among: g['divide entre'].split(/\s*,\s*/).map(id), at: AGORA }))];
 });
 // a edição do outro aparelho é de um minuto antes da minha (o relógio da página começa em AGORA)
-When('a/o {word} troca o valor do/da {string} pra R$ {num} em outro aparelho', async ({ mundo }, quem, desc, valor) => {
+const trocaValor = async ({ mundo }, quem, desc, valor) => {
   const sala = salaNoBanco(mundo), velho = sala.expenses.find(e => e.desc === desc);
   sala.expenses = [...sala.expenses.filter(e => e !== velho), { ...velho, id: 'dooutro', amount: valor, by: quem }];
   sala.deleted = [...(sala.deleted || []), velho.id];
   sala.gone = [...(sala.gone || []), { id: velho.id, desc, amount: velho.amount, at: velho.at, by: quem, goneAt: AGORA - 60000, to: 'dooutro' }];
+};
+When('a/o {word} troca o valor do/da {string} pra R$ {num} em outro aparelho', trocaValor);
+Given('que a/o {word} trocou o valor do/da {string} pra R$ {num} em outro aparelho', trocaValor);
+Then('o {string} está marcado como mudou', async ({ mundo }, nome) => { await expect(item(mundo.p, nome).locator('.row .tag')).toHaveText('mudou'); });
+Then('o {string} não está marcado', async ({ mundo }, nome) => { await expect(item(mundo.p, nome).locator('.row .tag')).toHaveCount(0); });
+Then('o {string} diz {string}', async ({ mundo }, nome, txt) => {
+  await expect(item(mundo.p, nome).locator('.small .by')).toHaveText(`· ${txt}`);
 });
 
 // quem anotou: o aparelho grava o nome e o id de quem estava nele na hora

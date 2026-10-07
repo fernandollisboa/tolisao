@@ -123,9 +123,13 @@ When('eu tiro o/a {word} da lista', async ({ mundo }, nome) => {
   await expect(linha).toHaveCount(0);
 });
 When('eu escrevo {word} e aperto pronto sem dar enter', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.click('#setupGo'); });
+// pega a pessoa pelo id, não pelo texto (que muda), e espera a troca assentar: senão, em máquina lenta,
+// a próxima troca começa antes desta gravar e a digitação cai num nome que a lista acabou de redesenhar
 When('eu troco o nome da/do {word} pra {word} na lista', async ({ mundo }, de, pra) => {
-  const el = mundo.p.locator('#overlayBox [data-renome]', { hasText: de }); await el.click();
+  const id = await mundo.p.locator('#overlayBox [data-renome]', { hasText: de }).first().getAttribute('data-renome');
+  const el = mundo.p.locator(`#overlayBox [data-renome="${id}"]`); await el.click();
   await mundo.p.keyboard.press('ControlOrMeta+A'); await mundo.p.keyboard.type(pra); await mundo.p.keyboard.press('Enter');
+  await expect(el).not.toBeFocused(); await expect(el).toHaveText(new RegExp(`^(${pra}|${de})$`));
 });
 When('eu escolho outra pessoa', async ({ mundo }) => { await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName'); });
 Then('só a/o {word} tem ✕ na lista', async ({ mundo }, nome) => {

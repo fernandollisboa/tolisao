@@ -33,6 +33,8 @@ class Banco {
       this.arvore.visitas[dia] = (this.arvore.visitas[dia] || 0) + 1;
       return { status: 204 };
     }
+    // a rede engasgou no bar: o pedido do evento fica pendurado, sem resposta e sem erro
+    if (this.mudo && partes[0] === 'rooms') { this.segurados = (this.segurados || 0) + 1; return new Promise(() => {}); }
     if (partes[0] !== 'rooms' || partes.length < 2) { if (m === 'GET') this.listagens++; return nega(); }
     // o ETag como o Firebase: só vem se pedir, e o PUT com if-match velho leva 412 com a sala atual
     const tag = () => { const v = this.pega(partes); return v == null ? 'null_etag' : sha256(JSON.stringify(v)); };

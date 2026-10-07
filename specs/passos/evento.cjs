@@ -199,6 +199,21 @@ When('o evento some do banco', async ({ mundo }) => {
   await expect.poll(() => mundo.p.evaluate(k => !!JSON.parse(localStorage.getItem(k) || '{}').snapshot, `tolisa:${mundo.sala}`)).toBe(true);
   delete mundo.banco.arvore.rooms[mundo.sala];
 });
+// o banco segura o pedido, e o relógio anda o prazo do app (REDE_MS) com o sync esperando
+When('a rede engasga e o banco para de responder', async ({ mundo }) => {
+  await mundo.p.waitForSelector('#app:not(.loading)');
+  mundo.banco.mudo = true;
+  await mundo.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect.poll(() => mundo.banco.segurados || 0).toBeGreaterThan(0);
+  await mundo.p.context().clock.runFor(8000);
+});
+// a pessoa volta pra aba: o sync tenta de novo
+When('a rede volta', async ({ mundo }) => {
+  mundo.banco.mudo = false;
+  await mundo.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+});
+Then('o rodapé diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#status')).toHaveText(txt); });
+Then('o rodapé diz que sincronizou', async ({ mundo }) => { await expect(mundo.p.locator('#status')).toHaveText(/Sincronizado \d/); });
 When('eu abro o site de novo', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#overlayBox h2'); });
 When('eu trago o evento de volta da minha cópia', async ({ mundo }) => {
   await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#restoreBtn')]);

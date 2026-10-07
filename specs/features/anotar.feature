@@ -127,6 +127,13 @@ Funcionalidade: Anotar um gasto
     E eu toco no ✎
     Então o formulário vem vazio, pra anotar
 
+  Cenário: Esc fecha o anotar e o teclado volta pro ✎
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu aperto Esc
+    Então o anotar fecha
+    E o ✎ fica com o foco
+
   Cenário: editar um item de partes diferentes volta com as partes
     Quando eu abro o evento como Lia
     E eu toco no ✎

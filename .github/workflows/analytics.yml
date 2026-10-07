@@ -1,0 +1,25 @@
+name: Analytics
+# lê o Cloudflare Web Analytics do site e escreve os números no resumo do job (o token nunca sai na tela).
+# precisa dos secrets CLOUDFARE_API_LOGS_TOKEN (permissão "Account Analytics: Read") e CLOUDFLARE_ACCOUNT_ID.
+on:
+  workflow_dispatch:
+    inputs:
+      dias:
+        description: quantos dias pra trás
+        default: '7'
+permissions:
+  contents: read
+jobs:
+  analytics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFARE_API_LOGS_TOKEN }}
+      CF_CONTA: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DIAS: ${{ inputs.dias }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: node .github/scripts/analytics.mjs >> "$GITHUB_STEP_SUMMARY"

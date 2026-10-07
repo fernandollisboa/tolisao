@@ -782,6 +782,9 @@
   // #endregion
   // #region pix
   // ---------- pix ----------
+  // o cobrar mexe mais ligeiro que o ✔ paguei, e o recebi/perdoar abre mais ligeiro que o copiar pix
+  const COBRA_MS = 550,
+    BROTA_MS = 220;
   const PIX_MS = 420,
     PISCA_MS = 900,
     PISCA_GAP = 320; // uma piscada só, uma linha atrás da outra
@@ -1350,12 +1353,12 @@
     const piscaCobra = (i) => {
       const esp = i * PISCA_GAP,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
-      return anim.tocouOk || dt >= esp + PISCA_MS ? '' : ` pisca" style="animation-delay:${esp - dt}ms`;
+      return anim.tocouOk || dt >= esp + COBRA_MS ? '' : ` pisca" style="animation-delay:${esp - dt}ms`;
     };
     const brotaRecebe = (i) => {
-      const esp = i * PISCA_GAP + PISCA_MS,
+      const esp = i * PISCA_GAP + COBRA_MS,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
-      return anim.tocouOk || dt >= esp + PIX_MS ? '' : ` brota" style="animation-delay:${esp - dt}ms`;
+      return anim.tocouOk || dt >= esp + BROTA_MS ? '' : ` brota" style="animation-delay:${esp - dt}ms`;
     };
     const botoesRecebe = (t, i) => {
       const d = `${t.from}|${t.to}|${t.cents}`,
@@ -1419,7 +1422,7 @@
     const fim = !n
       ? 0
       : (n - 1) * PISCA_GAP +
-        (!meus.length ? PISCA_MS + PIX_MS : anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
+        (!meus.length ? COBRA_MS + BROTA_MS : anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
     anim.mine = agenda(n ? (n - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
   }
   /** o select de quem pagou e os chips de quem divide, guardando o que a pessoa já marcou */

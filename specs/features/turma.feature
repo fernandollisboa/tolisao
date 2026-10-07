@@ -35,20 +35,6 @@ Funcionalidade: A mesma turma em outro evento
       E o segredo da chave da Lia no evento novo é só deste evento
       Mas o evento novo não tem a chave pix da Júlia
 
-    Exemplo: outro evento com o nome de um da lista
-      O nome de um evento da lista abre ele. Quem faz churras todo mês cria o próximo pelo cartão do evento.
-      Dado que neste aparelho eu sou Lia no "churras"
-      Quando eu abro o evento "churras"
-      E eu toco no nome do evento
-      E eu crio outro "churras"
-      Então o endereço é "?evento=churras-" com um final sorteado
-      E o nome do evento no cabeçalho é "churras"
-      Quando eu trago a turma do "churras"
-      E eu continuo
-      Então o cabeçalho diz "sou Lia"
-      E Fernando, Júlia e Lia são as mesmas pessoas do "churras"
-      E o evento novo não tem nenhum gasto
-
   Cenário: a minha chave de sempre já vem escrita no cadastro
     Dado que eu já usei a chave pix "julia@exemplo.com" em outro evento
     Quando eu abro o evento como Júlia

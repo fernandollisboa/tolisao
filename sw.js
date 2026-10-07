@@ -1,7 +1,7 @@
-// rede primeiro, cache como reserva: atualizações chegam na hora e o app abre offline com a última versão vista
-// rede engasgada (3G do bar) não segura a abertura: passou do PRAZO e tem cópia, abre a cópia; a rede segue e atualiza o cache
+// rede primeiro, cache como reserva: atualizações chegam na hora e o app abre offline com a última versão vista.
+// a rede tem prazo: com sinal ruim, passou do PRAZO_MS e tem cópia, abre com ela e a rede atualiza o cache pra próxima
 const CACHE = 'tolisa-v7';
-const PRAZO = 3000;
+const PRAZO_MS = 3000;
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 // o ?v= vira o SHA a cada deploy: guardada a versão nova de um arquivo, as outras dele saem,
@@ -23,17 +23,20 @@ self.addEventListener('fetch', e => {
   const chave = nav ? new Request(url.origin + url.pathname) : e.request;
   // o clone tem que sair antes de devolver r: se esperar o caches.open() abrir pra
   // clonar, o navegador já começou a ler o corpo e o clone falha ("body is already used")
-  let guardou = Promise.resolve();
-  const rede = fetch(pedido).then(r => { if (r.ok) { const copia = r.clone(); guardou = caches.open(CACHE).then(c => guarda(c, chave, copia)); } return r; });
-  const copia = () => caches.match(e.request, { ignoreSearch: true }).then(r => r || (nav ? caches.match('./index.html') : undefined));
-  // estourou o prazo: com cópia, vai a cópia; sem cópia, espera a rede como sempre.
-  // o arquivo com ?v= só troca pela cópia da mesma versão: o app.js de um deploy com o style.css de outro quebra a tela
-  const daVersao = () => (!nav && url.searchParams.has('v') ? caches.match(e.request) : copia());
-  let relogio;
-  const atrasou = new Promise(ok => { relogio = setTimeout(ok, PRAZO); }).then(daVersao).then(r => r || rede);
-  e.respondWith(Promise.race([rede.finally(() => clearTimeout(relogio)), atrasou]).catch(copia));
-  // a rede que perdeu a corrida ainda chega e guarda a versão nova pra próxima abertura
-  e.waitUntil(rede.then(() => guardou).catch(() => {}));
+  let grava = Promise.resolve();
+  const rede = fetch(pedido).then(r => { if (r.ok) { const copia = r.clone(); grava = caches.open(CACHE).then(c => guarda(c, chave, copia)); } return r; });
+  const reserva = () => caches.match(e.request, { ignoreSearch: true }).then(r => r || (nav ? caches.match('./index.html') : undefined));
+  // a rede segue depois do prazo: o service worker fica vivo até ela responder e o cache se atualizar
+  e.waitUntil(rede.then(() => grava, () => {}).catch(() => {}));
+  e.respondWith(new Promise(ok => {
+    let foi = false;
+    const vai = r => { if (!foi) { foi = true; clearTimeout(prazo); ok(r); } };
+    // estourou o prazo: responde com a cópia se tiver; sem cópia, segue esperando a rede como antes
+    // o arquivo com ?v= só troca pela cópia da mesma versão: o app.js de um deploy com o style.css de outro quebra a tela
+    const daVersao = () => (!nav && url.searchParams.has('v') ? caches.match(e.request) : reserva());
+    const prazo = setTimeout(() => daVersao().then(r => r && vai(r), () => {}), PRAZO_MS);
+    rede.then(vai, () => reserva().then(vai, () => vai(undefined)));
+  }));
 });
 
 // ---------- aviso no celular (push) ----------

@@ -42,6 +42,10 @@ Funcionalidade: Meus eventos
     Então o cartão mostra:
       """
       TÔ LISA
+      *** EVENTO ***
+      ENTRA QUEM TEM
+      o link
+      MOSTRAR QR
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA
@@ -57,9 +61,6 @@ Funcionalidade: Meus eventos
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
-      + CRIAR OUTRO PRAIA
-      COPIAR LINK DO EVENTO
-      MOSTRAR QR
       VOLTAR
       apagar meus dados deste aparelho
       """

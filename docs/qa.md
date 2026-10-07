@@ -27,6 +27,7 @@ Peça um passo por vez, na ordem, com as palavras de quem usa, e não com os nom
 12. **Mandar o resumo no zap.** Compartilhar o evento pelo zap.
 13. **Instalar na tela de início.** "Deixa ele como app no seu celular."
 14. **Sair e voltar.** Feche cartões e telas do jeito que a pessoa achar melhor, e veja se ela sabe voltar.
+15. **Abrir com sinal ruim.** Com o evento já aberto uma vez, no computador: DevTools › Network › "Slow 3G" (ou um perfil mais lento, com latência de uns 5 s), recarregue. O app tem que abrir com a cópia guardada em até uns 3 s, com o texto já visível (fonte de reserva até a VT323 chegar), e não ficar em tela branca. Em Application › Cache Storage, o `tolisa-v6` ganha a versão da rede quando ela termina.
 
 ## Durante
 

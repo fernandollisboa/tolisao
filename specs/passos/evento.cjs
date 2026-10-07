@@ -97,7 +97,7 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
   await expect.poll(async () => (await mundo.linhas('#overlayBox')).map(l => l.replace(/\u00a0/g, ' '))).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
 });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
-When('eu toco em copiar link do evento', async ({ mundo }) => { await mundo.p.click('#evLink'); });
+When('eu toco no link do cartão do evento', async ({ mundo }) => { await mundo.p.click('#evLink'); });
 When('eu mando pro grupo todo', async ({ mundo }) => { await mundo.p.click('[data-link-pra=""]'); });
 Then('fica copiado o link do evento', async ({ mundo }) => {
   await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado))
@@ -305,9 +305,3 @@ Given('que meu celular deixa o site manter a tela acesa', async ({ mundo }) => {
 Then('a tela fica acesa', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(1); });
 Then('a tela já pode apagar', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(0); });
 
-// o "criar outro" do cartão do evento: a página vai pro evento novo, que começa pela lista de gente
-When('eu crio outro {string}', async ({ mundo }, nome) => {
-  await expect(mundo.p.locator('#evNovo')).toHaveText(`+ criar outro ${nome}`);
-  await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#evNovo')]);
-  await mundo.p.waitForSelector('#setupName');
-});

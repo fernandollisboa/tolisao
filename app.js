@@ -11,7 +11,7 @@
   //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
   //   → fila das animações → desenhos (ícones) → pix → aviso no celular → a nota (render) → o anotar
-  //   → cartões (overlays) → entrar num evento → meus eventos → botões → cliques
+  //   → cartões (overlays) → entrar num evento → meus eventos → a digital → botões → cliques
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → QR → início
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
 
@@ -23,7 +23,7 @@
   const REDE_MS = 8000; // prazo de cada ida ao banco: rede engasgada no bar vira "Offline" em vez de prender o sync
   const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
-  // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
+  // beforeinstallprompt e espera o site pedir. Pede o #instalar do topo, e o toque do ✎.
   const INSTALAR = true;
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
@@ -37,6 +37,9 @@
   const QUITADO_DIAS = 15; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
   const AVISO_PUSH = true; // quem recebe liga o aviso no celular, e todo pagamento marcado cutuca a API
+  // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
+  // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
+  const DIGITAL = false;
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -82,9 +85,10 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
+  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
@@ -2094,28 +2098,25 @@
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
       : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
-      <p id="gateErr" class="status err" style="margin:0"></p>${
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${
         aberto
-          ? `<div class="c"><button id="evNovo" class="ghost">+ criar outro ${esc(evento())}</button></div>
-      <div class="hr"></div><button id="evLink" class="sec">copiar link do evento</button>
-      <div class="c"><button id="evQr" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
-      <div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>`
+          ? `<div class="hr"></div><h2>*** Evento ***</h2>
+      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
+      <div class="c"><button id="evQr" class="qrbtn colado">${QR_ICONE} mostrar QR</button></div>`
           : ''
+      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
+      <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
+        aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }${temDados() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
       !aberto,
     );
     if (aberto) {
       $('#evBack').onclick = closeOverlay;
-      $('#evLink').onclick = () => $('#shareBtn').click();
+      // o link do grupo vai direto pra área de copiar: o "Mandar pra quem?" segue no botão de compartilhar
+      $('#evLink').onclick = () => copia(shareUrl(), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
       // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
       $('#evQr').onclick = mostraQr;
-      // o nome de um evento da lista abre ele: quem faz churras todo mês cria o próximo daqui,
-      // com o mesmo nome. O ?novo= cai direto no evento novo, sem procurar o nome na lista nem no banco
-      $('#evNovo').onclick = () => {
-        location.href = location.pathname + '?novo=' + encodeURIComponent(evento());
-      };
     }
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
@@ -2127,6 +2128,7 @@
     const esquece = (e) => esqueceEvento(e, () => showGate());
     ligaEventos(evs, esquece);
     atualizaDatas(evs, true, esquece);
+    ligaDigital();
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
       const btn = ev.target.querySelector('button');
@@ -2138,8 +2140,7 @@
         if (!code) return;
         if (code === roomName) return closeOverlay();
         btn.disabled = true;
-        // nome digitado que não existe cria direto, pelo mesmo ?novo= do "criar outro";
-        // link que não abre nada vai pelo ?evento=, que pergunta
+        // nome digitado que não existe cria direto, pelo ?novo=; link que não abre nada vai pelo ?evento=, que pergunta
         let novo = false;
         if (!link && !meu && !pareceLink(code) && DB)
           try {
@@ -2157,7 +2158,7 @@
       try {
         const c = codigoDoCampo(code);
         quemDoLink = c.quem;
-        await enterRoom(c.code, false, !c.link && !c.meu);
+        await enterRoom(c.code, !c.link && !c.meu);
       } catch (e) {
         // o "Não achei …" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
@@ -2452,24 +2453,21 @@
   function pareceLink(code) {
     return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
   }
-  /** `novo` cria um evento com esse nome mesmo que ele já exista (o "criar outro" do cartão do evento);
-   *  `digitou` é o nome escrito no campo, que cria sem perguntar */
-  async function enterRoom(code, novo = false, digitou = false) {
+  /** `digitou` é o nome escrito no campo, que cria sem perguntar */
+  async function enterRoom(code, digitou = false) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
       existing = null;
-    if (!novo)
-      try {
-        existing = await apiGet(id);
-      } catch (e) {
-        if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
-      }
+    try {
+      existing = await apiGet(id);
+    } catch (e) {
+      if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
+    }
     let criou = false;
-    const seed = !novo && location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link, e o
-    // "criar outro" já disse que quer o evento novo
-    if (!existing && !seed && !novo && (pareceLink(code) || !digitou)) {
+    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
+    // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link
+    if (!existing && !seed && (pareceLink(code) || !digitou)) {
       // código com cara de final sorteado é link velho ou cortado, não nome novo:
       // "esse nome tá livre" ali faria a pessoa criar um evento fantasma
       const [titulo, desc, ok] = pareceLink(code)
@@ -2894,6 +2892,177 @@
   }
 
   // #endregion
+  // #region a digital
+  // ---------- a digital (passkey, #168) ----------
+  // protótipo atrás do DIGITAL. "guardar com a digital" cria uma passkey e manda pra API (servidor/src/digital.js)
+  // a lista dos meus eventos, com quem sou eu em cada um; noutro aparelho, ou com o navegador limpo, "entrar com
+  // a digital" assina o desafio da API e a lista volta pro Meus eventos. A passkey é das que o celular lembra
+  // sozinho (resident key): entrar não pede nome nenhum. O rpId é o domínio do site (localhost na máquina).
+  // TODO(#168): o tok do pix fica de fora, porque no servidor ele vira desvio de pagamento. Próxima fatia: cifrar
+  // o tok com a extensão PRF da passkey e a API guardar só o cifrado
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('digital')) setDevice('passkeyOn', q.get('digital') === '0' ? undefined : true);
+  })();
+  const temDigital = () =>
+    (DIGITAL || device().passkeyOn === true) && 'PublicKeyCredential' in window && !!navigator.credentials;
+  /** os bytes em base64url, sem o = do fim (o jeito do WebAuthn) @param {ArrayBuffer} buf */
+  const b64De = (buf) =>
+    btoa(String.fromCharCode(...new Uint8Array(buf)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  /** a linha do cartão de Meus eventos: guardar só aparece com evento pra guardar */
+  const linhaDigital = (temEventos) =>
+    temDigital()
+      ? `<div class="c digital">${temEventos ? '<a class="link" id="digGuarda">guardar com a digital</a> · ' : ''}<a class="link" id="digEntra">entrar com a digital</a></div>`
+      : '';
+  function ligaDigital() {
+    const g = $('#digGuarda'),
+      e = $('#digEntra');
+    if (g) g.onclick = guardaDigital;
+    if (e) e.onclick = entraDigital;
+  }
+  /** o desafio vale uma vez e por pouco tempo: um pra cada toque */
+  async function desafioDigital() {
+    const r = await postaApi('/digital/desafio', {});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return bytesDe((await r.json()).desafio);
+  }
+  /** o que a passkey assinou, do jeito que a API confere @param {Credential | null} c */
+  const assinado = (c) => {
+    const p = /** @type {PublicKeyCredential} */ (c),
+      r = /** @type {AuthenticatorAssertionResponse} */ (p.response);
+    return {
+      id: p.id,
+      dados: b64De(r.clientDataJSON),
+      autenticador: b64De(r.authenticatorData),
+      assinatura: b64De(r.signature),
+    };
+  };
+  /** cancelou a digital (ou o tempo dela acabou): não é erro, é desistência */
+  const desistiu = (e) => e && (e.name === 'NotAllowedError' || e.name === 'AbortError');
+  let mexendoDigital = false;
+  async function guardaDigital() {
+    if (mexendoDigital) return;
+    mexendoDigital = true;
+    const eventos = meusEventos().map((e) => ({ code: e.code, me: e.me }));
+    try {
+      const rpId = location.hostname,
+        challenge = await desafioDigital(),
+        ja = device().passkeyId;
+      /** @type {Record<string, any>} */ let corpo;
+      if (typeof ja === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(ja))
+        // este aparelho já guardou: a mesma passkey assina, e a lista nova se junta à de lá
+        corpo = assinado(
+          await navigator.credentials.get({
+            publicKey: {
+              challenge,
+              rpId,
+              allowCredentials: [{ type: 'public-key', id: bytesDe(ja) }],
+              userVerification: 'required',
+            },
+          }),
+        );
+      else {
+        const nome = typeof device().myName === 'string' && device().myName ? device().myName : 'eu',
+          c = /** @type {PublicKeyCredential} */ (
+            await navigator.credentials.create({
+              publicKey: {
+                challenge,
+                rp: { id: rpId, name: 'tô lisa' },
+                user: { id: crypto.getRandomValues(new Uint8Array(16)), name: nome, displayName: nome },
+                pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                authenticatorSelection: {
+                  residentKey: 'required',
+                  requireResidentKey: true,
+                  userVerification: 'required',
+                },
+                attestation: 'none',
+              },
+            })
+          ),
+          r = /** @type {AuthenticatorAttestationResponse} */ (c.response),
+          chave = r.getPublicKey();
+        if (!chave || r.getPublicKeyAlgorithm() !== -7) return toast('Essa digital não serve aqui');
+        corpo = {
+          id: c.id,
+          chave: b64De(chave),
+          alg: -7,
+          dados: b64De(r.clientDataJSON),
+          autenticador: b64De(r.getAuthenticatorData()),
+        };
+      }
+      const resp = await postaApi('/digital/guarda', { ...corpo, eventos });
+      if (resp.status === 404) {
+        setDevice('passkeyId', undefined);
+        return toast('Essa digital se perdeu. Toca de novo que eu guardo numa nova.');
+      }
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      setDevice('passkeyId', corpo.id);
+      toast(
+        `Guardei ${eventos.length} ${eventos.length === 1 ? 'evento' : 'eventos'} na digital. Noutro celular, é só entrar com ela.`,
+      );
+    } catch (e) {
+      toast(desistiu(e) ? 'Ficou pra depois' : 'Não deu pra guardar agora');
+    } finally {
+      mexendoDigital = false;
+    }
+  }
+  async function entraDigital() {
+    if (mexendoDigital) return;
+    mexendoDigital = true;
+    try {
+      // sem allowCredentials: o celular mostra as passkeys do tô lisa que ele tem, sem perguntar nome
+      const corpo = assinado(
+        await navigator.credentials.get({
+          publicKey: { challenge: await desafioDigital(), rpId: location.hostname, userVerification: 'required' },
+        }),
+      );
+      const r = await postaApi('/digital/entra', corpo);
+      if (r.status === 404) return toast('Essa digital não tem evento guardado');
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const n = await restauraEventos((await r.json()).eventos);
+      setDevice('passkeyId', corpo.id);
+      showGate();
+      toast(n ? `${n === 1 ? 'Voltou 1 evento' : `Voltaram ${n} eventos`} 🫰` : 'Essa digital não tem evento guardado');
+    } catch (e) {
+      toast(desistiu(e) ? 'Ficou pra depois' : 'Não deu pra entrar agora');
+    } finally {
+      mexendoDigital = false;
+    }
+  }
+  /** a lista da API volta pras gavetas: código, quem sou eu (se o aparelho não sabia) e a cópia do evento, do
+   * banco, pro nome e o saldo aparecerem já na lista. O que veio da API passa pelo mesmo crivo do resto */
+  async function restauraEventos(lista) {
+    const ok = (Array.isArray(lista) ? lista : []).filter(
+      (e) => e && typeof e.code === 'string' && e.code.trim() && e.code.length <= 100,
+    );
+    await Promise.all(
+      ok.map(async (e) => {
+        const code = e.code.trim().toLowerCase(),
+          id = await sha(code);
+        mexe(roomKey(id), (o) => {
+          o.code = code;
+          delete o.hidden;
+          if (!okId(o.me) && okId(e.me)) o.me = e.me;
+          o.openedAt ??= Date.now();
+        });
+        try {
+          const r = await noBanco(`${DB}/rooms/${id}.json`, { cache: 'no-store' }),
+            remoto = r.ok ? clean(await r.json()) : null;
+          if (remoto)
+            mexe(roomKey(id), (o) => {
+              o.snapshot = merge(o.snapshot, remoto);
+            });
+        } catch {}
+      }),
+    );
+    atualizaBolinha();
+    return ok.length;
+  }
+
+  // #endregion
   // #region botões
   // ---------- botões ----------
   $('#toggleAll').onclick = () => {
@@ -3188,11 +3357,12 @@
     const modo = el.dataset.perdoa ? 'perdoa' : el.dataset.recebi ? 'recebi' : 'paguei';
     const [from, to, cs] = (el.dataset.perdoa || el.dataset.recebi || el.dataset.settle).split('|');
     let cents = +cs;
-    const divida = cents;
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
     const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
     // quem paga escolhe quanto: "te mando 50 agora e o resto sexta". Vem com o total, na máscara do anotar
+    // quitar é pagar tudo: com menos que o total, o cartão vira "pagar"
+    const total = cents;
     // com a chave de quem recebe, o pix sai do próprio cartão com o valor digitado (a linha copia o total)
     const pergunta = () => {
       const pix =
@@ -3201,17 +3371,27 @@
           : '';
       const p = ask(
         'Quitar?',
-        `${nomeHtml(from)} pagou pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>${pix}`,
+        `${nomeHtml(from)} pagou <b id="quitaFrase" style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>${pix}`,
         'quitei',
       );
       const cx = /** @type {HTMLInputElement} */ ($('#quitaValor'));
+      // o sublinhado é da linha toda (R$ + valor): a caixa cresce com o que tem dentro, e fica tudo no meio
+      const ajusta = () => {
+        cx.style.width = Math.max(cx.value.length, 4) + 'ch';
+        const parte = cents > 0 && cents < total;
+        $('#overlayBox h2').textContent = parte ? 'Pagar?' : 'Quitar?';
+        $('#quitaFrase').textContent = comSifrao(cents);
+        $('#okBtn').textContent = parte ? 'paguei' : 'quitei';
+      };
+      ajusta();
       cx.addEventListener('input', () => {
         cents = +cx.value.replace(/\D/g, '');
         /** @type {HTMLButtonElement} */ ($('#okBtn')).disabled = !cents;
+        ajusta();
         const bt = /** @type {HTMLButtonElement|null} */ ($('#quitaPix'));
         if (!bt) return;
         // o pix não passa da dívida da dupla: o quitei também só grava até ela
-        const noPix = Math.min(cents, divida);
+        const noPix = Math.min(cents, total);
         bt.dataset.pix = `${to}|${noPix}`;
         bt.disabled = !noPix;
         bt.querySelector('span').textContent = comSifrao(noPix);
@@ -3848,8 +4028,8 @@
   // #endregion
   // #region instalar
   // ---------- instalar na tela de início ----------
-  // O navegador avisa que dá (beforeinstallprompt) e espera o site pedir. O #instalar
-  // do rodapé pede; o toque do ✎ também convida, uma vez só, na segunda visita e só
+  // O navegador avisa que dá (beforeinstallprompt) e espera o site pedir. O #instalar,
+  // no topo, embaixo do subtítulo, pede; o toque do ✎ também convida, uma vez só, na segunda visita e só
   // com gasto anotado. No iPhone o evento não existe: o botão ensina o caminho do Safari.
   let convite = null;
   const jaInstalado = () =>
@@ -4623,7 +4803,7 @@
     const c = q.get('evento') || q.get('senha');
     const quem = q.get('quem');
     if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
-    // o "criar outro" do cartão do evento: o endereço já sai do ?novo=, e recarregar não cria mais um
+    // o nome digitado no cartão de um evento aberto: o endereço já sai do ?novo=, e recarregar não cria mais um
     const novo = (q.get('novo') || '').trim().toLowerCase();
     if (novo) {
       history.replaceState(null, '', location.pathname);

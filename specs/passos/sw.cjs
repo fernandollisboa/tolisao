@@ -1,5 +1,5 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const { When, Then, expect } = require('./_mundo.cjs');
+const { Given, When, Then, expect } = require('./_mundo.cjs');
 
 const src = fs.readFileSync(path.join(__dirname, '..', '..', 'sw.js'), 'utf8');
 
@@ -13,10 +13,8 @@ function cacheFalso(ordem, guardado = new Map()) {
   };
 }
 
-// lenta: a rede só responde depois que o prazo do service worker estoura. O prazo é de
-// segundos; aqui ele estoura na hora, pro cenário não esperar relógio de verdade
 function busca({ mode = 'no-cors', ok = true, atrasoCache = 15, url = 'http://localhost/app.js?v=1', guardado, offline = false, lenta = false } = {}) {
-  const ordem = []; let aoBuscar; const cache = cacheFalso(ordem, guardado);
+  const ordem = [], esperas = []; let aoBuscar; const cache = cacheFalso(ordem, guardado);
   const semQuery = u => u.split('?')[0];
   const sandbox = {
     self: { addEventListener: (nome, fn) => { if (nome === 'fetch') aoBuscar = fn; } },
@@ -24,16 +22,22 @@ function busca({ mode = 'no-cors', ok = true, atrasoCache = 15, url = 'http://lo
       open: () => new Promise(r => setTimeout(() => r(cache), atrasoCache)),
       match: (req, op) => Promise.resolve([...cache.guardado].find(([k]) => op && op.ignoreSearch ? semQuery(k) === semQuery(req.url) : k === req.url)?.[1]),
     },
-    fetch: () => offline ? Promise.reject(new TypeError('offline'))
-      : new Promise(r => setTimeout(r, lenta ? 30 : 0)).then(() => ({ ok, versao: url, rede: true, clone() { ordem.push('copia'); return { ok, versao: url, rede: true }; } })),
-    setTimeout: (fn, ms) => setTimeout(fn, lenta ? 0 : ms), clearTimeout,
+    fetch: () => {
+      if (offline) return Promise.reject(new TypeError('offline'));
+      const r = { ok, versao: url, clone() { ordem.push('copia'); return { ok, versao: url }; } };
+      // rede lenta: responde bem depois do prazo do service worker
+      return lenta ? new Promise(ok => setTimeout(() => ok(r), 100)) : Promise.resolve(r);
+    },
+    // o prazo de verdade é de segundos: aqui o relógio do service worker anda 100x mais rápido
+    setTimeout: (f, ms) => setTimeout(f, ms / 100), clearTimeout,
     Request: class { constructor(url, op) { this.url = url; Object.assign(this, op || {}); } },
     URL, location: { origin: 'http://localhost' },
   };
   vm.createContext(sandbox); vm.runInContext(src, sandbox);
-  let resposta, depois = Promise.resolve();
-  aoBuscar({ request: { url, method: 'GET', mode }, respondWith: p => { resposta = p; }, waitUntil: p => { depois = p; } });
-  return resposta.then(r => { ordem.push('lê'); return depois.then(() => new Promise(ok => setTimeout(() => ok({ ordem, resposta: r, cache: cache.guardado }), atrasoCache + 20))); });
+  let resposta; aoBuscar({ request: { url, method: 'GET', mode }, respondWith: p => { resposta = p; }, waitUntil: p => { esperas.push(p); } });
+  const depois = Promise.all(esperas);
+  return resposta.then(r => { ordem.push('lê');
+    return new Promise(ok => setTimeout(() => ok({ ordem, resposta: r, cache: cache.guardado, depois }), lenta ? 0 : atrasoCache + 20)); });
 }
 
 When('o service worker busca um arquivo e o cache demora pra abrir', async ({ mundo }) => { mundo.nota.sw = await busca(); });
@@ -61,17 +65,24 @@ Then('sem rede, o arquivo abre com a versão nova', async ({ mundo }) => {
   expect(r.resposta && r.resposta.versao).toBe('http://localhost/app.js?v=novo');
 });
 
-When('o service worker busca um arquivo que já tem cópia e a rede passa do prazo', async ({ mundo }) => {
-  mundo.nota.sw = await busca({ guardado: new Map([['http://localhost/app.js?v=1', { versao: 'cópia' }]]), lenta: true });
+// sinal ruim: a rede só responde depois do prazo
+Given('que o service worker já tem cópia de um arquivo', async ({ mundo }) => {
+  mundo.nota.guardado = new Map([['http://localhost/app.js?v=1', { versao: 'cópia' }]]);
 });
-When('o service worker busca um arquivo que só tem cópia de outra versão e a rede passa do prazo', async ({ mundo }) => {
-  mundo.nota.sw = await busca({ guardado: new Map([['http://localhost/app.js?v=0', { versao: 'cópia' }]]), lenta: true });
+Given('que o service worker só tem cópia de outra versão de um arquivo', async ({ mundo }) => {
+  mundo.nota.guardado = new Map([['http://localhost/app.js?v=0', { versao: 'cópia' }]]);
 });
-When('o service worker busca um arquivo sem cópia e a rede passa do prazo', async ({ mundo }) => {
+When('ele busca esse arquivo e a rede demora a responder', async ({ mundo }) => {
+  mundo.nota.sw = await busca({ guardado: mundo.nota.guardado, lenta: true });
+});
+When('o service worker busca um arquivo sem cópia e a rede demora a responder', async ({ mundo }) => {
   mundo.nota.sw = await busca({ lenta: true });
 });
-Then('ele abre com a cópia guardada', async ({ mundo }) => { expect(mundo.nota.sw.resposta.versao).toBe('cópia'); });
-Then('ele abre com a resposta da rede', async ({ mundo }) => { expect(mundo.nota.sw.resposta.rede).toBe(true); });
-Then('a resposta da rede, quando chega, vai pro cache', async ({ mundo }) => {
-  expect(mundo.nota.sw.cache.get('http://localhost/app.js?v=1')).toMatchObject({ rede: true });
+Then('o arquivo abre com a cópia guardada', async ({ mundo }) => { expect(mundo.nota.sw.resposta.versao).toBe('cópia'); });
+Then('o arquivo abre com o que veio da rede', async ({ mundo }) => {
+  expect(mundo.nota.sw.resposta.versao).toBe('http://localhost/app.js?v=1');
+});
+When('a rede enfim responde', async ({ mundo }) => { await mundo.nota.sw.depois; });
+Then('o cache fica com a versão da rede', async ({ mundo }) => {
+  expect(mundo.nota.sw.cache.get('http://localhost/app.js?v=1').versao).toBe('http://localhost/app.js?v=1');
 });

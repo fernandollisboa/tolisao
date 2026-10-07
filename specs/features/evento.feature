@@ -170,6 +170,10 @@ Funcionalidade: Entrar no evento
     Então o cartão mostra:
       """
       TÔ LISA
+      *** EVENTO ***
+      ENTRA QUEM TEM
+      o link
+      MOSTRAR QR
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite
@@ -179,9 +183,6 @@ Funcionalidade: Entrar no evento
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
-      + CRIAR OUTRO BAILEDAMADA
-      COPIAR LINK DO EVENTO
-      MOSTRAR QR
       VOLTAR
       apagar meus dados deste aparelho
       """
@@ -195,8 +196,7 @@ Funcionalidade: Entrar no evento
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia
     E eu toco no nome do evento
-    E eu toco em copiar link do evento
-    E eu mando pro grupo todo
+    E eu toco no link do cartão do evento
     Então fica copiado o link do evento
 
   Cenário: no caderno em branco, a caixa abre o anotar

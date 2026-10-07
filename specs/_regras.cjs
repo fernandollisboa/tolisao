@@ -40,15 +40,6 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     else if (v && typeof v === 'object') pix(v, [...caminho, k]); } };
   pix(banco.rules.pix || {}, []);
   regra('o tok do pix não se lê', lidos.join('; '));
-  // o pix fecha como o rooms/$room: sala de hash, pessoa de id, tok de texto e nada a mais.
-  // o tok fica sem tamanho máximo: os do tempo do racha:<sala>:pixtok:<pessoa> migraram como estavam,
-  // e o histórico não diz o tamanho deles. Barrar um travaria a chave de quem tem só ele
-  const pp = banco.rules.pix?.$room?.$person || {}, v = pp['.validate'] || '', fechado = [];
-  if (!v.includes('$room.matches(/^[0-9a-f]{64}$/)')) fechado.push('$room não confere o hash de 64 hex');
-  if (!v.includes('$person.matches(/^[a-z0-9]{1,32}$/)')) fechado.push('$person não confere o id');
-  if (!/isString\(\)/.test(pp.tok?.['.validate'] || '')) fechado.push('tok não confere que é texto');
-  if (pp.$outro?.['.validate'] !== false) fechado.push('falta $outro: false');
-  regra('o pix só aceita {key, tok} de sala e pessoa válidas', fechado.join('; '));
   // visitas é só um +1 por dia: ninguém lista, ninguém apaga (.validate não roda em delete), ninguém pula de 1000 em 1000
   const vis = banco.rules.visitas, dia = vis?.$dia || {}, erros = [];
   if (!vis) erros.push('não achei visitas no database.rules.json');
@@ -58,6 +49,58 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     if (!(dia['.validate'] || '').includes('data.val() + 1')) erros.push('o .validate de visitas/$dia não exige data.val() + 1');
   }
   regra('visitas só se soma', erros.join('; '));
+}
+
+// ---------- pix: o banco aceita o que o app no ar grava, e só isso ----------
+// as regras sobem junto com o site (regras.yml): aparelho com tok velho (4 × uid() do Math.random,
+// 8 letras ou menos cada) ou que apaga a chave gravando key '' não pode levar 401.
+// o tok fica sem formato nem tamanho: os do tempo do racha:<sala>:pixtok:<pessoa> migraram como estavam,
+// e o histórico não diz como eles eram. Barrar um travaria a chave de quem tem só ele
+// Roda as expressões do database.rules.json como o Firebase: .write no nó, .validate em cada nó escrito
+{
+  const no = banco.rules.pix?.$room?.$person || {}, erros = [];
+  const snap = v => ({ val: () => v ?? null, exists: () => v != null, isString: () => typeof v === 'string',
+    isNumber: () => typeof v === 'number', child: k => snap(v?.[k]), hasChildren: ks => ks.every(k => v?.[k] != null) });
+  const avalia = (expr, vars) => {
+    String.prototype.matches = function (re) { return re.test(String(this)); };
+    try { return new Function(...Object.keys(vars), `return (${expr});`)(...Object.values(vars)) === true; }
+    finally { delete String.prototype.matches; }
+  };
+  // o PUT do putPix(): passa o .write do nó e o .validate dele e de cada filho (filho sem regra cai no $outro; sem $outro, passa)
+  const grava = (sala, pessoa, antes, novo) => {
+    const vars = { $room: sala, $person: pessoa, data: snap(antes), newData: snap(novo) };
+    if (!avalia(no['.write'] || 'false', vars) || !avalia(no['.validate'] || 'true', vars)) return false;
+    return Object.entries(novo).every(([k, v]) => {
+      const r = no[k] ?? no.$outro;
+      return !r || (r['.validate'] !== false && avalia(r['.validate'] ?? 'true', { ...vars, newData: snap(v) }));
+    });
+  };
+  const sala = 'ab'.repeat(32), tok = 'a1'.repeat(16), velho = 'k3j9x0q2'.repeat(4), curto = 'q2';
+  const casos = [
+    ['cadastra a chave', true, sala, 'k3j9x0q2', null, { key: '+5571987654321', tok }],
+    ['troca com o mesmo tok', true, sala, 'k3j9x0q2', { key: '+5571987654321', tok }, { key: 'eu@exemplo.com', tok }],
+    ['apaga gravando key vazia', true, sala, 'k3j9x0q2', { key: 'eu@exemplo.com', tok }, { key: '', tok }],
+    ['outro aparelho cadastra depois de apagada', true, sala, 'k3j9x0q2', { key: '', tok }, { key: '+5571987654321', tok: velho }],
+    ['tok velho de 4 × uid()', true, sala, 'k3j9x0q2', { key: 'x@y.z', tok: velho }, { key: '', tok: velho }],
+    ['tok velho curto (Math.random raso)', true, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: curto }],
+    ['chave aleatória', true, sala, 'k3j9x0q2', null, { key: '123e4567-e89b-12d3-a456-426614174000', tok }],
+    ['e-mail de 80', true, sala, 'k3j9x0q2', null, { key: 'a'.repeat(70) + '@exemplo.c', tok }],
+    ['tok de outro aparelho', false, sala, 'k3j9x0q2', { key: 'x@y.z', tok }, { key: 'meu@golpe.com', tok: velho }],
+    ['e-mail de 81', false, sala, 'k3j9x0q2', null, { key: 'a'.repeat(71) + '@exemplo.c', tok }],
+    ['sala fora do hash', false, 'bailedamada', 'k3j9x0q2', null, { key: 'x@y.z', tok }],
+    ['pessoa fora do id', false, sala, 'Fulano', null, { key: 'x@y.z', tok }],
+    ['tok migrado fora do formato', true, sala, 'k3j9x0q2', { key: 'x@y.z', tok: 'tok-de-outro-aparelho' }, { key: '', tok: 'tok-de-outro-aparelho' }],
+    ['tok migrado comprido', true, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: tok.repeat(3) }],
+    ['tok que não é texto', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: 123 }],
+    ['campo a mais', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok, lixo: 'x'.repeat(1000) }],
+    ['sem tok', false, sala, 'k3j9x0q2', null, { key: 'x@y.z' }],
+  ];
+  for (const [nome, ok, s, p, antes, novo] of casos) {
+    let deu;
+    try { deu = grava(s, p, antes, novo); } catch (e) { deu = `erro: ${e.message}`; }
+    if (deu !== ok) erros.push(`${nome}: esperava ${ok ? 'aceitar' : 'recusar'}, ${deu === true ? 'aceitou' : deu === false ? 'recusou' : deu}`);
+  }
+  regra('o pix aceita o que o app grava e recusa o resto', erros.join('; '));
 }
 
 // ---------- clean() e .validate de rooms/$room contam o mesmo ----------

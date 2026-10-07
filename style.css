@@ -102,6 +102,7 @@ h1 span.digitando:after{content:"";display:inline-block;width:3px;height:.7em;ma
 h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
 h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .c{text-align:center;font-size:17px;line-height:1.5;text-transform:uppercase}
+.c.digital{margin-top:12px;text-transform:none;font-size:16px}   /* guardar/entrar com a digital (#168), no fim do cartão de Meus eventos */
 .hr{border-top:2px dashed var(--rule);margin:12px 0}
 .row{display:flex;align-items:baseline;line-height:1.7;position:relative;font-size:21px}
 .row .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
@@ -449,8 +450,8 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
 #amount{font-size:30px;letter-spacing:1px}
 /* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
-.quitaValor{display:flex;align-items:baseline;justify-content:center;gap:6px;margin-top:10px;font-size:30px;color:var(--green)}
-#quitaValor{width:5em;flex:none;text-align:left;font-size:30px;letter-spacing:1px;color:var(--green);border-color:var(--green)}
+.quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}
+#quitaValor{width:5ch;flex:none;padding:0;border:0;text-align:left;font-size:30px;color:var(--green)}
 /* o copiar pix do Quitar? acompanha o valor digitado; sem clipboard, o código cai logo embaixo */
 #quitaPix{display:flex;margin:12px auto 0;white-space:nowrap} #quitaPixCode{margin-top:8px;text-align:left}
 .shares{display:grid;gap:4px}
@@ -590,6 +591,7 @@ button.linkpra{display:inline-flex;align-items:center;gap:8px;color:var(--ink);b
 button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 /* o QR do link do grupo: botão pequeno embaixo das cápsulas, e o cartão com o QR na largura toda, em fundo branco pro leitor */
 button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-shadow:2px 2px 0 var(--ink)}
+button.qrbtn.colado{margin-top:2px}
 .qr svg{display:block;width:100%;max-width:320px;margin:4px auto 0;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
 /* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
 .pessoa.row .l[contenteditable]{outline:0;cursor:text}
@@ -664,3 +666,5 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .comandinha.parada *,.comandinha.parada .row:after{animation:none !important}
 .comandinha.parada .fichinha.cai{display:none}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
+/* o instalar mora no topo, embaixo do subtítulo: âmbar cheio, como o botão do form.lado */
+#instalar{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:#9a5b00;color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}

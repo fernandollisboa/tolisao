@@ -845,7 +845,7 @@
   const gravaPix = (sala, pid, key, tok) =>
     noBanco(pixUrl(pid, '', sala), { method: 'PUT', body: JSON.stringify({ key, tok }) });
   async function loadPixKeys() {
-    const out = {};
+    /** @type {Record<string, string>} */ const out = {};
     await Promise.all(
       state.people.map(async (p) => {
         // rede engasgou ou o banco falhou: fica a chave que já tinha. Só some quando o banco diz que não tem

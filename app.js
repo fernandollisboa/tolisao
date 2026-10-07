@@ -3537,9 +3537,9 @@
     }
     ensinaInstalar();
   };
-  /** Chrome, Firefox e Edge do iPhone, e o navegador de dentro do Facebook e do Instagram: o passo a passo
-   *  do Safari não existe neles */
-  const foraDoSafari = () => /CriOS|FxiOS|EdgiOS|FBAN|FBAV|Instagram/.test(navigator.userAgent);
+  /** o navegador de dentro do Facebook e do Instagram não instala. O Chrome e o Edge do iPhone instalam
+   *  pelo Compartilhar deles desde o iOS 16.4, então seguem com o passo a passo */
+  const foraDoSafari = () => /FBAN|FBAV|Instagram/.test(navigator.userAgent);
   /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 (HTML: já vem escapado) */
   function ensinaInstalar(porque = '') {
     if (foraDoSafari()) {

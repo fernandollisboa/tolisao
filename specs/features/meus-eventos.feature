@@ -206,3 +206,12 @@ Funcionalidade: Meus eventos
       E eu entro no evento "churras" como Lia
       E eu quito a primeira linha de Minha conta
       Então a bolinha some do ícone
+
+    Exemplo: o evento esquecido sai da bolinha
+      Dado que meu celular mostra bolinha no ícone do app
+      Quando eu abro o evento "churras" como Lia
+      E eu entro no evento "praia" como Lia
+      E eu abro o site sem código
+      E eu toco no ✕ do "churras"
+      E eu confirmo
+      Então a bolinha no ícone diz 1

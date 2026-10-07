@@ -1010,7 +1010,8 @@
     'serviceWorker' in navigator &&
     (!ehIOS() || jaInstalado());
   const avisoLigado = () => !!me && room().pushOn === me && Notification.permission === 'granted';
-  /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta */
+  /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta,
+   * e a bolinha do ícone ({ sala: 'bolinha', n, eu }) */
   const avisosDb = (modo, f) =>
     new Promise((ok, erro) => {
       const pedido = indexedDB.open('tolisa', 1);
@@ -2518,6 +2519,7 @@
       await ask(`Esquecer ${esc(e.nome)}?`, 'some da lista só neste aparelho. você volta pelo link.', 'esquecer', true)
     ) {
       esconde(e.id);
+      atualizaBolinha();
       if (e.id === groupId) return leave();
     }
     volta();
@@ -2554,19 +2556,22 @@
   let bolinhaAntes = '';
   function atualizaBolinha() {
     if (!('setAppBadge' in navigator)) return;
-    /** @type {Record<string, number>} */ const n = {};
+    /** @type {Record<string, number>} */ const n = {},
+      /** @type {Record<string, string>} */ quem = {};
     for (const e of meusEventos()) {
       const aqui = e.id === groupId && state,
         s = aqui ? state : e.snap,
         eu = aqui ? me : e.me;
-      if (s && eu) n[e.id] = settlements(balances(s)).filter((t) => t.from === eu || t.to === eu).length;
+      if (!s || !eu) continue;
+      n[e.id] = settlements(balances(s)).filter((t) => t.from === eu || t.to === eu).length;
+      quem[e.id] = eu;
     }
-    const k = JSON.stringify(n);
+    const k = JSON.stringify([n, quem]);
     if (k === bolinhaAntes) return;
     bolinhaAntes = k;
     const total = Object.values(n).reduce((a, b) => a + b, 0);
     (total ? navigator.setAppBadge(total) : navigator.clearAppBadge()).catch(() => {});
-    avisosDb('readwrite', (st) => st.put({ sala: 'bolinha', n })).catch(() => {});
+    avisosDb('readwrite', (st) => st.put({ sala: 'bolinha', n, eu: quem })).catch(() => {});
   }
 
   // #endregion

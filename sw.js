@@ -46,7 +46,8 @@ async function novidade(a, contas) {
   const r = await fetch(`${a.db}/rooms/${a.sala}.json`, { cache: 'no-store' });
   if (!r.ok) return null;
   const sala = await r.json(), gente = lista(sala && sala.people), agora = Date.now();
-  if (a.sala in contas) contas[a.sala] = pendentes(sala, a.me);
+  // a página contou pra quem é "Sou" lá: outra pessoa no aviso deixa a conta como está
+  try { if (contas.eu[a.sala] === a.me) contas.n[a.sala] = pendentes(sala, a.me); } catch {}
   const nome = id => String((gente.find(p => p.id === id) || {}).name || '?').slice(0, 30), eu = nome(a.me);
   const vistos = new Set(Array.isArray(a.vistos) ? a.vistos : []);
   const novos = lista(sala && sala.expenses).filter(e => e.kind === 'payment' && typeof e.id === 'string' && !vistos.has(e.id)
@@ -71,6 +72,7 @@ async function novidade(a, contas) {
 }
 // a bolinha no ícone: a página guarda quantas linhas do acerto são minhas em cada evento ({ sala: 'bolinha', n });
 // o push refaz a conta do evento que ele releu e soma tudo de novo. Só o número, nunca valor
+// mexeu na conta do app.js (clean, balances, settlements), mexa aqui também
 const okId = id => typeof id === 'string' && /^[a-z0-9]{1,32}$/.test(id);
 const membros = e => Array.isArray(e.among) ? e.among : Object.values(e.among || {});
 /** a mesma conta do app.js (balances + settlements): quantas linhas do acerto têm `me` */
@@ -102,11 +104,18 @@ function pendentes(sala, me) {
 self.addEventListener('push', e => e.waitUntil((async () => {
   let aviso = null;
   try {
-    const todos = await avisos('readonly', s => s.getAll()), bol = todos.find(a => a.sala === 'bolinha'), contas = { ...(bol && bol.n) };
+    const todos = await avisos('readonly', s => s.getAll()), bol = todos.find(a => a.sala === 'bolinha'),
+      contas = { eu: { ...(bol && bol.eu) }, n: {} };
     for (const a of todos) if ((aviso = await novidade(a, contas).catch(() => null))) break;
     if (bol && 'setAppBadge' in self.navigator) {
-      await avisos('readwrite', s => s.put({ sala: 'bolinha', n: contas }));
-      const total = Object.values(contas).reduce((s, x) => s + (+x || 0), 0);
+      // relê e grava na mesma transação: a página pode ter regravado a bolinha enquanto o banco respondia
+      // só os eventos que a página ainda conta: o esquecido lá não volta pela porta do push
+      let n = {};
+      await avisos('readwrite', s => { const g = s.get('bolinha');
+        g.onsuccess = () => { if (!g.result) return; n = { ...g.result.n };
+          for (const k in contas.n) if (k in n) n[k] = contas.n[k];
+          s.put({ ...g.result, n }); }; return g; });
+      const total = Object.values(n).reduce((s, x) => s + (+x || 0), 0);
       await (total ? self.navigator.setAppBadge(total) : self.navigator.clearAppBadge());
     }
   } catch {}

@@ -5,10 +5,11 @@ html, css e js. sem build, sem framework. o único backend é a API do aviso de 
 ## rodar
 
 ```sh
-python3 -m http.server
+npm run dev               # banco e API falsos, em memória: some ao fechar
+npm run dev -- --festa    # já abre com o evento de exemplo bailedamada
 ```
 
-salvou, recarregou, tá valendo.
+salvou, recarregou, tá valendo. o `python3 -m http.server` também roda, mas fala com o banco de verdade: evento criado ali vai pro ar.
 
 ## antes de subir
 

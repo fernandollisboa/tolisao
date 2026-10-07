@@ -27,6 +27,7 @@
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
+  const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const RECEBI = false; // "recebi" na linha de quem me deve (pagaram por fora): desligado por enquanto
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
@@ -167,7 +168,7 @@
   setDevice('visits', visitas);
   // aparelhos por dia: um +1 no banco, que ninguém lê (só o dono, no console). O dia é o de Brasília (2026-10-06)
   const hojeBR = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  if (CONTA_VISITAS && DB && device().countedDay !== hojeBR)
+  if (CONTA_VISITAS && !LOCAL && DB && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
       method: 'PUT',
       body: '{".sv":{"increment":1}}',
@@ -2854,9 +2855,7 @@
     }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
-  const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
-    ? location.origin + location.pathname
-    : 'https://tolisa.com.br/';
+  const SITE = LOCAL ? location.origin + location.pathname : 'https://tolisa.com.br/';
   // as figurinhas de cobrança, uma pasta cada: nome que se lê no link (as velhas c/h, c/i e c/j seguem de pé pros links já mandados)
   const COBRA_PASTAS = ['semverba', 'sextou', 'fiado'];
   /** a pasta escolhe o preview do link no zap: cada uma tem as suas og: e o vai.js manda pro app.

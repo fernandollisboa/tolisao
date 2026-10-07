@@ -45,7 +45,7 @@ Funcionalidade: Meus eventos
       CÓDIGO
       praia
       ENTRA QUEM TEM
-      o código
+      o link
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA

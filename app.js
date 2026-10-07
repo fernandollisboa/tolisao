@@ -1895,18 +1895,18 @@
     const chegou = !msg && !evs.length;
     // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
     const intro = chegou
-      ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê sem app e sem cadastro.</div>
+      ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê.<br>sem app, sem cadastro.</div>
       ${estreia()}
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
-        <div>1. dá um nome pro rolê (ou cola o código)</div>
+        <div>1. dá um nome pro rolê</div>
         <div>2. anota quem pagou o quê</div>
-        <div>3. vê quem deve quanto e paga no pix</div>
+        <div>3. manda no zap e recebe no pix</div>
       </div>`
       : '';
     const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, false)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado">${msg || 'não tem código? um nome novo já vira evento.'}</p>` : ''}
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome ou código" required${evs.length ? '' : ' autofocus'} autocapitalize="none"><button class="small">${botao}</button></form>
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado">${msg || 'qualquer nome já cria o rolê.'}</p>` : ''}
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome do rolê" required${evs.length ? '' : ' autofocus'} autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
@@ -2199,7 +2199,7 @@
       if (
         !(await ask(
           `Criar "${esc(code)}"?`,
-          'esse nome ainda não existe: o evento é criado com um final sorteado no código, pra nenhum enxerido achar.',
+          'esse nome tá livre. o link ganha um final sorteado, à prova de enxerido.',
           'criar',
         ))
       )
@@ -2314,7 +2314,7 @@
     const evs = meusEventos();
     overlay(`<h2>*** Evento ***</h2>
       <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
-      <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">o código</span></div>
+      <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">o link</span></div>
       <div class="hr"></div>
       ${
         evs.length

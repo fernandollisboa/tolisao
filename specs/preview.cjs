@@ -42,7 +42,10 @@ async function preview(opts = {}) {
       // o título só começa depois da fonte: espera ele começar (se for digitar) e acabar
       if (!opts.quieto) await p.waitForSelector('#tituloGate.digitando', { timeout: 3000 }).catch(() => {});
       await p.waitForSelector('#tituloGate:not(.digitando)', { timeout: 15000 });
-      await p.waitForTimeout(opts.quieto ? 300 : 1500);
+      // e a comandinha se anotar até o fim (a chuva de fichas não acaba nunca, fica de fora)
+      await p.evaluate(() => Promise.all(document.getAnimations()
+        .filter(a => a.effect?.target?.closest?.('.comandinha')).map(a => a.finished.catch(() => {}))));
+      await p.waitForTimeout(300);
     } else {
       await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
       // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é

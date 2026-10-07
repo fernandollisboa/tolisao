@@ -158,7 +158,7 @@ const CENAS = {
   // aparelho limpo, sem evento: a estreia de quem chega. o título digita por ~7,5 s com setTimeout, que o --vel
   // não desacelera, então a cena grava em vel 1; variação vai de --js, que roda antes do app
   inicio: { nome: 'a estreia: fichas caindo, a comandinha se anotando e o título se digitando', inicio: true, vel: 1,
-    acao: async p => { await p.waitForTimeout(10000); } },
+    acao: async p => { await p.waitForTimeout(11500); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

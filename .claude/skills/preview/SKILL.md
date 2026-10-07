@@ -18,7 +18,7 @@ node specs/preview.cjs --ninguem --recorte=0,0,390,600  # quem chegou pelo link 
 node specs/preview.cjs --saida=/tmp/tudo.png        # página inteira
 node specs/preview.cjs --recorte=0,0,390,240        # pedaço por coordenadas (cabeçalho, rodapé)
 node specs/preview.cjs '#settle' --variantes=/tmp/v.cjs --saida=/tmp/opts.png
-node specs/preview.cjs '#overlay .paper' --inicio  # a estreia, aparelho limpo, depois do título digitar
+node specs/preview.cjs '#overlay .paper' --inicio  # a estreia, aparelho limpo, depois do título e da comandinha
 node specs/preview.cjs '#overlay .paper' --inicio --quieto  # a mesma com movimento reduzido (quadro parado)
 ```
 
@@ -39,7 +39,7 @@ node specs/video.cjs ficha --saida=/tmp/f.webm  # a ficha caindo no rodapé
 node specs/video.cjs risco --vel=0.35           # o risco correndo nas linhas pagas
 node specs/video.cjs mira --altura=640          # a ficha levada pela borda até o ▸ e o ✔, e apertando eles
 node specs/video.cjs dobra --altura=400         # Falta pagar abaixo da dobra: os riscos não esperam o natal
-node specs/video.cjs inicio                     # a estreia: aparelho limpo, fichas caindo, título digitando (~10 s)
+node specs/video.cjs inicio                     # a estreia: aparelho limpo, fichas caindo, título digitando (~12 s)
 node specs/video.cjs inicio --js=/tmp/v.js      # variação da estreia: o js roda antes do app
 node specs/video.cjs inicio --quieto            # a estreia com movimento reduzido
 ```

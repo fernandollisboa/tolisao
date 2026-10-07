@@ -82,6 +82,10 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   const faltam = [...doBanco.filter(k => !new RegExp(`\\be\\.${k}\\b`).test(corpo)).map(k => `${k}: o banco aceita, clean() descarta`),
     ...doClean.filter(k => !doBanco.includes(k)).map(k => `${k}: clean() guarda, o banco recusa`)];
   regra('clean() e o banco aceitam os mesmos campos no item', faltam.join('; '));
+  // o mesmo pro item apagado: campo do gone que o banco aceita e o clean() não lê some no sync
+  const doGone = Object.keys(sala.gone.$i).filter(k => !k.startsWith('$') && !k.startsWith('.'));
+  regra('clean() lê todo campo do item apagado que o banco aceita',
+    doGone.filter(k => !new RegExp(`\\bg\\.${k}\\b`).test(corpo)).map(k => `${k}: o banco aceita, clean() descarta`).join('; '));
 }
 
 // ---------- o sumário do app.js lista as seções, na ordem ----------

@@ -53,6 +53,11 @@ When('eu abro o evento como {word} em outro aparelho', async ({ mundo }, quem) =
 When('eu recarrego a página', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#app:not(.loading)'); });
 
 When('eu digito o código {string}', async ({ mundo }, codigo) => { await mundo.p.fill('#gateCode', codigo); await mundo.p.click('#gateForm button'); });
+// evento criado pelo campo: o código tem o final sorteado, o nome é o que a pessoa digitou
+Given('que este aparelho já abriu o evento {string} pelo link {string}', async ({ mundo }, nome, codigo) => {
+  const ev = mundo.criaEvento({ name: codigo, people: [], expenses: [], deleted: [] }); ev.name = nome;
+  mundo.antes = { ...mundo.antes, ['tolisa:' + mundo.sala]: JSON.stringify({ code: codigo, openedAt: AGORA, snapshot: ev }) };
+});
 When('eu colo no campo do código:', async ({ mundo }, txt) => { await mundo.p.fill('#gateCode', txt); await mundo.p.click('#gateForm button'); });
 Then('o site pergunta se é um evento novo', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeVisible(); });
 When('eu volto', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });

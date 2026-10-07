@@ -2201,10 +2201,11 @@
    *  @returns {{ code: string, quem: string|null }} */
   function codigoDoCampo(texto) {
     const t = texto.trim(),
-      m = t.match(/[?&](?:evento|senha)=([^&\s#]+)/);
+      // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
+      m = t.match(/[?&](?:evento|senha)=([\w%.~!*'()-]+)/);
     if (m) {
       const link = t.slice(m.index).split(/\s/)[0],
-        q = link.match(/[?&]quem=([^&\s#]+)/);
+        q = link.match(/[?&]quem=([\w%.~!*'()-]+)/);
       let code = m[1];
       try {
         code = decodeURIComponent(code.replace(/\+/g, ' '));
@@ -2212,7 +2213,8 @@
       return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null };
     }
     const code = t.toLowerCase(),
-      meu = meusEventos().find((e) => e.code === code || e.nome.trim().toLowerCase() === code);
+      evs = meusEventos(),
+      meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
     return { code: meu ? meu.code : code, quem: null };
   }
   async function enterRoom(code) {

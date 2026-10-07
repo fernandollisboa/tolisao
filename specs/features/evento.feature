@@ -74,13 +74,11 @@ Funcionalidade: Entrar no evento
 
   Cenário: o nome de um evento da lista abre ele, sem criar outro igual
     O link do evento ganha um final sorteado, mas o que a pessoa lembra é o nome.
-    Dado que eu abro o site sem evento
+    Dado que este aparelho já abriu o evento "praia" pelo link "praia-k7f3q9"
+    E que eu abro o site sem evento
     Quando eu digito o código "praia"
-    E eu crio o evento
-    E eu abro o site sem código
-    E eu digito o código "praia"
-    Então o endereço é "?evento=praia-" com um final sorteado
-    E o site não pergunta nada
+    Então o endereço termina em "?evento=praia-k7f3q9"
+    E o nome do evento no cabeçalho é "praia"
 
   Cenário: o link pode dizer quem vai abrir
     Dado o evento "churras" com Fernando, Júlia e Lia

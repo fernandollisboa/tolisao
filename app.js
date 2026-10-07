@@ -1895,14 +1895,16 @@
    * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
   const CHUVA = [
-    // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor
+    // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor (as da ficha do rodapé)
     [8, 34, 11, -2, 40, 500, ''],
     [78, 46, 14, -9, -60, -300, 'quite'],
-    [30, 28, 12, -5, 30, 700, ''],
+    [30, 28, 12, -5, 30, 700, 'recebe'],
     [60, 40, 16, -12, -40, -500, ''],
-    [90, 30, 10, -1, -30, 400, ''],
-    [18, 52, 15, -7, 50, -720, ''],
+    [90, 30, 10, -1, -30, 400, 'deve'],
+    [18, 52, 15, -7, 50, -720, 'quite'],
     [46, 24, 13, -3, 20, 360, ''],
+    [68, 36, 12, -6, 30, 600, 'recebe'],
+    [36, 44, 17, -14, -50, -400, 'deve'],
   ];
   function estreia() {
     const parada = estreiaRodou || semMovimento(),
@@ -1952,20 +1954,15 @@
     // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
     const intro = chegou
       ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê.<br>sem app, sem cadastro.</div>
-      ${estreia()}
-      <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
-        <div>1. dá um nome pro rolê</div>
-        <div>2. anota quem pagou o quê</div>
-        <div>3. manda no zap e recebe no pix</div>
-      </div>`
+      ${estreia()}`
       : '';
     const lista = evs.length
       ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
       : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome já cria o rolê.'}</p>` : ''}
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome do rolê" required autocapitalize="none"><button class="small">${botao}</button></form>
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome já serve.'}</p>` : ''}
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );

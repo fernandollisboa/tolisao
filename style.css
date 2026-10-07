@@ -613,6 +613,8 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
    sozinha. A ficha é a mesma da diva (.stain), em miniatura. Tudo some com o cartão (mora no #overlayBox) */
 .fichinha{position:absolute;width:var(--s);height:var(--s);box-sizing:border-box;padding:calc(var(--s) * .1);border-radius:50%;--f1:#9a5b00;--f2:#fff8e6;background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);pointer-events:none}
 .fichinha.quite{--f1:#d94f8a;--f2:#ffe3ef}
+.fichinha.recebe{--f1:var(--green);--f2:#dff0e4}
+.fichinha.deve{--f1:var(--red);--f2:#fbe3df}
 /* fixed com z-index negativo: cobre a tela toda, mas pinta atrás do papel */
 .chuva{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
 .chuva .fichinha{top:-70px;left:var(--x);box-shadow:2px 4px 6px rgba(0,0,0,.35);animation:chove var(--t) linear var(--d) infinite}
@@ -625,7 +627,8 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 @keyframes foge{from{transform:rotate(-10deg);opacity:1}to{transform:translate(260px,6px) rotate(900deg);opacity:0}}
 /* a comandinha espera o título chegar no "tô lisa!!!" (.roda): antes disso só a caixa vazia aparece, e o tempo
    de cada passo conta da .roda. O fim dela (3,5 s) é o COMANDA_MS do app.js, quando o título volta a digitar */
-.comandinha{position:relative;max-width:300px;margin:8px auto 12px;padding:6px 12px 8px;border:2px dashed var(--rule);background:#fff8e6;transform:rotate(-1.2deg);pointer-events:none}
+/* sem os passos embaixo: a comanda é que explica o app */
+.comandinha{position:relative;max-width:300px;margin:12px auto 16px;padding:6px 12px 8px;border:2px dashed var(--rule);background:#fff8e6;pointer-events:none}
 .comandinha:not(.roda):not(.parada) .row{opacity:0}
 .comandinha:not(.roda) .row:after{animation:none}
 .comandinha .row{font-size:18px;line-height:1.6}

@@ -1725,12 +1725,24 @@
       return;
     }
     $('#expenseForm button.big').disabled = false;
+    // com o valor digitado, a frase já diz quanto fica pra cada um: quem digitou 90 pra uma
+    // pizza de R$ 90 vê o "R$ 0,30 cada" antes de anotar, e não depois
+    const total = totalDigitado();
     if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
     else if (!among.includes(payer))
-      h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length === 1 ? '' : 'm'} o valor todo a ${nameOf(payer)}.`;
+      h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length === 1 ? '' : 'm'} ${total > 0 ? quinhao(total, among) : 'o valor todo'} a ${nameOf(payer)}.`;
     // a frase fica em cima das abas e só conta como está dividido: quem troca são as abas
     else
-      h.innerHTML = `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length === 1 ? '' : 's'}</u>.`;
+      h.innerHTML =
+        `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length === 1 ? '' : 's'}</u>` +
+        (total > 0 ? `, ${quinhao(total, among)}.` : '.');
+  }
+  /** quanto fica pra cada um: "R$ 30,00 cada", ou "R$ 33,34 e R$ 33,33" quando sobra centavo
+   *  @param {number} total em centavos @param {string[]} ids */
+  function quinhao(total, ids) {
+    const [maior, menor] = [...new Set(Object.values(shares(total, ids)))];
+    if (menor !== undefined) return `${comSifrao(maior)} e ${comSifrao(menor)}`;
+    return ids.length === 1 ? comSifrao(maior) : `${comSifrao(maior)} cada`;
   }
   /** trocar de aba sem tranco: a área de baixo muda de altura devagar (o papel, centrado,
    *  cresce pros dois lados junto) e o que entra aparece deslizando de leve */
@@ -1785,7 +1797,8 @@
     }
     $('#expenseForm button.big').disabled = !(total > 0 && resta === 0);
   }
-  $('#amount').addEventListener('input', atualizaFalta);
+  // o valor muda a frase de quanto fica pra cada um (e, nas partes diferentes, o quanto falta)
+  $('#amount').addEventListener('input', updateHint);
   document.addEventListener('input', (ev) => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta();

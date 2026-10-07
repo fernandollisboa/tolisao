@@ -41,12 +41,7 @@ Funcionalidade: Meus eventos
     E eu toco no nome do evento
     Então o cartão mostra:
       """
-      *** EVENTO ***
-      CÓDIGO
-      praia
-      ENTRA QUEM TEM
-      o link
-      MOSTRAR QR
+      TÔ LISA
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA
@@ -63,6 +58,8 @@ Funcionalidade: Meus eventos
       *** OUTRO EVENTO ***
       ENTRAR
       + CRIAR OUTRO PRAIA
+      COPIAR LINK DO EVENTO
+      MOSTRAR QR
       VOLTAR
       """
     E o saldo do "praia" é verde

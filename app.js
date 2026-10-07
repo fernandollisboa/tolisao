@@ -1,7 +1,7 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
 /** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, byId?: string, shares?: Record<string, number> }} Expense */
-/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, byId?: string, goneAt: number, to?: string }} Gone */
+/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, byId?: string, goneAt: number, to?: string, lostTo?: string }} Gone */
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
@@ -278,7 +278,8 @@
         }
         return o;
       });
-    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição
+    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição;
+    // `lostTo` marca a edição que perdeu pra outra feita ao mesmo tempo, e diz qual ganhou
     const gone = (Array.isArray(d.gone) ? d.gone : [])
       .filter((g) => g && okId(g.id) && Number.isFinite(+g.amount))
       .map((g) => {
@@ -292,6 +293,7 @@
         };
         if (okId(g.byId)) o.byId = g.byId;
         if (okId(g.to)) o.to = g.to;
+        if (okId(g.lostTo)) o.lostTo = g.lostTo;
         return o;
       });
     return {
@@ -328,16 +330,31 @@
       return m;
     };
     // editar troca o item por outro (`to`): dois aparelhos editando o mesmo item deixam dois
-    // substitutos. Vale a edição mais nova, e o outro substituto sai também, senão o gasto conta duas vezes
+    // substitutos. Vale a edição mais nova, e o outro substituto sai também, senão o gasto conta duas vezes.
+    // O que saiu fica no `gone` com `lostTo`: quem editou vê que a edição dela não valeu
     const gone = new Map();
+    const todos = [...a.expenses, ...b.expenses];
     for (const g of [...a.gone, ...b.gone]) {
       if (!deleted.has(g.id)) continue;
       const o = gone.get(g.id);
       if (!o) gone.set(g.id, g);
       else if (o.to && g.to && o.to !== g.to) {
         const novo = g.goneAt > o.goneAt || (g.goneAt === o.goneAt && g.to > o.to); // empate: os dois aparelhos escolhem igual
-        gone.set(g.id, novo ? g : o);
-        deleted.add(novo ? o.to : g.to);
+        const [ganhou, perdeu] = novo ? [g, o] : [o, g];
+        gone.set(g.id, ganhou);
+        deleted.add(perdeu.to);
+        const e = todos.find((x) => x.id === perdeu.to);
+        if (e && !gone.has(e.id))
+          gone.set(e.id, {
+            id: e.id,
+            desc: e.desc,
+            amount: e.amount,
+            at: e.at,
+            by: perdeu.by,
+            ...(perdeu.byId ? { byId: perdeu.byId } : {}),
+            goneAt: perdeu.goneAt,
+            lostTo: ganhou.to,
+          });
       }
     }
     // quem está num gasto não sai da turma: o ✕ só olha este aparelho, e outro pode ter
@@ -893,9 +910,13 @@
     let tok = (room().pixTokens || {})[pid];
     if (typeof tok !== 'string' || !tok) {
       const novo = (tok = sorteia(32));
-      mexe(roomKey(groupId), (o) => {
+      // sem o tok no aparelho, a chave que subir fica presa pra sempre: aparelho cheio não manda nada
+      const gravou = mexe(roomKey(groupId), (o) => {
         (o.pixTokens ||= {})[pid] = novo;
       });
+      if (!gravou) return toast('Sem espaço neste aparelho: a chave não salvou');
+      // o primeiro tok pede pro navegador não limpar o aparelho sozinho, que leva o tok junto
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     }
     try {
       const r = await noBanco(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
@@ -1243,7 +1264,7 @@
   function renderCabecalho(hasMe, bal, allEven) {
     $('#roomLabel').textContent = evento() || '—';
     document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
-    $('#roomLabel').onclick = showRoom;
+    $('#roomLabel').onclick = () => showGate();
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
     const wl = $('#whoLine'),
       sug = hasMe ? null : palpite();
@@ -1595,18 +1616,34 @@
         .join('') || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll');
     tg.classList.toggle('hidden', all.length <= 10);
-    // os apagados ficam recolhidos no fim: a lista não se enche de risco, e "cadê a janta?" está a um toque
+    // os apagados ficam recolhidos no fim: a lista não se enche de risco, e "cadê a janta?" está a um toque.
+    // A edição que perdeu pra outra feita ao mesmo tempo fica junto, dizendo de quem era e qual valeu
     const gone = state.gone.filter((g) => !g.to).reverse();
+    const sobrescritas = gone.filter((g) => g.lostTo).length,
+      apagados = gone.length - sobrescritas;
     const dia = (t) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const deQuem = (g) => (autorNome(g) ? ` de ${autorHtml(g)}` : '');
+    /** @param {Gone} g */
+    const porQue = (g) => {
+      if (!g.lostTo) return `apagado${autorNome(g) ? ` por ${autorHtml(g)}` : ''}`;
+      const ganhou = state.gone.find((x) => x.to === g.lostTo);
+      return `edição${deQuem(g)}, sobrescrita ${ganhou ? `pela${deQuem(ganhou)}` : 'por outra'}`;
+    };
+    const resumo = [
+      apagados ? `${apagados} ${apagados === 1 ? 'item apagado' : 'itens apagados'}` : '',
+      sobrescritas ? `${sobrescritas} ${sobrescritas === 1 ? 'edição sobrescrita' : 'edições sobrescritas'}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
     $('#gone').innerHTML = gone.length
-      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${gone.length} ${gone.length === 1 ? 'item apagado' : 'itens apagados'}</a></div>` +
+      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${resumo}</a></div>` +
         (showGone
           ? gone
               .map(
                 (g) =>
                   `<div class="item apagado" data-gone="${g.id}">` +
                   linha(esc(g.desc), reais(centavos(g))) +
-                  `<div class="small"><span>apagado${autorNome(g) ? ` por ${autorHtml(g)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
+                  `<div class="small"><span>${porQue(g)} · ${dia(g.goneAt)}</span></div></div>`,
               )
               .join('')
           : '')
@@ -1973,12 +2010,16 @@
       f.addEventListener('animationend', () => f.remove(), { once: true });
     }
   }
+  /** a tela inicial e o cartão do evento são o mesmo cartão: Meus eventos com ✕ e o campo pra outro.
+   * Sem evento aberto ele é a tela (não fecha); com evento aberto (toque no nome dele) ganha o copiar
+   * link e o voltar, e o evento aberto vem marcado na lista */
   function showGate(msg) {
-    $('#app').classList.add('loading', 'nospin');
+    const aberto = !!groupId;
+    if (!aberto) $('#app').classList.add('loading', 'nospin');
     // quem já tem evento neste aparelho cai na lista; o convite e o foco no campo são pra quem chega
     const evs = meusEventos(),
       botao = evs.length ? 'Entrar' : 'Bora';
-    const chegou = !msg && !evs.length;
+    const chegou = !msg && !evs.length && !aberto;
     // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
     const intro = chegou
       ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê.<br>sem app, sem cadastro.</div>
@@ -1991,10 +2032,28 @@
     overlay(
       `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
-      <p id="gateErr" class="status err" style="margin:0"></p>`,
-      true,
+      <p id="gateErr" class="status err" style="margin:0"></p>${
+        aberto
+          ? `<div class="c"><button id="evNovo" class="ghost">+ criar outro ${esc(evento())}</button></div>
+      <div class="hr"></div><button id="evLink" class="sec">copiar link do evento</button>
+      <div class="c"><button id="evQr" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
+      <div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>`
+          : ''
+      }`,
+      !aberto,
     );
-    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
+    if (aberto) {
+      $('#evBack').onclick = closeOverlay;
+      $('#evLink').onclick = () => $('#shareBtn').click();
+      // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
+      $('#evQr').onclick = mostraQr;
+      // o nome de um evento da lista abre ele: quem faz churras todo mês cria o próximo daqui,
+      // com o mesmo nome. O ?novo= cai direto no evento novo, sem procurar o nome na lista nem no banco
+      $('#evNovo').onclick = () => {
+        location.href = location.pathname + '?novo=' + encodeURIComponent(evento());
+      };
+    }
+    if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
     if (chegou) setTimeout(() => $('#overlayBox .comandinha')?.classList.add('roda'), 6000);
     // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o
@@ -2006,6 +2065,14 @@
     atualizaDatas(evs, true, esquece);
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
+      // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto (inclusive o "Criar …?")
+      if (aberto) {
+        const { code, quem } = codigoDoCampo($('#gateCode').value);
+        if (!code) return;
+        if (code === roomName) return closeOverlay();
+        location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
+        return;
+      }
       const btn = ev.target.querySelector('button');
       btn.disabled = true;
       btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
@@ -2436,53 +2503,6 @@
       abreZap(`✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`);
       fecha();
     };
-  }
-  function showRoom() {
-    const evs = meusEventos();
-    overlay(`<h2>*** Evento ***</h2>
-      <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
-      <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">o link</span></div>
-      <div class="c"><button id="evQr" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
-      <div class="hr"></div>
-      ${
-        evs.length
-          ? `<h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}
-      <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
-          : ''
-      }
-      <div class="hr"></div><h2>*** Outro evento ***</h2>
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="gateCode" placeholder="nome do rolê" required autocapitalize="none"><button class="small">entrar</button></form>
-      <div class="c"><button id="evNovo" class="ghost">+ criar outro ${esc(evento())}</button></div>
-      <div class="hr"></div>
-      <button id="evBack" class="sec">voltar</button>`);
-    $('#evBack').onclick = closeOverlay;
-    // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
-    $('#evQr').onclick = mostraQr;
-    // o nome de um evento da lista abre ele: quem faz churras todo mês cria o próximo daqui,
-    // com o mesmo nome. O ?novo= cai direto no evento novo, sem procurar o nome na lista nem no banco
-    $('#evNovo').onclick = () => {
-      location.href = location.pathname + '?novo=' + encodeURIComponent(evento());
-    };
-    // o código é o que se manda no zap: um toque copia
-    $('#evCode').onclick = () =>
-      navigator.clipboard.writeText(roomName).then(
-        () => toast('Código copiado.'),
-        () => showCopy('Código do evento', roomName),
-      );
-    // o mesmo campo da tela inicial: entra (ou cria) outro evento sem voltar pra ela. O endereço
-    // novo carrega o código, e o começo do app faz o resto (inclusive o "Criar …?")
-    $('#gateForm').onsubmit = (ev) => {
-      ev.preventDefault();
-      const { code, quem } = codigoDoCampo($('#gateCode').value);
-      if (!code) return;
-      if (code === roomName) return closeOverlay();
-      location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
-    };
-    /** @param {MeuEvento} e */
-    const esquece = (e) => esqueceEvento(e, showRoom);
-    ligaEventos(evs, esquece);
-    atualizaDatas(evs, true, esquece);
   }
   /** o endereço sem código é a lista de eventos (ou o cartão do código, pra quem nunca entrou em nenhum) */
   function leave() {

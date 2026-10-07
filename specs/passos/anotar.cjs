@@ -119,6 +119,12 @@ Then('o {string} aparece riscado, apagado por {word}', async ({ mundo }, nome, q
   await expect(r.locator('.small')).toContainText(`apagado por ${quem}`);
 });
 Then('o fim da lista diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#goneToggle')).toHaveText(txt); });
+Then('a {string} de {word} aparece riscada: {string}', async ({ mundo }, nome, v, txt) => {
+  const r = mundo.p.locator('#gone .item.apagado').filter({ hasText: nome });
+  await expect(r.locator('.row .l')).toHaveCSS('text-decoration-line', 'line-through');
+  await expect(r.locator('.row .v')).toHaveText(v);
+  await expect(r.locator('.small')).toContainText(txt);
+});
 When('eu abro os itens apagados', async ({ mundo }) => { await mundo.p.click('#goneToggle'); });
 Then('nenhum item aparece riscado', async ({ mundo }) => { await expect(mundo.p.locator('.item.apagado')).toHaveCount(0); });
 Then('o total dos itens fica {word}', async ({ mundo }, v) => { await expect(mundo.p.locator('#total')).toContainText(v); });

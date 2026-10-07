@@ -52,6 +52,7 @@
             "byId": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
             "goneAt": { ".validate": "newData.isNumber()" },
             "to": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "lostTo": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
             "$outro": { ".validate": false }
           }
         },

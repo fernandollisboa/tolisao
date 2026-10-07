@@ -87,8 +87,12 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
   await expect.poll(async () => (await mundo.linhas('#overlayBox')).map(l => l.replace(/\u00a0/g, ' '))).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
 });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
-When('eu toco no código do evento', async ({ mundo }) => { await mundo.p.click('#evCode'); });
-Then('fica copiado {string}', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt); });
+When('eu toco em copiar link do evento', async ({ mundo }) => { await mundo.p.click('#evLink'); });
+When('eu mando pro grupo todo', async ({ mundo }) => { await mundo.p.click('[data-link-pra=""]'); });
+Then('fica copiado o link do evento', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado))
+    .toMatch(new RegExp(`^${mundo.base}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}$`));
+});
 Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toHaveClass(/\bhidden\b/); });
 When('eu toco na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle .empty.anota'); });
 Then('o formulário de anotar abre', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).not.toHaveClass(/\bhidden\b/); });

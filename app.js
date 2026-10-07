@@ -1,7 +1,7 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
-/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, shares?: Record<string, number> }} Expense */
-/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, goneAt: number, to?: string }} Gone */
+/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, byId?: string, shares?: Record<string, number> }} Expense */
+/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, byId?: string, goneAt: number, to?: string }} Gone */
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
@@ -266,6 +266,7 @@
         if (e.kind === 'payment') o.kind = 'payment';
         if (o.kind && e.forgiven === true) o.forgiven = true; // pagamento perdoado: conta igual, carimbo PERDOADO
         if (typeof e.by === 'string') o.by = str(e.by, 30);
+        if (okId(e.byId)) o.byId = e.byId; // quem anotou, pelo id: o `by` em texto fica pro item antigo
         if (e.shares && typeof e.shares === 'object') {
           o.shares = {};
           for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0));
@@ -286,6 +287,7 @@
           by: str(g.by, 30),
           goneAt: +g.goneAt || 0,
         };
+        if (okId(g.byId)) o.byId = g.byId;
         if (okId(g.to)) o.to = g.to;
         return o;
       });
@@ -610,6 +612,16 @@
     const p = state.people.find((q) => q.name === name);
     return p ? nomeHtml(p.id) : esc(name);
   };
+  // quem anotou vale pelo id (`byId`): o nome muda, o id não. Item antigo, ou regravado por um
+  // aparelho de antes do id, só tem o nome em texto (`by`), e aí é pelo nome mesmo
+  /** quem anotou ainda está na turma pelo id @param {Expense | Gone} x */
+  const autorId = (x) => (x.byId && state.people.some((p) => p.id === x.byId) ? x.byId : '');
+  /** foi essa pessoa que anotou @param {Expense | Gone} x @param {string | null} id */
+  const anotouQuem = (x, id) => !!id && (x.byId ? x.byId === id : x.by === nameOf(id));
+  /** o nome de quem anotou, o de hoje @param {Expense | Gone} x */
+  const autorNome = (x) => (autorId(x) ? nameOf(x.byId || '') : x.by || '');
+  /** o nome de quem anotou na cor da pessoa, pronto pra innerHTML @param {Expense | Gone} x */
+  const autorHtml = (x) => (autorId(x) ? nomeHtml(autorId(x)) : nomeHtmlPorNome(x.by || ''));
   // #endregion
   // #region fila das animações
   // ---------- fila das animações ----------
@@ -736,9 +748,9 @@
     const novos = pays.filter((e) => !vistos.has(e.id));
     if (!novos.length && Array.isArray(r.paysSeen)) return;
     setRoom('paysSeen', [...vistos, ...novos.map((e) => e.id)].slice(-200));
-    const pra = novos.filter((e) => me && !e.forgiven && e.among[0] === me && e.payer !== me && e.by !== nameOf(me));
+    const pra = novos.filter((e) => me && !e.forgiven && e.among[0] === me && e.payer !== me && !anotouQuem(e, me));
     // perdão avisa o outro lado: quem devia e ficou quite sem tocar em nada
-    const perdoes = novos.filter((e) => me && e.forgiven && e.payer === me && e.by !== nameOf(me));
+    const perdoes = novos.filter((e) => me && e.forgiven && e.payer === me && !anotouQuem(e, me));
     if (!pra.length && perdoes.length) {
       const credores = [...new Set(perdoes.map((e) => nameOf(e.among[0])))];
       const soma = comSifrao(perdoes.reduce((s, e) => s + centavos(e), 0));
@@ -856,7 +868,7 @@
       pixKeys[me] || minhaChave(),
       'salvar',
       (v) => !!validPixKey(v),
-      '✋ CPF não vale ✋',
+      '✋ CPF não ✋',
     );
     if (k === null) return;
     const key = validPixKey(k);
@@ -1153,8 +1165,7 @@
     );
   }
   /** chegou depois da última visita e foi outra pessoa que anotou */
-  const tagNovo = (e) =>
-    lastSeen > 0 && e.at > lastSeen && (!me || e.by !== nameOf(me)) ? '<span class="tag">novo</span>' : '';
+  const tagNovo = (e) => (lastSeen > 0 && e.at > lastSeen && !anotouQuem(e, me) ? '<span class="tag">novo</span>' : '');
   /** uma linha da nota: texto à esquerda, pontinhos, valor à direita (`vat` são atributos a mais no valor) */
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
@@ -1494,7 +1505,7 @@
         const [selo, quando] = e.forgiven ? ['PERDOADO', 'perdoado'] : ['PAGO', 'pago'];
         const carimbo = `<span class="stampbox"><span class="stamp"${desfaz} style="color:${cor};${st.css}" title="${quando} em ${new Date(e.at).toLocaleDateString('pt-BR')}">${selo}</span></span>`;
         const dono = e.forgiven ? e.among[0] : e.payer;
-        const por = e.by && e.by !== nameOf(dono) ? `<div class="small">por ${esc(e.by)}</div>` : '';
+        const por = autorNome(e) && !anotouQuem(e, dono) ? `<div class="small">por ${esc(autorNome(e))}</div>` : '';
         return linha(quem + carimbo, valorHtml(centavos(e)), 'paid' + st.cls, '', `--ri:${cor};${st.rd}`) + por;
       })
       .join('');
@@ -1521,8 +1532,8 @@
             }
           }
           const by =
-            e.by && e.by !== nameOf(e.payer) ? `<span class="by"> · anotado por ${nomeHtmlPorNome(e.by)}</span>` : '';
-          const meu = me && (e.by ? e.by === nameOf(me) : e.payer === me);
+            autorNome(e) && !anotouQuem(e, e.payer) ? `<span class="by"> · anotado por ${autorHtml(e)}</span>` : '';
+          const meu = e.byId || e.by ? anotouQuem(e, me) : !!me && e.payer === me;
           const botoes = meu
             ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
             : '';
@@ -1547,7 +1558,7 @@
                 (g) =>
                   `<div class="item apagado" data-gone="${g.id}">` +
                   linha(esc(g.desc), reais(centavos(g))) +
-                  `<div class="small"><span>apagado${g.by ? ` por ${nomeHtmlPorNome(g.by)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
+                  `<div class="small"><span>apagado${autorNome(g) ? ` por ${autorHtml(g)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
               )
               .join('')
           : '')
@@ -2550,6 +2561,7 @@
       amount: e.amount,
       at: e.at,
       by: me ? nameOf(me) : '',
+      ...(me ? { byId: me } : {}),
       goneAt: Date.now(),
       ...(to ? { to } : {}),
     });
@@ -2601,6 +2613,7 @@
       among,
       at: Date.now(),
       by: me ? nameOf(me) : undefined,
+      byId: me || undefined,
     };
     if (splitMode === 'custom') {
       const sh = customShares();
@@ -2740,6 +2753,7 @@
       among: [to],
       at: Date.now(),
       by: me ? nameOf(me) : undefined,
+      byId: me || undefined,
       forgiven: modo === 'perdoa' || undefined,
     });
     if (modo !== 'paguei') {

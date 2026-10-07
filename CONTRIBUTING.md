@@ -67,4 +67,6 @@ a `main` é protegida: branch → PR → check `test` verde → merge. PR que re
 
 firebase no plano gratuito, por REST direto do navegador. as regras tão no `database.rules.json`, e uma não se negocia: **o `.read` fica dentro do `$room`, nunca em `rooms`**, senão um `GET /rooms.json` baixa o banco inteiro.
 
+mudou o `database.rules.json` na `main`, o `.github/workflows/regras.yml` publica sozinho com a conta de serviço do secret `FIREBASE_SA` (nunca no repositório). regra nova tem que aceitar o app que já está no ar: as duas sobem juntas.
+
 o `visitas/<dia>` conta aparelhos por dia (`CONTA_VISITAS`): só aceita um `.sv increment` de +1, não tem `.read` e não deixa apagar. o número se lê no console do firebase. o `npm run regras` confere ("visitas só se soma").

@@ -31,6 +31,7 @@
             "kind": { ".validate": "newData.val() === 'payment'" },
             "forgiven": { ".validate": "newData.val() === true && newData.parent().child('kind').val() === 'payment'" },
             "by": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "byId": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
             "shares": {
               "$p": { ".validate": "$p.matches(/^[a-z0-9]{1,32}$/) && newData.isNumber() && newData.val() >= 0" }
             },
@@ -48,6 +49,7 @@
             "amount": { ".validate": "newData.isNumber() && newData.val() > -10000000000 && newData.val() < 10000000000" },
             "at": { ".validate": "newData.isNumber()" },
             "by": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "byId": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
             "goneAt": { ".validate": "newData.isNumber()" },
             "to": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
             "$outro": { ".validate": false }

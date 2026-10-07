@@ -57,6 +57,13 @@ Funcionalidade: Acertar as contas
     E Minha conta diz "eu devo" R$ 67,84
     E o pagamento "Lia → Fernando" está carimbado "PAGO"
 
+  Cenário: quitar é pagar tudo; com menos, o cartão vira pagar uma parte
+    Quando eu abro o evento como Lia
+    E eu toco no paguei da primeira linha de Minha conta
+    Então o cartão pergunta "Quitar?" com o botão "quitei"
+    Quando eu troco o valor por R$ 50,00
+    Então o cartão pergunta "Pagar uma parte?" com o botão "paguei"
+
   Cenário: desfazer um pagamento
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta

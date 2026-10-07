@@ -654,9 +654,11 @@ button.qrmini svg{width:13px;height:13px}
 .fichinha.recebe{--f1:var(--green);--f2:#dff0e4}
 .fichinha.deve{--f1:var(--red);--f2:#fbe3df}
 /* fixed com z-index negativo: cobre a tela toda, mas pinta atrás do papel */
-.chuva{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.chuva .fichinha{top:-70px;left:var(--x);box-shadow:2px 4px 6px rgba(0,0,0,.35);animation:chove var(--t) linear var(--d) infinite}
-@keyframes chove{from{transform:translate(0,0) rotate(0)}to{transform:translate(var(--vx),calc(100vh + 140px)) rotate(var(--r))}}
+.fichinha.ouro{--f1:#c8961a;--f2:#fff4cc}
+/* só transform anima (roda fora da thread principal) e o contain isola a chuva do resto da página: é enfeite, não pode pesar */
+.chuva{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;contain:strict;perspective:600px}
+.chuva .fichinha{top:0;left:calc(var(--x) - var(--s) / 2);opacity:var(--op);box-shadow:2px 4px 6px rgba(0,0,0,.35);will-change:transform;animation:chove var(--t) linear var(--d) infinite}
+@keyframes chove{from{transform:translate(0,calc(-100% - 10px)) rotate(0) rotateY(0)}to{transform:translate(var(--vx),calc(100vh + 10px)) rotate(var(--r)) rotateY(var(--ry))}}
 @media (prefers-reduced-motion:reduce){.chuva{display:none}}
 .fichinha.ponto{--s:18px;z-index:3;margin:var(--pt,.55em) 0 0 calc(-1ch - 6px);--dx:0px;--dy:0px;--vx:160px;--vy:-90px;--rot:-10deg;animation:jogada .85s linear both}
 /* quando o espaço do ponto sai, o título recentra: a ficha acompanha o fim do texto em vez de ficar em cima do A */

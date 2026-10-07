@@ -2041,33 +2041,57 @@
    * e o título espera ela acabar (`rodaComanda`). Roda uma vez por página: o cartão volta depois de
    * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
+  // a chuva copia o telão do BaianaSystem em Magnata, devagar: três camadas, atrás miúdas e lentas,
+  // na frente grandes, rápidas e desfocadas. Quantas, tamanho em px, segundos pra cruzar a tela, desfoque em px, opacidade
+  /** @type {[number, [number, number], [number, number], number, number][]} */
   const CHUVA = [
-    // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor (as da ficha do rodapé)
-    [8, 34, 11, -2, 40, 500, ''],
-    [78, 46, 14, -9, -60, -300, 'quite'],
-    [30, 28, 12, -5, 30, 700, 'recebe'],
-    [60, 40, 16, -12, -40, -500, ''],
-    [90, 30, 10, -1, -30, 400, 'deve'],
-    [18, 52, 15, -7, 50, -720, 'quite'],
-    [46, 24, 13, -3, 20, 360, ''],
-    [68, 36, 12, -6, 30, 600, 'recebe'],
-    [36, 44, 17, -14, -50, -400, 'deve'],
+    [18, [14, 24], [18.9, 24.4], 0, 0.55],
+    [20, [30, 46], [11.1, 14.4], 0, 1],
+    [6, [78, 120], [5.6, 7.8], 2.5, 1],
   ];
+  const CORES_CHUVA = ['', 'quite', 'ouro', 'deve']; // âmbar, rosa, dourada e vermelha
+  /** as fichas da chuva, sempre as mesmas (sorteio de semente fixa): o preview não muda à toa */
+  function fichasDaChuva() {
+    // tela larga espalha as mesmas fichas e a chuva fica rala: até o dobro delas no desktop
+    const mais = Math.min(2, Math.max(1, innerWidth / 600));
+    let semente = 7;
+    const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+    const entre = (/** @type {[number, number]} */ [a, b]) => a + r() * (b - a);
+    return CHUVA.flatMap(([quantas, tam, seg, blur, op], k) => {
+      const n = Math.round(quantas * mais);
+      return Array.from({ length: n }, (_, i) => {
+        const s = Math.round(entre(tam)),
+          t = entre(seg),
+          x = ((i + r()) / n) * 100,
+          d = -r() * t,
+          vx = Math.round((r() - 0.5) * 40),
+          giro = Math.round((r() - 0.5) * 400),
+          // as do fundo não viram de lado: de perfil, miúdas, viram um risquinho
+          vira = k && r() < 0.4 ? 360 : 0,
+          cor = CORES_CHUVA[Math.floor(r() * CORES_CHUVA.length)];
+        return `<img class="fichinha ${cor}" src="diva.png" alt="" style="--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}${blur ? `;filter:blur(${blur}px)` : ''}">`;
+      });
+    }).join('');
+  }
+  /** a chuva é enfeite: entra vazia e só enche quando o navegador folga, pra não atrasar o cartão */
+  function chove() {
+    const enche = () => {
+      const c = $('#overlayBox .chuva');
+      if (c && !c.childElementCount) c.innerHTML = fichasDaChuva();
+    };
+    if ('requestIdleCallback' in window) requestIdleCallback(enche, { timeout: 1500 });
+    else setTimeout(enche, 300);
+  }
   function estreia() {
     const parada = estreiaRodou || semMovimento(),
       // mesma conta do digitaTitulo: sem título digitando, a comanda não espera por ele
       digita = visitas === 1 && !tituloJaAnimou && !semMovimento();
     estreiaRodou = true;
-    const chuva = semMovimento()
-      ? ''
-      : `<div class="chuva" aria-hidden="true">${CHUVA.map(
-          ([x, s, t, d, vx, r, c]) =>
-            `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
-        ).join('')}</div>`;
+    const chuva = semMovimento() ? '' : '<div class="chuva" aria-hidden="true"></div>';
     return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' roda'}" aria-hidden="true">
-      <div class="row f1"><span class="l">francisquinha pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
-      <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">teobaldo deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
-      <div class="row f3"><span class="l">beleleuson deve</span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f1"><span class="l"><span class="nm" style="color:${corDe(0)}">francisquinha</span> pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
+      <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n"><span class="nm" style="color:${corDe(1)}">teobaldo</span> deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f3"><span class="l"><span class="nm" style="color:${corDe(2)}">beleleuson</span> deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
   }
   /** solta a comandinha e avisa quando ela termina (o tempo é o da última animação dela no style.css) */
@@ -2133,6 +2157,7 @@
       $('#evQr').onclick = mostraQr;
     }
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
+    if (chegou) chove();
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
     if (chegou) setTimeout(() => $('#overlayBox .comandinha')?.classList.add('roda'), 6000);
     // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o

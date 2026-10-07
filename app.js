@@ -1010,10 +1010,10 @@
   };
   const postaApi = (rota, corpo) => fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo) });
   let mexendoAviso = false;
-  /** o 🔔 de Minha conta: desligado, pede permissão e inscreve; ligado, desliga */
+  /** o 🔔 de Minha conta: pede permissão e inscreve (ligado, o botão some) */
   async function tocaAviso() {
     if (!me || !groupId || mexendoAviso) return;
-    if (avisoLigado()) return desligaAviso();
+    if (avisoLigado()) return;
     const quem = me,
       sala = groupId;
     mexendoAviso = true;
@@ -1047,28 +1047,7 @@
       mexendoAviso = false;
     }
   }
-  async function desligaAviso() {
-    if (!(await ask('Desligar os avisos?', 'Quando te pagarem, nada chega no celular.', 'desligar'))) return;
-    const quem = me,
-      sala = groupId;
-    mexendoAviso = true;
-    try {
-      const reg = await navigator.serviceWorker.ready,
-        sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        const r = await postaApi('/desinscreve', { sala, pessoa: quem, endpoint: sub.endpoint, tok: pushTok() });
-        if (!r.ok && r.status !== 403) throw new Error(`HTTP ${r.status}`);
-      }
-      await avisosDb('readwrite', (s) => s.delete(sala));
-      setRoom('pushOn', undefined);
-      render();
-      toast('Avisos desligados');
-    } catch {
-      toast('Não deu pra desligar agora');
-    } finally {
-      mexendoAviso = false;
-    }
-  }
+
   // #endregion
   // #region a nota (render)
   // ---------- a nota (render) ----------
@@ -1409,10 +1388,11 @@
       quem.join('') +
       (bal > 0 && temAviso() ? botaoAviso() : '');
   }
-  /** o 🔔 no pé de Minha conta, só pra quem recebe: liga o aviso no celular, e ligado vira um desligar discreto */
+  /** o 🔔 no pé de Minha conta, só pra quem recebe e ainda não ligou: ligado, some (quem quiser
+   *  desligar desliga nas notificações do próprio navegador) */
   const botaoAviso = () =>
     avisoLigado()
-      ? '<div class="aviso"><button class="ico ligado" data-aviso title="desligar os avisos">🔔 avisos ligados</button></div>'
+      ? ''
       : '<div class="aviso"><button class="ico" data-aviso title="avisar no celular">🔔 me avisa quando pagarem</button></div>';
   /** Minha conta pega a vez assim que chega na tela, sem esperar a chave do pix (senão o
    *  Falta pagar tomava a frente). A fila só segura o começo das piscadas: quem vem depois

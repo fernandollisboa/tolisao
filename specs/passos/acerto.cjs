@@ -34,6 +34,7 @@ const quita = async (p, fecha, valor) => {
   await p.click('#mineRows [data-settle]'); if (valor) await p.fill('#quitaValor', valor); await p.click('#okBtn'); await p.click(fecha);
 };
 When('eu toco no paguei da primeira linha de Minha conta', async ({ mundo }) => { await mundo.p.click('#mineRows [data-settle]'); });
+Then('o cartão diz {string}', async ({ mundo }, frase) => { await expect(mundo.p.locator('#overlayBox .recado')).toContainText(frase); });
 When('eu troco o valor por R$ {num}', async ({ mundo }, valor) => { await mundo.p.fill('#quitaValor', valor.toFixed(2)); });
 Then('o cartão pergunta {string} com o botão {string}', async ({ mundo }, titulo, botao) => {
   await expect(mundo.p.locator('#overlayBox h2')).toHaveText(titulo);

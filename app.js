@@ -2994,12 +2994,12 @@
     const r = el.getBoundingClientRect();
     const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
     // quem paga escolhe quanto: "te mando 50 agora e o resto sexta". Vem com o total, na máscara do anotar
-    // quitar é pagar tudo: com menos que o total, o cartão vira "pagar uma parte"
+    // quitar é pagar tudo: com menos que o total, o cartão vira "pagar"
     const total = cents;
     const pergunta = () => {
       const p = ask(
         'Quitar?',
-        `${nomeHtml(from)} pagou pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>`,
+        `${nomeHtml(from)} pagou <b id="quitaFrase" style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>`,
         'quitei',
       );
       const cx = /** @type {HTMLInputElement} */ ($('#quitaValor'));
@@ -3007,7 +3007,8 @@
       const ajusta = () => {
         cx.style.width = Math.max(cx.value.length, 4) + 'ch';
         const parte = cents > 0 && cents < total;
-        $('#overlayBox h2').textContent = parte ? 'Pagar uma parte?' : 'Quitar?';
+        $('#overlayBox h2').textContent = parte ? 'Pagar?' : 'Quitar?';
+        $('#quitaFrase').textContent = comSifrao(cents);
         $('#okBtn').textContent = parte ? 'paguei' : 'quitei';
       };
       ajusta();

@@ -2711,8 +2711,16 @@
     const velho = editando && state.expenses.find((x) => x.id === editando);
     // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
     if (!editando) {
+      // o banco tem prazo: com a rede engasgada, confere com o que já chegou e anota (o sync mescla depois)
+      const botao = /** @type {HTMLButtonElement} */ ($('#expenseForm button.big'));
       conferindo = true;
-      await sync().finally(() => (conferindo = false));
+      botao.disabled = true;
+      botao.textContent = 'conferindo…';
+      await Promise.race([sync(), new Promise((r) => setTimeout(r, 1500))]);
+      conferindo = false;
+      botao.disabled = false;
+      botao.textContent = 'Anotar';
+      if ($('#sheet').classList.contains('hidden')) return; // fechou o anotar enquanto conferia: desistiu
       const ja = jaAnotado(exp);
       if (ja) {
         const autor = autorNome(ja) ? `, anotado por ${autorHtml(ja)}` : '';

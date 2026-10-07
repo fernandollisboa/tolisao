@@ -121,8 +121,7 @@ Funcionalidade: Entrar no evento
     Dado o evento "praia" com Lia
     E que meu celular deixa o site manter a tela acesa
     Quando eu abro o evento como Lia
-    E eu toco no nome do evento
-    E eu peço o QR no cartão do evento
+    E eu peço o QR do evento
     Então o QR na tela abre o evento direto
     E a tela fica acesa
     Quando eu fecho o QR
@@ -163,27 +162,20 @@ Funcionalidade: Entrar no evento
     E o endereço termina em "?evento=churras"
 
   Cenário: o cartão do evento é a tela inicial, com o evento aberto marcado
-    Quem entra é quem tem o link: o cartão não mostra código, só copia o link.
+    O link e o QR ficam no compartilhar: o cartão é só pra trocar de evento.
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia
     E eu toco no nome do evento
     Então o cartão mostra:
       """
       TÔ LISA
-      *** EVENTO ***
-      ENTRA QUEM TEM
-      o link
-      SEM ZAP, SEM DESCULPA
-      QR
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite
       ✕
       sou Lia · 3 pessoas
       agora
-      o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      qualquer nome cria o evento.
       BORA
       VOLTAR
       """
@@ -193,11 +185,12 @@ Funcionalidade: Entrar no evento
     Então o cartão de quem é você já vem com Lia escolhida
     E o cartão de quem é você não tem botão de sair
 
-  Cenário: o cartão do evento copia o link, não o código
+  Cenário: antes do primeiro gasto, compartilhar já copia o link
+    Sem gasto ainda não tem comanda pra mandar, mas a turma já pode entrar.
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia
-    E eu toco no nome do evento
-    E eu toco no link do cartão do evento
+    E eu toco em compartilhar
+    E eu mando pro grupo todo
     Então fica copiado o link do evento
 
   Cenário: no caderno em branco, a caixa abre o anotar

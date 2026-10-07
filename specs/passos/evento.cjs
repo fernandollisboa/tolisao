@@ -97,7 +97,7 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
   await expect.poll(async () => (await mundo.linhas('#overlayBox')).map(l => l.replace(/\u00a0/g, ' '))).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
 });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
-When('eu toco no link do cartão do evento', async ({ mundo }) => { await mundo.p.click('#evLink'); });
+When('eu toco em compartilhar', async ({ mundo }) => { await mundo.p.click('#waBtn'); });
 When('eu mando pro grupo todo', async ({ mundo }) => { await mundo.p.click('[data-link-pra=""]'); });
 Then('fica copiado o link do evento', async ({ mundo }) => {
   await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado))
@@ -265,9 +265,8 @@ When('eu colo o link do evento pra {word} na mesma aba', async ({ mundo }, quem)
 });
 When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre({ link: mundo.base + '/' + q }); await mundo.p.waitForSelector('#app:not(.loading)'); });
 
-// o QR do link do grupo, do "Mandar pra quem?" ou do cartão do evento: o SVG da tela vira imagem e passa pelo leitor
-When('eu peço o QR do evento', async ({ mundo }) => { await mundo.p.click('#waBtn'); await mundo.p.click('#qrBtn'); });
-When('eu peço o QR no cartão do evento', async ({ mundo }) => { await mundo.p.click('#evQr'); await mundo.p.waitForSelector('#overlayBox .qr svg'); });
+// o QR do link do grupo, do "Mandar pra quem?": o SVG da tela vira imagem e passa pelo leitor
+When('eu peço o QR do evento', async ({ mundo }) => { await mundo.p.click('#waBtn'); await mundo.p.click('#qrBtn'); await mundo.p.waitForSelector('#overlayBox .qr svg'); });
 When('eu fecho o QR', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
 // o link curto, sem a pasta do preview do zap (semverba, sextou, fiado): o index.html abre o evento direto
 const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\?evento=${mundo.evento.name}$`);

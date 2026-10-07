@@ -1372,7 +1372,7 @@
     $('#fab').classList.toggle('hidden', !hasMe); // anotar é de quem já disse quem é
     $('#fab').classList.add('chamando'); // o ✎ fica âmbar o tempo todo
     $('#waBtn').classList.toggle('so', !hasMe); // sozinho o zap encosta na esquerda
-    $('#waBtn').classList.toggle('hidden', vazio); // nota vazia não tem o que mandar
+    // o compartilhar vem desde a nota vazia: sem comanda ainda, mas com o link e o QR, que a turma da mesa usa logo
     // a ficha só entra em nota que já tem gasto. A cor é a situação: deve (vermelho),
     // recebe (verde), quite (rosa); sem nome, âmbar
     const f = $('.stain');
@@ -2151,8 +2151,8 @@
     }
   }
   /** a tela inicial e o cartão do evento são o mesmo cartão: Meus eventos com ✕ e o campo pra outro.
-   * Sem evento aberto ele é a tela (não fecha); com evento aberto (toque no nome dele) ganha o copiar
-   * link e o voltar, e o evento aberto vem marcado na lista */
+   * Sem evento aberto ele é a tela (não fecha); com evento aberto (toque no nome dele) ganha o voltar,
+   * e o evento aberto vem marcado na lista. O link e o QR ficam no botão de compartilhar */
   function showGate(msg) {
     const aberto = !!groupId;
     if (!aberto) $('#app').classList.add('loading', 'nospin');
@@ -2165,31 +2165,20 @@
       ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê.<br>sem app, sem cadastro.</div>
       ${estreia()}`
       : '';
-    const lista = evs.length
-      ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}
-      <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
-      : '';
+    const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${
-        aberto
-          ? `<div class="hr"></div><h2>*** Evento ***</h2>
-      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
-      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">sem zap, sem desculpa</span><span class="d"></span><span class="v"><button id="evQr" class="qrmini" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}QR</button></span></div>`
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
+        msg || !evs.length
+          ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome serve!'}</p>`
           : ''
-      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || (evs.length ? 'qualquer nome cria o evento.' : 'qualquer nome serve!')}</p>
+      }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }${ofereceApagar() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
       !aberto,
     );
-    if (aberto) {
-      $('#evBack').onclick = closeOverlay;
-      // o link do grupo vai direto pra área de copiar: o "Mandar pra quem?" segue no botão de compartilhar
-      $('#evLink').onclick = () => copia(shareUrl(), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
-      // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
-      $('#evQr').onclick = mostraQr;
-    }
+    if (aberto) $('#evBack').onclick = closeOverlay;
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     if (chegou) chove();
     trocaExemplo($('#gateCode'));
@@ -3743,16 +3732,20 @@
     else abreZap(msg, tel);
   }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
+   * Sozinho no evento, fica só o grupo e o QR: é logo na criação que a turma da mesa precisa entrar.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
   function linkPraQuem() {
     const outros = state.people.filter((p) => p.id !== me);
-    if (!outros.length) return Promise.resolve('');
     return new Promise((res) => {
       overlay(
         `<h2 class="pergunta">Mandar pra quem?</h2>
       <div class="grupo"><button class="big" data-link-pra="">${ELO_ICONE}pro grupo todo</button><button id="qrBtn" class="qrbtn" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}</button></div>
-      <div class="c muted linkou">ou só pra:</div>
-      ${linkpras(outros, 'link-pra')}
+      ${
+        outros.length
+          ? `<div class="c muted linkou">ou só pra:</div>
+      ${linkpras(outros, 'link-pra')}`
+          : ''
+      }
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);
@@ -3794,17 +3787,6 @@
     $('#cancelBtn').focus(); // o botão que tinha o foco sumiu com o cartão anterior
     acendeTela();
   }
-  $('#shareBtn').onclick = async () => {
-    const quem = await linkPraQuem();
-    if (quem === null) return;
-    const url = shareUrl(quem);
-    try {
-      await navigator.clipboard.writeText(url);
-      toast('Link copiado. Quem abrir cai neste evento.');
-    } catch {
-      showCopy('Link do evento', url);
-    }
-  };
   function summaryText(quem = '') {
     const st = settlements(balances());
     const ev = evento() || 'acerto';
@@ -4093,6 +4075,9 @@
     const btn = $('#waBtn');
     const quem = await linkPraQuem();
     if (quem === null) return;
+    // sem gasto não tem comanda: vai só o link
+    if (!state.expenses.length)
+      return copia(shareUrl(quem), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
     const waText = () => abreZap(summaryText(quem));
     btn.disabled = true;
     toast('Gerando a imagem…');
@@ -4414,7 +4399,7 @@
     // Vale o centro da ficha, não a ponta do dedo, e só depois de arrastar de verdade:
     // agarrar e soltar no lugar, ou um arremesso que passa voando por cima, não aperta nada
     const ALVOS =
-      '#itemsHead, [data-settle], [data-pix], [data-copy-value], #fab, #waBtn, #shareBtn, #whoBtn, #roomLabel, #toggleAll';
+      '#itemsHead, [data-settle], [data-pix], [data-copy-value], #fab, #waBtn, #whoBtn, #roomLabel, #toggleAll';
     const ARRASTO = 24; // px do dedo até a ficha passar a mirar
     /** @returns {HTMLElement|null} o botão debaixo do centro da ficha */
     const mirado = () => {

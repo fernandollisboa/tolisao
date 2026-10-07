@@ -41,11 +41,7 @@ Funcionalidade: Meus eventos
     E eu toco no nome do evento
     Então o cartão mostra:
       """
-      *** EVENTO ***
-      CÓDIGO
-      praia
-      ENTRA QUEM TEM
-      o link
+      TÔ LISA
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA
@@ -61,6 +57,7 @@ Funcionalidade: Meus eventos
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      COPIAR LINK DO EVENTO
       VOLTAR
       """
     E o saldo do "praia" é verde

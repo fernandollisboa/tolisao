@@ -60,6 +60,15 @@ When('eu cobro o/a {word} no zap', async ({ mundo }, nome) => {
   await mundo.p.locator('#mineRows .row.sub').filter({ has: mundo.p.locator('.nm', { hasText: nome }) }).locator('[data-cobra]').click();
 });
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
+// as chaves se buscam de novo a cada 30s: o relógio anda até lá com o banco sem responder.
+// Depois da falha a nota se redesenha na hora; os 300ms são folga pra esse redesenho
+When('a rede engasga quando o app busca as chaves pix de novo', async ({ mundo }) => {
+  await mundo.p.locator('#mineRows [data-pix]').waitFor();
+  mundo.banco.pixFora = true;
+  await mundo.p.context().clock.runFor(30000);
+  await expect.poll(() => mundo.banco.pixFalhas || 0).toBeGreaterThan(0);
+  await mundo.p.waitForTimeout(300);
+});
 Then('fica copiado o pix copia e cola:', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt.trim()); });
 
 // enviar pergunta antes pra quem é o link: "qualquer um" é o data-link-pra vazio
@@ -99,6 +108,17 @@ const pagaNoBanco = async (mundo, pagos, extra = {}) => {
   await expect.poll(() => mundo.p.evaluate(([k, ids]) => { const v = JSON.parse(localStorage.getItem(k) || '{}').paysSeen || [];
     return ids.every(i => v.includes(i)); }, [`tolisa:${mundo.sala}`, ids])).toBe(true);
 };
+// a minha nota fica velha: o pagamento entra no banco e ninguém avisa esta aba
+When('o/a {word} paga R$ {num} pro/pra {word} em outro aparelho, antes da minha nota atualizar', async ({ mundo }, quem, valor, pra) => {
+  const sala = mundo.banco.arvore.rooms[mundo.sala];
+  sala.expenses = [...(sala.expenses || []), { id: 'pgfora', kind: 'payment', desc: 'Pagamento', amount: valor,
+    payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: Date.now(), by: quem }];
+});
+Then('o banco tem {int} pagamento(s) da/do {word} pro/pra {word}', async ({ mundo }, n, quem, pra) => {
+  const de = mundo.pessoa(quem).id, para = mundo.pessoa(pra).id;
+  await expect.poll(() => (mundo.banco.arvore.rooms[mundo.sala].expenses || [])
+    .filter(e => e.kind === 'payment' && e.payer === de && e.among[0] === para).length).toBe(n);
+});
 When('o/a {word} paga R$ {num} pro/pra {word} em outro aparelho', async ({ mundo }, quem, valor, pra) => { await pagaNoBanco(mundo, [[quem, pra, valor]]); });
 When('a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho', async ({ mundo }) => {
   await pagaNoBanco(mundo, [['Mengla', 'Fernando', 174.43], ['Klinsmann', 'Fernando', 73.61]]);

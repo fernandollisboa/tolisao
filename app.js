@@ -797,12 +797,15 @@
     const out = {};
     await Promise.all(
       state.people.map(async (p) => {
+        // rede engasgou ou o banco falhou: fica a chave que já tinha. Só some quando o banco diz que não tem
+        if (pixKeys[p.id]) out[p.id] = pixKeys[p.id];
         try {
           const r = await fetch(pixUrl(p.id, '/key'), { cache: 'no-store' });
           if (r.ok) {
             const v = await r.json();
             const k = typeof v === 'string' ? validPixKey(v) : null;
             if (k) out[p.id] = k;
+            else delete out[p.id];
           }
         } catch {}
       }),
@@ -2701,7 +2704,7 @@
   async function quita(el) {
     const modo = el.dataset.perdoa ? 'perdoa' : el.dataset.recebi ? 'recebi' : 'paguei';
     const [from, to, cs] = (el.dataset.perdoa || el.dataset.recebi || el.dataset.settle).split('|');
-    const cents = +cs;
+    let cents = +cs;
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
     const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
@@ -2711,6 +2714,13 @@
         ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
         : ask('Quitar?', `${nomeHtml(from)} pagou ${valor} pra ${nomeHtml(to)}`, 'quitei'));
     if (!certeza) return;
+    // a nota pode estar velha: o outro lado pode já ter marcado do aparelho dele. Baixa o banco
+    // e grava só o que ainda falta, senão o pagamento entra duas vezes e a dívida vira ao contrário
+    await sync();
+    const b = balances();
+    const falta = Math.min(cents, Math.max(0, -(b[from] || 0)), Math.max(0, b[to] || 0));
+    if (!falta) return toast('Já tá quitado');
+    cents = falta;
     const id = uid();
     if (AVISO_PUSH) aAvisar.add(id);
     state.expenses.push({

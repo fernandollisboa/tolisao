@@ -99,6 +99,13 @@ Funcionalidade: Acertar as contas
       00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d5204000053039865406117.845802BR5908FERNANDO6006BRASIL62070503***630476B9
       """
 
+  Cenário: a rede engasga e o copiar pix fica
+    No bar a rede cai toda hora: uma busca que falha não tira da nota a chave que já chegou.
+    Dado que o Fernando tem a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
+    Quando eu abro o evento como Lia
+    E a rede engasga quando o app busca as chaves pix de novo
+    Então os botões da minha linha são "✔ paguei" e "copiar pix"
+
   Cenário: mandar a comanda pro zap
     Dado que o Fernando tem a chave pix "fernando@exemplo.com"
     Quando eu abro o evento como Lia
@@ -161,6 +168,19 @@ Funcionalidade: Acertar as contas
       | Klinsmann | Fernando | 73,61  |
       | Klinsmann | Júlia    | 34,72  |
     E o pagamento "Lia → Fernando" está carimbado "PAGO" por Fernando
+
+  Cenário: quem recebe marca recebi depois de quem deve já ter marcado paguei em outro aparelho
+    A minha nota ainda não sabia do paguei: o recebi não quita de novo, senão quem pagou passa a ter a receber.
+    Quando eu abro o evento como Fernando
+    E a Lia paga R$ 117,84 pro Fernando em outro aparelho, antes da minha nota atualizar
+    E eu marco que recebi da Lia
+    Então aparece o aviso "Já tá quitado"
+    E falta pagar:
+      | quem      | paga pra | valor  |
+      | Mengla    | Fernando | 174,43 |
+      | Klinsmann | Fernando | 73,61  |
+      | Klinsmann | Júlia    | 34,72  |
+    E o banco tem 1 pagamento da Lia pro Fernando
 
   # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar; dívida grande não se perdoa, só se dá baixa
   Cenário: só dívida pequena se perdoa

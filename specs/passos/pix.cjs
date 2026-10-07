@@ -49,7 +49,7 @@ Then('a lista tem {int} item, com o {string} escrito como texto', async ({ mundo
   await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); await expect(mundo.p.locator('#expenses .item .l').first()).toContainText(txt);
 });
 Then('não aparece nenhum botão de copiar pix', async ({ mundo }) => { await expect(mundo.p.locator('[data-pix]')).toHaveCount(0); });
-Then('não aparece nenhuma imagem além da ficha', async ({ mundo }) => { await expect(mundo.p.locator('img:not(.stain)')).toHaveCount(0); });
+Then('não aparece nenhuma imagem além da ficha', async ({ mundo }) => { await expect(mundo.p.locator('img:not(.stain):not(.fichinha)')).toHaveCount(0); });
 // meia letra é o que sobra quando um corte para no meio de um par surrogate: a metade
 // órfã não forma caractere nenhum e a tela desenha �
 Then('nada na tela tem meia letra', async ({ mundo }) => {

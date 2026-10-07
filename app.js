@@ -1795,7 +1795,8 @@
   // É troca de textContent com setTimeout, não animação CSS: um clip-path animado
   // travava num navegador, e setTimeout não depende do relógio de animação.
   let tituloJaAnimou = false;
-  /** @param {HTMLElement | null} el @param {(entrou: boolean) => void} [ponto] avisa quando o ponto final entra e sai */
+  /** @param {HTMLElement | null} el @param {(entrou: boolean, el: HTMLElement) => void} [ponto] o ponto final vira
+   * um espaço do tamanho dele, e quem passou `ponto` desenha o que quiser ali (avisado quando entra e sai) */
   function digitaTitulo(el, ponto) {
     if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
     tituloJaAnimou = true;
@@ -1811,18 +1812,20 @@
       passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
       passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
       passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
-      passos.push({ t: BASE + '.', d: 300 }, { t: BASE, d: 900 }); // acaba num ponto, que some pro título ficar igual ao resto
+      passos.push({ t: BASE + (ponto ? '\u00a0' : '.'), d: 300 }, { t: BASE, d: 900 }); // acaba num ponto, que some pro título ficar igual ao resto
       el.textContent = '';
       el.classList.add('digitando');
       let i = 0;
       const passo = () => {
+        if (!el.isConnected) return; // o cartão trocou: o título novo já nasce parado
         if (i >= passos.length) {
           el.classList.remove('digitando');
           return;
         }
-        const tinha = el.textContent.endsWith('.');
+        const tinha = el.textContent.length > BASE.length && !/[!?]$/.test(el.textContent);
         el.textContent = passos[i].t;
-        if (ponto && tinha !== el.textContent.endsWith('.')) ponto(!tinha);
+        const tem = el.textContent.length > BASE.length && !/[!?]$/.test(el.textContent);
+        if (ponto && tinha !== tem) ponto(tem, el);
         const atraso = passos[i + 1]?.d ?? 90;
         i++;
         setTimeout(passo, atraso);
@@ -1845,31 +1848,37 @@
     [46, 24, 13, -3, 20, 360, ''],
   ];
   function estreia() {
-    const parada = estreiaRodou || semMovimento();
+    const parada = estreiaRodou || semMovimento(),
+      // mesma conta do digitaTitulo: sem título digitando, a comanda não espera por ele
+      digita = visitas === 1 && !tituloJaAnimou && !semMovimento();
     estreiaRodou = true;
-    const chuva = parada
+    const chuva = semMovimento()
       ? ''
       : `<div class="chuva" aria-hidden="true">${CHUVA.map(
           ([x, s, t, d, vx, r, c]) =>
             `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
         ).join('')}</div>`;
-    return `${chuva}<div class="comandinha${parada ? ' parada' : ''}" aria-hidden="true">
+    return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' logo'}" aria-hidden="true">
       <div class="row f1"><span class="l">afonso pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
-      <div class="row paid novo f2"><span class="l"><span class="n">bia deve</span><span class="stampbox"><span class="stamp">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">bia deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
       <div class="row f3"><span class="l">charles deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
   }
-  /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila) */
-  function fichaDoPonto(entrou) {
-    const t = $('#tituloGate'),
-      box = $('#overlayBox');
-    if (!t || !t.isConnected) return;
+  /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila)
+   * @param {boolean} entrou @param {HTMLElement} t */
+  function fichaDoPonto(entrou, t) {
+    const box = $('#overlayBox');
+    if (!t.isConnected || !t.firstChild) return;
     if (entrou) {
-      const r = t.getBoundingClientRect(),
+      // mede só o último caractere: o retângulo do título inteiro inclui o cursor piscando
+      const fim = document.createRange();
+      fim.setStart(t.firstChild, t.textContent.length - 1);
+      fim.setEnd(t.firstChild, t.textContent.length);
+      const r = fim.getBoundingClientRect(),
         b = box.getBoundingClientRect();
       box.insertAdjacentHTML(
         'beforeend',
-        `<img class="fichinha ponto" src="diva.png" alt="" aria-hidden="true" style="--s:18px;left:${r.right - b.left - 14}px;top:${r.bottom - b.top - 22}px">`,
+        `<img class="fichinha ponto" src="diva.png" alt="" aria-hidden="true" style="--s:18px;left:${r.left + r.width / 2 - b.left - 9}px;top:${r.bottom - b.top - 22}px">`,
       );
     } else {
       const f = box.querySelector('.fichinha.ponto');

@@ -98,8 +98,10 @@ When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
 });
 When('eu tento pôr {word} na lista de novo', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); });
 When('eu tiro o/a {word} da lista', async ({ mundo }, nome) => {
-  await mundo.p.locator('#overlayBox .row', { hasText: nome }).locator('[data-drop]').click();
-  await expect(mundo.p.locator('#overlayBox .row', { hasText: nome })).toHaveCount(0);
+  // o nome inteiro: "Lia" também está dentro de "Júlia"
+  const linha = mundo.p.locator('#overlayBox .row').filter({ has: mundo.p.locator('[data-renome]', { hasText: new RegExp(`^${nome}$`) }) });
+  await linha.locator('[data-drop]').click();
+  await expect(linha).toHaveCount(0);
 });
 When('eu escrevo {word} e aperto pronto sem dar enter', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.click('#setupGo'); });
 When('eu troco o nome da/do {word} pra {word} na lista', async ({ mundo }, de, pra) => {

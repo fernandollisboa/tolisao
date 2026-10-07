@@ -268,6 +268,8 @@
         if (e.shares && typeof e.shares === 'object') {
           o.shares = {};
           for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0));
+          // partes que não fecham o valor viram divisão igual: senão os saldos não somam zero
+          if (o.among.reduce((s, id) => s + o.shares[id], 0) !== Math.round(o.amount * 100)) delete o.shares;
         }
         return o;
       });
@@ -332,6 +334,10 @@
         deleted.add(novo ? o.to : g.to);
       }
     }
+    // quem está num gasto não sai da turma: o ✕ só olha este aparelho, e outro pode ter
+    // acabado de pôr a pessoa num gasto. Tirar ela sumia com a parte dela da conta
+    for (const e of [...a.expenses, ...b.expenses])
+      if (!deleted.has(e.id)) for (const id of [e.payer, ...e.among]) deleted.delete(id);
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
     return {

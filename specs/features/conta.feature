@@ -37,3 +37,35 @@ Funcionalidade: A conta sempre fecha
         | quem  | paga pra | valor |
         | Júlia | Fernando | 25,00 |
         | Lia   | Fernando | 25,00 |
+
+    Cenário: quem acabou de entrar num gasto em outro aparelho não sai da lista
+      O ✕ só aparece pra quem não tem conta, mas outro aparelho pode ter posto a pessoa num gasto agorinha.
+      Dado o evento "churras" com Fernando, Júlia e Lia
+      Quando eu abro o evento como Fernando
+      E eu toco em quem é você
+      E eu escolho outra pessoa
+      E outro aparelho anota:
+        | o quê | valor | pagou    | divide entre  |
+        | Pizza | 60,00 | Fernando | Fernando, Lia |
+      E eu tiro a Lia da lista
+      Então o evento no banco tem Fernando, Júlia e Lia
+      Quando eu continuo
+      Então falta pagar:
+        | quem | paga pra | valor |
+        | Lia  | Fernando | 30,00 |
+
+  Regra: as partes diferentes somam o valor do item
+
+    Cenário: partes que não somam o valor do item viram divisão igual
+      O banco é de todo mundo: um item gravado com partes que não fecham não pode sumir com dinheiro.
+      Dado que alguém gravou no banco o evento:
+        """
+        { "name": "churras", "updatedAt": 1, "deleted": [],
+          "people": [ { "id": "fernando", "name": "Fernando", "at": 1 }, { "id": "lia", "name": "Lia", "at": 2 } ],
+          "expenses": [ { "id": "a", "desc": "Pizza", "amount": 60, "payer": "fernando", "among": ["fernando", "lia"],
+                          "shares": { "fernando": 1000, "lia": 2000 }, "at": 1 } ] }
+        """
+      Quando eu abro o evento como Fernando
+      Então falta pagar:
+        | quem | paga pra | valor |
+        | Lia  | Fernando | 30,00 |

@@ -19,12 +19,12 @@ const DADOS = {
 
 async function preview(opts = {}) {
   const { alvo = null, quem = 'Lia', pix = true, largura = 390, altura = 900,
-          dados = DADOS, variantes = null, recorte = null, inicio = false } = opts;
+          dados = DADOS, variantes = null, recorte = null, inicio = false, comanda = false } = opts;
   const saida = opts.saida || path.join(os.tmpdir(), 'preview.png');
   const { srv, porta } = await servir();
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
   try {
-    const ctx = await b.newContext({ viewport: { width: largura, height: altura }, deviceScaleFactor: 2,
+    const ctx = await b.newContext({ acceptDownloads: true, viewport: { width: largura, height: altura }, deviceScaleFactor: 2,
       reducedMotion: opts.quieto ? 'reduce' : 'no-preference' });
     await ctx.route(/fake-db/, r => {
       const u = r.request().url();
@@ -51,6 +51,15 @@ async function preview(opts = {}) {
       // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é
       if (quem) { await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: quem }); }
       await p.waitForTimeout(900);
+    }
+
+    // --comanda: a imagem que vai pro zap, do jeito que o canvas gera (enviar → qualquer um)
+    if (comanda) {
+      await p.click('#waBtn');
+      const [baixou] = await Promise.all([p.waitForEvent('download'), p.click('[data-link-pra=""]')]);
+      await baixou.saveAs(saida);
+      if (erros.length) console.error('ERROS NA PÁGINA:', erros);
+      return saida;
     }
 
     const tirar = async destino => recorte ? p.screenshot({ path: destino, clip: recorte })
@@ -87,7 +96,13 @@ if (require.main === module) {
   const alvo = args.find(a => !a.startsWith('--')) || null;
   const op = a => (args.find(x => x.startsWith('--' + a + '=')) || '').split('=')[1];
   const varArq = op('variantes'), arqJs = op('js');
+  // --itens=80: mais tantos gastos miúdos, pra ver a comanda de uma viagem longa
+  const extra = +op('itens') || 0;
+  const dados = !extra ? DADOS : { ...DADOS, expenses: [...DADOS.expenses, ...Array.from({ length: extra }, (_, i) => ({
+    id: 'x' + i, desc: 'Lanche ' + (i + 1), amount: 12.5, payer: DADOS.people[i % 5].id,
+    among: DADOS.people.map(q => q.id), at: HOJE - 3*86400000 + i * 60000 })) ] };
   preview({
+    dados, comanda: args.includes('--comanda'),
     alvo, quem: args.includes('--ninguem') ? '' : op('quem') || 'Lia', saida: op('saida'),
     largura: +op('largura') || 390,
     recorte: op('recorte') ? (([x,y,width,height]) => ({x,y,width,height}))(op('recorte').split(',').map(Number)) : null,

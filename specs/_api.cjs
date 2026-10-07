@@ -6,15 +6,20 @@ class Api {
   constructor() { this.pedidos = []; }
   rota(nome) { return this.pedidos.filter(p => p.rota === nome); }
 
+  // a API numa função, como o banco: a rota do playwright e o npm run dev chamam a mesma
+  responde(m, rota, texto) {
+    const json = (status, v) => ({ status, corpo: v, cabecalhos: { 'access-control-allow-origin': '*' } });
+    if (m === 'GET' && rota === '/chave') return json(200, { chave: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' });
+    if (m !== 'POST') return json(405, { erro: 'só POST' });
+    let corpo = null; try { corpo = JSON.parse(texto || 'null'); } catch {}
+    this.pedidos.push({ rota, corpo });
+    return json(200, { ok: true });
+  }
+
   async liga(ctx) {
     await ctx.route(API_FALSA + '/**', async r => {
-      const rq = r.request(), rota = new URL(rq.url()).pathname;
-      const json = (status, v) => r.fulfill({ status, contentType: 'application/json', body: JSON.stringify(v), headers: { 'access-control-allow-origin': '*' } });
-      if (rq.method() === 'GET' && rota === '/chave') return json(200, { chave: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' });
-      if (rq.method() !== 'POST') return json(405, { erro: 'só POST' });
-      let corpo = null; try { corpo = JSON.parse(rq.postData() || 'null'); } catch {}
-      this.pedidos.push({ rota, corpo });
-      return json(200, { ok: true });
+      const rq = r.request(), res = this.responde(rq.method(), new URL(rq.url()).pathname, rq.postData());
+      return r.fulfill({ status: res.status, contentType: 'application/json', body: JSON.stringify(res.corpo), headers: res.cabecalhos });
     });
   }
 }

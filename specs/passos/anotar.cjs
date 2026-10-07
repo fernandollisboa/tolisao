@@ -200,3 +200,19 @@ Then('eu posso editar e excluir o {string}', async ({ mundo }, nome) => {
 Then('eu não posso editar nem excluir o {string}', async ({ mundo }, nome) => {
   await expect(item(mundo.p, nome).locator('[data-edit-expense], [data-del-expense]')).toHaveCount(0);
 });
+
+// o outro aparelho grava direto no banco, uns minutos antes: a minha nota ainda não sabe dele
+When('a/o {word} anota em outro aparelho um {string} de R$ {num} que a/o {word} pagou, há {int} minutos', async ({ mundo }, quem, desc, valor, pagou, min) => {
+  const sala = salaNoBanco(mundo), p = mundo.pessoa(quem);
+  sala.expenses = [...(sala.expenses || []), { id: 'dooutro', desc, amount: valor, payer: mundo.pessoa(pagou).id,
+    among: sala.people.map(x => x.id), at: AGORA - min * 60000, by: p.name, byId: p.id }];
+});
+When('eu tento anotar {string} de R$ {num} que eu paguei', async ({ mundo }, desc, valor) => {
+  const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+  await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.click('#expenseForm button.big');
+});
+Then('o anotar continua aberto com R$ {num} de {string}', async ({ mundo }, v, desc) => {
+  await expect(mundo.p.locator('#sheet')).toBeVisible();
+  await expect(mundo.p.locator('#amount')).toHaveValue(dinheiro(v)); await expect(mundo.p.locator('#desc')).toHaveValue(desc);
+});
+When('eu anoto mesmo assim', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' }); });

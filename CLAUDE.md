@@ -13,7 +13,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase (coladas no console).
 - preview do link no zap: o `index.html` usa `og/inicio.jpg` (o pin 😳 é fixo nele); `semverba/`, `sextou/`, `fiado/` (cobrança, a figurinha sai do código do evento; `c/h`, `c/i`, `c/j` ficam pros links velhos), `pago/` e `quitado/` são páginas só com as `og:`, imagem em `og/`; o `vai.js` repassa pro app. quem escolhe a pasta é o `shareUrl()`.
-- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, imagens do link). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
+- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_api.cjs` imita a API do aviso, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, imagens do link). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `servidor/`: a API (Worker da Cloudflare, KV `tolisa`) do aviso de pagamento por push. JS puro, testes em `node --test` (`cd servidor && npm test`). dependência só ali (o `wrangler`, pra subir). quem sobe é o `servidor.yml`, que gera as chaves VAPID na primeira vez; o `pages.yml` não publica a pasta.
 - `docs/qa.md`: roteiro e achados das sessões de QA.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
@@ -46,10 +46,10 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 ## regras que não se quebram
 
 - **sem dependência no site, sem framework, sem build.** `package.json` é só ferramenta. edição pequena (a única exceção foi a formatação do prettier).
-- **aspas simples no `const DB = '...'`:** o `specs/_serve.cjs` troca essa linha pelo banco falso, e sem ela o `app.js` nem sai pros testes.
+- **aspas simples no `const DB = '...'` e no `const API = '...'`:** o `specs/_serve.cjs` troca essas linhas pelo banco e pela API falsos, e sem elas o `app.js` nem sai pros testes.
 - **o banco é hostil.** id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`, tudo que vem do banco ou do cache passa por `clean()`.
 - **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário. `visitas/<dia>` só se soma (+1 por aparelho por dia, `CONTA_VISITAS`): sem `.read`, sem apagar, o dono lê no console.
-- **CSP** no `<meta>` do `index.html`: só o próprio site e `*.firebaseio.com`. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
+- **CSP** no `<meta>` do `index.html`: só o próprio site, `*.firebaseio.com` e a API do aviso (`tolisa-api.fernando-costa-fd0.workers.dev`, o `const API`). o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.

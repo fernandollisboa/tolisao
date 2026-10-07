@@ -2,6 +2,7 @@ const { test: base, createBdd, defineParameterType } = require('playwright-bdd')
 const { expect } = require('@playwright/test');
 const servir = require('../_serve.cjs');
 const { Banco } = require('../_banco.cjs');
+const { Api, celularComAviso } = require('../_api.cjs');
 const cobertura = require('../_cobertura.cjs');
 
 defineParameterType({ name: 'num', regexp: /\d+(?:\.\d{3})*(?:,\d+)?/, transformer: s => Number(s.replace(/\./g, '').replace(',', '.')) });
@@ -16,7 +17,7 @@ const idDe = nome => nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLow
 
 class Mundo {
   constructor(browser, base) {
-    this.browser = browser; this.base = base; this.banco = new Banco();
+    this.browser = browser; this.base = base; this.banco = new Banco(); this.api = new Api(); this.celularComAviso = false;
     this.evento = null; this.sala = ''; this.p = null; this.nota = {};
     this.erros = []; this.dialogos = []; this.contextos = []; this.antes = null;
   }
@@ -29,6 +30,8 @@ class Mundo {
     await ctx.clock.setSystemTime(AGORA);
     this.contextos.push(ctx);
     await this.banco.liga(ctx);
+    await this.api.liga(ctx);
+    if (this.celularComAviso) await ctx.addInitScript(celularComAviso);
     await ctx.addInitScript(() => {
       const w = window;
       w.open = u => { w.__aberto = u; return null; };

@@ -17,3 +17,63 @@ self.addEventListener('fetch', e => {
   e.respondWith(fetch(pedido).then(r => { if (r.ok) { const copia = r.clone(); caches.open(CACHE).then(c => c.put(chave, copia)); } return r; })
     .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || (nav ? caches.match('./index.html') : undefined))));
 });
+
+// ---------- aviso no celular (push) ----------
+// o push vem vazio (a API não carrega valor nenhum): o aviso se escreve aqui, relendo no banco cada
+// evento com aviso ligado. A página guardou (sala, me, code, db) no IndexedDB quando a pessoa ligou.
+// O texto é o mesmo do toast do avisaPagos, no app.js
+const JANELA_MS = 10 * 60 * 1000; // a mesma da API: pagamento mais velho que isso já não avisa
+const avisos = (modo, f) => new Promise((ok, erro) => {
+  const pedido = indexedDB.open('tolisa', 1);
+  pedido.onupgradeneeded = () => pedido.result.createObjectStore('avisos', { keyPath: 'sala' });
+  pedido.onerror = () => erro(pedido.error);
+  pedido.onsuccess = () => { const db = pedido.result, t = db.transaction('avisos', modo), r = f(t.objectStore('avisos'));
+    t.oncomplete = () => { db.close(); ok(r && r.result); }; t.onerror = () => { db.close(); erro(t.error); }; };
+});
+const lista = x => (Array.isArray(x) ? x : x && typeof x === 'object' ? Object.values(x) : []).filter(v => v && typeof v === 'object');
+const reais = c => { const [i, d] = (Math.abs(c) / 100).toFixed(2).split('.'); return 'R$ ' + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
+const juntos = ns => ns.length > 1 ? ns.slice(0, -1).join(', ') + ' e ' + ns[ns.length - 1] : ns[0];
+/** o que caiu pra mim num evento desde o último aviso: { texto, code } ou null */
+async function novidade(a) {
+  if (!/^[0-9a-f]{64}$/.test(a.sala) || !/^[a-z0-9]{1,32}$/.test(a.me) || !/^https:\/\/[a-z0-9-]+\.firebaseio\.com$/.test(a.db)) return null;
+  const r = await fetch(`${a.db}/rooms/${a.sala}.json`, { cache: 'no-store' });
+  if (!r.ok) return null;
+  const sala = await r.json(), gente = lista(sala && sala.people), agora = Date.now();
+  const nome = id => String((gente.find(p => p.id === id) || {}).name || '?').slice(0, 30), eu = nome(a.me);
+  const vistos = new Set(Array.isArray(a.vistos) ? a.vistos : []);
+  const novos = lista(sala && sala.expenses).filter(e => e.kind === 'payment' && typeof e.id === 'string' && !vistos.has(e.id)
+    && typeof e.at === 'number' && agora - e.at < JANELA_MS && e.by !== eu && typeof e.amount === 'number');
+  if (!novos.length) return null;
+  await avisos('readwrite', s => s.put({ ...a, vistos: [...vistos, ...novos.map(e => e.id)].slice(-50) }));
+  const recebe = e => (Array.isArray(e.among) ? e.among : Object.values(e.among || {}))[0];
+  const soma = es => reais(es.reduce((s, e) => s + Math.round(e.amount * 100), 0));
+  const evento = typeof sala.name === 'string' && sala.name ? ' · ' + sala.name.slice(0, 40) : '';
+  const pra = novos.filter(e => !e.forgiven && recebe(e) === a.me && e.payer !== a.me);
+  if (pra.length) {
+    const quem = [...new Set(pra.map(e => nome(e.payer)))];
+    return { code: a.code, texto: `💸 ${juntos(quem)} ${quem.length > 1 ? 'te pagaram' : 'te pagou'} ${soma(pra)}${evento}` };
+  }
+  // o perdão avisa quem devia
+  const perdoes = novos.filter(e => e.forgiven === true && e.payer === a.me);
+  if (perdoes.length) {
+    const quem = [...new Set(perdoes.map(e => nome(recebe(e))))];
+    return { code: a.code, texto: `🙏 ${juntos(quem)} ${quem.length > 1 ? 'perdoaram' : 'perdoou'} teus ${soma(perdoes)}${evento}` };
+  }
+  return null;
+}
+self.addEventListener('push', e => e.waitUntil((async () => {
+  let aviso = null;
+  try { for (const a of await avisos('readonly', s => s.getAll())) if ((aviso = await novidade(a).catch(() => null))) break; } catch {}
+  // o navegador exige uma notificação por push: sem achar o pagamento, vai a genérica
+  const { texto = 'alguém marcou que te pagou no tô lisa', code = '' } = aviso || {};
+  await self.registration.showNotification('tô lisa', { body: texto, icon: 'ficha-192.png', tag: 'pago:' + code, data: { code } });
+})()));
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const code = (e.notification.data && e.notification.data.code) || '';
+  const url = new URL(code ? '?evento=' + encodeURIComponent(code) : './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+    const aberta = cs.find(c => c.url === url);
+    return aberta ? aberta.focus() : self.clients.openWindow(url);
+  }));
+});

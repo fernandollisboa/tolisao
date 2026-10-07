@@ -10,15 +10,15 @@ const html = le('index.html'), app = le('app.js'), banco = JSON.parse(le('databa
 const falhas = [];
 const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`); else console.log(`✓ ${nome}`); };
 
-// ---------- CSP: script só do próprio site, conexão só com o firebase ----------
+// ---------- CSP: script só do próprio site, conexão só com o firebase e a API do aviso ----------
 // o hash do <script> do fim não mora aqui: se ele quebrar, todo cenário falha (_mundo.cjs)
 {
   const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/)?.[1] || '';
   const dir = Object.fromEntries(csp.split(';').map(d => d.trim().split(/\s+/)).filter(d => d[0]).map(([k, ...v]) => [k, v]));
-  const pode = { 'default-src': ["'self'"], 'script-src': ["'self'", /^'sha256-/], 'connect-src': ["'self'", 'https://*.firebaseio.com'] };
+  const pode = { 'default-src': ["'self'"], 'script-src': ["'self'", /^'sha256-/], 'connect-src': ["'self'", 'https://*.firebaseio.com', 'https://tolisa-api.fernando-costa-fd0.workers.dev'] };
   const errados = Object.entries(pode).flatMap(([k, ok]) => !dir[k] ? [`falta ${k}`]
     : dir[k].filter(v => !ok.some(o => typeof o === 'string' ? o === v : o.test(v))).map(v => `${k} ${v}`));
-  regra('a CSP só roda script do site e só fala com o firebase', !csp ? 'não achei o <meta> da CSP no index.html' : errados.join('; '));
+  regra('a CSP só roda script do site e só fala com o firebase e a API', !csp ? 'não achei o <meta> da CSP no index.html' : errados.join('; '));
 }
 
 // ---------- banco: .read/.write só abaixo de um $curinga ----------

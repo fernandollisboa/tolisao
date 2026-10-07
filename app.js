@@ -10,7 +10,7 @@
   //   config → o que fica no aparelho (localStorage) → o estado da página
   //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
-  //   → fila das animações → desenhos (ícones) → pix → a nota (render) → o anotar
+  //   → fila das animações → desenhos (ícones) → pix → aviso no celular → a nota (render) → o anotar
   //   → cartões (overlays) → entrar num evento → meus eventos → botões → cliques
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
@@ -18,6 +18,7 @@
   // #region config
   // ---------- config ----------
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
+  const API = 'https://tolisa-api.fernando-costa-fd0.workers.dev'; // o worker do aviso no celular (servidor/)
   const POLL_MS = 6000;
   const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
@@ -31,6 +32,7 @@
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
   const QUITADO_DIAS = 15; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
+  const AVISO_PUSH = true; // quem recebe liga o aviso no celular, e todo pagamento marcado cutuca a API
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -78,7 +80,8 @@
   // o que fica no aparelho, em duas gavetas de JSON:
   //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok)
-  //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot }
+  //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
+  //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -393,6 +396,7 @@
           if (!e.mudou || vez === 3) throw e;
         }
       }
+      cutucaApi(); // o banco já tem o pagamento: agora a API acha ele lá
       setStatus(
         'Sincronizado ' +
           new Date().toLocaleDateString('pt-BR') +
@@ -922,6 +926,126 @@
     none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
   };
   // #endregion
+  // #region aviso no celular
+  // ---------- aviso no celular (push) ----------
+  // quem recebe liga o aviso, e daí todo pagamento marcado cutuca a API (servidor/), que relê
+  // o evento no banco e manda um push vazio pro celular de quem recebeu. O sw.js acorda, lê
+  // no próprio banco o que mudou e escreve o aviso. A página nunca espera a API: falhou, falhou
+  /** pagamentos marcados aqui que a API ainda não soube @type {Set<string>} */ const aAvisar = new Set();
+  /** chamado depois que o sync gravou: o banco já tem o pagamento, a API acha ele lá */
+  function cutucaApi() {
+    for (const id of aAvisar) {
+      aAvisar.delete(id);
+      if (!state.expenses.some((e) => e.id === id)) continue; // desfeito antes de subir
+      fetch(API + '/avisa', { method: 'POST', keepalive: true, body: JSON.stringify({ sala: groupId, id }) }).catch(
+        () => {},
+      );
+    }
+  }
+  /** o navegador sabe receber push; no iPhone só com o app instalado na tela de início */
+  const temAviso = () =>
+    AVISO_PUSH &&
+    'Notification' in window &&
+    'PushManager' in window &&
+    'serviceWorker' in navigator &&
+    (!ehIOS() || jaInstalado());
+  const avisoLigado = () => !!me && room().pushOn === me && Notification.permission === 'granted';
+  /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta */
+  const avisosDb = (modo, f) =>
+    new Promise((ok, erro) => {
+      const pedido = indexedDB.open('tolisa', 1);
+      pedido.onupgradeneeded = () => pedido.result.createObjectStore('avisos', { keyPath: 'sala' });
+      pedido.onerror = () => erro(pedido.error);
+      pedido.onsuccess = () => {
+        const db = pedido.result,
+          t = db.transaction('avisos', modo),
+          r = f(t.objectStore('avisos'));
+        t.oncomplete = () => {
+          db.close();
+          ok(r && r.result);
+        };
+        t.onerror = () => {
+          db.close();
+          erro(t.error);
+        };
+      };
+    });
+  /** a chave VAPID vem em base64url; o subscribe quer os bytes */
+  const bytesDe = (b) =>
+    Uint8Array.from(atob(b.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (b.length % 4)) % 4)), (c) =>
+      c.charCodeAt(0),
+    );
+  /** o segredo dos avisos desse evento: quem ligou primeiro manda, como o tok do pix */
+  const pushTok = () => {
+    let tok = room().pushTok;
+    if (typeof tok !== 'string' || !/^[a-z0-9]{16,64}$/.test(tok)) {
+      const novo = (tok = sorteia(32));
+      setRoom('pushTok', novo);
+    }
+    return tok;
+  };
+  const postaApi = (rota, corpo) => fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo) });
+  let mexendoAviso = false;
+  /** o 🔔 de Minha conta: desligado, pede permissão e inscreve; ligado, desliga */
+  async function tocaAviso() {
+    if (!me || !groupId || mexendoAviso) return;
+    if (avisoLigado()) return desligaAviso();
+    const quem = me,
+      sala = groupId;
+    mexendoAviso = true;
+    try {
+      if ((await Notification.requestPermission()) !== 'granted')
+        return toast('Sem permissão: libera os avisos do site nas configurações do navegador');
+      await navigator.serviceWorker.register('sw.js');
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const r = await fetch(API + '/chave');
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { chave } = await r.json();
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytesDe(chave) });
+      }
+      const tok = pushTok(),
+        antes = room().pushOn;
+      await avisosDb('readwrite', (s) => s.put({ sala, me: quem, code: roomName, db: DB }));
+      const r = await postaApi('/inscreve', { sala, pessoa: quem, sub: sub.toJSON(), tok });
+      if (r.status === 403) return toast('Os avisos de ' + nameOf(quem) + ' foram ligados em outro aparelho');
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      // trocou de pessoa neste aparelho: o aviso da anterior sai, senão ela continuava chegando aqui
+      if (typeof antes === 'string' && antes !== quem)
+        postaApi('/desinscreve', { sala, pessoa: antes, endpoint: sub.endpoint, tok }).catch(() => {});
+      setRoom('pushOn', quem);
+      render();
+      toast('Pronto: quando te pagarem, chega aviso 🔔');
+    } catch {
+      toast('Não deu pra ligar o aviso agora');
+    } finally {
+      mexendoAviso = false;
+    }
+  }
+  async function desligaAviso() {
+    if (!(await ask('Desligar os avisos?', 'Quando te pagarem, nada chega no celular.', 'desligar'))) return;
+    const quem = me,
+      sala = groupId;
+    mexendoAviso = true;
+    try {
+      const reg = await navigator.serviceWorker.ready,
+        sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const r = await postaApi('/desinscreve', { sala, pessoa: quem, endpoint: sub.endpoint, tok: pushTok() });
+        if (!r.ok && r.status !== 403) throw new Error(`HTTP ${r.status}`);
+      }
+      await avisosDb('readwrite', (s) => s.delete(sala));
+      setRoom('pushOn', undefined);
+      render();
+      toast('Avisos desligados');
+    } catch {
+      toast('Não deu pra desligar agora');
+    } finally {
+      mexendoAviso = false;
+    }
+  }
+  // #endregion
   // #region a nota (render)
   // ---------- a nota (render) ----------
   const luck = Math.random();
@@ -1257,8 +1381,15 @@
     $('#mineRows').innerHTML =
       (bal === 0
         ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
-        : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) + quem.join('');
+        : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
+      quem.join('') +
+      (bal > 0 && temAviso() ? botaoAviso() : '');
   }
+  /** o 🔔 no pé de Minha conta, só pra quem recebe: liga o aviso no celular, e ligado vira um desligar discreto */
+  const botaoAviso = () =>
+    avisoLigado()
+      ? '<div class="aviso"><button class="ico ligado" data-aviso title="desligar os avisos">🔔 avisos ligados</button></div>'
+      : '<div class="aviso"><button class="ico" data-aviso title="avisar no celular">🔔 me avisa quando pagarem</button></div>';
   /** Minha conta pega a vez assim que chega na tela, sem esperar a chave do pix (senão o
    *  Falta pagar tomava a frente). A fila só segura o começo das piscadas: quem vem depois
    *  não espera elas acabarem, e sem linha nenhuma não há o que segurar */
@@ -2529,8 +2660,10 @@
         ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
         : ask('Quitar?', `${nomeHtml(from)} pagou ${valor} pra ${nomeHtml(to)}`, 'quitei'));
     if (!certeza) return;
+    const id = uid();
+    if (AVISO_PUSH) aAvisar.add(id);
     state.expenses.push({
-      id: uid(),
+      id,
       kind: 'payment',
       desc: 'Pagamento',
       amount: cents / 100,
@@ -2598,6 +2731,7 @@
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
+    ['[data-aviso]', tocaAviso],
     ['[data-cobra]', cobra],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],

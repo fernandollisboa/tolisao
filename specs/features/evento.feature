@@ -283,6 +283,16 @@ Funcionalidade: Entrar no evento
     Então o evento volta pro banco com o Carvão
     E o cabeçalho diz "sou Lia"
 
+  Cenário: a rede engasgada vira offline, e a nota tenta de novo
+    No bar o 3G para sem dar erro: a nota avisa que tá offline em vez de fingir que sincronizou,
+    e o que foi anotado sobe quando a rede volta.
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E a rede engasga e o banco para de responder
+    Então o rodapé diz "Offline · a rede não respondeu"
+    Quando a rede volta
+    Então o rodapé diz que sincronizou
+
   Cenário: o evento sumiu do banco e eu desisto dele
     Ele sai da lista de eventos, mas a gaveta fica: é nela que mora a cópia.
     Dado o evento "churras" com Fernando, Júlia e Lia

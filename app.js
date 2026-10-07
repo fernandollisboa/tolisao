@@ -20,6 +20,7 @@
   const DB = 'https://racha-77bc7-default-rtdb.firebaseio.com';
   const API = 'https://tolisa-api.fernando-costa-fd0.workers.dev'; // o worker do aviso no celular (servidor/)
   const POLL_MS = 6000;
+  const REDE_MS = 8000; // prazo de cada ida ao banco: rede engasgada no bar vira "Offline" em vez de prender o sync
   const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
@@ -365,11 +366,20 @@
     el.classList.toggle('err', !!err);
   };
   const roomUrl = (id) => `${DB}/rooms/${id}.json`;
+  /** fetch no banco, com prazo: no 3G engasgado a conexão para sem dar erro, e quem espera (o sync, o quita, o anotar)
+   *  ficava preso. Estourou, vira erro comum. O prazo vale até o fim da leitura da resposta, por isso o timer não
+   *  se desliga. setTimeout e não AbortSignal.timeout(): o relógio falso dos testes adianta ele
+   *  @param {string} url @param {RequestInit} [op] */
+  const noBanco = (url, op = {}) => {
+    const c = new AbortController();
+    setTimeout(() => c.abort(new Error('a rede não respondeu')), REDE_MS);
+    return fetch(url, { ...op, signal: c.signal });
+  };
   // a sala vem com o ETag dela: o sync grava com if-match, e se outro aparelho gravou entre
   // a baixada e a subida o banco responde 412 em vez de passar por cima do que ele gravou
   /** @returns {Promise<{ data: any, etag: string | null }>} */
   async function baixa(id) {
-    const r = await fetch(roomUrl(id), { cache: 'no-store', headers: { 'X-Firebase-ETag': 'true' } });
+    const r = await noBanco(roomUrl(id), { cache: 'no-store', headers: { 'X-Firebase-ETag': 'true' } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
     if (data === null) throw Object.assign(new Error('não encontrado'), { notFound: true });
@@ -380,7 +390,7 @@
   async function apiPut(id, data, etag) {
     // passa pelo clean() na ida também: as regras do banco só aceitam a sala nesse formato
     // (nome até 40, pessoa até 30, item até 60…), e um campo a mais recusaria a gravação inteira
-    const r = await fetch(roomUrl(id), {
+    const r = await noBanco(roomUrl(id), {
       method: 'PUT',
       headers: etag ? { 'if-match': etag } : {},
       body: JSON.stringify(clean(data)),
@@ -818,7 +828,7 @@
         // rede engasgou ou o banco falhou: fica a chave que já tinha. Só some quando o banco diz que não tem
         if (pixKeys[p.id]) out[p.id] = pixKeys[p.id];
         try {
-          const r = await fetch(pixUrl(p.id, '/key'), { cache: 'no-store' });
+          const r = await noBanco(pixUrl(p.id, '/key'), { cache: 'no-store' });
           if (r.ok) {
             const v = await r.json();
             const k = typeof v === 'string' ? validPixKey(v) : null;
@@ -888,7 +898,7 @@
       });
     }
     try {
-      const r = await fetch(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
+      const r = await noBanco(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
       if (r.status === 401 || r.status === 403)
         return toast('Essa chave foi cadastrada em outro aparelho: só ele troca');
       if (!r.ok) return toast('A chave não salvou, tenta de novo');
@@ -2510,14 +2520,14 @@
     Promise.all(
       evs.map(async (e) => {
         try {
-          const r = await fetch(`${DB}/rooms/${e.id}/updatedAt.json`, { cache: 'no-store' });
+          const r = await noBanco(`${DB}/rooms/${e.id}/updatedAt.json`, { cache: 'no-store' });
           const v = r.ok ? await r.json() : null;
           if (typeof v !== 'number' || !(v > e.at) || v > Date.now() + 86400000) return;
           mexe(roomKey(e.id), (o) => {
             o.changedAt = v;
           });
           mudou = true;
-          const rr = await fetch(`${DB}/rooms/${e.id}.json`, { cache: 'no-store' });
+          const rr = await noBanco(`${DB}/rooms/${e.id}.json`, { cache: 'no-store' });
           const remoto = rr.ok ? clean(await rr.json()) : null;
           // merge e não troca: a cópia pode ter algo anotado sem internet que o banco ainda não viu
           if (remoto)

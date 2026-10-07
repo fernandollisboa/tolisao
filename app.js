@@ -232,6 +232,9 @@
   // na comanda e no zap. Aparar a metade órfã nunca deixa a string maior que o orçamento.
   const apara = (t) => (/[\uD800-\uDBFF]$/.test(t) ? t.slice(0, -1) : t);
   const str = (v, n) => (typeof v === 'string' ? apara(v.slice(0, n)) : '');
+  // um gasto se divide entre até 100 pessoas: o banco valida o among com índice de até 2 dígitos.
+  // Acima disso o gasto inteiro fica de fora, porque cortar gente deixaria a conta sem fechar
+  const RACHA_MAX = 100;
   /** @param {any} d @returns {Room|null} */
   function clean(d) {
     if (!d || typeof d !== 'object') return null;
@@ -246,6 +249,7 @@
           okId(e.payer) &&
           Array.isArray(e.among) &&
           e.among.length &&
+          e.among.length <= RACHA_MAX &&
           e.among.every(okId) &&
           Number.isFinite(+e.amount),
       )
@@ -255,7 +259,7 @@
           desc: str(e.desc, 60),
           amount: Math.round(+e.amount * 100) / 100,
           payer: e.payer,
-          among: e.among.slice(0, 50),
+          among: e.among.slice(),
           at: +e.at || 0,
         };
         if (e.kind === 'payment') o.kind = 'payment';
@@ -264,6 +268,8 @@
         if (e.shares && typeof e.shares === 'object') {
           o.shares = {};
           for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0));
+          // partes que não fecham o valor viram divisão igual: senão os saldos não somam zero
+          if (o.among.reduce((s, id) => s + o.shares[id], 0) !== Math.round(o.amount * 100)) delete o.shares;
         }
         return o;
       });
@@ -315,10 +321,25 @@
       for (const x of list || []) if (!deleted.has(x.id)) m.set(x.id, x);
       return m;
     };
+    // editar troca o item por outro (`to`): dois aparelhos editando o mesmo item deixam dois
+    // substitutos. Vale a edição mais nova, e o outro substituto sai também, senão o gasto conta duas vezes
+    const gone = new Map();
+    for (const g of [...a.gone, ...b.gone]) {
+      if (!deleted.has(g.id)) continue;
+      const o = gone.get(g.id);
+      if (!o) gone.set(g.id, g);
+      else if (o.to && g.to && o.to !== g.to) {
+        const novo = g.goneAt > o.goneAt || (g.goneAt === o.goneAt && g.to > o.to); // empate: os dois aparelhos escolhem igual
+        gone.set(g.id, novo ? g : o);
+        deleted.add(novo ? o.to : g.to);
+      }
+    }
+    // quem está num gasto não sai da turma: o ✕ só olha este aparelho, e outro pode ter
+    // acabado de pôr a pessoa num gasto. Tirar ela sumia com a parte dela da conta
+    for (const e of [...a.expenses, ...b.expenses])
+      if (!deleted.has(e.id)) for (const id of [e.payer, ...e.among]) deleted.delete(id);
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
-    const gone = new Map();
-    for (const g of [...a.gone, ...b.gone]) if (deleted.has(g.id) && !gone.has(g.id)) gone.set(g.id, g);
     return {
       v: 2,
       name: a.name || b.name || '',
@@ -2561,6 +2582,7 @@
     const total = lerCentavos($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro');
     if (!among.length) return toast('Marque quem divide esse gasto');
+    if (among.length > RACHA_MAX) return toast(`Dá pra dividir entre até ${RACHA_MAX} pessoas`);
     if (!(total > 0)) return toast('Valor inválido');
     const exp = {
       id: uid(),

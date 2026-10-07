@@ -28,6 +28,7 @@
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
   const RECEBI = false; // "recebi" na linha de quem me deve (pagaram por fora): desligado por enquanto
+  const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
@@ -2663,8 +2664,24 @@
   $('#sheet').addEventListener('click', (ev) => {
     if (ev.target.id === 'sheet') closeSheet();
   });
-  $('#expenseForm').onsubmit = (ev) => {
+  /** o gasto que parece o mesmo: mesmo valor e mesmo pagante, anotado há pouco. No rolê, quem pagou
+   *  e quem tava com o celular na mão anotam o mesmo Uber @param {Expense} exp */
+  const jaAnotado = (exp) =>
+    state.expenses
+      .filter(
+        (x) =>
+          !x.kind && x.payer === exp.payer && centavos(x) === centavos(exp) && exp.at - x.at < JA_ANOTADO_H * 3600000,
+      )
+      .pop();
+  /** "há 3 min", pro cartão do já anotado */
+  const ha = (at) => {
+    const min = Math.round((Date.now() - at) / 60000);
+    return min < 1 ? 'agora' : min < 60 ? `há ${min} min` : `há ${Math.round(min / 60)} h`;
+  };
+  let conferindo = false; // o anotar espera o banco: o segundo toque no botão não anota de novo
+  $('#expenseForm').onsubmit = async (ev) => {
     ev.preventDefault();
+    if (conferindo) return;
     const among = inputs('#splitChips input:checked').map((i) => i.value);
     const total = lerCentavos($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro');
@@ -2692,6 +2709,23 @@
       for (const id of among) exp.shares[id] = sh[id] || 0;
     }
     const velho = editando && state.expenses.find((x) => x.id === editando);
+    // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
+    if (!editando) {
+      conferindo = true;
+      await sync().finally(() => (conferindo = false));
+      const ja = jaAnotado(exp);
+      if (ja) {
+        const autor = autorNome(ja) ? `, anotado por ${autorHtml(ja)}` : '';
+        const desc = ja.desc ? `${esc(ja.desc)} · ` : '';
+        const mesmo = await ask(
+          'Já anotaram?',
+          `${desc}${comSifrao(centavos(ja))} · ${nomeHtml(ja.payer)} pagou${autor} ${ha(ja.at)}`,
+          'anotar mesmo assim',
+        );
+        if (!mesmo) return;
+      }
+      exp.at = Date.now();
+    }
     if (velho) {
       exp.at = velho.at;
       apagaItem(velho, exp.id);

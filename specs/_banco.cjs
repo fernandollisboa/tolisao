@@ -18,6 +18,7 @@ class Banco {
       const [, sala, pessoa, filho] = partes; if (!sala || !pessoa) return nega();
       // a rede engasgou: o banco não responde a chave (como um 5xx do Firebase no bar)
       if (this.pixFora && m === 'GET') { this.pixFalhas = (this.pixFalhas || 0) + 1; return json(503, { error: 'fora do ar' }); }
+      if (this.pixTravado && m === 'PUT') return json(503, { error: 'fora do ar' });
       const cur = this.pega(['pix', sala, pessoa]);
       if (m === 'GET') return filho === 'key' ? json(200, cur ? cur.key : null) : nega();
       if (m !== 'PUT' || filho) return nega();

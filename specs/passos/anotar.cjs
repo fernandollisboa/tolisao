@@ -70,10 +70,7 @@ Then('o cursor continua no valor', async ({ mundo }) => { await expect(mundo.p.l
 When('eu divido só com {gente}', async ({ mundo }, gente) => {
   await marcaSo(mundo, gente);
 });
-// quem leva o centavo a mais sai do id do gasto, que é sorteado: aqui o sorteio da página
-// fica fixo, pra o cenário não depender da sorte de dois ids caírem na mesma pessoa
 When('eu anoto {string} e depois {string}, os dois de R$ {num} divididos igualmente', async ({ mundo }, a, b, valor) => {
-  await mundo.p.evaluate(() => { let k = 0; crypto.getRandomValues = a => { for (let i = 0; i < a.length; i++) a[i] = (k++ * 7) % 256; return a; }; });
   for (const desc of [a, b]) {
     const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
     await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.click('#expenseForm button.big');
@@ -82,16 +79,25 @@ When('eu anoto {string} e depois {string}, os dois de R$ {num} divididos igualme
     await p.waitForSelector('#sheet', { state: 'hidden' });
   }
 });
+const quemLeva = (mundo, desc) => {
+  const e = (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).find(x => x.desc === desc);
+  if (!e) return undefined;
+  // sem partes gravadas, a divisão igual põe o centavo no primeiro da turma
+  if (!e.shares) return e.among[0];
+  const max = Math.max(...Object.values(e.shares)); return Object.keys(e.shares).find(id => e.shares[id] === max);
+};
 Then('no banco, o centavo a mais do {string} e o do {string} ficam com pessoas diferentes', async ({ mundo }, a, b) => {
-  const quemLeva = desc => {
-    const e = (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).find(x => x.desc === desc);
-    if (!e) return undefined;
-    // sem partes gravadas, a divisão igual põe o centavo no primeiro da turma
-    if (!e.shares) return e.among[0];
-    const max = Math.max(...Object.values(e.shares)); return Object.keys(e.shares).find(id => e.shares[id] === max);
-  };
-  await expect.poll(() => [quemLeva(a), quemLeva(b)].every(Boolean)).toBe(true);
-  expect(quemLeva(a)).not.toBe(quemLeva(b));
+  await expect.poll(() => [quemLeva(mundo, a), quemLeva(mundo, b)].every(Boolean)).toBe(true);
+  expect(quemLeva(mundo, a)).not.toBe(quemLeva(mundo, b));
+});
+// guarda quem levava o centavo antes da edição, pro Então comparar
+When('eu troco a descrição do {string} pra {string} e salvo', async ({ mundo }, velha, nova) => {
+  await expect.poll(() => quemLeva(mundo, velha)).toBeTruthy();
+  mundo.centavoAntes = quemLeva(mundo, velha);
+  await mundo.p.fill('#desc', nova); await mundo.p.click('#expenseForm button.big'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' });
+});
+Then('no banco, o centavo a mais do {string} continua com a mesma pessoa', async ({ mundo }, desc) => {
+  await expect.poll(() => quemLeva(mundo, desc)).toBe(mundo.centavoAntes);
 });
 Then('a aba igual fica marcada', async ({ mundo }) => {
   const aba = mundo.p.locator('#splitSeg [data-modo="equal"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');

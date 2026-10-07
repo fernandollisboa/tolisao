@@ -74,7 +74,20 @@ Then('o zap abre na conversa do {word}', async ({ mundo }, tel) => {
   await expect.poll(() => zapPhone(mundo)).toBe(tel);
   expect(await mundo.p.evaluate(() => window.__aberto)).toMatch(/^https:\/\/api\.whatsapp\.com\/send\?phone=/);
 });
-Then('o zap abre na escolha de contato', async ({ mundo }) => { await expect.poll(() => zapPhone(mundo)).toBeNull(); });
+Then('o zap abre na escolha de contato', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.evaluate(() => window.__aberto)).toBeTruthy();
+  expect(await zapPhone(mundo)).toBeNull();
+});
+When('eu cobro sem escrever o número', async ({ mundo }) => { await mundo.p.click('#zapForm button.big'); });
+Then('o site pergunta o número dela/dele', async ({ mundo }) => { await expect(mundo.p.locator('#zapForm')).toBeVisible(); });
+When('eu troco o zap da/do {word} pra {string}', async ({ mundo }, nome, tel) => {
+  await mundo.p.locator('#mineRows [data-trocazap]', { hasText: nome }).click();
+  await mundo.p.fill('#zapForm input', tel); await mundo.p.click('#zapForm button.big');
+});
+When('eu esqueço o zap da/do {word}', async ({ mundo }, nome) => {
+  await mundo.p.locator('#mineRows [data-trocazap]', { hasText: nome }).click();
+  await mundo.p.click('#zapPular');
+});
 Then('o evento no banco não tem o número {word}', async ({ mundo }, tel) => { expect(JSON.stringify(mundo.banco.arvore)).not.toContain(tel); });
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
 When('eu digito R$ {num} no Quitar? da primeira linha de Minha conta', async ({ mundo }, valor) => {

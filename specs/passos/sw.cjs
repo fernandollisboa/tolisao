@@ -64,6 +64,9 @@ Then('sem rede, o arquivo abre com a versão nova', async ({ mundo }) => {
 When('o service worker busca um arquivo que já tem cópia e a rede passa do prazo', async ({ mundo }) => {
   mundo.nota.sw = await busca({ guardado: new Map([['http://localhost/app.js?v=1', { versao: 'cópia' }]]), lenta: true });
 });
+When('o service worker busca um arquivo que só tem cópia de outra versão e a rede passa do prazo', async ({ mundo }) => {
+  mundo.nota.sw = await busca({ guardado: new Map([['http://localhost/app.js?v=0', { versao: 'cópia' }]]), lenta: true });
+});
 When('o service worker busca um arquivo sem cópia e a rede passa do prazo', async ({ mundo }) => {
   mundo.nota.sw = await busca({ lenta: true });
 });

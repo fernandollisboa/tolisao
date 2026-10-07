@@ -44,3 +44,10 @@ Funcionalidade: Quanto fica pra cada um
       Então embaixo dele está escrito "Ana pagou · ÷3"
       Quando eu edito o "Mercado"
       Então a aba igual fica marcada
+
+    Exemplo: trocar só a descrição não muda quem leva o centavo a mais
+      Quando eu abro o evento como Ana
+      E eu anoto "Mercado" e depois "Gás", os dois de R$ 100,00 divididos igualmente
+      E eu edito o "Mercado"
+      E eu troco a descrição do "Mercado" pra "Feira" e salvo
+      Então no banco, o centavo a mais do "Feira" continua com a mesma pessoa

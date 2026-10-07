@@ -40,11 +40,13 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     else if (v && typeof v === 'object') pix(v, [...caminho, k]); } };
   pix(banco.rules.pix || {}, []);
   regra('o tok do pix não se lê', lidos.join('; '));
-  // o pix fecha como o rooms/$room: sala de hash, pessoa de id, tok com tamanho e nada a mais
+  // o pix fecha como o rooms/$room: sala de hash, pessoa de id, tok de texto e nada a mais.
+  // o tok fica sem tamanho máximo: os do tempo do racha:<sala>:pixtok:<pessoa> migraram como estavam,
+  // e o histórico não diz o tamanho deles. Barrar um travaria a chave de quem tem só ele
   const pp = banco.rules.pix?.$room?.$person || {}, v = pp['.validate'] || '', fechado = [];
   if (!v.includes('$room.matches(/^[0-9a-f]{64}$/)')) fechado.push('$room não confere o hash de 64 hex');
   if (!v.includes('$person.matches(/^[a-z0-9]{1,32}$/)')) fechado.push('$person não confere o id');
-  if (!/length <= \d+/.test(pp.tok?.['.validate'] || '')) fechado.push('tok sem tamanho máximo');
+  if (!/isString\(\)/.test(pp.tok?.['.validate'] || '')) fechado.push('tok não confere que é texto');
   if (pp.$outro?.['.validate'] !== false) fechado.push('falta $outro: false');
   regra('o pix só aceita {key, tok} de sala e pessoa válidas', fechado.join('; '));
   // visitas é só um +1 por dia: ninguém lista, ninguém apaga (.validate não roda em delete), ninguém pula de 1000 em 1000

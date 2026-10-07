@@ -57,7 +57,15 @@ Given('que neste aparelho eu cadastrei a chave pix {string} da/do {word} no {str
   naGaveta(mundo, `tolisa:${sala}`, { pixTokens: { [id]: 'tok-deste-aparelho' } });
   naGaveta(mundo, 'tolisa', { pixKey: chave, myName: quem });
 });
+Given('que o {string} sumiu do banco', async ({ mundo }, nome) => { delete mundo.banco.arvore.rooms[salaDe(mundo, nome)]; });
 Given('que eu esqueci o {string} neste aparelho', async ({ mundo }, nome) => { naGaveta(mundo, `tolisa:${salaDe(mundo, nome)}`, { hidden: true }); });
+// o banco não aceita a chave vazia: a chave fica lá, e o tok tem que ficar aqui
+Given('que o banco não deixa tirar chave pix agora', async ({ mundo }) => { mundo.banco.pixTravado = true; });
+When('o banco volta a deixar tirar chave pix', async ({ mundo }) => { mundo.banco.pixTravado = false; });
+Then('o {string} no banco ainda tem a chave pix {string} da/do {word}', async ({ mundo }, nome, chave, quem) => {
+  const sala = salaDe(mundo, nome);
+  expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe(chave);
+});
 When('eu toco em apagar meus dados deste aparelho', async ({ mundo }) => { await mundo.p.click('#apagaTudo'); await mundo.p.waitForSelector('#okBtn'); });
 Then('a tela é a de quem nunca entrou', async ({ mundo }) => {
   await expect(mundo.p.locator('#overlayBox')).toContainText('racha a conta do rolê');

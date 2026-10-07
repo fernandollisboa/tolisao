@@ -524,12 +524,12 @@
     ids.forEach((id, i) => (o[id] = base + (i < rem ? 1 : 0)));
     return o;
   }
-  /** a divisão igual de um gasto novo: o centavo que sobra começa numa pessoa tirada do id
-   *  do gasto, e não sempre na primeira da turma. Fica gravado no `shares`: o `shares()` lido
+  /** a divisão igual de um gasto novo: o centavo que sobra começa numa pessoa que anda com a posição
+   *  do gasto na lista, e não sempre na primeira da turma. Fica gravado no `shares`: o `shares()` lido
    *  na hora continua igual, senão os saldos dos eventos antigos mudavam
-   *  @param {number} cents @param {string[]} ids @param {string} id */
-  function sharesGirando(cents, ids, id) {
-    const ini = [...id].reduce((a, c) => a + c.charCodeAt(0), 0) % ids.length;
+   *  @param {number} cents @param {string[]} ids @param {number} pos */
+  function sharesGirando(cents, ids, pos) {
+    const ini = pos % ids.length;
     const s = shares(
       cents,
       ids.map((_, i) => ids[(ini + i) % ids.length]),
@@ -1118,7 +1118,12 @@
     }
     return tok;
   };
-  const postaApi = (rota, corpo) => fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo) });
+  /** a API com o mesmo prazo do banco: sem ele o "Apagando…" ficava preso na rede engasgada */
+  const postaApi = (rota, corpo) => {
+    const c = new AbortController();
+    setTimeout(() => c.abort(new Error('a rede não respondeu')), REDE_MS);
+    return fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo), signal: c.signal });
+  };
   let mexendoAviso = false;
   /** o 🔔 de Minha conta: pede permissão e inscreve (ligado, o botão some) */
   async function tocaAviso() {
@@ -1518,8 +1523,16 @@
         ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
+      (bal > 0 ? botaoTrocaZap(recebe) : '') +
       (bal > 0 && temAviso() ? botaoAviso() : '');
   }
+  /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */
+  const botaoTrocaZap = (recebe) => {
+    const gente = recebe.map((t) => t.from).filter((id) => zapDe(id) !== null);
+    return gente.length
+      ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}">${esc(nameOf(id))}</a>`).join(', ')}</div>`
+      : '';
+  };
   /** o 🔔 no pé de Minha conta, só pra quem recebe e ainda não ligou: ligado, some (quem quiser
    *  desligar desliga nas notificações do próprio navegador) */
   const botaoAviso = () =>
@@ -2121,14 +2134,14 @@
       if (btn.disabled) return;
       // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto
       if (aberto) {
-        const { code, quem, link } = codigoDoCampo($('#gateCode').value);
+        const { code, quem, link, meu } = codigoDoCampo($('#gateCode').value);
         if (!code) return;
         if (code === roomName) return closeOverlay();
         btn.disabled = true;
         // nome digitado que não existe cria direto, pelo mesmo ?novo= do "criar outro";
         // link que não abre nada vai pelo ?evento=, que pergunta
         let novo = false;
-        if (!link && !pareceLink(code) && DB)
+        if (!link && !meu && !pareceLink(code) && DB)
           try {
             await apiGet(await sha(code));
           } catch (e) {
@@ -2144,7 +2157,7 @@
       try {
         const c = codigoDoCampo(code);
         quemDoLink = c.quem;
-        await enterRoom(c.code, false, !c.link);
+        await enterRoom(c.code, false, !c.link && !c.meu);
       } catch (e) {
         // o "Não achei …" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
@@ -2415,7 +2428,8 @@
   /** o que a pessoa pôs no campo vira código. O que ela tem no zap é o link, sozinho ou no meio da
    *  mensagem: o código sai do ?evento= (ou do ?senha= antigo) e o &quem= do mesmo link vem junto.
    *  Nome igual ao de um evento da lista é esse evento, não um novo com o mesmo nome
-   *  @returns {{ code: string, quem: string|null, link: boolean }} */
+   *  (`meu`: o evento pode ter sumido do banco, e aí ele pergunta antes de criar outro em silêncio)
+   *  @returns {{ code: string, quem: string|null, link: boolean, meu?: boolean }} */
   function codigoDoCampo(texto) {
     const t = texto.trim(),
       // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
@@ -2432,7 +2446,7 @@
     const code = t.toLowerCase(),
       evs = meusEventos(),
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
-    return { code: meu ? meu.code : code, quem: null, link: false };
+    return { code: meu ? meu.code : code, quem: null, link: false, meu: !!meu };
   }
   /** código com cara de final sorteado (6 letras e números, com algum número): veio de um link */
   function pareceLink(code) {
@@ -2639,7 +2653,9 @@
     const ok = await ask(
       'Apagar meus dados deste aparelho?',
       `tira a sua chave pix de cada evento e apaga daqui os eventos, o seu nome e os avisos. os eventos continuam pra turma, pelo link.${
-        semRede ? '<br><br>sem internet: as chaves pix ficam nos eventos, e daqui ninguém troca mais.' : ''
+        semRede
+          ? '<br><br>sem internet: as chaves pix ficam nos eventos, e o segredo delas fica aqui até você apagar de novo com internet.'
+          : ''
       }`,
       'apagar tudo',
       true,
@@ -2650,6 +2666,8 @@
     clearInterval(pollTimer);
     const gavetas = gavetasDeEvento();
     /** @type {Promise<unknown>[]} */ const feito = [];
+    /** o tok que o banco não confirmou fica: a chave pode estar lá ainda, e sem ele ninguém tira mais
+     *  @type {Record<string, Record<string, string>>} */ const ficam = {};
     let sub = null;
     try {
       const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
@@ -2662,7 +2680,16 @@
       // a chave vazia com o tok solta o nó: qualquer aparelho cadastra de novo
       if (o.pixTokens && typeof o.pixTokens === 'object')
         for (const [pid, tok] of Object.entries(o.pixTokens))
-          if (okId(pid) && typeof tok === 'string' && tok) feito.push(gravaPix(sala, pid, '', tok).catch(() => {}));
+          if (okId(pid) && typeof tok === 'string' && tok)
+            feito.push(
+              gravaPix(sala, pid, '', tok)
+                // 401/403: a chave já não é deste aparelho, o tok não serve mais pra nada
+                .then((r) => r.ok || r.status === 401 || r.status === 403)
+                .catch(() => false)
+                .then((saiu) => {
+                  if (!saiu) (ficam[k] ||= {})[pid] = tok;
+                }),
+            );
       if (sub && okId(o.pushOn) && typeof o.pushTok === 'string')
         feito.push(
           postaApi('/desinscreve', { sala, pessoa: o.pushOn, endpoint: sub.endpoint, tok: o.pushTok }).catch(() => {}),
@@ -2679,8 +2706,25 @@
       }
     });
     if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
-    for (const k of gavetas) ls.del(k);
+    /** @type {string[]} */ const falhou = [];
+    for (const k of gavetas) {
+      if (!ficam[k]) {
+        ls.del(k);
+        continue;
+      }
+      // fica só o tok (e o código, pro aviso), esquecida: o "apagar meus dados" segue na tela pra tentar de novo
+      const code = gaveta(k).code,
+        nome = typeof code === 'string' && code && code.length <= 100 ? code : 'um evento';
+      falhou.push(nome);
+      ls.set(k, JSON.stringify({ code, hidden: true, pixTokens: ficam[k] }));
+    }
     ls.del(DEVICE);
+    if (falhou.length)
+      await ask(
+        'Faltou a chave pix',
+        `não deu pra tirar a chave de ${falhou.map((n) => `<b>${esc(n)}</b>`).join(', ')}, tenta de novo com internet. o resto já saiu daqui.`,
+        'ok',
+      );
     location.replace(location.pathname);
   }
   /** dias de calendário de `at` até hoje (ontem é 1, mesmo que tenha sido há 2 horas) */
@@ -3011,8 +3055,15 @@
         );
       exp.shares = {};
       for (const id of among) exp.shares[id] = sh[id] || 0;
-    } else if (total % among.length) exp.shares = sharesGirando(total, among, exp.id);
+    }
     const velho = editando && state.expenses.find((x) => x.id === editando);
+    if (splitMode !== 'custom' && total % among.length) {
+      // editou só a descrição (ou o pagante): o centavo fica com quem já estava
+      const igual = velho && ehIgual(velho) && centavos(velho) === total && velho.among.join() === among.join();
+      if (igual) {
+        if (velho.shares) exp.shares = { ...velho.shares };
+      } else exp.shares = sharesGirando(total, among, velho ? state.expenses.indexOf(velho) : state.expenses.length);
+    }
     // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
     if (!editando) {
       // o banco tem prazo: com a rede engasgada, confere com o que já chegou e anota (o sync mescla depois)
@@ -3137,6 +3188,7 @@
     const modo = el.dataset.perdoa ? 'perdoa' : el.dataset.recebi ? 'recebi' : 'paguei';
     const [from, to, cs] = (el.dataset.perdoa || el.dataset.recebi || el.dataset.settle).split('|');
     let cents = +cs;
+    const divida = cents;
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
     const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
@@ -3158,9 +3210,11 @@
         /** @type {HTMLButtonElement} */ ($('#okBtn')).disabled = !cents;
         const bt = /** @type {HTMLButtonElement|null} */ ($('#quitaPix'));
         if (!bt) return;
-        bt.dataset.pix = `${to}|${cents}`;
-        bt.disabled = !cents;
-        bt.querySelector('span').textContent = comSifrao(cents);
+        // o pix não passa da dívida da dupla: o quitei também só grava até ela
+        const noPix = Math.min(cents, divida);
+        bt.dataset.pix = `${to}|${noPix}`;
+        bt.disabled = !noPix;
+        bt.querySelector('span').textContent = comSifrao(noPix);
         $('#quitaPixCode')?.remove();
       });
       cx.addEventListener('keydown', (ev) => {
@@ -3260,6 +3314,7 @@
     ['[data-aviso]', tocaAviso],
     ['#apagaTudo', apagaTudo],
     ['[data-cobra]', cobra],
+    ['[data-trocazap]', (el) => state.people.some((p) => p.id === el.dataset.trocazap) && pedeZap(el.dataset.trocazap)],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],
     [
@@ -3337,9 +3392,12 @@
       v = ps && typeof ps === 'object' ? ps[chaveDoNome(nameOf(id))] : undefined;
     return v === '' || (typeof v === 'string' && /^55\d{10,11}$/.test(v)) ? v : null;
   };
+  /** `tel` undefined esquece: a próxima cobrança pergunta de novo */
   const guardaZap = (id, tel) =>
     mexe(DEVICE, (o) => {
-      o.phones = { ...(o.phones && typeof o.phones === 'object' ? o.phones : {}), [chaveDoNome(nameOf(id))]: tel };
+      const ps = { ...(o.phones && typeof o.phones === 'object' ? o.phones : {}), [chaveDoNome(nameOf(id))]: tel };
+      if (tel === undefined) delete ps[chaveDoNome(nameOf(id))];
+      o.phones = ps;
     });
   /** número de celular ou fixo do Brasil, do jeito que vier: '55' + DDD + número, ou null */
   const telBR = (v) => {
@@ -3348,28 +3406,33 @@
     return /^\d{10,11}$/.test(d) ? '55' + d : null;
   };
   /** a primeira cobrança de alguém pede o zap dela, uma vez só. O zap abre do próprio toque
-   *  no cobrar ou no pular, sem await no meio (senão o celular barra o pop-up) */
-  function pedeZap(quem, msg) {
+   *  no cobrar ou no pular, sem await no meio (senão o celular barra o pop-up).
+   *  Sem `msg` é o trocar: guarda o número novo, ou esquece, e não abre o zap */
+  function pedeZap(quem, msg = '') {
     // a agenda do celular (Contact Picker, Chrome no Android) só preenche a caixa
     const nav = /** @type {any} */ (navigator),
-      agenda = nav.contacts && typeof nav.contacts.select === 'function';
+      agenda = nav.contacts && typeof nav.contacts.select === 'function',
+      velho = msg ? '' : zapDe(quem) || '';
     overlay(
       `<h2 class="pergunta">Zap de ${nomeHtml(quem)}?</h2>
       <p class="muted recado" id="askDesc">com o número, a cobrança já cai na conversa. ele fica só neste aparelho</p>
-      <form id="zapForm" autocomplete="off"><input id="askInput" type="tel" inputmode="tel" placeholder="(81) 99999-9999">${agenda ? '<div class="c"><button type="button" id="zapAgenda" class="ghost">📇 pegar da agenda</button></div>' : ''}<button class="big">${WA_SVG} cobrar</button></form>
-      <div class="c voltar"><button id="zapPular" class="ghost">pular</button></div>`,
+      <form id="zapForm" autocomplete="off"><input id="askInput" type="tel" inputmode="tel" placeholder="(81) 99999-9999" value="${velho.slice(2)}">${agenda ? '<div class="c"><button type="button" id="zapAgenda" class="ghost">📇 pegar da agenda</button></div>' : ''}<button class="big">${msg ? `${WA_SVG} cobrar` : 'guardar'}</button></form>
+      <div class="c voltar"><button id="zapPular" class="ghost">${msg ? 'pular' : 'esquecer o número'}</button></div>`,
     );
     const caixa = $('#askInput'),
       erro = [caixa, $('#askDesc')];
     caixa.addEventListener('input', () => erro.forEach((e) => e.classList.remove('erro')));
-    const manda = (tel) => {
-      guardaZap(quem, tel);
+    /** @param {string|undefined} tel @param {boolean} [guarda] */
+    const manda = (tel, guarda = true) => {
+      if (guarda) guardaZap(quem, tel);
       closeOverlay();
-      abreZap(msg, tel);
+      if (msg) abreZap(msg, tel || '');
+      else render();
     };
     $('#zapForm').onsubmit = (ev) => {
       ev.preventDefault();
-      if (!caixa.value.trim()) return manda('');
+      // caixa vazia não é pular: cobra sem número, e a próxima cobrança pergunta de novo
+      if (!caixa.value.trim()) return msg ? manda('', false) : manda(undefined);
       const tel = telBR(caixa.value);
       if (tel) return manda(tel);
       erro.forEach((e) => {
@@ -3379,7 +3442,7 @@
       });
       caixa.focus();
     };
-    $('#zapPular').onclick = () => manda('');
+    $('#zapPular').onclick = () => manda(msg ? '' : undefined);
     if (agenda)
       $('#zapAgenda').onclick = () =>
         nav.contacts.select(['tel']).then(

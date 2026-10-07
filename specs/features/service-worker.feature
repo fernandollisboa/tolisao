@@ -33,3 +33,8 @@ Funcionalidade: O service worker guarda cópia sem estragar a resposta
   Cenário: rede lenta sem cópia guardada espera a rede
     Quando o service worker busca um arquivo sem cópia e a rede passa do prazo
     Então ele abre com a resposta da rede
+
+  Cenário: rede lenta não mistura versões
+    A página nova pede o app.js da versão dela. A cópia de outra versão quebraria a tela: espera a rede.
+    Quando o service worker busca um arquivo que só tem cópia de outra versão e a rede passa do prazo
+    Então ele abre com a resposta da rede

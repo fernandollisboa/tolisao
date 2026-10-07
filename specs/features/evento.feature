@@ -58,6 +58,30 @@ Funcionalidade: Entrar no evento
     E o endereço termina em "?evento=churras"
     E o nome do evento no cabeçalho é "churras"
 
+  Cenário: colar o link do zap no campo abre o evento
+    O que a pessoa tem no zap é o link, não o código. Colado no campo, sozinho ou com a
+    mensagem inteira, ele abre o evento e diz quem é, como se ela tivesse tocado nele.
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    E que eu abro o site sem evento
+    Quando eu colo no campo do código:
+      """
+      Lia, faltam R$ 30,00 do *churras* 💸
+      https://tolisa.com.br/fiado/?evento=churras&quem=lia
+      """
+    Então o cabeçalho diz "sou Lia"
+    E o nome do evento no cabeçalho é "churras"
+    E o endereço termina em "?evento=churras"
+
+  Cenário: o nome de um evento da lista abre ele, sem criar outro igual
+    O link do evento ganha um final sorteado, mas o que a pessoa lembra é o nome.
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    E eu crio o evento
+    E eu abro o site sem código
+    E eu digito o código "praia"
+    Então o endereço é "?evento=praia-" com um final sorteado
+    E o site não pergunta nada
+
   Cenário: o link pode dizer quem vai abrir
     Dado o evento "churras" com Fernando, Júlia e Lia
     E os gastos:

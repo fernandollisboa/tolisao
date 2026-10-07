@@ -2062,24 +2062,33 @@
     atualizaDatas(evs, true, esquece);
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
-      // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto (inclusive o "Criar …?")
+      const btn = ev.target.querySelector('button');
+      // dois toques no botão criariam dois eventos: ele fica apagado até a página mudar
+      if (btn.disabled) return;
+      // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto
       if (aberto) {
-        const { code, quem } = codigoDoCampo($('#gateCode').value);
+        const { code, quem, link } = codigoDoCampo($('#gateCode').value);
         if (!code) return;
         if (code === roomName) return closeOverlay();
-        location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
+        btn.disabled = true;
+        // o nome digitado leva o #novo: se não existir, o começo do app cria direto, sem perguntar
+        location.href =
+          location.pathname +
+          '?evento=' +
+          encodeURIComponent(code) +
+          (quem ? '&quem=' + quem : '') +
+          (link ? '' : '#novo');
         return;
       }
-      const btn = ev.target.querySelector('button');
       btn.disabled = true;
       btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
       const code = $('#gateCode').value;
       try {
         const c = codigoDoCampo(code);
         quemDoLink = c.quem;
-        await enterRoom(c.code);
+        await enterRoom(c.code, !c.link);
       } catch (e) {
-        // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
+        // o "Não achei …" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
           showGate();
           $('#gateCode').value = code;
@@ -2343,7 +2352,7 @@
   /** o que a pessoa pôs no campo vira código. O que ela tem no zap é o link, sozinho ou no meio da
    *  mensagem: o código sai do ?evento= (ou do ?senha= antigo) e o &quem= do mesmo link vem junto.
    *  Nome igual ao de um evento da lista é esse evento, não um novo com o mesmo nome
-   *  @returns {{ code: string, quem: string|null }} */
+   *  @returns {{ code: string, quem: string|null, link: boolean }} */
   function codigoDoCampo(texto) {
     const t = texto.trim(),
       // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
@@ -2355,14 +2364,19 @@
       try {
         code = decodeURIComponent(code.replace(/\+/g, ' '));
       } catch {}
-      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null };
+      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null, link: true };
     }
     const code = t.toLowerCase(),
       evs = meusEventos(),
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
-    return { code: meu ? meu.code : code, quem: null };
+    return { code: meu ? meu.code : code, quem: null, link: false };
   }
-  async function enterRoom(code) {
+  /** código com cara de final sorteado (6 letras e números, com algum número): veio de um link */
+  function pareceLink(code) {
+    return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+  }
+  /** `digitou` é o nome escrito no campo, que cria sem perguntar */
+  async function enterRoom(code, digitou = false) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
@@ -2374,11 +2388,11 @@
     }
     let criou = false;
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    if (!existing && !seed) {
-      // código com cara de final sorteado (6 letras e números, com algum número) é link velho ou cortado,
-      // não nome novo: "esse nome tá livre" ali faria a pessoa criar um evento fantasma
-      const veioDeLink = /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
-      const [titulo, desc, ok] = veioDeLink
+    // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link
+    if (!existing && !seed && (pareceLink(code) || !digitou)) {
+      // código com cara de final sorteado é link velho ou cortado, não nome novo:
+      // "esse nome tá livre" ali faria a pessoa criar um evento fantasma
+      const [titulo, desc, ok] = pareceLink(code)
         ? [
             `Não achei "${esc(code)}"`,
             'esse link não abre evento nenhum. confere com quem te mandou.',
@@ -4337,6 +4351,9 @@
     const c = q.get('evento') || q.get('senha');
     const quem = q.get('quem');
     if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
+    // o nome digitado no cartão do evento chega com #novo: cria sem perguntar, e o endereço não guarda ele
+    const digitou = location.hash === '#novo';
+    if (digitou) history.replaceState(null, '', location.pathname + location.search);
     if (c) {
       const code = c.trim().toLowerCase(),
         id = await sha(code);
@@ -4344,7 +4361,7 @@
       // (e, se ele sumiu do banco, cai no "Sumiu!" com a cópia, não no "Criar …?")
       if (DB && gaveta(roomKey(id)).code === code) return openGroup(code, id);
       try {
-        return await enterRoom(code);
+        return await enterRoom(code, digitou);
       } catch (e) {
         return showGate(e.message);
       }

@@ -43,3 +43,30 @@ Then('o aparelho não guarda mais o último evento na gaveta dele', async ({ mun
   expect((await gaveta(mundo, 'tolisa')).lastRoom).toBeUndefined();
   expect((await gaveta(mundo, `tolisa:${mundo.sala}`)).code).toBe(mundo.evento.name);
 });
+
+// apagar meus dados: a chave pix que este aparelho cadastrou (o tok fica na gaveta), o evento esquecido pelo ✕
+const salaDe = (mundo, nome) => { const rooms = mundo.banco.arvore.rooms; return Object.keys(rooms).find(id => rooms[id].name === nome); };
+const idNo = (mundo, sala, quem) => mundo.banco.arvore.rooms[sala].people.find(p => p.name === quem).id;
+Given('que neste aparelho eu cadastrei a chave pix {string} da/do {word} no {string}', async ({ mundo }, chave, quem, nome) => {
+  const sala = salaDe(mundo, nome), id = idNo(mundo, sala, quem);
+  ((mundo.banco.arvore.pix ||= {})[sala] ||= {})[id] = { key: chave, tok: 'tokdesteaparelho' };
+  naGaveta(mundo, `tolisa:${sala}`, { pixTokens: { [id]: 'tokdesteaparelho' } });
+  naGaveta(mundo, 'tolisa', { pixKey: chave, myName: quem });
+});
+Given('que eu esqueci o {string} neste aparelho', async ({ mundo }, nome) => { naGaveta(mundo, `tolisa:${salaDe(mundo, nome)}`, { hidden: true }); });
+When('eu toco em apagar meus dados deste aparelho', async ({ mundo }) => { await mundo.p.click('#apagaTudo'); await mundo.p.waitForSelector('#okBtn'); });
+Then('a tela é a de quem nunca entrou', async ({ mundo }) => {
+  await expect(mundo.p.locator('#overlayBox')).toContainText('racha a conta do rolê');
+  await expect(mundo.p.locator('#overlayBox .ev')).toHaveCount(0);
+  await expect(mundo.p.locator('#apagaTudo')).toHaveCount(0);
+});
+Then('o {string} no banco não tem mais a chave pix da/do {word}', async ({ mundo }, nome, quem) => {
+  const sala = salaDe(mundo, nome);
+  expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe('');
+});
+// apagar é só daqui: o evento segue no banco, com a turma inteira
+Then('o {string} continua no banco com a/o {word}', async ({ mundo }, nome, quem) => {
+  const sala = salaDe(mundo, nome);
+  expect(sala).toBeTruthy();
+  expect(mundo.banco.arvore.rooms[sala].people.map(p => p.name)).toContain(quem);
+});

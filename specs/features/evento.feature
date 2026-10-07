@@ -170,6 +170,7 @@ Funcionalidade: Entrar no evento
       *** OUTRO EVENTO ***
       ENTRAR
       VOLTAR
+      apagar meus dados deste aparelho
       """
     Quando eu toco em voltar
     Então o cartão fecha

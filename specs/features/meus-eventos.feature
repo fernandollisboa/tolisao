@@ -45,7 +45,6 @@ Funcionalidade: Meus eventos
       *** EVENTO ***
       ENTRA QUEM TEM
       o link
-      MOSTRAR QR
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA

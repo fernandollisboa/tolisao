@@ -159,7 +159,6 @@ Funcionalidade: Entrar no evento
       *** EVENTO ***
       ENTRA QUEM TEM
       o link
-      MOSTRAR QR
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite

@@ -38,6 +38,23 @@ Funcionalidade: A conta sempre fecha
         | Júlia | Fernando | 25,00 |
         | Lia   | Fernando | 25,00 |
 
+    Cenário: a edição que perdeu fica no fim da lista, dizendo qual valeu
+      Quem perdeu acharia que o valor dela valeu: a edição sobrescrita não some calada.
+      Dado o evento "churras" com Fernando, Júlia e Lia
+      E os gastos:
+        | o quê | valor | pagou    | divide entre         |
+        | Pizza | 60,00 | Fernando | Fernando, Júlia, Lia |
+      Quando eu abro o evento como Fernando
+      E eu abro a lista de itens
+      E eu edito o "Pizza"
+      E a Júlia troca o valor da "Pizza" pra R$ 90,00 em outro aparelho
+      E eu troco o valor pra R$ 75,00 e salvo
+      E eu abro o evento como Júlia em outro aparelho
+      E eu abro a lista de itens
+      Então o fim da lista diz "▸ 1 edição sobrescrita"
+      Quando eu abro os itens apagados
+      Então a "Pizza" de 90,00 aparece riscada: "edição de Júlia, sobrescrita pela de Fernando"
+
     Cenário: quem acabou de entrar num gasto em outro aparelho não sai da lista
       O ✕ só aparece pra quem não tem conta, mas outro aparelho pode ter posto a pessoa num gasto agorinha.
       Dado o evento "churras" com Fernando, Júlia e Lia

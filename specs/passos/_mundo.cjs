@@ -66,7 +66,12 @@ class Mundo {
 
   // quem ainda não é ninguém toca no nome; quem já é alguém troca no menu
   async souEu(quem) {
-    const p = this.p; await p.click('#whoBtn'); await p.waitForSelector('#whoSel, #overlayBox [data-sou]');
+    const p = this.p;
+    // quem chega sem ser ninguém escolhe no topo da nota; o cabeçalho só pergunta com a flag QUEM_NO_TOPO
+    const chegada = p.locator('#chegada [data-chegou]', { hasText: new RegExp(`^${quem}$`) });
+    await p.waitForSelector('#whoBtn, #chegada [data-chegou]'); // os dois saem do mesmo render: espera a nota desenhar
+    if (!(await p.locator('#whoBtn').count()) && (await chegada.count())) return chegada.click();
+    await p.click('#whoBtn'); await p.waitForSelector('#whoSel, #overlayBox [data-sou]');
     if (await p.locator('#whoSel').count()) await p.selectOption('#whoSel', { label: quem });
     else await p.locator('#overlayBox [data-sou]', { hasText: new RegExp(`^${quem}$`) }).click();
   }

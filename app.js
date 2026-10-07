@@ -42,6 +42,7 @@
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
+  const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -1321,13 +1322,15 @@
       ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
       : sug
         ? `<a class="link amb" id="whoSugere" data-quem="${sug.id}">você é ${esc(sug.name)}?</a> <a class="link" id="whoBtn">não</a>`
-        : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
+        : QUEM_NO_TOPO || !state.people.length
+          ? `<a class="link amb" id="whoBtn">Quem é você?</a>`
+          : '';
     if (wl.dataset.k !== html) {
       wl.innerHTML = html;
       wl.dataset.k = html;
     }
     // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
-    $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
+    if ($('#whoBtn')) $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
     if ($('#whoSugere')) $('#whoSugere').onclick = () => souEu($('#whoSugere').dataset.quem);
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
@@ -1335,7 +1338,7 @@
   /** um botão por pessoa, numa cápsula com contorno e pontinho na cor dela, com o id em data-<attr>
    *  @param {Person[]} gente @param {string} attr */
   function linkpras(gente, attr) {
-    return `<div class="linkpras">${gente.map((p) => `<button class="linkpra" data-${attr}="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>`;
+    return `<div class="linkpras">${gente.map((p) => `<button class="linkpra" data-${attr}="${p.id}" style="--cor:${colorOf(p.id)}"><i></i><span>${esc(p.name)}</span></button>`).join('')}</div>`;
   }
   /** quem chega pelo link do grupo ainda não é ninguém: no topo da nota, um nome por pessoa,
    *  na cor dela, e o "não tô aqui" pra quem falta na lista. É convite, não cartão: ninguém é
@@ -2108,8 +2111,7 @@
       `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${
         aberto
           ? `<div class="hr"></div><h2>*** Evento ***</h2>
-      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
-      <div class="c"><button id="evQr" class="qrbtn colado">${QR_ICONE} mostrar QR</button></div>`
+      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><button id="evQr" class="qrmini" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}QR</button><span class="v"><a class="link" id="evLink">o link</a></span></div>`
           : ''
       }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
@@ -3668,7 +3670,7 @@
     if (tel === null) pedeZap(quem, msg);
     else abreZap(msg, tel);
   }
-  /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa cápsula com contorno e pontinho na cor dela.
+  /** o link pode já dizer quem vai abrir: o grupo todo em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
   function linkPraQuem() {
     const outros = state.people.filter((p) => p.id !== me);
@@ -3676,10 +3678,9 @@
     return new Promise((res) => {
       overlay(
         `<h2 class="pergunta">Mandar pra quem?</h2>
-      <button class="big" data-link-pra="">👥 pro grupo todo</button>
+      <div class="grupo"><button class="big" data-link-pra="">👥 pro grupo todo</button><button id="qrBtn" class="qrbtn" aria-label="mostrar QR" title="mostrar QR">${QR_ICONE}</button></div>
       <div class="c muted linkou">ou um link que já entra como:</div>
       ${linkpras(outros, 'link-pra')}
-      <div class="c"><button id="qrBtn" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);

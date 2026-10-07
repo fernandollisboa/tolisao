@@ -590,14 +590,25 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 /* a chave pix: o carimbo em cima da caixa, na largura dela, diz o que não passa */
 .carimbo{border:3px double var(--red);color:var(--red);padding:6px;font-size:18px;line-height:1.1;text-align:center;text-transform:uppercase;letter-spacing:1px;background:var(--paper)}
 #askDesc.carimbo.erro{background:var(--red);color:var(--paper);-webkit-text-stroke:0}
-/* mandar pra quem: o grupo todo é o botão grande; cada pessoa, uma cápsula com contorno e pontinho na cor dela */
-.linkou{margin:14px 0 0;text-transform:none;font-size:17px;text-align:center}
+/* mandar pra quem: o grupo todo é o botão grande, com o QR do lado; cada pessoa, uma cápsula com contorno e pontinho na cor dela */
+/* o QR é o quadrado do lado do grupo todo, da mesma altura; as pessoas em duas colunas iguais */
+.grupo{display:flex;gap:10px}
+.grupo .big{flex:1}
+.grupo .qrbtn{flex:none;width:56px;margin:0;justify-content:center;box-shadow:4px 4px 0 var(--ink)}
+.grupo .qrbtn svg{width:26px;height:26px}
+.linkou{margin:22px 0 0;text-transform:none;font-size:17px;text-align:center}
 .linkpras{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
-button.linkpra{display:inline-flex;align-items:center;gap:8px;color:var(--ink);background:#fff8e6;border-color:var(--cor);font-size:20px;text-transform:none;letter-spacing:0;border-radius:999px;padding:3px 14px 3px 10px;box-shadow:2px 2px 0 var(--cor)}
-button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
+#overlayBox .linkpras{display:grid;grid-template-columns:1fr 1fr}
+button.linkpra{display:inline-flex;align-items:center;gap:8px;min-width:0;color:var(--ink);background:#fff8e6;border-color:var(--cor);font-size:20px;text-transform:none;letter-spacing:0;border-radius:999px;padding:3px 14px 3px 10px;box-shadow:2px 2px 0 var(--cor)}
+#overlayBox button.linkpra{display:flex;padding:6px 12px}
+button.linkpra span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linkpras+.voltar{margin-top:16px}
+button.linkpra i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--cor)}
 /* o QR do link do grupo: botão pequeno embaixo das cápsulas, e o cartão com o QR na largura toda, em fundo branco pro leitor */
 button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-shadow:2px 2px 0 var(--ink)}
-button.qrbtn.colado{margin-top:2px}
+/* no cartão do evento o QR é um botãozinho com o ícone e o QR escrito, antes do link, na mesma linha */
+button.qrmini{display:inline-flex;align-items:center;justify-content:center;gap:5px;vertical-align:middle;height:30px;margin:0 10px 0 0;padding:0 7px;font-size:16px;letter-spacing:0;box-shadow:2px 2px 0 var(--ink);position:relative;top:-2px}
+button.qrmini svg{width:13px;height:13px}
 .qr svg{display:block;width:100%;max-width:320px;margin:4px auto 0;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
 /* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
 .pessoa.row .l[contenteditable]{outline:0;cursor:text}
@@ -674,3 +685,5 @@ button.qrbtn.colado{margin-top:2px}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
 /* o instalar mora no topo, embaixo do subtítulo: âmbar cheio, como o botão do form.lado */
 #instalar{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:#9a5b00;color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
+/* sem o quem é você no cabeçalho, o ponto do lado do evento sai junto */
+#eventLine .sep:has(+ #whoLine:empty){display:none}

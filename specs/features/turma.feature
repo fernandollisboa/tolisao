@@ -66,4 +66,4 @@ Funcionalidade: A mesma turma em outro evento
       E que neste aparelho eu sou Mengla no "praia"
       E o evento "show" com Lia, Mengla e Caio
       Quando eu abro o evento "show"
-      Então o cabeçalho pergunta "Quem é você?"
+      Então a nota pergunta quem eu sou entre Lia, Mengla e Caio

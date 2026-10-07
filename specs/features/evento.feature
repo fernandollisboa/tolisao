@@ -172,8 +172,8 @@ Funcionalidade: Entrar no evento
       TÔ LISA
       *** EVENTO ***
       ENTRA QUEM TEM
+      QR
       o link
-      MOSTRAR QR
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite

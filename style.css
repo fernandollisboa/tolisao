@@ -652,3 +652,7 @@ button.qrbtn.escuro{background:var(--ink);color:var(--paper);margin-top:2px}
 .comandinha.parada *,.comandinha.parada .row:after{animation:none !important}
 .comandinha.parada .fichinha.cai{display:none}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
+/* o convite de instalar de quem chegou pelo QR: no topo da nota, tracejado como o 🔔, sem chamar mais atenção que a conta */
+#chegada .instala{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 12px;text-transform:none}
+#chegada .instala button.ico{font-size:15px;height:24px;color:var(--ink2);border-color:var(--ink2);border-style:dashed}
+#chegada .instala .link{font-size:15px;color:var(--ink2)}

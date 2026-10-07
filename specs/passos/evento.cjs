@@ -255,8 +255,9 @@ When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre(
 When('eu peço o QR do evento', async ({ mundo }) => { await mundo.p.click('#waBtn'); await mundo.p.click('#qrBtn'); });
 When('eu peço o QR no cartão do evento', async ({ mundo }) => { await mundo.p.click('#evQr'); await mundo.p.waitForSelector('#overlayBox .qr svg'); });
 When('eu fecho o QR', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
-// o link curto, sem a pasta do preview do zap (semverba, sextou, fiado): o index.html abre o evento direto
-const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\?evento=${mundo.evento.name}$`);
+// o link curto, sem a pasta do preview do zap (semverba, sextou, fiado): o index.html abre o evento direto.
+// O &qr marca quem chegou escaneando (ganha o convite de instalar)
+const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\?evento=${mundo.evento.name}&qr$`);
 Then('o QR na tela abre o evento direto', async ({ mundo }) => {
   const svg = await mundo.p.locator('#overlayBox .qr svg').evaluate(s => s.outerHTML.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" '));
   expect(await leQr(mundo.p, 'data:image/svg+xml,' + encodeURIComponent(svg))).toMatch(doGrupo(mundo));

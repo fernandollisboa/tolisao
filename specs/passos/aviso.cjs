@@ -73,3 +73,29 @@ Then('o celular não fica inscrito pra receber aviso', async ({ mundo }) => { ex
 Then('o navegador me convida a instalar o tô lisa', async ({ mundo }) => {
   expect(await mundo.p.evaluate(() => /** @type {any} */ (window).__convites)).toBe(1);
 });
+Then('o navegador não me convida a instalar o tô lisa', async ({ mundo }) => {
+  expect(await mundo.p.evaluate(() => /** @type {any} */ (window).__convites)).toBe(0);
+});
+
+// o convite de instalar de quem chega pelo QR da mesa: o link do QR leva o &qr
+When('eu abro o evento pelo QR', async ({ mundo }) => {
+  await mundo.abre({ link: `${mundo.link}&qr` }); await mundo.p.waitForSelector('#app:not(.loading)');
+});
+const conviteQr = p => p.locator('#chegada [data-instala]');
+Then('a nota me convida: {string}', async ({ mundo }, txt) => { await expect(conviteQr(mundo.p)).toHaveText(txt); });
+Then('a nota não me convida a instalar o tô lisa', async ({ mundo }) => { await expect(conviteQr(mundo.p)).toHaveCount(0); });
+When('eu aceito o convite de instalar', async ({ mundo }) => { await conviteQr(mundo.p).click(); });
+When('eu dispenso o convite de instalar', async ({ mundo }) => { await mundo.p.click('#chegada [data-instala-nao]'); });
+Then('aparece o passo a passo do Safari, lembrando de entrar de novo no evento', async ({ mundo }) => {
+  const o = mundo.p.locator('#overlay');
+  await expect(o.locator('h2')).toHaveText('Instalar');
+  await expect(o).toContainText(`entra lá de novo no evento ${mundo.evento.name}`);
+  await expect(o).toContainText('Adicionar à Tela de Início');
+});
+// o Safari conta pelo navigator.standalone que a página abriu da Tela de Início
+Given('que meu celular é um iPhone com o tô lisa instalado', async ({ mundo }) => {
+  mundo.aparelho.push(() => {
+    Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1' });
+    Object.defineProperty(navigator, 'standalone', { get: () => true });
+  });
+});

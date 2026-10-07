@@ -37,9 +37,7 @@ Funcionalidade: O que fica guardado no aparelho
       ✕
       sou Lia · 3 pessoas
       agora
-      o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      qualquer nome cria o evento.
       BORA
       """
     E o aparelho não guarda mais o último evento na gaveta dele

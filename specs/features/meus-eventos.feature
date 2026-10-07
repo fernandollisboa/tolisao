@@ -42,11 +42,6 @@ Funcionalidade: Meus eventos
     Então o cartão mostra:
       """
       TÔ LISA
-      *** EVENTO ***
-      ENTRA QUEM TEM
-      o link
-      SEM ZAP, SEM DESCULPA
-      QR
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA
@@ -59,9 +54,7 @@ Funcionalidade: Meus eventos
       ✕
       sou Lia · 3 pessoas
       agora
-      o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      qualquer nome cria o evento.
       BORA
       VOLTAR
       """
@@ -83,9 +76,7 @@ Funcionalidade: Meus eventos
       ✕
       sou Lia · 3 pessoas
       agora
-      o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      qualquer nome cria o evento.
       BORA
       """
     E o código do evento não pega o foco sozinho

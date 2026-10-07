@@ -890,10 +890,8 @@
     try {
       const r = await fetch(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
       if (r.status === 401 || r.status === 403)
-        return toast(
-          'Sem permissão: essa chave foi cadastrada em outro aparelho (ou as regras do banco não foram atualizadas)',
-        );
-      if (!r.ok) return toast('Erro ao salvar: HTTP ' + r.status);
+        return toast('Essa chave foi cadastrada em outro aparelho: só ele troca');
+      if (!r.ok) return toast('A chave não salvou, tenta de novo');
       // a minha chave fica lembrada no aparelho, pra oferecer no próximo evento (só a chave: o tok é de cada evento)
       if (pid === me) {
         if (key) setDevice('pixKey', key);
@@ -905,7 +903,7 @@
       render();
       toast(key ? 'Chave Pix salva' : 'Chave Pix apagada');
     } catch (e) {
-      toast('Erro ao salvar: ' + e.message);
+      toast('A chave não salvou, tenta de novo');
     }
   }
   // Pix copia e cola (BR Code EMV) com valor
@@ -2031,7 +2029,7 @@
           .join('')}</div>`
       : '';
     overlay(
-      `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">enter pula pra próxima</div>
+      `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">um nome por vez, enter pro próximo</div>
       ${list}
       <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${corDe(n)}">
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
@@ -2228,8 +2226,8 @@
     $('#app').classList.add('loading', 'nospin');
     const cached = cacheLoad();
     overlay(
-      `<h2>Evento não encontrado</h2><p class="muted recado">esse evento não está mais no banco</p>
-      ${cached ? `<button id="restoreBtn" class="big">Restaurar da minha cópia</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`,
+      `<h2>Sumiu!</h2><p class="muted recado">${cached ? 'esse evento não tá mais aqui, mas teu celular guardou uma cópia.' : 'esse evento não tá mais aqui. confere o nome com quem te mandou.'}</p>
+      ${cached ? `<button id="restoreBtn" class="big">trazer de volta</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`,
       true,
     );
     if (cached)
@@ -2238,7 +2236,7 @@
           await apiPut(groupId, cached);
           location.reload();
         } catch (e) {
-          toast('Falhou: ' + e.message);
+          toast('Não deu pra trazer de volta, tenta de novo');
         }
       };
     // o evento não existe mais: sai da lista também (a gaveta fica, com a cópia e o tok do pix)
@@ -2275,13 +2273,13 @@
   }
   async function enterRoom(code) {
     if (!code) throw new Error('digita um nome.');
-    if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
+    if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
       existing = null;
     try {
       existing = await apiGet(id);
     } catch (e) {
-      if (!e.notFound) throw new Error('Sem conexão com o banco: ' + e.message);
+      if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
     }
     let criou = false;
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
@@ -2753,7 +2751,7 @@
   new ResizeObserver(vaza).observe($('#app'));
   $('#fab').onclick = () => {
     setDevice('fabTaps', (+device().fabTaps || 0) + 1);
-    if (!state.people.length) return toast('Adicione pessoas primeiro');
+    if (!state.people.length) return toast('Põe a galera primeiro');
     openSheet();
     convidaInstalar();
   };
@@ -2789,10 +2787,10 @@
     if (conferindo) return;
     const among = inputs('#splitChips input:checked').map((i) => i.value);
     const total = lerCentavos($('#amount').value);
-    if (!state.people.length) return toast('Adicione pessoas primeiro');
+    if (!state.people.length) return toast('Põe a galera primeiro');
     if (!among.length) return toast('Marque quem divide esse gasto');
     if (among.length > RACHA_MAX) return toast(`Dá pra dividir entre até ${RACHA_MAX} pessoas`);
-    if (!(total > 0)) return toast('Valor inválido');
+    if (!(total > 0)) return toast('Põe quanto foi');
     const exp = {
       id: uid(),
       desc: $('#desc').value.trim(),
@@ -4065,7 +4063,7 @@
       const code = c.trim().toLowerCase(),
         id = await sha(code);
       // o endereço sempre carrega o código: recarregar um evento que o aparelho conhece não é entrar de novo
-      // (e, se ele sumiu do banco, cai no "Evento não encontrado" com a cópia, não no "Criar …?")
+      // (e, se ele sumiu do banco, cai no "Sumiu!" com a cópia, não no "Criar …?")
       if (DB && gaveta(roomKey(id)).code === code) return openGroup(code, id);
       try {
         return await enterRoom(code);

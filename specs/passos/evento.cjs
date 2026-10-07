@@ -200,7 +200,7 @@ When('o evento some do banco', async ({ mundo }) => {
   delete mundo.banco.arvore.rooms[mundo.sala];
 });
 When('eu abro o site de novo', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#overlayBox h2'); });
-When('eu restauro da minha cópia', async ({ mundo }) => {
+When('eu trago o evento de volta da minha cópia', async ({ mundo }) => {
   await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#restoreBtn')]);
   await mundo.p.waitForSelector('#app:not(.loading)');
 });

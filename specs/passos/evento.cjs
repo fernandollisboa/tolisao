@@ -71,7 +71,17 @@ When('eu volto', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
 Then('o cartão do código volta com {string} escrito', async ({ mundo }, codigo) => { await expect(mundo.p.locator('#gateCode')).toHaveValue(codigo); });
 Then('aparece o recado {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#gateErr')).toHaveText(txt); });
 When('eu toco fora do cartão', async ({ mundo }) => { await mundo.p.mouse.click(5, 5); await mundo.p.waitForTimeout(200); });
-When('eu crio o evento', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#app:not(.loading)'); });
+// um nome novo no campo já é o evento: nada de "criar?" no meio
+When('eu crio o evento {string}', async ({ mundo }, nome) => {
+  await mundo.p.fill('#gateCode', nome); await mundo.p.click('#gateForm button'); await mundo.p.waitForSelector('#app:not(.loading)');
+});
+// os dois toques chegam antes do banco responder o primeiro
+When('eu toco duas vezes no botão com o nome {string}', async ({ mundo }, nome) => {
+  await mundo.p.fill('#gateCode', nome); await mundo.p.click('#gateForm button', { clickCount: 2 }); await mundo.p.waitForSelector('#app:not(.loading)');
+});
+Then('o banco tem {int} evento(s)', async ({ mundo }, n) => {
+  await expect.poll(() => Object.keys(mundo.banco.arvore.rooms || {}).length).toBe(n);
+});
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
 Then('o endereço é {string} com um final sorteado', async ({ mundo }, ini) => {
   const esc = ini.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

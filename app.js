@@ -1003,7 +1003,12 @@
     }
   }
   /** no iPhone o push só existe com o app na tela de início: no Safari o 🔔 ensina a instalar */
-  const iPhoneSemApp = () => INSTALAR && ehIOS() && !jaInstalado();
+  const iPhoneSemApp = () => INSTALAR && ehIOS() && !jaInstalado() && !iOSSemPush();
+  /** antes do 16.4 o iPhone não tem push nem instalado: o 🔔 não teria o que ensinar */
+  const iOSSemPush = () => {
+    const v = navigator.userAgent.match(/OS (\d+)_(\d+)/);
+    return !!v && (+v[1] < 16 || (+v[1] === 16 && +v[2] < 4));
+  };
   /** o navegador sabe receber push, ou é um iPhone que vai saber depois de instalar */
   const temAviso = () =>
     AVISO_PUSH &&
@@ -1055,13 +1060,21 @@
     if (!me || !groupId || mexendoAviso) return;
     if (avisoLigado()) return;
     if (iPhoneSemApp())
-      return ensinaInstalar('No iPhone o aviso só chega com o tô lisa na Tela de Início. Instala e toca no 🔔 de lá.');
+      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, daí o código
+      return ensinaInstalar(
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento <b>${esc(roomName)}</b> e toca no 🔔.`,
+      );
     const quem = me,
       sala = groupId;
     mexendoAviso = true;
     try {
       // no Android dá pra receber sem instalar, mas instalado o aviso abre o app: aproveita o toque e convida, uma vez só
-      if (convite && !device().installPrompted && !jaInstalado()) await pedeInstalar();
+      if (convite && !device().installPrompted && !jaInstalado()) {
+        await pedeInstalar().catch(() => false);
+        // demorou no convite, o toque venceu: sem ele o navegador esconde o pedido de permissão
+        if (navigator.userActivation && !navigator.userActivation.isActive)
+          return toast('Agora toca no 🔔 de novo pra ligar o aviso');
+      }
       if ((await Notification.requestPermission()) !== 'granted')
         return toast('Sem permissão: libera os avisos do site nas configurações do navegador');
       await navigator.serviceWorker.register('sw.js');
@@ -3330,7 +3343,7 @@
     }
     ensinaInstalar();
   };
-  /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 */
+  /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 (HTML: já vem escapado) */
   function ensinaInstalar(porque = '') {
     // quadrinhos: cada passo com o desenho do que vai aparecer no Safari e o botão a tocar
     // pintado, e uma seta pulando em cima do lugar de verdade. O Safari 26 guarda o
@@ -3377,7 +3390,7 @@
   function convidaInstalar() {
     if (!INSTALAR || !convite || device().installPrompted || jaInstalado()) return;
     if (visitas < 2 || !state || !state.expenses.length) return;
-    pedeInstalar();
+    pedeInstalar().catch(() => {});
   }
   function festa(x, y) {
     if (semMovimento()) return;

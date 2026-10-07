@@ -11,10 +11,11 @@ Then('Minha conta não oferece aviso no celular', async ({ mundo }) => {
   await expect(botao(mundo.p)).toHaveCount(0);
 });
 
-When('eu ligo o aviso no celular', async ({ mundo }) => { await botao(mundo.p).click(); await expect.poll(() => pedidos(mundo, '/inscreve').length).toBe(1); });
+When('eu ligo o aviso no celular', async ({ mundo }) => { await botao(mundo.p).click(); });
 Then('o botão do aviso sai de Minha conta', async ({ mundo }) => { await expect(botao(mundo.p)).toHaveCount(0); });
 
 Then('o celular fica inscrito pra receber o aviso da/do {word}', async ({ mundo }, nome) => {
+  await expect.poll(() => pedidos(mundo, '/inscreve').length).toBe(1);
   const [i] = pedidos(mundo, '/inscreve');
   expect(i).toMatchObject({ sala: mundo.sala, pessoa: mundo.pessoa(nome).id, sub: { endpoint: expect.any(String) } });
   expect(i.tok).toMatch(/^[a-z0-9]{16,64}$/);
@@ -46,14 +47,13 @@ Given('que meu navegador oferece instalar o tô lisa', async ({ mundo }) => {
   }));
 });
 
-When('eu toco no 🔔 de Minha conta', async ({ mundo }) => { await botao(mundo.p).click(); });
 Then('aparece o passo a passo de instalar na Tela de Início', async ({ mundo }) => {
   const o = mundo.p.locator('#overlay');
   await expect(o.locator('h2')).toHaveText('Instalar');
-  await expect(o).toContainText('aviso só chega com o tô lisa na Tela de Início');
+  await expect(o).toContainText(`aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento ${mundo.evento.name}`);
   await expect(o).toContainText('Adicionar à Tela de Início');
 });
 Then('o celular não fica inscrito pra receber aviso', async ({ mundo }) => { expect(pedidos(mundo, '/inscreve')).toHaveLength(0); });
-Then('o navegador me convida a instalar o tô lisa uma vez', async ({ mundo }) => {
+Then('o navegador me convida a instalar o tô lisa', async ({ mundo }) => {
   expect(await mundo.p.evaluate(() => /** @type {any} */ (window).__convites)).toBe(1);
 });

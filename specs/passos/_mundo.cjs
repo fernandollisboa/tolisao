@@ -32,7 +32,7 @@ class Mundo {
     await this.banco.liga(ctx);
     await this.api.liga(ctx);
     if (this.celularComAviso) await ctx.addInitScript(celularComAviso);
-    for (const f of this.aparelho) await ctx.addInitScript(f); // o jeito do aparelho (iPhone, convite de instalar)
+    for (const f of this.aparelho) await ctx.addInitScript(f); // o jeito do aparelho (iPhone, convite de instalar): depois do celularComAviso, pra poder desfazer ele
     await ctx.addInitScript(() => {
       const w = window;
       w.open = u => { w.__aberto = u; return null; };

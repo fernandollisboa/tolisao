@@ -30,14 +30,17 @@ Funcionalidade: Aviso no celular quando me pagam
     E eu quito a primeira linha de Minha conta
     Então o Fernando é avisado no celular do pagamento da Lia
 
-  Cenário: no iPhone sem o app instalado, o 🔔 ensina a instalar
+  Cenário: no iPhone sem o app instalado, o 🔔 ensina a instalar e a levar o link do evento
     No iPhone o aviso só chega com o tô lisa na Tela de Início, e quase ninguém sabe instalar pelo Safari.
+    O app instalado abre sem o evento do Safari: é o link que leva até ele, e digitar o nome lá criaria outro.
     # o iPhone desfaz o "aceita aviso" do Contexto: no Safari, fora da Tela de Início, não tem aviso
     Dado que meu celular é um iPhone sem o tô lisa instalado
     Quando eu abro o evento como Júlia
     E eu ligo o aviso no celular
     Então aparece o passo a passo de instalar na Tela de Início
     Mas o celular não fica inscrito pra receber aviso
+    Quando eu copio o link do evento pro app instalado
+    Então fica copiado o link do evento que já entra como Júlia
 
   Cenário: no navegador do Instagram, o 🔔 manda abrir no Safari
     O navegador de dentro do Instagram e do Facebook não põe o tô lisa na Tela de Início.

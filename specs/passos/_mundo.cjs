@@ -32,6 +32,11 @@ class Mundo {
     await this.banco.liga(ctx);
     await this.api.liga(ctx);
     if (this.celularComAviso) await ctx.addInitScript(celularComAviso);
+    // a bolinha no ícone do app instalado: o número fica em window.__bolinha (0 quando some)
+    if (this.celularComBolinha) await ctx.addInitScript(() => {
+      navigator.setAppBadge = async n => { window.__bolinha = n; };
+      navigator.clearAppBadge = async () => { window.__bolinha = 0; };
+    });
     await ctx.addInitScript(() => {
       const w = window;
       w.open = u => { w.__aberto = u; return null; };

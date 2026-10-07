@@ -1202,6 +1202,7 @@
     agendaSouEFab(hasMe);
     renderAcerto(hasMe, acerto, pays, nMeus);
     renderItens();
+    atualizaBolinha();
   }
   /** o nome do evento, o "Sou Fulano", o subtítulo e a frase do rodapé */
   function renderCabecalho(hasMe, bal, allEven) {
@@ -2449,6 +2450,7 @@
         } catch {}
       }),
     ).then(() => {
+      if (mudou) atualizaBolinha();
       const caixa = $('#overlayBox .evs');
       if (!mudou || !caixa) return;
       const novos = meusEventos(),
@@ -2544,6 +2546,27 @@
         }
       };
     }
+  }
+
+  /** a bolinha no ícone do app instalado: quantas linhas do acerto são minhas (devo ou recebo), somando os
+   * eventos do aparelho. Só o número, nunca valor. Vai pro IndexedDB por evento, que o sw.js refaz o do
+   * evento quando chega o push de pagamento. Navegador sem bolinha: nada */
+  let bolinhaAntes = '';
+  function atualizaBolinha() {
+    if (!('setAppBadge' in navigator)) return;
+    /** @type {Record<string, number>} */ const n = {};
+    for (const e of meusEventos()) {
+      const aqui = e.id === groupId && state,
+        s = aqui ? state : e.snap,
+        eu = aqui ? me : e.me;
+      if (s && eu) n[e.id] = settlements(balances(s)).filter((t) => t.from === eu || t.to === eu).length;
+    }
+    const k = JSON.stringify(n);
+    if (k === bolinhaAntes) return;
+    bolinhaAntes = k;
+    const total = Object.values(n).reduce((a, b) => a + b, 0);
+    (total ? navigator.setAppBadge(total) : navigator.clearAppBadge()).catch(() => {});
+    avisosDb('readwrite', (st) => st.put({ sala: 'bolinha', n })).catch(() => {});
   }
 
   // #endregion
@@ -3876,6 +3899,7 @@
   // #region início
   // ---------- início ----------
   // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
+  atualizaBolinha();
   (async () => {
     // ?senha= é o nome antigo do parâmetro: link velho no zap continua abrindo
     const q = new URLSearchParams(location.search);

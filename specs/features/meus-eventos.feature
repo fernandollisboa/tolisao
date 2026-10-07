@@ -188,3 +188,21 @@ Funcionalidade: Meus eventos
     Quando eu abro o evento "churras" como Lia
     E eu toco em enviar
     Então a mensagem do zap começa com "👀 lembra do *churras*? faz 40 dias e ainda tem R$ 60,00 pendurado…"
+
+  Regra: com o app instalado, a bolinha no ícone diz quantos acertos faltam
+    Conta as linhas do acerto que são minhas, devendo ou recebendo, em todos os eventos do aparelho.
+    Só o número: a bolinha nunca mostra dinheiro.
+
+    Exemplo: a bolinha soma os acertos de todos os meus eventos
+      Dado que meu celular mostra bolinha no ícone do app
+      Quando eu abro o evento "churras" como Lia
+      E eu entro no evento "praia" como Lia
+      Então a bolinha no ícone diz 2
+
+    Exemplo: tudo acertado, a bolinha some
+      Dado que meu celular mostra bolinha no ícone do app
+      E que a Mengla já pagou R$ 100,00 pra Lia
+      Quando eu abro o evento "praia" como Lia
+      E eu entro no evento "churras" como Lia
+      E eu quito a primeira linha de Minha conta
+      Então a bolinha some do ícone

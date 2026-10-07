@@ -2093,8 +2093,8 @@
     'réveillon 2027',
     'festival de verão',
   ];
-  /** o "ex:" do campo mostra dois exemplos e vai andando um de cada vez (1 2 → 2 3 → 3 4): apaga e se digita
-   * de novo, que nem o título. A dupla cabe no campo do celular (até 22 letras somando as duas) e uma raiz não
+  /** o "ex:" do campo se escreve devagar com dois exemplos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
+   * o primeiro some pela frente enquanto o novo entra pelo fim. A dupla cabe no campo do celular (até 22 letras somando as duas) e uma raiz não
    * volta logo (réveillon e réveillon 2027). Para sozinho quando o campo sai da tela; com movimento reduzido fica
    * em praia, churras
    * @param {HTMLInputElement} campo */
@@ -2113,21 +2113,24 @@
       return x;
     };
     let segundo = proximo(primeiro);
-    campo.placeholder = `ex: ${primeiro}, ${segundo}`;
     const dorme = (/** @type {number} */ ms) => new Promise((ok) => setTimeout(ok, ms));
     (async () => {
+      // a primeira dupla se escreve devagar a partir do "ex: "
+      const inicio = `ex: ${primeiro}, ${segundo}`;
+      for (let k = 4; campo.isConnected && k <= inicio.length; k++) {
+        campo.placeholder = inicio.slice(0, k);
+        await dorme(150);
+      }
       while (campo.isConnected) {
-        await dorme(2400);
+        await dorme(3200);
+        // anda um: o primeiro some pela frente enquanto o novo entra pelo fim, uma letra de cada lado por vez
         const novo = proximo(segundo),
-          alvo = `ex: ${segundo}, ${novo}`;
-        // apaga até o "ex: " e escreve a dupla nova, letra por letra
-        while (campo.isConnected && campo.placeholder.length > 4) {
-          campo.placeholder = campo.placeholder.slice(0, -1);
-          await dorme(28);
-        }
-        for (let k = 5; campo.isConnected && k <= alvo.length; k++) {
-          campo.placeholder = alvo.slice(0, k);
-          await dorme(70);
+          passos = Math.max(primeiro.length, novo.length);
+        // a vírgula some com a última letra de quem sai e chega com a primeira de quem entra
+        for (let k = 1; campo.isConnected && k <= passos; k++) {
+          const resto = k < primeiro.length ? `${primeiro.slice(k)}, ` : '';
+          campo.placeholder = `ex: ${resto}${segundo}, ${novo.slice(0, k)}`;
+          await dorme(190);
         }
         primeiro = segundo;
         segundo = novo;

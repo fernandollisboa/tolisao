@@ -856,7 +856,7 @@
       pixKeys[me] || minhaChave(),
       'salvar',
       (v) => !!validPixKey(v),
-      '✋ CPF não: o evento todo vê a chave ✋',
+      '✋ CPF não: todos veem ✋',
     );
     if (k === null) return;
     const key = validPixKey(k);

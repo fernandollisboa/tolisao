@@ -112,7 +112,7 @@ Then('embaixo dele está escrito {string}', async ({ mundo }, txt) => {
 });
 Then('a lista fica separada em {int} dias', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .day')).toHaveCount(n); });
 
-When('eu apago o {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('[data-del-expense]').click(); await mundo.p.click('#okBtn'); });
+When('eu apago o {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).getByRole('button', { name: `excluir o gasto ${nome}` }).click(); await mundo.p.click('#okBtn'); });
 Then('o {string} aparece riscado, apagado por {word}', async ({ mundo }, nome, quem) => {
   const r = mundo.p.locator('#gone .item.apagado').filter({ hasText: nome });
   await expect(r.locator('.row .l')).toHaveCSS('text-decoration-line', 'line-through');
@@ -146,7 +146,7 @@ Then('o formulário vem vazio, pra anotar', async ({ mundo }) => {
   await expect(mundo.p.locator('#sheet h2')).toHaveText('Anotar'); await expect(mundo.p.locator('#expenseForm button.big')).toHaveText('Anotar');
 });
 
-const excluir = async (p, nome) => { const it = item(p, nome); await it.locator('.row .l').click(); await it.locator('[data-del-expense]').click(); await p.waitForSelector('#okBtn'); };
+const excluir = async (p, nome) => { const it = item(p, nome); await it.locator('.row .l').click(); await it.getByRole('button', { name: `excluir o gasto ${nome}` }).click(); await p.waitForSelector('#okBtn'); };
 When('eu começo a excluir o {string} e volto atrás', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#cancelBtn'); await mundo.p.waitForSelector('#overlay', { state: 'hidden' }); });
 When('eu excluo o {string}', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#okBtn'); });
 Then('o {string} não está na lista', async ({ mundo }, nome) => { await expect(item(mundo.p, nome)).toHaveCount(0); });

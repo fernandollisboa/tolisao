@@ -1604,7 +1604,7 @@
               : '';
           const meu = e.byId || e.by ? anotouQuem(e, me) : !!me && e.payer === me;
           const botoes = meu
-            ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
+            ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir" aria-label="excluir o gasto ${esc(e.desc)}">✕</button>`
             : '';
           return (
             head +
@@ -2101,7 +2101,7 @@
     const list = state.people
       .map(
         (p) =>
-          `<div class="row pessoa" style="--cor:${colorOf(p.id)}">${bolinha(p)}<span class="l" contenteditable="plaintext-only" spellcheck="false" data-renome="${p.id}">${esc(p.name)}</span><span class="v">${temConta(p.id) ? '' : `<button class="ico" data-drop="${p.id}" title="tirar">✕</button>`}</span></div>`,
+          `<div class="row pessoa" style="--cor:${colorOf(p.id)}">${bolinha(p)}<span class="l" contenteditable="plaintext-only" spellcheck="false" data-renome="${p.id}">${esc(p.name)}</span><span class="v">${temConta(p.id) ? '' : `<button class="ico" data-drop="${p.id}" title="tirar" aria-label="tirar ${esc(p.name)}">✕</button>`}</span></div>`,
       )
       .join('');
     const n = state.people.length;
@@ -2628,7 +2628,7 @@
           ? `<span class="parado">⏳ há ${dias} dias</span>`
           : `<span>${quando(e.at)}</span>`;
       return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
-        <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>
+        <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer" aria-label="esquecer o evento ${esc(e.nome)}">✕</button>` : ''}</div>
         <div class="sub"><span>${sub}</span>${data}</div></div>`;
     };
     // quite e parado há tempo desce pro fim, recolhido como os itens apagados; o evento aberto fica sempre à vista

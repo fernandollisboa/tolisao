@@ -17,7 +17,7 @@ module.exports = ({ banco = null, api = null, porta = 0 } = {}) => new Promise(o
   const srv = http.createServer((q, r) => {
     const url = q.url.split('?')[0].split('#')[0];
     if (banco && url.startsWith('/__banco/')) return falso(q, r, (m, c, h, t) => banco.responde(m, c, h, t), url.slice(8));
-    if (api && url.startsWith('/__api/')) return falso(q, r, (m, c, h, t) => api.responde(m, c, t), url.slice(6));
+    if (api && url.startsWith('/__api/')) return falso(q, r, (m, c, h, t) => api.responde(m, c, t, h.origin), url.slice(6));
     let file = url; if (file.endsWith('/')) file += 'index.html';
     const abs = path.join(ROOT, file); if (!abs.startsWith(ROOT) || !fs.existsSync(abs)) { r.statusCode = 404; return r.end(); }
     r.setHeader('Content-Type', TYPES[path.extname(abs)] || 'application/octet-stream');

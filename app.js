@@ -11,7 +11,7 @@
   //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
   //   → fila das animações → desenhos (ícones) → pix → aviso no celular → a nota (render) → o anotar
-  //   → cartões (overlays) → entrar num evento → meus eventos → botões → cliques
+  //   → cartões (overlays) → entrar num evento → meus eventos → a digital → botões → cliques
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → QR → início
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
 
@@ -37,6 +37,9 @@
   const QUITADO_DIAS = 15; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
   const AVISO_PUSH = true; // quem recebe liga o aviso no celular, e todo pagamento marcado cutuca a API
+  // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
+  // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
+  const DIGITAL = false;
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -82,8 +85,9 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey }
-  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok)
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId }
+  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
+  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
@@ -2038,7 +2042,7 @@
           : ''
       }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
-      <p id="gateErr" class="status err" style="margin:0"></p>${
+      <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }`,
       !aberto,
@@ -2060,6 +2064,7 @@
     const esquece = (e) => esqueceEvento(e, () => showGate());
     ligaEventos(evs, esquece);
     atualizaDatas(evs, true, esquece);
+    ligaDigital();
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
       // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto (inclusive o "Criar …?")
@@ -2703,6 +2708,177 @@
     const total = Object.values(n).reduce((a, b) => a + b, 0);
     (total ? navigator.setAppBadge(total) : navigator.clearAppBadge()).catch(() => {});
     avisosDb('readwrite', (st) => st.put({ sala: 'bolinha', n, eu: quem })).catch(() => {});
+  }
+
+  // #endregion
+  // #region a digital
+  // ---------- a digital (passkey, #168) ----------
+  // protótipo atrás do DIGITAL. "guardar com a digital" cria uma passkey e manda pra API (servidor/src/digital.js)
+  // a lista dos meus eventos, com quem sou eu em cada um; noutro aparelho, ou com o navegador limpo, "entrar com
+  // a digital" assina o desafio da API e a lista volta pro Meus eventos. A passkey é das que o celular lembra
+  // sozinho (resident key): entrar não pede nome nenhum. O rpId é o domínio do site (localhost na máquina).
+  // TODO(#168): o tok do pix fica de fora, porque no servidor ele vira desvio de pagamento. Próxima fatia: cifrar
+  // o tok com a extensão PRF da passkey e a API guardar só o cifrado
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('digital')) setDevice('passkeyOn', q.get('digital') === '0' ? undefined : true);
+  })();
+  const temDigital = () =>
+    (DIGITAL || device().passkeyOn === true) && 'PublicKeyCredential' in window && !!navigator.credentials;
+  /** os bytes em base64url, sem o = do fim (o jeito do WebAuthn) @param {ArrayBuffer} buf */
+  const b64De = (buf) =>
+    btoa(String.fromCharCode(...new Uint8Array(buf)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  /** a linha do cartão de Meus eventos: guardar só aparece com evento pra guardar */
+  const linhaDigital = (temEventos) =>
+    temDigital()
+      ? `<div class="c digital">${temEventos ? '<a class="link" id="digGuarda">guardar com a digital</a> · ' : ''}<a class="link" id="digEntra">entrar com a digital</a></div>`
+      : '';
+  function ligaDigital() {
+    const g = $('#digGuarda'),
+      e = $('#digEntra');
+    if (g) g.onclick = guardaDigital;
+    if (e) e.onclick = entraDigital;
+  }
+  /** o desafio vale uma vez e por pouco tempo: um pra cada toque */
+  async function desafioDigital() {
+    const r = await postaApi('/digital/desafio', {});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return bytesDe((await r.json()).desafio);
+  }
+  /** o que a passkey assinou, do jeito que a API confere @param {Credential | null} c */
+  const assinado = (c) => {
+    const p = /** @type {PublicKeyCredential} */ (c),
+      r = /** @type {AuthenticatorAssertionResponse} */ (p.response);
+    return {
+      id: p.id,
+      dados: b64De(r.clientDataJSON),
+      autenticador: b64De(r.authenticatorData),
+      assinatura: b64De(r.signature),
+    };
+  };
+  /** cancelou a digital (ou o tempo dela acabou): não é erro, é desistência */
+  const desistiu = (e) => e && (e.name === 'NotAllowedError' || e.name === 'AbortError');
+  let mexendoDigital = false;
+  async function guardaDigital() {
+    if (mexendoDigital) return;
+    mexendoDigital = true;
+    const eventos = meusEventos().map((e) => ({ code: e.code, me: e.me }));
+    try {
+      const rpId = location.hostname,
+        challenge = await desafioDigital(),
+        ja = device().passkeyId;
+      /** @type {Record<string, any>} */ let corpo;
+      if (typeof ja === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(ja))
+        // este aparelho já guardou: a mesma passkey assina, e a lista nova se junta à de lá
+        corpo = assinado(
+          await navigator.credentials.get({
+            publicKey: {
+              challenge,
+              rpId,
+              allowCredentials: [{ type: 'public-key', id: bytesDe(ja) }],
+              userVerification: 'required',
+            },
+          }),
+        );
+      else {
+        const nome = typeof device().myName === 'string' && device().myName ? device().myName : 'eu',
+          c = /** @type {PublicKeyCredential} */ (
+            await navigator.credentials.create({
+              publicKey: {
+                challenge,
+                rp: { id: rpId, name: 'tô lisa' },
+                user: { id: crypto.getRandomValues(new Uint8Array(16)), name: nome, displayName: nome },
+                pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                authenticatorSelection: {
+                  residentKey: 'required',
+                  requireResidentKey: true,
+                  userVerification: 'required',
+                },
+                attestation: 'none',
+              },
+            })
+          ),
+          r = /** @type {AuthenticatorAttestationResponse} */ (c.response),
+          chave = r.getPublicKey();
+        if (!chave || r.getPublicKeyAlgorithm() !== -7) return toast('Essa digital não serve aqui');
+        corpo = {
+          id: c.id,
+          chave: b64De(chave),
+          alg: -7,
+          dados: b64De(r.clientDataJSON),
+          autenticador: b64De(r.getAuthenticatorData()),
+        };
+      }
+      const resp = await postaApi('/digital/guarda', { ...corpo, eventos });
+      if (resp.status === 404) {
+        setDevice('passkeyId', undefined);
+        return toast('Essa digital se perdeu. Toca de novo que eu guardo numa nova.');
+      }
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      setDevice('passkeyId', corpo.id);
+      toast(
+        `Guardei ${eventos.length} ${eventos.length === 1 ? 'evento' : 'eventos'} na digital. Noutro celular, é só entrar com ela.`,
+      );
+    } catch (e) {
+      toast(desistiu(e) ? 'Ficou pra depois' : 'Não deu pra guardar agora');
+    } finally {
+      mexendoDigital = false;
+    }
+  }
+  async function entraDigital() {
+    if (mexendoDigital) return;
+    mexendoDigital = true;
+    try {
+      // sem allowCredentials: o celular mostra as passkeys do tô lisa que ele tem, sem perguntar nome
+      const corpo = assinado(
+        await navigator.credentials.get({
+          publicKey: { challenge: await desafioDigital(), rpId: location.hostname, userVerification: 'required' },
+        }),
+      );
+      const r = await postaApi('/digital/entra', corpo);
+      if (r.status === 404) return toast('Essa digital não tem evento guardado');
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const n = await restauraEventos((await r.json()).eventos);
+      setDevice('passkeyId', corpo.id);
+      showGate();
+      toast(n ? `${n === 1 ? 'Voltou 1 evento' : `Voltaram ${n} eventos`} 🫰` : 'Essa digital não tem evento guardado');
+    } catch (e) {
+      toast(desistiu(e) ? 'Ficou pra depois' : 'Não deu pra entrar agora');
+    } finally {
+      mexendoDigital = false;
+    }
+  }
+  /** a lista da API volta pras gavetas: código, quem sou eu (se o aparelho não sabia) e a cópia do evento, do
+   * banco, pro nome e o saldo aparecerem já na lista. O que veio da API passa pelo mesmo crivo do resto */
+  async function restauraEventos(lista) {
+    const ok = (Array.isArray(lista) ? lista : []).filter(
+      (e) => e && typeof e.code === 'string' && e.code.trim() && e.code.length <= 100,
+    );
+    await Promise.all(
+      ok.map(async (e) => {
+        const code = e.code.trim().toLowerCase(),
+          id = await sha(code);
+        mexe(roomKey(id), (o) => {
+          o.code = code;
+          delete o.hidden;
+          if (!okId(o.me) && okId(e.me)) o.me = e.me;
+          o.openedAt ??= Date.now();
+        });
+        try {
+          const r = await noBanco(`${DB}/rooms/${id}.json`, { cache: 'no-store' }),
+            remoto = r.ok ? clean(await r.json()) : null;
+          if (remoto)
+            mexe(roomKey(id), (o) => {
+              o.snapshot = merge(o.snapshot, remoto);
+            });
+        } catch {}
+      }),
+    );
+    atualizaBolinha();
+    return ok.length;
   }
 
   // #endregion

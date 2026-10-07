@@ -290,9 +290,3 @@ Given('que meu celular deixa o site manter a tela acesa', async ({ mundo }) => {
 Then('a tela fica acesa', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(1); });
 Then('a tela já pode apagar', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(0); });
 
-// o "criar outro" do cartão do evento: a página vai pro evento novo, que começa pela lista de gente
-When('eu crio outro {string}', async ({ mundo }, nome) => {
-  await expect(mundo.p.locator('#evNovo')).toHaveText(`+ criar outro ${nome}`);
-  await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#evNovo')]);
-  await mundo.p.waitForSelector('#setupName');
-});

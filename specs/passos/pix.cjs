@@ -32,6 +32,11 @@ When('eu tento gravar a chave do/da {word} {string} direto no banco', async ({ m
     [`https://fake-db.firebaseio.com/pix/${mundo.sala}/${mundo.pessoa(nome).id}.json`, chave]);
 });
 Then('o banco recusa', async ({ mundo }) => { expect(mundo.nota.status).toBe(401); });
+// o navegador recusa gravar qualquer coisa a partir daqui, como com o armazenamento cheio
+When('este aparelho fica sem espaço', async ({ mundo }) => {
+  await mundo.p.evaluate(() => { Storage.prototype.setItem = () => { throw new DOMException('cheio', 'QuotaExceededError'); }; });
+});
+Then('o banco não tem chave do/da {word}', async ({ mundo }, nome) => { expect(mundo.banco.pega(['pix', mundo.sala, mundo.pessoa(nome).id])).toBeNull(); });
 
 Given('que alguém gravou no banco o evento:', async ({ mundo }, json) => { mundo.criaEvento(JSON.parse(json)); mundo.banco.congelado = true; });
 Given('a chave pix da/do {word} é {string}', async ({ mundo }, nome, chave) => { mundo.banco.pix(mundo.sala, idDe(nome), chave); });

@@ -910,9 +910,13 @@
     let tok = (room().pixTokens || {})[pid];
     if (typeof tok !== 'string' || !tok) {
       const novo = (tok = sorteia(32));
-      mexe(roomKey(groupId), (o) => {
+      // sem o tok no aparelho, a chave que subir fica presa pra sempre: aparelho cheio não manda nada
+      const gravou = mexe(roomKey(groupId), (o) => {
         (o.pixTokens ||= {})[pid] = novo;
       });
+      if (!gravou) return toast('Sem espaço neste aparelho: a chave não salvou');
+      // o primeiro tok pede pro navegador não limpar o aparelho sozinho, que leva o tok junto
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     }
     try {
       const r = await noBanco(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });

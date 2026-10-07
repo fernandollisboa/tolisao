@@ -78,3 +78,11 @@ Funcionalidade: Cadastrar a chave pix
     Quando eu abro o evento como Fernando em outro aparelho
     E eu cadastro a chave pix "fernando@outro.com"
     Então o banco guarda a chave do Fernando "fernando@outro.com"
+
+  Cenário: aparelho sem espaço não cadastra a chave
+    Sem o segredo guardado, ninguém mais trocaria nem apagaria a chave: melhor não cadastrar e avisar.
+    Quando eu abro o evento como Fernando
+    E este aparelho fica sem espaço
+    E eu cadastro a chave pix "fernando@exemplo.com"
+    Então aparece o aviso "Sem espaço neste aparelho: a chave não salvou"
+    E o banco não tem chave do Fernando

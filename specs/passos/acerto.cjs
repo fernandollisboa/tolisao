@@ -99,6 +99,17 @@ const pagaNoBanco = async (mundo, pagos, extra = {}) => {
   await expect.poll(() => mundo.p.evaluate(([k, ids]) => { const v = JSON.parse(localStorage.getItem(k) || '{}').paysSeen || [];
     return ids.every(i => v.includes(i)); }, [`tolisa:${mundo.sala}`, ids])).toBe(true);
 };
+// a minha nota fica velha: o pagamento entra no banco e ninguém avisa esta aba
+When('o/a {word} paga R$ {num} pro/pra {word} em outro aparelho, antes da minha nota atualizar', async ({ mundo }, quem, valor, pra) => {
+  const sala = mundo.banco.arvore.rooms[mundo.sala];
+  sala.expenses = [...(sala.expenses || []), { id: 'pgfora', kind: 'payment', desc: 'Pagamento', amount: valor,
+    payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: Date.now(), by: quem }];
+});
+Then('o banco tem {int} pagamento(s) da/do {word} pro/pra {word}', async ({ mundo }, n, quem, pra) => {
+  const de = mundo.pessoa(quem).id, para = mundo.pessoa(pra).id;
+  await expect.poll(() => (mundo.banco.arvore.rooms[mundo.sala].expenses || [])
+    .filter(e => e.kind === 'payment' && e.payer === de && e.among[0] === para).length).toBe(n);
+});
 When('o/a {word} paga R$ {num} pro/pra {word} em outro aparelho', async ({ mundo }, quem, valor, pra) => { await pagaNoBanco(mundo, [[quem, pra, valor]]); });
 When('a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho', async ({ mundo }) => {
   await pagaNoBanco(mundo, [['Mengla', 'Fernando', 174.43], ['Klinsmann', 'Fernando', 73.61]]);

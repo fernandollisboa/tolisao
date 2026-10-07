@@ -157,6 +157,19 @@ Funcionalidade: Acertar as contas
       | Klinsmann | Júlia    | 34,72  |
     E o pagamento "Lia → Fernando" está carimbado "PAGO" por Fernando
 
+  Cenário: quem recebe marca recebi depois de quem deve já ter marcado paguei em outro aparelho
+    A minha nota ainda não sabia do paguei: o recebi não quita de novo, senão quem pagou passa a ter a receber.
+    Quando eu abro o evento como Fernando
+    E a Lia paga R$ 117,84 pro Fernando em outro aparelho, antes da minha nota atualizar
+    E eu marco que recebi da Lia
+    Então aparece o aviso "Já tá quitado"
+    E falta pagar:
+      | quem      | paga pra | valor  |
+      | Mengla    | Fernando | 174,43 |
+      | Klinsmann | Fernando | 73,61  |
+      | Klinsmann | Júlia    | 34,72  |
+    E o banco tem 1 pagamento da Lia pro Fernando
+
   # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar; dívida grande não se perdoa, só se dá baixa
   Cenário: só dívida pequena se perdoa
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando

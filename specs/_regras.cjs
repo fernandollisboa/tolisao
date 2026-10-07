@@ -51,6 +51,58 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   regra('visitas só se soma', erros.join('; '));
 }
 
+// ---------- pix: o banco aceita o que o app no ar grava, e só isso ----------
+// as regras sobem junto com o site (regras.yml): aparelho com tok velho (4 × uid() do Math.random,
+// 8 letras ou menos cada) ou que apaga a chave gravando key '' não pode levar 401.
+// Roda as expressões do database.rules.json como o Firebase: .write no nó, .validate em cada nó escrito
+{
+  const no = banco.rules.pix?.$room?.$person || {}, erros = [];
+  const snap = v => ({ val: () => v ?? null, exists: () => v != null, isString: () => typeof v === 'string',
+    isNumber: () => typeof v === 'number', child: k => snap(v?.[k]), hasChildren: ks => ks.every(k => v?.[k] != null) });
+  const avalia = (expr, vars) => {
+    String.prototype.matches = function (re) { return re.test(String(this)); };
+    try { return new Function(...Object.keys(vars), `return (${expr});`)(...Object.values(vars)) === true; }
+    finally { delete String.prototype.matches; }
+  };
+  // o PUT do putPix(): passa o .write do nó e o .validate dele e de cada filho (filho sem regra cai no $outro; sem $outro, passa)
+  const grava = (sala, pessoa, antes, novo) => {
+    const vars = { $room: sala, $person: pessoa, data: snap(antes), newData: snap(novo) };
+    if (!avalia(no['.write'] || 'false', vars) || !avalia(no['.validate'] || 'true', vars)) return false;
+    return Object.entries(novo).every(([k, v]) => {
+      const r = no[k] ?? no.$outro;
+      return !r || (r['.validate'] !== false && avalia(r['.validate'] ?? 'true', { ...vars, newData: snap(v) }));
+    });
+  };
+  const sala = 'ab'.repeat(32), tok = 'a1'.repeat(16), velho = 'k3j9x0q2'.repeat(4), curto = 'q2';
+  const casos = [
+    ['cadastra a chave', true, sala, 'k3j9x0q2', null, { key: '+5571987654321', tok }],
+    ['troca com o mesmo tok', true, sala, 'k3j9x0q2', { key: '+5571987654321', tok }, { key: 'eu@exemplo.com', tok }],
+    ['apaga gravando key vazia', true, sala, 'k3j9x0q2', { key: 'eu@exemplo.com', tok }, { key: '', tok }],
+    ['outro aparelho cadastra depois de apagada', true, sala, 'k3j9x0q2', { key: '', tok }, { key: '+5571987654321', tok: velho }],
+    ['tok velho de 4 × uid()', true, sala, 'k3j9x0q2', { key: 'x@y.z', tok: velho }, { key: '', tok: velho }],
+    ['tok velho curto (Math.random raso)', true, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: curto }],
+    ['chave aleatória', true, sala, 'k3j9x0q2', null, { key: '123e4567-e89b-12d3-a456-426614174000', tok }],
+    ['e-mail de 80', true, sala, 'k3j9x0q2', null, { key: 'a'.repeat(70) + '@exemplo.c', tok }],
+    ['tok de outro aparelho', false, sala, 'k3j9x0q2', { key: 'x@y.z', tok }, { key: 'meu@golpe.com', tok: velho }],
+    ['e-mail de 81', false, sala, 'k3j9x0q2', null, { key: 'a'.repeat(71) + '@exemplo.c', tok }],
+    ['sala fora do hash', false, 'bailedamada', 'k3j9x0q2', null, { key: 'x@y.z', tok }],
+    ['pessoa fora do id', false, sala, 'Fulano', null, { key: 'x@y.z', tok }],
+    ['tok fora do formato', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: 'tok-de-outro-aparelho' }],
+    ['tok de 33', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: tok + 'a' }],
+    ['campo a mais', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok, lixo: 'x'.repeat(1000) }],
+    ['sem tok', false, sala, 'k3j9x0q2', null, { key: 'x@y.z' }],
+  ];
+  for (const [nome, ok, s, p, antes, novo] of casos) {
+    let deu;
+    try { deu = grava(s, p, antes, novo); } catch (e) { deu = `erro: ${e.message}`; }
+    if (deu !== ok) erros.push(`${nome}: esperava ${ok ? 'aceitar' : 'recusar'}, ${deu === true ? 'aceitou' : deu === false ? 'recusou' : deu}`);
+  }
+  // o tok que o app sorteia hoje cabe no que o banco aceita
+  const n = +(app.match(/tok = sorteia\((\d+)\)/)?.[1] ?? NaN), cabe = +(no.tok?.['.validate']?.match(/\{1,(\d+)\}/)?.[1] ?? NaN);
+  if (!(n <= cabe)) erros.push(`o app sorteia tok de ${n}, o banco aceita até ${cabe}`);
+  regra('o pix aceita o que o app grava e recusa o resto', erros.join('; '));
+}
+
 // ---------- clean() e .validate de rooms/$room contam o mesmo ----------
 {
   const sala = banco.rules.rooms.$room, pessoa = sala.people.$i, item = sala.expenses.$i;

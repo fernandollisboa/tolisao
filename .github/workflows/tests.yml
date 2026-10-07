@@ -25,6 +25,9 @@ jobs:
       - run: npx prettier --check app.js
       - run: npm run types
       - run: npm run regras
+      # a API (servidor/) se testa com o node puro: o npm ci de lá só traz o wrangler, que é pra subir
+      - run: npm test
+        working-directory: servidor
       - run: echo "PW_VERSION=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_ENV"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: pw-cache

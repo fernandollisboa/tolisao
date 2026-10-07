@@ -1,0 +1,84 @@
+name: Sobe a API
+# a API (servidor/) é um Worker da Cloudflare, separado do site: sobe só quando ela muda.
+# precisa dos secrets do repo CLOUDFLARE_API_TOKEN (modelo "Edit Cloudflare Workers") e CLOUDFLARE_ACCOUNT_ID.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'servidor/**'
+      - '.github/workflows/servidor.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: servidor
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+        working-directory: servidor
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: servidor/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Acha (ou cria) o KV `tolisa` e põe o id no wrangler.toml
+        run: |
+          # o wrangler 3 criava com o nome do worker na frente; o 4 usa o nome puro: aceita os dois
+          acha() {
+            npx wrangler kv namespace list | node -e '
+              const t = require("fs").readFileSync(0, "utf8");
+              const l = JSON.parse(t.slice(t.indexOf("["), t.lastIndexOf("]") + 1));
+              const n = l.find(n => n.title === "tolisa") || l.find(n => n.title === "tolisa-api-tolisa");
+              if (n) console.log(n.id);'
+          }
+          ID=$(acha)
+          if [ -z "$ID" ]; then
+            npx wrangler kv namespace create tolisa
+            ID=$(acha)
+          fi
+          if ! echo "$ID" | grep -Eq '^[0-9a-f]{32}$'; then echo "não achei o id do KV tolisa: '$ID'"; exit 1; fi
+          sed -i "s/__KV_ID__/$ID/" wrangler.toml
+          echo "KV tolisa: $ID"
+      - name: Sobe o Worker (na primeira vez, com as chaves VAPID)
+        run: |
+          # trocar a chave derruba todas as inscrições: só gera se o worker não existe ou não tem a chave.
+          # qualquer outro erro do `secret list` (token, rede) para aqui
+          if LISTA=$(npx wrangler secret list --format json 2>&1); then TEM=sim; else TEM=erro; fi
+          if [ "$TEM" = erro ] && ! echo "$LISTA" | grep -Eq '10007|does not exist|not found'; then
+            echo "$LISTA"; echo "o secret list falhou e não foi por falta do worker"; exit 1
+          fi
+          if [ "$TEM" = sim ] && echo "$LISTA" | grep -q '"VAPID_PRIVATE"'; then
+            npx wrangler deploy | tee deploy.log
+          else
+            echo "primeira vez: gerando as chaves VAPID (a privada não sai na tela)"
+            umask 077
+            SEGREDOS="$RUNNER_TEMP/vapid.json"
+            node chaves.mjs "$SEGREDOS"
+            # o --secrets-file só soma: nunca apaga secret que já está lá
+            npx wrangler deploy --secrets-file "$SEGREDOS" | tee deploy.log
+            rm -f "$SEGREDOS"
+          fi
+          URL=$(grep -Eo 'https://tolisa-api\.[a-z0-9-]+\.workers\.dev' deploy.log | head -1)
+          if [ -z "$URL" ]; then echo "não achei a URL na saída do deploy"; exit 1; fi
+          echo "URL=$URL" >> "$GITHUB_ENV"
+          echo "### API no ar: $URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Confere o /chave
+        run: |
+          for i in $(seq 1 6); do
+            if R=$(curl -fsS "$URL/chave"); then echo "$URL/chave → $R"; exit 0; fi
+            sleep 5
+          done
+          echo "o $URL/chave não respondeu"; exit 1

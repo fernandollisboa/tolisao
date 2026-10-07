@@ -37,6 +37,22 @@ Given('que meu celular é um iPhone sem o tô lisa instalado', async ({ mundo })
     delete w.Notification; delete w.PushManager;
   });
 });
+// o Chrome do iPhone se apresenta como CriOS; push ele também não tem fora da tela de início
+Given('que meu celular é um iPhone com o link aberto no Chrome', async ({ mundo }) => {
+  mundo.aparelho.push(() => {
+    const w = /** @type {any} */ (window);
+    Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1' });
+    delete w.Notification; delete w.PushManager;
+  });
+});
+When('eu copio o link pro Safari', async ({ mundo }) => { await mundo.p.click('#instLink'); });
+Then('fica copiado o link do evento que já entra como {word}', async ({ mundo }, quem) => {
+  await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado))
+    .toMatch(new RegExp(`^${mundo.base}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}&quem=${mundo.pessoa(quem).id}$`));
+});
+Then('não aparece o passo a passo do Safari', async ({ mundo }) => {
+  await expect(mundo.p.locator('#overlay')).not.toContainText('Adicionar à Tela de Início');
+});
 // o Chrome do Android avisa a página que dá pra instalar; o convite anota quantas vezes foi aberto
 Given('que meu navegador oferece instalar o tô lisa', async ({ mundo }) => {
   mundo.aparelho.push(() => addEventListener('DOMContentLoaded', () => {

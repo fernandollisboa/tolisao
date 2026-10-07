@@ -102,6 +102,7 @@ h1 span.digitando:after{content:"";display:inline-block;width:3px;height:.7em;ma
 h2{font-family:'VT323',monospace;font-size:22px;letter-spacing:3px;text-align:center;margin:14px 0 8px;font-weight:400;text-transform:uppercase}
 h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .c{text-align:center;font-size:17px;line-height:1.5;text-transform:uppercase}
+.c.digital{margin-top:12px;text-transform:none;font-size:16px}   /* guardar/entrar com a digital (#168), no fim do cartão de Meus eventos */
 .hr{border-top:2px dashed var(--rule);margin:12px 0}
 .row{display:flex;align-items:baseline;line-height:1.7;position:relative;font-size:21px}
 .row .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}

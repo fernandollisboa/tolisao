@@ -8,6 +8,8 @@ workers_dev = true
 [vars]
 FIREBASE_DB = "https://racha-77bc7-default-rtdb.firebaseio.com"
 VAPID_SUB = "https://tolisa.com.br"
+# quem pode usar a digital (#168): o rpId é o domínio de cada origem
+DIGITAL_ORIGENS = "https://tolisa.com.br"
 
 [[kv_namespaces]]
 binding = "KV"

@@ -5,6 +5,7 @@
 //   POST /inscreve   {sala, pessoa, sub, tok}  → guarda a inscrição de push desse aparelho
 //   POST /desinscreve {sala, pessoa, endpoint, tok}
 //   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado)
+//   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
 //
 // O corpo nunca é confiável além dos ids: o /avisa lê o pagamento do próprio banco.
 // O banco (KV) é contado: o plano grátis dá 1000 gravações por dia, então só se grava o necessário.
@@ -13,16 +14,18 @@
 //   avisado:<sala>:<id>                     esse pagamento já avisou (some sozinho em 1 dia)
 
 import { empurra } from './vapid.js';
+import * as digital from './digital.js';
 
 const SALA = /^[0-9a-f]{64}$/;
 const ID = /^[a-z0-9]{1,32}$/;
 const TOK = /^[a-z0-9]{16,64}$/;
 const MAX_CORPO = 4096;
+const MAX_CORPO_DIGITAL = 16384; // a lista de eventos (até 100) e o que a passkey assinou
 const MAX_POR_PESSOA = 5;
 const JANELA_MS = 10 * 60 * 1000;
 
 /** @typedef {{ get(k: string): Promise<string|null>, put(k: string, v: string, o?: { expirationTtl?: number, metadata?: any }): Promise<void>, delete(k: string): Promise<void>, list(o: { prefix: string, cursor?: string }): Promise<{ keys: { name: string, metadata?: any }[], list_complete: boolean, cursor?: string }> }} KV */
-/** @typedef {{ KV: KV, FIREBASE_DB: string, VAPID_PUBLIC: string, VAPID_PRIVATE: string, VAPID_SUB?: string }} Env */
+/** @typedef {{ KV: KV, FIREBASE_DB: string, VAPID_PUBLIC: string, VAPID_PRIVATE: string, VAPID_SUB?: string, DIGITAL_ORIGENS?: string }} Env */
 
 /** @param {string | null} origem */
 export function origemOk(origem) {
@@ -58,9 +61,9 @@ async function sha256(s) {
 }
 
 /** @param {Request} req */
-async function corpo(req) {
+async function corpo(req, max = MAX_CORPO) {
   const t = await req.text();
-  if (t.length > MAX_CORPO) return null;
+  if (t.length > max) return null;
   try {
     const o = JSON.parse(t);
     return o && typeof o === 'object' && !Array.isArray(o) ? o : null;
@@ -189,10 +192,17 @@ export default {
       if (!env.VAPID_PUBLIC) return json(503, { erro: 'sem chave ainda' }, o);
       return json(200, { chave: env.VAPID_PUBLIC }, o);
     }
-    const rota = { '/inscreve': inscreve, '/desinscreve': desinscreve, '/avisa': avisa }[pathname];
+    const rota = {
+      '/inscreve': inscreve,
+      '/desinscreve': desinscreve,
+      '/avisa': avisa,
+      '/digital/desafio': (b, env, o) => digital.desafio(b, env, (s, c) => json(s, c, o)),
+      '/digital/guarda': (b, env, o) => digital.guarda(b, env, (s, c) => json(s, c, o)),
+      '/digital/entra': (b, env, o) => digital.entra(b, env, (s, c) => json(s, c, o)),
+    }[pathname];
     if (!rota) return json(404, { erro: 'não tem' }, o);
     if (req.method !== 'POST') return json(405, { erro: 'só POST' }, o);
-    const b = await corpo(req);
+    const b = await corpo(req, pathname.startsWith('/digital/') ? MAX_CORPO_DIGITAL : MAX_CORPO);
     if (!b) return json(400, { erro: 'pedido torto' }, o);
     try {
       return await rota(b, env, o);

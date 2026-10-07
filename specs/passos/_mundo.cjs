@@ -17,7 +17,7 @@ const idDe = nome => nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLow
 
 class Mundo {
   constructor(browser, base) {
-    this.browser = browser; this.base = base; this.banco = new Banco(); this.api = new Api(); this.celularComAviso = false; this.aparelho = [];
+    this.browser = browser; this.base = base; this.banco = new Banco(); this.api = new Api(); this.api.origens = base; this.celularComAviso = false; this.aparelho = [];
     this.evento = null; this.sala = ''; this.p = null; this.nota = {};
     this.erros = []; this.dialogos = []; this.contextos = []; this.antes = null;
   }
@@ -56,6 +56,7 @@ class Mundo {
     if (this.antes) await ctx.addInitScript(antes => { if (sessionStorage.getItem('__antes')) return; sessionStorage.setItem('__antes', '1');
       for (const [k, v] of Object.entries(antes)) localStorage.setItem(k, v); }, this.antes);
     const p = await ctx.newPage(); this.p = p; await cobertura.liga(p);
+    if (this.naPagina) await this.naPagina(ctx, p); // o que precisa da aba antes de ela abrir o site (a digital)
     p.on('pageerror', e => this.erros.push(e.message));
     p.on('dialog', d => { this.dialogos.push(d.message()); d.accept(); });
     await p.goto(semEvento ? this.base + '/' : link || this.link);

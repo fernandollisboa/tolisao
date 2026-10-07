@@ -19,7 +19,9 @@ if (process.argv.includes('--festa')) {
 }
 // a API falsa só anota: mostra aqui o que o app pediu
 const responde = api.responde.bind(api);
-api.responde = (m, rota, texto) => { const res = responde(m, rota, texto); if (m === 'POST') console.log(`api ${rota} ${texto}`); return res; };
+api.responde = (m, rota, texto, origem) => { const res = responde(m, rota, texto, origem); if (m === 'POST') console.log(`api ${rota} ${texto}`); return res; };
 
-servir({ banco, api, porta: Number(process.env.PORTA) || 8000 }).then(({ porta }) =>
-  console.log(`tô lisa na máquina, com banco falso: http://localhost:${porta}${caminho}`));
+servir({ banco, api, porta: Number(process.env.PORTA) || 8000 }).then(({ porta }) => {
+  api.origens = `http://localhost:${porta}`; // a digital (?digital) vale na máquina, com rpId localhost
+  console.log(`tô lisa na máquina, com banco falso: http://localhost:${porta}${caminho}`);
+});

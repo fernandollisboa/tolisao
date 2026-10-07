@@ -29,7 +29,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Cachorro “to ficando não-verbal (sem verba)” e o texto: tô lisa, quem me deve?">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="style.css?v=20261007v">
+<link rel="stylesheet" href="style.css?v=20261007x">
 </head>
 <body>
 <div id="overlay" class="hidden"><div class="paper" id="overlayBox" role="dialog" aria-modal="true"></div></div>
@@ -38,6 +38,7 @@
   <img class="stain" src="diva.png" alt="">
   <h1><span id="titulo">tô lisa</span></h1>
   <div class="c muted" id="tagline" style="margin:-2px 0 6px;text-transform:none">quem me deve?</div>
+  <div class="c"><button class="ico amb hidden" id="instalar"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg> instalar</button></div>
   <div id="boot" class="c"><span class="spin"></span></div>
   <div class="c" id="eventLine"><span>Evento <a class="link" id="roomLabel">—</a></span><span class="sep"> · </span><span id="whoLine"></span></div>
 
@@ -68,7 +69,6 @@
   <div class="hr" id="settleHr" style="margin:20px 0"></div>
 
   <div class="c" style="margin-top:6px;text-transform:none;font-size:15px"><a class="hidden" id="shareBtn" style="color:var(--ink2)">copiar link do evento</a></div>
-  <div class="c" style="margin-top:8px"><button class="ico amb hidden" id="instalar"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg> instalar</button></div>
   <div class="c" style="margin-top:14px">* * *<br><span id="signoff">Valeu, meu bem!</span><br>* * *</div>
   <div class="bars" id="bars" title="420420420420"></div>
   <div class="status" id="status" role="status" aria-live="polite"></div>
@@ -92,7 +92,7 @@
 </div></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=20261007v"></script>
+<script src="app.js?v=20261007x"></script>
 <!-- Cloudflare Web Analytics: conta visitas, sem cookie. Manda o endereço inteiro, ?evento= junto (decisão do dono). Os testes tiram (_serve.cjs) -->
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "3514c3d7f5b04f8281f536d90597445e"}'></script>
 <script>setTimeout(function(){var a=document.getElementById("app");if(a&&!a.classList.contains("nospin"))a.classList.remove("loading")},8000)</script>

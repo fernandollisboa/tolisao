@@ -601,6 +601,8 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 #overlayBox .linkpras{display:grid;grid-template-columns:1fr 1fr}
 button.linkpra{display:inline-flex;align-items:center;gap:8px;min-width:0;color:var(--ink);background:#fff8e6;border-color:var(--cor);font-size:20px;text-transform:none;letter-spacing:0;border-radius:999px;padding:3px 14px 3px 10px;box-shadow:2px 2px 0 var(--cor)}
 #overlayBox button.linkpra{display:flex;padding:6px 12px}
+/* a última sozinha na linha (e a única, quando é uma pessoa só) fica no meio, na largura de uma coluna */
+#overlayBox button.linkpra:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 5px)}
 button.linkpra span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .linkpras+.voltar{margin-top:16px}
 button.linkpra i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--cor)}

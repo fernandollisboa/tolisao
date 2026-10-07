@@ -72,7 +72,7 @@ Funcionalidade: A mesma turma em outro evento
       Quando eu abro o evento "churras"
       Então o cabeçalho pergunta "você é Lia?"
       Quando eu respondo que não
-      Então o site pergunta quem é você
+      Então o site pergunta quem é você entre Fernando, Júlia e Lia
 
     Exemplo: sou duas pessoas da turma, então nada de palpite
       Dado que neste aparelho eu sou Lia no "churras"

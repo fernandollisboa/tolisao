@@ -1289,6 +1289,11 @@
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
   }
+  /** um botão por pessoa, numa cápsula com contorno e pontinho na cor dela, com o id em data-<attr>
+   *  @param {Person[]} gente @param {string} attr */
+  function linkpras(gente, attr) {
+    return `<div class="linkpras">${gente.map((p) => `<button class="linkpra" data-${attr}="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>`;
+  }
   /** quem chega pelo link do grupo ainda não é ninguém: no topo da nota, um nome por pessoa,
    *  na cor dela, e o "não tô aqui" pra quem falta na lista. É convite, não cartão: ninguém é
    *  interrompido na chegada, e some quando a pessoa diz quem é */
@@ -1297,7 +1302,7 @@
       quer = !hasMe && state.people.length > 0;
     const html = quer
       ? `<h2>*** Quem é você? ***</h2>
-      <div class="linkpras">${state.people.map((p) => `<button class="linkpra" data-chegou="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
+      ${linkpras(state.people, 'chegou')}
       <div class="c"><a class="link" id="chegouFora">não tô aqui</a></div><div class="hr"></div>`
       : '';
     el.classList.toggle('hidden', !quer);
@@ -2218,13 +2223,13 @@
       };
     }
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela. Quem veio com a turma já é alguém
-    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era
+    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era. Com duas ou mais
+    // e ninguém escolhido, também só fecha: o "Quem é você?" do topo da nota já pergunta, com os nomes
     $('#setupGo').onclick = () => {
       if (!poe(true) || !state.people.length) return;
-      if (temMe()) return void (closeOverlay(), render());
-      if (state.people.length === 1) return souEu(state.people[0].id);
+      if (!temMe() && state.people.length === 1) return souEu(state.people[0].id);
       closeOverlay();
-      showWho();
+      render();
     };
     // sair (ou tocar fora) só fecha: a nota fica esperando o toque no "quem é você?"
     $('#setupLeave').onclick = closeOverlay;
@@ -2295,21 +2300,28 @@
     updateHint();
     ficha.rejoga();
   }
+  /** quem ainda não é ninguém escolhe com um toque no nome, os mesmos botões do topo da nota; quem já
+   *  é alguém vê o próprio nome no menu, que só abre se tocar pra trocar */
   function showWho() {
-    // quem já é alguém vê o próprio nome escolhido; o menu só abre se tocar pra trocar
+    if (!temMe()) {
+      overlay(`<h2>Quem é você?</h2>${linkpras(state.people, 'sou')}
+      <div class="c voltar"><a class="link" id="whoNova">+ outra pessoa</a></div>`);
+      for (const b of inputs('#overlayBox [data-sou]')) b.onclick = () => souEu(b.dataset.sou);
+      // "+ outra pessoa" leva pro Quem vai?, onde dá pra pôr uma ou várias de uma vez
+      $('#whoNova').onclick = showSetup;
+      return;
+    }
     const opts = state.people
       .map((p) => `<option value="${p.id}"${p.id === me ? ' selected' : ''}>${esc(p.name)}</option>`)
       .join('');
     overlay(`<h2>Quem é você?</h2>
-      <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">+ outra pessoa</option></select></form>${whoPix()}`);
-    /** escolher já é confirmar: quem é você não tem botão de continuar */
-    const entra = souEu;
-    // "+ outra pessoa" leva pro Quem vai?, onde dá pra pôr uma ou várias de uma vez,
-    // sem deixar de ser quem você é (quem ainda não é ninguém volta aqui pra escolher)
+      <form id="whoForm"><select id="whoSel">${opts}<option value="__new">+ outra pessoa</option></select></form>${whoPix()}`);
+    // escolher já é confirmar: quem é você não tem botão de continuar. "+ outra pessoa" leva pro
+    // Quem vai?, sem deixar de ser quem você é
     $('#whoSel').onchange = () => {
       const v = $('#whoSel').value;
       if (v === '__new') return showSetup();
-      if (v) entra(v);
+      if (v) souEu(v);
     };
     $('#whoForm').onsubmit = (ev) => ev.preventDefault();
     if ($('#pixTroca')) $('#pixTroca').onclick = savePix;
@@ -2318,8 +2330,6 @@
       $('#pixApaga').onclick = async () => {
         if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
       };
-    // no iPhone o focus já abre o menu: só pra quem ainda não escolheu
-    if (!me) $('#whoSel').focus();
   }
   // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
   // o cartão nunca fica mudo sobre o pix: sem chave, cadastra; com chave de outro aparelho, diz por que não troca
@@ -3281,7 +3291,7 @@
         `<h2 class="pergunta">Mandar pra quem?</h2>
       <button class="big" data-link-pra="">👥 pro grupo todo</button>
       <div class="c muted linkou">ou um link que já entra como:</div>
-      <div class="linkpras">${outros.map((p) => `<button class="linkpra" data-link-pra="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
+      ${linkpras(outros, 'link-pra')}
       <div class="c"><button id="qrBtn" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );

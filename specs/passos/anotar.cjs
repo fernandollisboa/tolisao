@@ -1,4 +1,4 @@
-const { When, Then, expect, AGORA } = require('./_mundo.cjs');
+const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
 
 const dinheiro = v => v.toFixed(2).replace('.', ',');
 const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
@@ -170,4 +170,25 @@ When('a/o {word} troca o valor do/da {string} pra R$ {num} em outro aparelho', a
   sala.expenses = [...sala.expenses.filter(e => e !== velho), { ...velho, id: 'dooutro', amount: valor, by: quem }];
   sala.deleted = [...(sala.deleted || []), velho.id];
   sala.gone = [...(sala.gone || []), { id: velho.id, desc, amount: velho.amount, at: velho.at, by: quem, goneAt: AGORA - 60000, to: 'dooutro' }];
+});
+
+// quem anotou: o aparelho grava o nome e o id de quem estava nele na hora
+Given('que a/o {word} anotou o {string}', async ({ mundo }, quem, nome) => {
+  const p = mundo.pessoa(quem), e = mundo.evento.expenses.find(x => x.desc === nome);
+  Object.assign(e, { by: p.name, byId: p.id });
+});
+// o nome muda só na turma: o que já foi anotado continua com o nome velho escrito
+Given('que a/o {word} trocou o nome pra {word}', async ({ mundo }, de, pra) => { mundo.pessoa(de).name = pra; });
+Given('que entrou na turma outra/outro {word}', async ({ mundo }, nome) => {
+  mundo.evento.people.push({ id: idDe(nome) + 'nova', name: nome, at: mundo.evento.people.length + 1 });
+});
+Then('o {string} diz que foi anotado por {word}', async ({ mundo }, nome, quem) => {
+  await expect(item(mundo.p, nome).locator('.small .by')).toHaveText(`· anotado por ${quem}`);
+});
+Then('eu posso editar e excluir o {string}', async ({ mundo }, nome) => {
+  await expect(item(mundo.p, nome).locator('[data-edit-expense]')).toHaveCount(1);
+  await expect(item(mundo.p, nome).locator('[data-del-expense]')).toHaveCount(1);
+});
+Then('eu não posso editar nem excluir o {string}', async ({ mundo }, nome) => {
+  await expect(item(mundo.p, nome).locator('[data-edit-expense], [data-del-expense]')).toHaveCount(0);
 });

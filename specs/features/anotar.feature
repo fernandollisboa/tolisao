@@ -195,3 +195,27 @@ Funcionalidade: Anotar um gasto
     Quando eu apago a parte da Júlia e toco em "o resto" nela
     Então a parte da Júlia fica "40,00"
     E o formulário diz que fechou
+
+  Regra: o item é de quem anotou, mesmo depois de trocar de nome
+    Só quem anotou edita e exclui o item. Trocar de nome no Quem vai? não tira isso de ninguém,
+    e quem chega depois com o nome antigo não ganha os itens de outra pessoa.
+
+    Exemplo: quem trocou de nome continua dona do que anotou
+      Dado que a Lia anotou o "Gasolina ida"
+      E que a Lia trocou o nome pra Liazinha
+      Quando eu abro o evento como Liazinha
+      E eu abro a lista de itens
+      Então o "Gasolina ida" diz que foi anotado por Liazinha
+      E eu posso editar e excluir o "Gasolina ida"
+      Quando eu edito o "Gasolina ida"
+      E eu troco o valor pra R$ 140,00 e salvo
+      Então o "Gasolina ida" fica de 140,00
+
+    Exemplo: quem chega com o nome antigo não ganha os itens de ninguém
+      Dado que a Lia anotou o "Gasolina ida"
+      E que a Lia trocou o nome pra Liazinha
+      E que entrou na turma outra Lia
+      Quando eu abro o evento como Lia
+      E eu abro a lista de itens
+      Então eu não posso editar nem excluir o "Gasolina ida"
+      E o "Gasolina ida" diz que foi anotado por Liazinha

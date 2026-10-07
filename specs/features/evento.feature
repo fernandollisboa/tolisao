@@ -9,7 +9,13 @@ Funcionalidade: Entrar no evento
     Então o site pergunta se é um evento novo
     Quando eu volto
     Então o cartão do código volta com "bailedamda" escrito
-    E aparece o recado "confira o código"
+    E aparece o recado "nada foi criado."
+
+  Cenário: link de evento que não existe não oferece criar como se fosse nome novo
+    Código com o final sorteado é de um link: se não abre nada, o link veio errado ou o evento sumiu.
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "churras-k7f3q9"
+    Então o cartão pergunta 'Não achei "churras-k7f3q9"'
 
   Cenário: tocar fora também volta pro código
     Dado que eu abro o site sem evento
@@ -109,7 +115,7 @@ Funcionalidade: Entrar no evento
       CÓDIGO
       bailedamada
       ENTRA QUEM TEM
-      a senha
+      o link
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite

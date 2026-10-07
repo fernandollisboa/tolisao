@@ -492,6 +492,31 @@
     ids.forEach((id, i) => (o[id] = base + (i < rem ? 1 : 0)));
     return o;
   }
+  /** a divisão igual de um gasto novo: o centavo que sobra começa numa pessoa tirada do id
+   *  do gasto, e não sempre na primeira da turma. Fica gravado no `shares`: o `shares()` lido
+   *  na hora continua igual, senão os saldos dos eventos antigos mudavam
+   *  @param {number} cents @param {string[]} ids @param {string} id */
+  function sharesGirando(cents, ids, id) {
+    const ini = [...id].reduce((a, c) => a + c.charCodeAt(0), 0) % ids.length;
+    const s = shares(
+      cents,
+      ids.map((_, i) => ids[(ini + i) % ids.length]),
+    );
+    /** @type {Record<string, number>} */ const o = {};
+    for (const x of ids) o[x] = s[x];
+    return o;
+  }
+  /** dividido igual: sem `shares`, ou com o que o `sharesGirando()` grava quando sobra centavo
+   *  @param {Expense} e */
+  const ehIgual = (e) => {
+    if (!e.shares) return true;
+    const c = centavos(e),
+      n = e.among.length,
+      base = Math.floor(c / n);
+    if (!n || c % n === 0 || Object.keys(e.shares).length !== n) return false;
+    const v = e.among.map((id) => e.shares[id]);
+    return v.every((x) => x === base || x === base + 1) && v.reduce((a, b) => a + b, 0) === c;
+  };
   const shareOf = (e, ids) => {
     if (e.shares) {
       const o = {};
@@ -502,7 +527,7 @@
   };
   const howText = (e, name = nameOf, html = false) => {
     const loan = !e.among.includes(e.payer);
-    if (e.shares) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
+    if (!ehIgual(e)) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
     if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length === 1 ? '' : 'm'} tudo`;
     if (!html) return `÷${e.among.length}`;
     return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`;
@@ -2726,9 +2751,11 @@
       c.checked = e.among.includes(c.value);
       c.closest('.chip').classList.toggle('on', c.checked);
     }
-    splitMode = e.shares ? 'custom' : 'equal';
+    // o igual com o centavo girado também tem `shares`, mas volta na aba igual
+    const partes = !ehIgual(e);
+    splitMode = partes ? 'custom' : 'equal';
     updateHint();
-    if (e.shares) {
+    if (partes) {
       for (const i of inputs('#sharesBox input[data-share]')) i.value = reais(e.shares[i.dataset.share] || 0);
       atualizaFalta();
     }
@@ -2825,7 +2852,7 @@
         );
       exp.shares = {};
       for (const id of among) exp.shares[id] = sh[id] || 0;
-    }
+    } else if (total % among.length) exp.shares = sharesGirando(total, among, exp.id);
     const velho = editando && state.expenses.find((x) => x.id === editando);
     // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
     if (!editando) {
@@ -3330,7 +3357,7 @@
         /** @type {{ t: string, id?: string, w?: number }[]} */
         const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
         const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
-        if (e.shares) {
+        if (!ehIgual(e)) {
           // partes diferentes: cada nome com o valor dele
           e.among.forEach((id, i) => {
             const n = cabe(nameOf(id), 14),

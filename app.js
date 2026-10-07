@@ -458,7 +458,7 @@
       );
     } catch (e) {
       if (e.notFound) return showLost();
-      setStatus('Offline · ' + e.message, true);
+      setStatus('Offline · a rede não respondeu', true);
     } finally {
       saving = false;
     }
@@ -1091,11 +1091,16 @@
   async function tocaAviso() {
     if (!me || !groupId || mexendoAviso) return;
     if (avisoLigado()) return;
-    if (iPhoneSemApp())
-      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, daí o código
-      return ensinaInstalar(
-        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento <b>${esc(roomName)}</b> e toca no 🔔.`,
+    if (iPhoneSemApp()) {
+      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, e o link é que leva
+      // até ele (digitar o nome lá criaria outro evento)
+      ensinaInstalar(
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo e toca no 🔔. <a class="link" id="instEvLink">copiar link do evento</a>`,
       );
+      const link = $('#instEvLink');
+      if (link) link.onclick = () => copia(shareUrl(me), 'Link copiado. Cola no tô lisa instalado.', 'Link do evento');
+      return;
+    }
     const quem = me,
       sala = groupId;
     mexendoAviso = true;
@@ -1998,7 +2003,7 @@
     if (!aberto) $('#app').classList.add('loading', 'nospin');
     // quem já tem evento neste aparelho cai na lista; o convite e o foco no campo são pra quem chega
     const evs = meusEventos(),
-      botao = evs.length ? 'Entrar' : 'Bora';
+      botao = 'Bora';
     const chegou = !msg && !evs.length && !aberto;
     // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
     const intro = chegou
@@ -2010,7 +2015,7 @@
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
       : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2><p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${
         aberto
@@ -2036,7 +2041,7 @@
     atualizaDatas(evs, true, esquece);
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
-      // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto (inclusive o "Criar …?")
+      // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto (inclusive o "Não achei", se for link velho)
       if (aberto) {
         const { code, quem } = codigoDoCampo($('#gateCode').value);
         if (!code) return;
@@ -2046,14 +2051,14 @@
       }
       const btn = ev.target.querySelector('button');
       btn.disabled = true;
-      btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
+      btn.textContent = 'Abrindo…';
       const code = $('#gateCode').value;
       try {
         const c = codigoDoCampo(code);
         quemDoLink = c.quem;
         await enterRoom(c.code);
       } catch (e) {
-        // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
+        // o "Não achei" toma o lugar do cartão: voltando dele, o cartão volta junto
         if (!$('#gateForm')) {
           showGate();
           $('#gateCode').value = code;
@@ -2100,7 +2105,7 @@
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${trazer}
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
-      <div class="c voltar"><button id="setupLeave" class="ghost">sair</button></div>`,
+      <div class="c voltar"><button id="setupLeave" class="ghost">fechar</button></div>`,
     );
     // o nome que ficou na caixa também entra: no Pronto e no +, ninguém perde o que digitou
     // no Pronto, um nome repetido na caixa só fica de fora: a pessoa já está na lista
@@ -2291,7 +2296,7 @@
     $('#app').classList.add('loading', 'nospin');
     const cached = cacheLoad();
     overlay(
-      `<h2>Sumiu!</h2><p class="muted recado">${cached ? 'esse evento não tá mais aqui, mas teu celular guardou uma cópia.' : 'esse evento não tá mais aqui. confere o nome com quem te mandou.'}</p>
+      `<h2>Sumiu!</h2><p class="muted recado">${cached ? 'esse evento não tá mais aqui, mas teu celular guardou uma cópia.' : 'esse evento não tá mais aqui. confere o link com quem te mandou.'}</p>
       ${cached ? `<button id="restoreBtn" class="big">trazer de volta</button>` : ''}<div class="c" style="margin-top:8px"><button id="lostBack" class="ghost">voltar</button></div>`,
       true,
     );
@@ -2344,33 +2349,33 @@
     try {
       existing = await apiGet(id);
     } catch (e) {
-      if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
+      if (!e.notFound) throw new Error('a internet engasgou. tenta de novo?');
     }
     let criou = false;
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
     if (!existing && !seed) {
-      // código com cara de final sorteado (6 letras e números, com algum número) é link velho ou cortado,
-      // não nome novo: "esse nome tá livre" ali faria a pessoa criar um evento fantasma
+      // nome novo vira evento na hora: ninguém digita código, quem entra num que já existe chega pelo link.
+      // Só código com cara de final sorteado (6 letras e números, com algum número) pergunta antes: é link
+      // velho ou cortado, e criar ali sem avisar deixaria a pessoa sozinha num evento fantasma
       const veioDeLink = /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
-      const [titulo, desc, ok] = veioDeLink
-        ? [
-            `Não achei "${esc(code)}"`,
-            'esse link não abre evento nenhum. confere com quem te mandou.',
-            'criar mesmo assim',
-          ]
-        : [
-            `Criar "${esc(code)}"?`,
-            'esse nome tá livre. o link ganha um final sorteado, à prova de enxerido.',
-            'criar',
-          ];
-      if (!(await ask(titulo, desc, ok))) throw new Error('nada foi criado.');
+      if (
+        veioDeLink &&
+        !(await ask(
+          `Não achei "${esc(code)}"`,
+          'esse link não abre evento nenhum. confere com quem te mandou.',
+          'criar mesmo assim',
+        ))
+      )
+        throw new Error('nada foi criado.');
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
       // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
       const nome = code;
       criou = true;
       code = `${code}-${sorteia(6)}`;
       id = await sha(code);
-      await apiPut(id, fresh(nome));
+      await apiPut(id, fresh(nome)).catch(() => {
+        throw new Error('a internet engasgou. tenta de novo?');
+      });
     } else if (!existing) {
       // #seed=: restaura uma cópia com o mesmo código, sem sortear nada
       let data = fresh(code);
@@ -2382,7 +2387,9 @@
           updatedAt: Date.now(),
         };
       } catch {}
-      await apiPut(id, data);
+      await apiPut(id, data).catch(() => {
+        throw new Error('a internet engasgou. tenta de novo?');
+      });
       history.replaceState(null, '', location.pathname);
     }
     await openGroup(code, id);
@@ -2440,7 +2447,7 @@
         state = fresh(code);
         render();
       }
-      setStatus('Offline · ' + e.message, true);
+      setStatus('Offline · a rede não respondeu', true);
     }
     $('#app').classList.remove('loading');
     // o link veio com &quem=: o aparelho que ainda não é ninguém no evento já entra como essa pessoa
@@ -3503,10 +3510,10 @@
       a.download = file.name;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      toast('Imagem baixada. Abrindo o WhatsApp com o texto…');
+      toast('Imagem baixada. Abrindo o zap…');
       waText();
     } catch (e) {
-      toast('Não consegui gerar a imagem: ' + e.message);
+      toast('A imagem não saiu. Vai só o texto.');
       waText();
     } finally {
       btn.disabled = false;
@@ -4297,7 +4304,7 @@
       const code = c.trim().toLowerCase(),
         id = await sha(code);
       // o endereço sempre carrega o código: recarregar um evento que o aparelho conhece não é entrar de novo
-      // (e, se ele sumiu do banco, cai no "Sumiu!" com a cópia, não no "Criar …?")
+      // (e, se ele sumiu do banco, cai no "Sumiu!" com a cópia, não no "Não achei")
       if (DB && gaveta(roomKey(id)).code === code) return openGroup(code, id);
       try {
         return await enterRoom(code);

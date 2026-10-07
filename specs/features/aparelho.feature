@@ -39,6 +39,7 @@ Funcionalidade: O que fica guardado no aparelho
       agora
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      ENTRAR
+      qualquer nome cria o evento.
+      BORA
       """
     E o aparelho não guarda mais o último evento na gaveta dele

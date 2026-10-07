@@ -56,7 +56,8 @@ Funcionalidade: Meus eventos
       agora
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      ENTRAR
+      qualquer nome cria o evento.
+      BORA
       COPIAR LINK DO EVENTO
       VOLTAR
       """
@@ -80,7 +81,8 @@ Funcionalidade: Meus eventos
       agora
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      ENTRAR
+      qualquer nome cria o evento.
+      BORA
       """
     E o código do evento não pega o foco sozinho
     Quando eu digito o código "praia"

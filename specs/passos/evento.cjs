@@ -60,18 +60,20 @@ When('eu abro o evento como {word} em outro aparelho', async ({ mundo }, quem) =
 When('eu recarrego a página', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#app:not(.loading)'); });
 
 When('eu digito o código {string}', async ({ mundo }, codigo) => { await mundo.p.fill('#gateCode', codigo); await mundo.p.click('#gateForm button'); });
+When('eu digito o nome {string}', async ({ mundo }, nome) => { await mundo.p.fill('#gateCode', nome); await mundo.p.click('#gateForm button'); });
 // evento criado pelo campo: o código tem o final sorteado, o nome é o que a pessoa digitou
 Given('que este aparelho já abriu o evento {string} pelo link {string}', async ({ mundo }, nome, codigo) => {
   const ev = mundo.criaEvento({ name: codigo, people: [], expenses: [], deleted: [] }); ev.name = nome;
   mundo.antes = { ...mundo.antes, ['tolisa:' + mundo.sala]: JSON.stringify({ code: codigo, openedAt: AGORA, snapshot: ev }) };
 });
 When('eu colo no campo do código:', async ({ mundo }, txt) => { await mundo.p.fill('#gateCode', txt); await mundo.p.click('#gateForm button'); });
-Then('o site pergunta se é um evento novo', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeVisible(); });
 When('eu volto', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
-Then('o cartão do código volta com {string} escrito', async ({ mundo }, codigo) => { await expect(mundo.p.locator('#gateCode')).toHaveValue(codigo); });
+Then('o campo volta com {string} escrito', async ({ mundo }, codigo) => { await expect(mundo.p.locator('#gateCode')).toHaveValue(codigo); });
 Then('aparece o recado {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#gateErr')).toHaveText(txt); });
 When('eu toco fora do cartão', async ({ mundo }) => { await mundo.p.mouse.click(5, 5); await mundo.p.waitForTimeout(200); });
-When('eu crio o evento', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#app:not(.loading)'); });
+When('eu crio o evento {string}', async ({ mundo }, nome) => {
+  await mundo.p.fill('#gateCode', nome); await mundo.p.click('#gateForm button'); await mundo.p.waitForSelector('#app:not(.loading)');
+});
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
 Then('o endereço é {string} com um final sorteado', async ({ mundo }, ini) => {
   const esc = ini.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

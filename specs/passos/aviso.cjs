@@ -66,7 +66,7 @@ Given('que meu navegador oferece instalar o tô lisa', async ({ mundo }) => {
 Then('aparece o passo a passo de instalar na Tela de Início', async ({ mundo }) => {
   const o = mundo.p.locator('#overlay');
   await expect(o.locator('h2')).toHaveText('Instalar');
-  await expect(o).toContainText(`aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento ${mundo.evento.name}`);
+  await expect(o).toContainText('aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo');
   await expect(o).toContainText('Adicionar à Tela de Início');
 });
 Then('o celular não fica inscrito pra receber aviso', async ({ mundo }) => { expect(pedidos(mundo, '/inscreve')).toHaveLength(0); });

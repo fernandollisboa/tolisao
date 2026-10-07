@@ -27,6 +27,7 @@ Peça um passo por vez, na ordem, com as palavras de quem usa, e não com os nom
 12. **Mandar o resumo no zap.** Compartilhar o evento pelo zap.
 13. **Instalar na tela de início.** "Deixa ele como app no seu celular."
 14. **Sair e voltar.** Feche cartões e telas do jeito que a pessoa achar melhor, e veja se ela sabe voltar.
+15. **Abrir com sinal ruim.** Com o evento já aberto uma vez, no computador: DevTools › Network › "Slow 3G" (ou um perfil mais lento, com latência de uns 5 s), recarregue. O app tem que abrir com a cópia guardada em até uns 3 s, com o texto já visível (fonte de reserva até a VT323 chegar), e não ficar em tela branca. Em Application › Cache Storage, o `tolisa-v6` ganha a versão da rede quando ela termina.
 
 ## Durante
 
@@ -38,6 +39,12 @@ Peça um passo por vez, na ordem, com as palavras de quem usa, e não com os nom
 ## Depois
 
 Abra uma issue com o rótulo `enhancement`, título `feedback - <quem> (QA)`, com o aparelho, o passo em que travou, onde tocou e a frase que disse. Um problema por item, numerado. Ideias de solução são bem-vindas, mas separadas do que aconteceu.
+
+## Conferências à mão
+
+Coisas que o playwright não alcança e que vale repetir quando mexer no `sw.js` ou nas fontes.
+
+- **Slow 3G, abrir com cache** (#214). No computador, abra o site uma vez com rede normal (o service worker instala e guarda a cópia). No DevTools, aba Network, escolha "Slow 3G" e recarregue: o app tem que abrir em uns 3 s com a cópia guardada, sem tela branca. Recarregue de novo com a rede normal: a versão nova aparece. Numa aba anônima (sem cópia), com "Slow 3G", o app espera a rede e abre, só que devagar. O texto aparece desde o começo, mesmo antes da VT323 chegar.
 
 ## O que as sessões já acharam
 

@@ -1,6 +1,6 @@
 # language: pt
 Funcionalidade: O service worker guarda cópia sem estragar a resposta
-  Rede primeiro, cache de reserva. A cópia pro cache tem que sair antes de o
+  Rede primeiro, cache de reserva, com prazo pra rede. A cópia pro cache tem que sair antes de o
   navegador começar a ler a resposta, senão "Response body is already used".
 
   Cenário: página e arquivo guardam cópia antes da leitura
@@ -22,3 +22,22 @@ Funcionalidade: O service worker guarda cópia sem estragar a resposta
     Então o cache só tem a versão nova desse arquivo
     E os outros arquivos continuam no cache
     E sem rede, o arquivo abre com a versão nova
+
+  Cenário: com sinal ruim, a cópia guardada abre sem esperar a rede
+    Num 3G engasgado a rede leva dezenas de segundos pra responder ou desistir:
+    quem já abriu o app antes não fica olhando tela branca.
+    Dado que o service worker já tem cópia de um arquivo
+    Quando ele busca esse arquivo e a rede demora a responder
+    Então o arquivo abre com a cópia guardada
+    Quando a rede enfim responde
+    Então o cache fica com a versão da rede
+
+  Cenário: sem cópia guardada, a rede lenta ainda abre o arquivo
+    Quando o service worker busca um arquivo sem cópia e a rede demora a responder
+    Então o arquivo abre com o que veio da rede
+
+  Cenário: com sinal ruim, a cópia de outra versão não serve
+    A página nova pede o app.js da versão dela: o de outro deploy com o style.css deste quebra a tela.
+    Dado que o service worker só tem cópia de outra versão de um arquivo
+    Quando ele busca esse arquivo e a rede demora a responder
+    Então o arquivo abre com o que veio da rede

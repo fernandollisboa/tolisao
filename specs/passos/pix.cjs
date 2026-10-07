@@ -49,7 +49,7 @@ Then('nenhum script rodou', async ({ mundo }) => {
   expect(achados, 'código vindo do banco no DOM').toEqual([]);
   expect(await mundo.p.evaluate(() => window.__xss)).toBeUndefined();
 });
-Then('o quem é você lista {int} pessoas', async ({ mundo }, n) => { await expect(mundo.p.locator('#whoSel option:not([value=""]):not([value="__new"])')).toHaveCount(n); });
+Then('o quem é você lista {int} pessoas', async ({ mundo }, n) => { await expect(mundo.p.locator('#whoSel option:not([value="__new"])')).toHaveCount(n); });
 Then('a lista tem {int} item, com o {string} escrito como texto', async ({ mundo }, n, txt) => {
   await expect(mundo.p.locator('#expenses .item')).toHaveCount(n); await expect(mundo.p.locator('#expenses .item .l').first()).toContainText(txt);
 });

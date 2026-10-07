@@ -67,9 +67,41 @@ Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
 });
 
 When('eu cobro o/a {word} no zap', async ({ mundo }, nome) => {
+  await mundo.p.evaluate(() => { window.__aberto = null; });
   await mundo.p.locator('#mineRows .row.sub').filter({ has: mundo.p.locator('.nm', { hasText: nome }) }).locator('[data-cobra]').click();
 });
+When('eu pulo o número dela/dele', async ({ mundo }) => { await mundo.p.click('#zapPular'); });
+When('eu dou o número {string}', async ({ mundo }, tel) => { await mundo.p.fill('#zapForm input', tel); await mundo.p.click('#zapForm button.big'); });
+Then('o zap abre sem perguntar o número', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.evaluate(() => window.__aberto)).toBeTruthy();
+  await expect(mundo.p.locator('#zapForm')).toBeHidden();
+});
+const zapPhone = mundo => mundo.p.evaluate(() => window.__aberto && new URL(window.__aberto).searchParams.get('phone'));
+Then('o zap abre na conversa do {word}', async ({ mundo }, tel) => {
+  await expect.poll(() => zapPhone(mundo)).toBe(tel);
+  expect(await mundo.p.evaluate(() => window.__aberto)).toMatch(/^https:\/\/api\.whatsapp\.com\/send\?phone=/);
+});
+Then('o zap abre na escolha de contato', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.evaluate(() => window.__aberto)).toBeTruthy();
+  expect(await zapPhone(mundo)).toBeNull();
+});
+When('eu cobro sem escrever o número', async ({ mundo }) => { await mundo.p.click('#zapForm button.big'); });
+Then('o site pergunta o número dela/dele', async ({ mundo }) => { await expect(mundo.p.locator('#zapForm')).toBeVisible(); });
+When('eu troco o zap da/do {word} pra {string}', async ({ mundo }, nome, tel) => {
+  await mundo.p.locator('#mineRows [data-trocazap]', { hasText: nome }).click();
+  await mundo.p.fill('#zapForm input', tel); await mundo.p.click('#zapForm button.big');
+});
+When('eu esqueço o zap da/do {word}', async ({ mundo }, nome) => {
+  await mundo.p.locator('#mineRows [data-trocazap]', { hasText: nome }).click();
+  await mundo.p.click('#zapPular');
+});
+Then('o evento no banco não tem o número {word}', async ({ mundo }, tel) => { expect(JSON.stringify(mundo.banco.arvore)).not.toContain(tel); });
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
+When('eu toco em copiar pix no cartão', async ({ mundo }) => { await mundo.p.click('#overlayBox #quitaPix'); });
+Then('o cartão continua aberto', async ({ mundo }) => { await expect(mundo.p.locator('#quitaValor')).toBeVisible(); });
+Then('o cartão não tem copiar pix', async ({ mundo }) => {
+  await expect(mundo.p.locator('#quitaValor')).toBeVisible(); await expect(mundo.p.locator('#overlayBox [data-pix]')).toHaveCount(0);
+});
 // as chaves se buscam de novo a cada 30s: o relógio anda até lá com o banco sem responder.
 // Depois da falha a nota se redesenha na hora; os 300ms são folga pra esse redesenho
 When('a rede engasga quando o app busca as chaves pix de novo', async ({ mundo }) => {

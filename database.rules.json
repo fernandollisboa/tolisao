@@ -63,8 +63,10 @@
       "$room": {
         "$person": {
           ".write": "!data.exists() || data.child('key').val() === '' || data.child('tok').val() === newData.child('tok').val()",
-          ".validate": "newData.hasChildren(['key','tok']) && newData.child('key').isString() && newData.child('key').val().length <= 80 && newData.child('tok').isString()",
-          "key": { ".read": true }
+          ".validate": "$room.matches(/^[0-9a-f]{64}$/) && $person.matches(/^[a-z0-9]{1,32}$/) && newData.hasChildren(['key','tok'])",
+          "key": { ".read": true, ".validate": "newData.isString() && newData.val().length <= 80" },
+          "tok": { ".validate": "newData.isString()" },
+          "$outro": { ".validate": false }
         }
       }
     },

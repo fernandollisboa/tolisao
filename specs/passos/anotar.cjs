@@ -35,9 +35,13 @@ Then('o formulário pede primeiro o valor e depois o quê', async ({ mundo }) =>
   expect(await mundo.p.$eval('.two', e => [...e.children].map(c => c.id))).toEqual(['amount', 'desc']);
 });
 When('eu preencho R$ {num} de {string}', async ({ mundo }, valor, desc) => { await mundo.p.fill('#amount', dinheiro(valor)); await mundo.p.fill('#desc', desc); });
-When('eu divido só entre {gente}, em partes diferentes', async ({ mundo }, gente) => {
+// deixa marcados nos chips só os nomes da lista
+const marcaSo = async (mundo, gente) => {
   const quero = new Set(gente.map(n => mundo.pessoa(n).id));
   for (const chip of await mundo.p.locator('#splitChips input').all()) if ((await chip.isChecked()) !== quero.has(await chip.inputValue())) await chip.locator('xpath=..').click();
+};
+When('eu divido só entre {gente}, em partes diferentes', async ({ mundo }, gente) => {
+  await marcaSo(mundo, gente);
   await mundo.p.click('#splitSeg [data-modo="custom"]'); await mundo.p.waitForSelector('#sharesBox:not(.hidden)');
 });
 When('eu ponho R$ {num} pra {word}', async ({ mundo }, v, n) => { await mundo.p.fill(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`, dinheiro(v)); });
@@ -58,6 +62,45 @@ Then('o valor fica {string}', async ({ mundo }, v) => { await expect(mundo.p.loc
 
 Then('a frase de como está dividido vem antes das abas', async ({ mundo }) => {
   expect(await mundo.p.$eval('#splitHint', h => !!(h.compareDocumentPosition(document.querySelector('#splitSeg')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+});
+Then('a frase de como está dividido diz {string}', async ({ mundo }, txt) => {
+  await expect.poll(() => mundo.p.$eval('#splitHint', h => h.innerText.replace(/\u00a0/g, ' ').trim())).toBe(txt);
+});
+Then('o cursor continua no valor', async ({ mundo }) => { await expect(mundo.p.locator('#amount')).toBeFocused(); });
+When('eu divido só com {gente}', async ({ mundo }, gente) => {
+  await marcaSo(mundo, gente);
+});
+When('eu anoto {string} e depois {string}, os dois de R$ {num} divididos igualmente', async ({ mundo }, a, b, valor) => {
+  for (const desc of [a, b]) {
+    const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+    await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.click('#expenseForm button.big');
+    // o segundo, de mesmo valor e mesmo pagador, cai no "já anotaram?": anota mesmo assim
+    if (desc === b) await p.click('#okBtn');
+    await p.waitForSelector('#sheet', { state: 'hidden' });
+  }
+});
+const quemLeva = (mundo, desc) => {
+  const e = (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).find(x => x.desc === desc);
+  if (!e) return undefined;
+  // sem partes gravadas, a divisão igual põe o centavo no primeiro da turma
+  if (!e.shares) return e.among[0];
+  const max = Math.max(...Object.values(e.shares)); return Object.keys(e.shares).find(id => e.shares[id] === max);
+};
+Then('no banco, o centavo a mais do {string} e o do {string} ficam com pessoas diferentes', async ({ mundo }, a, b) => {
+  await expect.poll(() => [quemLeva(mundo, a), quemLeva(mundo, b)].every(Boolean)).toBe(true);
+  expect(quemLeva(mundo, a)).not.toBe(quemLeva(mundo, b));
+});
+// guarda quem levava o centavo antes da edição, pro Então comparar
+When('eu troco a descrição do {string} pra {string} e salvo', async ({ mundo }, velha, nova) => {
+  await expect.poll(() => quemLeva(mundo, velha)).toBeTruthy();
+  mundo.centavoAntes = quemLeva(mundo, velha);
+  await mundo.p.fill('#desc', nova); await mundo.p.click('#expenseForm button.big'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' });
+});
+Then('no banco, o centavo a mais do {string} continua com a mesma pessoa', async ({ mundo }, desc) => {
+  await expect.poll(() => quemLeva(mundo, desc)).toBe(mundo.centavoAntes);
+});
+Then('a aba igual fica marcada', async ({ mundo }) => {
+  const aba = mundo.p.locator('#splitSeg [data-modo="equal"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');
 });
 When('eu começo a digitar a parte do {word}', async ({ mundo }, n) => { await mundo.p.focus(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`); });
 When('a nota sincroniza', async ({ mundo }) => {
@@ -112,7 +155,7 @@ Then('embaixo dele está escrito {string}', async ({ mundo }, txt) => {
 });
 Then('a lista fica separada em {int} dias', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .day')).toHaveCount(n); });
 
-When('eu apago o {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('[data-del-expense]').click(); await mundo.p.click('#okBtn'); });
+When('eu apago o {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).getByRole('button', { name: `excluir o gasto ${nome}` }).click(); await mundo.p.click('#okBtn'); });
 Then('o {string} aparece riscado, apagado por {word}', async ({ mundo }, nome, quem) => {
   const r = mundo.p.locator('#gone .item.apagado').filter({ hasText: nome });
   await expect(r.locator('.row .l')).toHaveCSS('text-decoration-line', 'line-through');
@@ -146,7 +189,7 @@ Then('o formulário vem vazio, pra anotar', async ({ mundo }) => {
   await expect(mundo.p.locator('#sheet h2')).toHaveText('Anotar'); await expect(mundo.p.locator('#expenseForm button.big')).toHaveText('Anotar');
 });
 
-const excluir = async (p, nome) => { const it = item(p, nome); await it.locator('.row .l').click(); await it.locator('[data-del-expense]').click(); await p.waitForSelector('#okBtn'); };
+const excluir = async (p, nome) => { const it = item(p, nome); await it.locator('.row .l').click(); await it.getByRole('button', { name: `excluir o gasto ${nome}` }).click(); await p.waitForSelector('#okBtn'); };
 When('eu começo a excluir o {string} e volto atrás', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#cancelBtn'); await mundo.p.waitForSelector('#overlay', { state: 'hidden' }); });
 When('eu excluo o {string}', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#okBtn'); });
 Then('o {string} não está na lista', async ({ mundo }, nome) => { await expect(item(mundo.p, nome)).toHaveCount(0); });

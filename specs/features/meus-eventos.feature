@@ -62,6 +62,7 @@ Funcionalidade: Meus eventos
       *** OUTRO EVENTO ***
       ENTRAR
       VOLTAR
+      apagar meus dados deste aparelho
       """
     E o saldo do "praia" é verde
     E o saldo do "churras" é vermelho
@@ -84,6 +85,7 @@ Funcionalidade: Meus eventos
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      apagar meus dados deste aparelho
       """
     E o código do evento não pega o foco sozinho
     Quando eu digito o código "praia"
@@ -147,8 +149,8 @@ Funcionalidade: Meus eventos
     E eu entro no evento "praia" como Lia
     E eu toco no nome do evento
     Então a lista de eventos é:
-      | churras | há 1 semana  |
-      | praia   | ⏳ há 12 dias |
+      | churras | há 1 semana |
+      | praia   | há 12 dias  |
 
   Cenário: evento quite e antigo desce pros quitados antigos
     Duas semanas sem mudança e ninguém devendo nada: sai do caminho, recolhido no fim da lista.
@@ -188,6 +190,45 @@ Funcionalidade: Meus eventos
     Quando eu abro o evento "churras" como Lia
     E eu toco em enviar
     Então a mensagem do zap começa com "👀 lembra do *churras*? faz 40 dias e ainda tem R$ 60,00 pendurado…"
+
+  Cenário: o nome de um evento da lista que sumiu do banco não cria outro sem perguntar
+    Quem digita o nome de um evento que já teve quer aquele evento: um novo em silêncio esconderia que ele sumiu.
+    Dado que neste aparelho eu sou Lia no "praia"
+    E que o "praia" sumiu do banco
+    E que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    Então o site pergunta se é um evento novo
+
+  Cenário: apagar meus dados deixa o aparelho como o de quem nunca entrou
+    Celular emprestado, vendido ou de casal: a minha chave pix sai de cada evento, até dos esquecidos,
+    e o aparelho não lembra de mais nada. Os eventos continuam pra turma.
+    Dado que neste aparelho eu sou Lia no "churras"
+    E que neste aparelho eu sou Lia no "praia"
+    E que neste aparelho eu cadastrei a chave pix "lia@email.com" da Lia no "praia"
+    E que eu esqueci o "praia" neste aparelho
+    E que eu abro o site sem evento
+    Quando eu toco em apagar meus dados deste aparelho
+    Então o site pergunta "Apagar meus dados deste aparelho?" com o botão vermelho
+    Quando eu confirmo, e a página recarrega
+    Então a tela é a de quem nunca entrou
+    E o "praia" no banco não tem mais a chave pix da Lia
+
+  Cenário: a chave pix que não saiu do banco continua podendo sair
+    Sem confirmação do banco, o segredo da chave fica no aparelho: sem ele, ninguém mais tira a chave.
+    Dado que neste aparelho eu sou Lia no "praia"
+    E que neste aparelho eu cadastrei a chave pix "lia@email.com" da Lia no "praia"
+    E que eu abro o site sem evento
+    E que o banco não deixa tirar chave pix agora
+    Quando eu toco em apagar meus dados deste aparelho
+    E eu confirmo
+    Então o cartão pergunta "Faltou a chave pix"
+    E o "praia" no banco ainda tem a chave pix "lia@email.com" da Lia
+    Quando eu confirmo, e a página recarrega
+    E o banco volta a deixar tirar chave pix
+    E eu toco em apagar meus dados deste aparelho
+    E eu confirmo, e a página recarrega
+    Então o "praia" no banco não tem mais a chave pix da Lia
+    E a tela é a de quem nunca entrou
 
   Regra: com o app instalado, a bolinha no ícone diz quantos acertos faltam
     Conta as linhas do acerto que são minhas, devendo ou recebendo, em todos os eventos do aparelho.

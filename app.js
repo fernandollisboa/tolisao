@@ -2094,7 +2094,9 @@
     'festival de verão',
   ];
   /** o "ex:" do campo se escreve devagar com dois exemplos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
-   * o primeiro some pela frente enquanto o novo entra pelo fim. A dupla cabe no campo do celular (até 22 letras somando as duas) e uma raiz não
+   * o primeiro desliza pra trás do "ex:" enquanto o novo se escreve no fim. O placeholder só anda de letra em
+   * letra (dá pulinho), então quem anda é uma camada por cima do campo; o placeholder fica transparente,
+   * acompanhando o texto pra quem lê a tela. A dupla cabe no campo do celular (até 22 letras somando as duas) e uma raiz não
    * volta logo (réveillon e réveillon 2027). Para sozinho quando o campo sai da tela; com movimento reduzido fica
    * em praia, churras
    * @param {HTMLInputElement} campo */
@@ -2113,25 +2115,38 @@
       return x;
     };
     let segundo = proximo(primeiro);
-    const dorme = (/** @type {number} */ ms) => new Promise((ok) => setTimeout(ok, ms));
+    const caixa = /** @type {HTMLElement} */ (campo.parentElement),
+      ex = /** @type {HTMLElement} */ (caixa.querySelector('.exemplo'));
+    // o texto mora em data-t e sai por ::before: fica fora do texto do cartão, quem lê a tela fica com o placeholder
+    ex.innerHTML = '<span class="janela"><span class="trilho"></span></span>';
+    const trilho = /** @type {HTMLElement} */ (ex.querySelector('.trilho')),
+      dorme = (/** @type {number} */ ms) => new Promise((ok) => setTimeout(ok, ms));
+    caixa.classList.add('anda');
     (async () => {
-      // a primeira dupla se escreve devagar a partir do "ex: "
-      const inicio = `ex: ${primeiro}, ${segundo}`;
-      for (let k = 4; campo.isConnected && k <= inicio.length; k++) {
-        campo.placeholder = inicio.slice(0, k);
+      let texto = `${primeiro}, ${segundo}`;
+      for (let k = 1; campo.isConnected && k <= texto.length; k++) {
+        trilho.dataset.t = texto.slice(0, k);
         await dorme(150);
       }
       while (campo.isConnected) {
         await dorme(3200);
-        // anda um: o primeiro some pela frente enquanto o novo entra pelo fim, uma letra de cada lado por vez
         const novo = proximo(segundo),
-          passos = Math.max(primeiro.length, novo.length);
-        // a vírgula some com a última letra de quem sai e chega com a primeira de quem entra
-        for (let k = 1; campo.isConnected && k <= passos; k++) {
-          const resto = k < primeiro.length ? `${primeiro.slice(k)}, ` : '';
-          campo.placeholder = `ex: ${resto}${segundo}, ${novo.slice(0, k)}`;
-          await dorme(190);
+          sai = primeiro.length + 2,
+          entra = `, ${novo}`,
+          ms = 190 * Math.max(sai, entra.length);
+        // a fonte é monoespaçada: andar `sai` ch esconde exatamente "primeiro, " atrás do "ex:"
+        trilho.style.transition = `transform ${ms}ms linear`;
+        trilho.style.transform = `translateX(-${sai}ch)`;
+        for (let k = 1; campo.isConnected && k <= entra.length; k++) {
+          trilho.dataset.t = texto + entra.slice(0, k);
+          await dorme(ms / entra.length);
         }
+        // chegou: volta o trilho pro lugar já sem o primeiro, sem transição, e ninguém vê a troca
+        texto = `${segundo}, ${novo}`;
+        trilho.style.transition = 'none';
+        trilho.style.transform = '';
+        trilho.dataset.t = texto;
+        campo.placeholder = `ex: ${texto}`;
         primeiro = segundo;
         segundo = novo;
       }
@@ -2202,7 +2217,7 @@
           ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome serve!'}</p>`
           : ''
       }
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: praia, churras" required autocapitalize="none"><button class="small">${botao}</button></form>
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: praia, churras" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }${ofereceApagar() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,

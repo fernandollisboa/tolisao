@@ -1004,14 +1004,23 @@
       );
     }
   }
-  /** o navegador sabe receber push; no iPhone só com o app instalado na tela de início */
+  /** no iPhone o push só existe com o app na tela de início: no Safari o 🔔 ensina a instalar */
+  const iPhoneSemApp = () => INSTALAR && ehIOS() && !jaInstalado() && !iOSSemPush();
+  /** antes do 16.4 o iPhone não tem push nem instalado: o 🔔 não teria o que ensinar */
+  const iOSSemPush = () => {
+    const v = navigator.userAgent.match(/OS (\d+)_(\d+)/);
+    return !!v && (+v[1] < 16 || (+v[1] === 16 && +v[2] < 4));
+  };
+  /** o navegador sabe receber push, ou é um iPhone que vai saber depois de instalar */
   const temAviso = () =>
     AVISO_PUSH &&
-    'Notification' in window &&
-    'PushManager' in window &&
-    'serviceWorker' in navigator &&
-    (!ehIOS() || jaInstalado());
-  const avisoLigado = () => !!me && room().pushOn === me && Notification.permission === 'granted';
+    (iPhoneSemApp() ||
+      ('Notification' in window &&
+        'PushManager' in window &&
+        'serviceWorker' in navigator &&
+        (!ehIOS() || jaInstalado())));
+  const avisoLigado = () =>
+    !!me && room().pushOn === me && 'Notification' in window && Notification.permission === 'granted';
   /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta */
   const avisosDb = (modo, f) =>
     new Promise((ok, erro) => {
@@ -1052,10 +1061,22 @@
   async function tocaAviso() {
     if (!me || !groupId || mexendoAviso) return;
     if (avisoLigado()) return;
+    if (iPhoneSemApp())
+      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, daí o código
+      return ensinaInstalar(
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento <b>${esc(roomName)}</b> e toca no 🔔.`,
+      );
     const quem = me,
       sala = groupId;
     mexendoAviso = true;
     try {
+      // no Android dá pra receber sem instalar, mas instalado o aviso abre o app: aproveita o toque e convida, uma vez só
+      if (convite && !device().installPrompted && !jaInstalado()) {
+        await pedeInstalar().catch(() => false);
+        // demorou no convite, o toque venceu: sem ele o navegador esconde o pedido de permissão
+        if (navigator.userActivation && !navigator.userActivation.isActive)
+          return toast('Agora toca no 🔔 de novo pra ligar o aviso');
+      }
       if ((await Notification.requestPermission()) !== 'granted')
         return toast('Sem permissão: libera os avisos do site nas configurações do navegador');
       await navigator.serviceWorker.register('sw.js');
@@ -3431,18 +3452,25 @@
     mostraInstalar();
     toast('Instalado! 🎉');
   });
+  /** o convite do navegador: o evento só serve pra um prompt(), depois some e o navegador manda
+   *  outro quando quiser. Aceite ou recuse, o ✎ e o 🔔 não perguntam de novo */
+  async function pedeInstalar() {
+    const c = convite;
+    convite = null;
+    setDevice('installPrompted', true);
+    mostraInstalar();
+    c.prompt();
+    return (await c.userChoice).outcome === 'accepted';
+  }
   $('#instalar').onclick = async () => {
-    // o evento só serve pra um prompt(): depois some, e o navegador manda outro quando quiser
     if (convite) {
-      const c = convite;
-      convite = null;
-      c.prompt();
-      const r = await c.userChoice;
-      setDevice('installPrompted', true);
-      mostraInstalar();
-      if (r.outcome !== 'accepted') toast('Deixa pra próxima, meu bem.');
+      if (!(await pedeInstalar())) toast('Deixa pra próxima, meu bem.');
       return;
     }
+    ensinaInstalar();
+  };
+  /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 (HTML: já vem escapado) */
+  function ensinaInstalar(porque = '') {
     // quadrinhos: cada passo com o desenho do que vai aparecer no Safari e o botão a tocar
     // pintado, e uma seta pulando em cima do lugar de verdade. O Safari 26 guarda o
     // Compartilhar no •••, no canto de baixo; o antigo deixa ele no meio da barra de baixo,
@@ -3478,21 +3506,17 @@
             `<div class="barra"><span class="toca">${SHARE_SVG}</span></div>`,
             `toque no <b>${SHARE_SVG}</b> lá ${onde === 'cima' ? 'em cima' : 'embaixo'}.`,
           ) + tela(2);
-    overlay(`<h2>Instalar</h2>${passos}
+    overlay(`<h2>Instalar</h2>${porque ? `<p class="porque">${porque}</p>` : ''}${passos}
       <button id="instOk" class="sec" style="margin-top:10px">entendi</button>
       <svg class="seta ${onde}" width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 8C30 90 70 150 122 176"/><path d="M96 178H124L116 152"/></svg>`);
     $('#overlay').classList.add('ensina', onde);
     $('#instOk').onclick = closeOverlay;
-  };
+  }
   mostraInstalar();
   function convidaInstalar() {
     if (!INSTALAR || !convite || device().installPrompted || jaInstalado()) return;
     if (visitas < 2 || !state || !state.expenses.length) return;
-    setDevice('installPrompted', true); // aceite ou recuse, o ✎ não pergunta de novo
-    const c = convite;
-    convite = null;
-    mostraInstalar();
-    c.prompt();
+    pedeInstalar().catch(() => {});
   }
   function festa(x, y) {
     if (semMovimento()) return;

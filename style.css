@@ -198,7 +198,8 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 /* instalar no iPhone: quadrinhos do Safari, com o que tocar pintado de âmbar, e a seta
    pulando em cima do botão de verdade, que fica fora da página */
 .passo{display:flex;gap:12px;align-items:center;margin:10px 0}
-.passo p{margin:0;text-transform:none;font-size:18px;line-height:1.25}
+.passo p,#overlay .porque{margin:0;text-transform:none;font-size:18px;line-height:1.25}
+#overlay .porque{margin:4px 0 8px}
 .passo .tela{flex:none;width:118px;box-sizing:border-box;border:2px solid var(--ink);border-radius:10px;background:#f2f2f7;padding:6px;font:12px -apple-system,Helvetica,sans-serif;color:#111;display:grid;gap:3px}
 .passo .tela span{background:#fff;border-radius:6px;padding:3px 6px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .passo .tela .barra{display:flex;gap:4px;justify-content:center}

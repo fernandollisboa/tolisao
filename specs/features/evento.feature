@@ -246,7 +246,7 @@ Funcionalidade: Entrar no evento
     Então o cartão mostra:
       """
       SUMIU!
-      esse evento não tá mais aqui. se você tem cópia, dá pra trazer de volta.
+      esse evento não tá mais aqui, mas teu celular guardou uma cópia.
       TRAZER DE VOLTA
       VOLTAR
       """

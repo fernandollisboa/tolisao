@@ -249,6 +249,14 @@ Funcionalidade: Entrar no evento
     Então o site pergunta quem é você
     E o evento no banco tem Fernando e Lia
 
+  Cenário: o ✕ da lista diz quem ele tira
+    Quem ouve a tela no leitor escuta "tirar Lia", e não "multiplicação x".
+    Dado o evento "churras" com Fernando e Lia
+    Quando eu abro o evento como Fernando
+    E eu toco em quem é você
+    E eu escolho outra pessoa
+    Então o leitor de tela lê "tirar Lia" no ✕ da Lia
+
   Cenário: outra pessoa no quem é você abre a lista de gente, sem trocar quem eu sou
     Quem apertou Pronto cedo demais põe o resto da turma depois, de uma vez.
     Dado o evento "churras" com Fernando, Júlia e Lia

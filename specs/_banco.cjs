@@ -18,15 +18,16 @@ class Banco {
       const [, sala, pessoa, filho] = partes; if (!sala || !pessoa) return nega();
       // a rede engasgou: o banco não responde a chave (como um 5xx do Firebase no bar)
       if (this.pixFora && m === 'GET') { this.pixFalhas = (this.pixFalhas || 0) + 1; return json(503, { error: 'fora do ar' }); }
+      if (this.pixTravado && m === 'PUT') return json(503, { error: 'fora do ar' });
       const cur = this.pega(['pix', sala, pessoa]);
       if (m === 'GET') return filho === 'key' ? json(200, cur ? cur.key : null) : nega();
       if (m !== 'PUT' || filho) return nega();
       const novo = JSON.parse(texto || 'null');
       if (cur && cur.key !== '' && cur.tok !== novo?.tok) return nega();
-      // o .validate do pix/$room/$person: sala é hash, pessoa é id, só {key, tok} e cada um no formato
+      // o .validate do pix/$room/$person: sala é hash, pessoa é id, só {key, tok}, key até 80 e tok texto
       const pixOk = /^[0-9a-f]{64}$/.test(sala) && /^[a-z0-9]{1,32}$/.test(pessoa) && novo && typeof novo === 'object'
         && Object.keys(novo).every(k => k === 'key' || k === 'tok') && typeof novo.key === 'string' && novo.key.length <= 80
-        && typeof novo.tok === 'string' && /^[a-z0-9]{1,32}$/.test(novo.tok);
+        && typeof novo.tok === 'string';
       if (!pixOk) return nega();
       if (!this.congelado) (this.arvore.pix[sala] ||= {})[pessoa] = novo;
       return json(200, novo);

@@ -71,7 +71,17 @@ When('eu volto', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
 Then('o cartão do código volta com {string} escrito', async ({ mundo }, codigo) => { await expect(mundo.p.locator('#gateCode')).toHaveValue(codigo); });
 Then('aparece o recado {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#gateErr')).toHaveText(txt); });
 When('eu toco fora do cartão', async ({ mundo }) => { await mundo.p.mouse.click(5, 5); await mundo.p.waitForTimeout(200); });
-When('eu crio o evento', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#app:not(.loading)'); });
+// um nome novo no campo já é o evento: nada de "criar?" no meio
+When('eu crio o evento {string}', async ({ mundo }, nome) => {
+  await mundo.p.fill('#gateCode', nome); await mundo.p.click('#gateForm button'); await mundo.p.waitForSelector('#app:not(.loading)');
+});
+// os dois toques chegam antes do banco responder o primeiro
+When('eu toco duas vezes no botão com o nome {string}', async ({ mundo }, nome) => {
+  await mundo.p.fill('#gateCode', nome); await mundo.p.click('#gateForm button', { clickCount: 2 }); await mundo.p.waitForSelector('#app:not(.loading)');
+});
+Then('o banco tem {int} evento(s)', async ({ mundo }, n) => {
+  await expect.poll(() => Object.keys(mundo.banco.arvore.rooms || {}).length).toBe(n);
+});
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
 Then('o endereço é {string} com um final sorteado', async ({ mundo }, ini) => {
   const esc = ini.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -122,9 +132,8 @@ When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
 When('eu tento pôr {word} na lista de novo', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); });
 When('eu tiro o/a {word} da lista', async ({ mundo }, nome) => {
   // o nome inteiro: "Lia" também está dentro de "Júlia"
-  const linha = mundo.p.locator('#overlayBox .row').filter({ has: mundo.p.locator('[data-renome]', { hasText: new RegExp(`^${nome}$`) }) });
-  await linha.locator('[data-drop]').click();
-  await expect(linha).toHaveCount(0);
+  await mundo.p.getByRole('button', { name: `tirar ${nome}`, exact: true }).click();
+  await expect(mundo.p.locator('#overlayBox [data-renome]', { hasText: new RegExp(`^${nome}$`) })).toHaveCount(0);
 });
 When('eu escrevo {word} e aperto pronto sem dar enter', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.click('#setupGo'); });
 // pega a pessoa pelo id, não pelo texto (que muda), e espera a troca assentar: senão, em máquina lenta,
@@ -137,8 +146,12 @@ When('eu troco o nome da/do {word} pra {word} na lista', async ({ mundo }, de, p
 });
 When('eu escolho outra pessoa', async ({ mundo }) => { await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName'); });
 Then('só a/o {word} tem ✕ na lista', async ({ mundo }, nome) => {
-  await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toHaveCount(1);
-  await expect(mundo.p.locator('#overlayBox .row.pessoa:has([data-drop])')).toContainText(nome);
+  await expect(mundo.p.locator('#overlayBox').getByRole('button', { name: /^tirar / })).toHaveCount(1);
+  await expect(mundo.p.getByRole('button', { name: `tirar ${nome}`, exact: true })).toHaveCount(1);
+});
+Then('o leitor de tela lê {string} no ✕ da/do {word}', async ({ mundo }, txt, nome) => {
+  const linha = mundo.p.locator('#overlayBox .row.pessoa').filter({ has: mundo.p.locator('[data-renome]', { hasText: new RegExp(`^${nome}$`) }) });
+  await expect(linha.getByRole('button')).toHaveAccessibleName(txt);
 });
 Then('ninguém tem a mesma cor', async ({ mundo }) => {
   const cores = await mundo.p.$$eval('#overlayBox .row.pessoa .bola', bs => bs.map(b => getComputedStyle(b).backgroundColor));
@@ -151,8 +164,9 @@ When('eu abro o Quem vai?', async ({ mundo }) => {
   await mundo.p.click('#whoBtn'); await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName');
 });
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
-Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });
-When('eu escolho {word}', async ({ mundo }, quem) => { await mundo.p.selectOption('#whoSel', { label: quem }); });
+Then('o site pergunta quem é você entre {gente}', async ({ mundo }, gente) => {
+  await expect(mundo.p.locator('#overlayBox [data-sou]')).toHaveText(gente);
+});
 Then('o evento no banco tem {gente}', async ({ mundo }, gente) => {
   const sala = await salaAberta(mundo);
   await expect.poll(() => (mundo.banco.pega(['rooms', sala, 'people']) || []).map(p => p.name)).toEqual(gente);
@@ -275,7 +289,8 @@ Then('a nota pergunta quem eu sou entre {gente}', async ({ mundo }, gente) => {
 });
 Then('a nota não pergunta quem eu sou', async ({ mundo }) => { await expect(mundo.p.locator('#chegada')).toBeHidden(); });
 When('eu toco no meu nome, {word}, no topo da nota', async ({ mundo }, quem) => {
-  await mundo.p.click(`#chegada [data-chegou="${mundo.pessoa(quem).id}"]`);
+  // pelo nome: o evento pode ter sido criado pela tela, sem passar pelo mundo
+  await mundo.p.locator('#chegada [data-chegou]', { hasText: new RegExp(`^${quem}$`) }).click();
 });
 When('eu digo que não tô na turma', async ({ mundo }) => { await mundo.p.click('#chegouFora'); await mundo.p.waitForSelector('#setupName'); });
 

@@ -69,6 +69,9 @@ Then('sem rede, o arquivo abre com a versão nova', async ({ mundo }) => {
 Given('que o service worker já tem cópia de um arquivo', async ({ mundo }) => {
   mundo.nota.guardado = new Map([['http://localhost/app.js?v=1', { versao: 'cópia' }]]);
 });
+Given('que o service worker só tem cópia de outra versão de um arquivo', async ({ mundo }) => {
+  mundo.nota.guardado = new Map([['http://localhost/app.js?v=0', { versao: 'cópia' }]]);
+});
 When('ele busca esse arquivo e a rede demora a responder', async ({ mundo }) => {
   mundo.nota.sw = await busca({ guardado: mundo.nota.guardado, lenta: true });
 });

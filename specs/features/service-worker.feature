@@ -35,3 +35,9 @@ Funcionalidade: O service worker guarda cópia sem estragar a resposta
   Cenário: sem cópia guardada, a rede lenta ainda abre o arquivo
     Quando o service worker busca um arquivo sem cópia e a rede demora a responder
     Então o arquivo abre com o que veio da rede
+
+  Cenário: com sinal ruim, a cópia de outra versão não serve
+    A página nova pede o app.js da versão dela: o de outro deploy com o style.css deste quebra a tela.
+    Dado que o service worker só tem cópia de outra versão de um arquivo
+    Quando ele busca esse arquivo e a rede demora a responder
+    Então o arquivo abre com o que veio da rede

@@ -28,7 +28,7 @@ Then('o saldo do {string} é {word}', async ({ mundo }, nome, cor) => {
   await expect(ev(mundo, nome).locator('.v')).toHaveCSS('color', { verde: 'rgb(21, 112, 58)', vermelho: 'rgb(155, 28, 28)' }[cor]);
 });
 Then('o código do evento não pega o foco sozinho', async ({ mundo }) => { await expect(mundo.p.locator('#gateCode')).not.toBeFocused(); });
-When('eu toco no ✕ do {string}', async ({ mundo }, nome) => { await ev(mundo, nome).locator('[data-esquece]').click(); await mundo.p.waitForSelector('#okBtn'); });
+When('eu toco no ✕ do {string}', async ({ mundo }, nome) => { await mundo.p.getByRole('button', { name: `esquecer o evento ${nome}`, exact: true }).click(); await mundo.p.waitForSelector('#okBtn'); });
 Then('o site pergunta {string} com o botão vermelho', async ({ mundo }, txt) => {
   await expect(mundo.p.locator('#overlayBox h2')).toHaveText(txt);
   await mundo.p.mouse.move(0, 0);   // o botão nasce debaixo do mouse que tocou o ✕, e o hover escurece ele

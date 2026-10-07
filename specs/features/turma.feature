@@ -15,8 +15,7 @@ Funcionalidade: A mesma turma em outro evento
     Exemplo: as mesmas pessoas, menos quem não vai, e nenhum gasto
       Dado que neste aparelho eu sou Lia no "churras"
       E que eu abro o site sem evento
-      Quando eu digito o código "praia"
-      E eu crio o evento
+      Quando eu crio o evento "praia"
       E eu trago a turma do "churras" sem o Fernando
       E eu continuo
       Então o cabeçalho diz "sou Lia"
@@ -30,8 +29,7 @@ Funcionalidade: A mesma turma em outro evento
       E a Júlia tem a chave pix "julia@exemplo.com"
       E que eu já usei a chave pix "lia@exemplo.com" em outro evento
       E que eu abro o site sem evento
-      Quando eu digito o código "praia"
-      E eu crio o evento
+      Quando eu crio o evento "praia"
       E eu trago a turma do "churras"
       Então o evento novo guarda a chave pix da Lia "lia@exemplo.com"
       E o segredo da chave da Lia no evento novo é só deste evento
@@ -60,7 +58,7 @@ Funcionalidade: A mesma turma em outro evento
       Quando eu abro o evento "churras"
       Então o cabeçalho pergunta "você é Lia?"
       Quando eu respondo que não
-      Então o site pergunta quem é você
+      Então o site pergunta quem é você entre Fernando, Júlia e Lia
 
     Exemplo: sou duas pessoas da turma, então nada de palpite
       Dado que neste aparelho eu sou Lia no "churras"

@@ -54,6 +54,8 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
 // ---------- pix: o banco aceita o que o app no ar grava, e só isso ----------
 // as regras sobem junto com o site (regras.yml): aparelho com tok velho (4 × uid() do Math.random,
 // 8 letras ou menos cada) ou que apaga a chave gravando key '' não pode levar 401.
+// o tok fica sem formato nem tamanho: os do tempo do racha:<sala>:pixtok:<pessoa> migraram como estavam,
+// e o histórico não diz como eles eram. Barrar um travaria a chave de quem tem só ele
 // Roda as expressões do database.rules.json como o Firebase: .write no nó, .validate em cada nó escrito
 {
   const no = banco.rules.pix?.$room?.$person || {}, erros = [];
@@ -87,8 +89,9 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     ['e-mail de 81', false, sala, 'k3j9x0q2', null, { key: 'a'.repeat(71) + '@exemplo.c', tok }],
     ['sala fora do hash', false, 'bailedamada', 'k3j9x0q2', null, { key: 'x@y.z', tok }],
     ['pessoa fora do id', false, sala, 'Fulano', null, { key: 'x@y.z', tok }],
-    ['tok fora do formato', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: 'tok-de-outro-aparelho' }],
-    ['tok de 33', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: tok + 'a' }],
+    ['tok migrado fora do formato', true, sala, 'k3j9x0q2', { key: 'x@y.z', tok: 'tok-de-outro-aparelho' }, { key: '', tok: 'tok-de-outro-aparelho' }],
+    ['tok migrado comprido', true, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: tok.repeat(3) }],
+    ['tok que não é texto', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok: 123 }],
     ['campo a mais', false, sala, 'k3j9x0q2', null, { key: 'x@y.z', tok, lixo: 'x'.repeat(1000) }],
     ['sem tok', false, sala, 'k3j9x0q2', null, { key: 'x@y.z' }],
   ];
@@ -97,9 +100,6 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     try { deu = grava(s, p, antes, novo); } catch (e) { deu = `erro: ${e.message}`; }
     if (deu !== ok) erros.push(`${nome}: esperava ${ok ? 'aceitar' : 'recusar'}, ${deu === true ? 'aceitou' : deu === false ? 'recusou' : deu}`);
   }
-  // o tok que o app sorteia hoje cabe no que o banco aceita
-  const n = +(app.match(/tok = sorteia\((\d+)\)/)?.[1] ?? NaN), cabe = +(no.tok?.['.validate']?.match(/\{1,(\d+)\}/)?.[1] ?? NaN);
-  if (!(n <= cabe)) erros.push(`o app sorteia tok de ${n}, o banco aceita até ${cabe}`);
   regra('o pix aceita o que o app grava e recusa o resto', erros.join('; '));
 }
 

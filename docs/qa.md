@@ -40,6 +40,12 @@ Peça um passo por vez, na ordem, com as palavras de quem usa, e não com os nom
 
 Abra uma issue com o rótulo `enhancement`, título `feedback - <quem> (QA)`, com o aparelho, o passo em que travou, onde tocou e a frase que disse. Um problema por item, numerado. Ideias de solução são bem-vindas, mas separadas do que aconteceu.
 
+## Conferências à mão
+
+Coisas que o playwright não alcança e que vale repetir quando mexer no `sw.js` ou nas fontes.
+
+- **Slow 3G, abrir com cache** (#214). No computador, abra o site uma vez com rede normal (o service worker instala e guarda a cópia). No DevTools, aba Network, escolha "Slow 3G" e recarregue: o app tem que abrir em uns 3 s com a cópia guardada, sem tela branca. Recarregue de novo com a rede normal: a versão nova aparece. Numa aba anônima (sem cópia), com "Slow 3G", o app espera a rede e abre, só que devagar. O texto aparece desde o começo, mesmo antes da VT323 chegar.
+
 ## O que as sessões já acharam
 
 ### #35 · iPhone de tela grande

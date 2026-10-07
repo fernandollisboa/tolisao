@@ -64,9 +64,11 @@ class Mundo {
     return p;
   }
 
+  // quem ainda não é ninguém toca no nome; quem já é alguém troca no menu
   async souEu(quem) {
-    const p = this.p; await p.click('#whoBtn'); await p.waitForSelector('#whoSel');
-    await p.selectOption('#whoSel', { label: quem });
+    const p = this.p; await p.click('#whoBtn'); await p.waitForSelector('#whoSel, #overlayBox [data-sou]');
+    if (await p.locator('#whoSel').count()) await p.selectOption('#whoSel', { label: quem });
+    else await p.locator('#overlayBox [data-sou]', { hasText: new RegExp(`^${quem}$`) }).click();
   }
 
   async fechaCartao() { await this.p.click('#overlay', { position: { x: 5, y: 5 } }); await this.p.waitForSelector('#overlay', { state: 'hidden' }); }

@@ -1,6 +1,6 @@
 // rede primeiro, cache como reserva: atualizações chegam na hora e o app abre offline com a última versão vista.
 // a rede tem prazo: com sinal ruim, passou do PRAZO_MS e tem cópia, abre com ela e a rede atualiza o cache pra próxima
-const CACHE = 'tolisa-v6';
+const CACHE = 'tolisa-v7';
 const PRAZO_MS = 3000;
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
@@ -32,7 +32,9 @@ self.addEventListener('fetch', e => {
     let foi = false;
     const vai = r => { if (!foi) { foi = true; clearTimeout(prazo); ok(r); } };
     // estourou o prazo: responde com a cópia se tiver; sem cópia, segue esperando a rede como antes
-    const prazo = setTimeout(() => reserva().then(r => r && vai(r), () => {}), PRAZO_MS);
+    // o arquivo com ?v= só troca pela cópia da mesma versão: o app.js de um deploy com o style.css de outro quebra a tela
+    const daVersao = () => (!nav && url.searchParams.has('v') ? caches.match(e.request) : reserva());
+    const prazo = setTimeout(() => daVersao().then(r => r && vai(r), () => {}), PRAZO_MS);
     rede.then(vai, () => reserva().then(vai, () => vai(undefined)));
   }));
 });

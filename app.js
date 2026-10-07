@@ -85,9 +85,11 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId }
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId,
+  //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
-  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista)
+  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista;
+  //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
@@ -102,8 +104,11 @@
       return {};
     }
   };
+  /** "apagar meus dados" começou: nada mais grava, senão um sync no meio devolvia a gaveta que acabou de sair */
+  let apagando = false;
   /** abre a gaveta, deixa `f` mexer nela e grava de volta @param {string} k @param {(o: Record<string, any>) => void} f */
   const mexe = (k, f) => {
+    if (apagando) return false;
     const o = gaveta(k);
     f(o);
     return ls.set(k, JSON.stringify(o));
@@ -523,6 +528,31 @@
     ids.forEach((id, i) => (o[id] = base + (i < rem ? 1 : 0)));
     return o;
   }
+  /** a divisão igual de um gasto novo: o centavo que sobra começa numa pessoa que anda com a posição
+   *  do gasto na lista, e não sempre na primeira da turma. Fica gravado no `shares`: o `shares()` lido
+   *  na hora continua igual, senão os saldos dos eventos antigos mudavam
+   *  @param {number} cents @param {string[]} ids @param {number} pos */
+  function sharesGirando(cents, ids, pos) {
+    const ini = pos % ids.length;
+    const s = shares(
+      cents,
+      ids.map((_, i) => ids[(ini + i) % ids.length]),
+    );
+    /** @type {Record<string, number>} */ const o = {};
+    for (const x of ids) o[x] = s[x];
+    return o;
+  }
+  /** dividido igual: sem `shares`, ou com o que o `sharesGirando()` grava quando sobra centavo
+   *  @param {Expense} e */
+  const ehIgual = (e) => {
+    if (!e.shares) return true;
+    const c = centavos(e),
+      n = e.among.length,
+      base = Math.floor(c / n);
+    if (!n || c % n === 0 || Object.keys(e.shares).length !== n) return false;
+    const v = e.among.map((id) => e.shares[id]);
+    return v.every((x) => x === base || x === base + 1) && v.reduce((a, b) => a + b, 0) === c;
+  };
   const shareOf = (e, ids) => {
     if (e.shares) {
       const o = {};
@@ -533,7 +563,7 @@
   };
   const howText = (e, name = nameOf, html = false) => {
     const loan = !e.among.includes(e.payer);
-    if (e.shares) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
+    if (!ehIgual(e)) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
     if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length === 1 ? '' : 'm'} tudo`;
     if (!html) return `÷${e.among.length}`;
     return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`;
@@ -841,9 +871,12 @@
     NATAL_JIT = 90,
     FECHO_JIT = 45;
   const PISCA_LEAD = 420; // o quanto a fila reserva além da última piscada começar
-  const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
+  const pixUrl = (pid, child = '', sala = groupId) => `${DB}/pix/${sala}/${pid}${child}.json`;
+  /** grava a chave no banco com o tok deste aparelho (chave vazia apaga) @returns {Promise<Response>} */
+  const gravaPix = (sala, pid, key, tok) =>
+    noBanco(pixUrl(pid, '', sala), { method: 'PUT', body: JSON.stringify({ key, tok }) });
   async function loadPixKeys() {
-    const out = {};
+    /** @type {Record<string, string>} */ const out = {};
     await Promise.all(
       state.people.map(async (p) => {
         // rede engasgou ou o banco falhou: fica a chave que já tinha. Só some quando o banco diz que não tem
@@ -923,7 +956,7 @@
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     }
     try {
-      const r = await noBanco(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
+      const r = await gravaPix(groupId, pid, key, tok);
       if (r.status === 401 || r.status === 403)
         return toast('Essa chave foi cadastrada em outro aparelho: só ele troca');
       if (!r.ok) return toast('A chave não salvou, tenta de novo');
@@ -1089,7 +1122,12 @@
     }
     return tok;
   };
-  const postaApi = (rota, corpo) => fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo) });
+  /** a API com o mesmo prazo do banco: sem ele o "Apagando…" ficava preso na rede engasgada */
+  const postaApi = (rota, corpo) => {
+    const c = new AbortController();
+    setTimeout(() => c.abort(new Error('a rede não respondeu')), REDE_MS);
+    return fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo), signal: c.signal });
+  };
   let mexendoAviso = false;
   /** o 🔔 de Minha conta: pede permissão e inscreve (ligado, o botão some) */
   async function tocaAviso() {
@@ -1287,6 +1325,11 @@
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
   }
+  /** um botão por pessoa, numa cápsula com contorno e pontinho na cor dela, com o id em data-<attr>
+   *  @param {Person[]} gente @param {string} attr */
+  function linkpras(gente, attr) {
+    return `<div class="linkpras">${gente.map((p) => `<button class="linkpra" data-${attr}="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>`;
+  }
   /** quem chega pelo link do grupo ainda não é ninguém: no topo da nota, um nome por pessoa,
    *  na cor dela, e o "não tô aqui" pra quem falta na lista. É convite, não cartão: ninguém é
    *  interrompido na chegada, e some quando a pessoa diz quem é */
@@ -1295,7 +1338,7 @@
       quer = !hasMe && state.people.length > 0;
     const html = quer
       ? `<h2>*** Quem é você? ***</h2>
-      <div class="linkpras">${state.people.map((p) => `<button class="linkpra" data-chegou="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
+      ${linkpras(state.people, 'chegou')}
       <div class="c"><a class="link" id="chegouFora">não tô aqui</a></div><div class="hr"></div>`
       : '';
     el.classList.toggle('hidden', !quer);
@@ -1484,8 +1527,16 @@
         ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
+      (bal > 0 ? botaoTrocaZap(recebe) : '') +
       (bal > 0 && temAviso() ? botaoAviso() : '');
   }
+  /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */
+  const botaoTrocaZap = (recebe) => {
+    const gente = recebe.map((t) => t.from).filter((id) => zapDe(id) !== null);
+    return gente.length
+      ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}">${esc(nameOf(id))}</a>`).join(', ')}</div>`
+      : '';
+  };
   /** o 🔔 no pé de Minha conta, só pra quem recebe e ainda não ligou: ligado, some (quem quiser
    *  desligar desliga nas notificações do próprio navegador) */
   const botaoAviso = () =>
@@ -1608,7 +1659,7 @@
               : '';
           const meu = e.byId || e.by ? anotouQuem(e, me) : !!me && e.payer === me;
           const botoes = meu
-            ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
+            ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir" aria-label="excluir o gasto ${esc(e.desc)}">✕</button>`
             : '';
           return (
             head +
@@ -1729,12 +1780,24 @@
       return;
     }
     $('#expenseForm button.big').disabled = false;
+    // com o valor digitado, a frase já diz quanto fica pra cada um: quem digitou 90 pra uma
+    // pizza de R$ 90 vê o "R$ 0,30 cada" antes de anotar, e não depois
+    const total = totalDigitado();
     if (!among.length) h.textContent = 'Marque quem divide esse gasto.';
     else if (!among.includes(payer))
-      h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length === 1 ? '' : 'm'} o valor todo a ${nameOf(payer)}.`;
+      h.textContent = `Empréstimo: ${among.map(nameOf).join(', ')} deve${among.length === 1 ? '' : 'm'} ${total > 0 ? quinhao(total, among) : 'o valor todo'} a ${nameOf(payer)}.`;
     // a frase fica em cima das abas e só conta como está dividido: quem troca são as abas
     else
-      h.innerHTML = `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length === 1 ? '' : 's'}</u>.`;
+      h.innerHTML =
+        `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length === 1 ? '' : 's'}</u>` +
+        (total > 0 ? `, ${quinhao(total, among)}.` : '.');
+  }
+  /** quanto fica pra cada um: "R$ 30,00 cada", ou "R$ 33,34 e R$ 33,33" quando sobra centavo
+   *  @param {number} total em centavos @param {string[]} ids */
+  function quinhao(total, ids) {
+    const [maior, menor] = [...new Set(Object.values(shares(total, ids)))];
+    if (menor !== undefined) return `${comSifrao(maior)} e ${comSifrao(menor)}`;
+    return ids.length === 1 ? comSifrao(maior) : `${comSifrao(maior)} cada`;
   }
   /** trocar de aba sem tranco: a área de baixo muda de altura devagar (o papel, centrado,
    *  cresce pros dois lados junto) e o que entra aparece deslizando de leve */
@@ -1789,7 +1852,8 @@
     }
     $('#expenseForm button.big').disabled = !(total > 0 && resta === 0);
   }
-  $('#amount').addEventListener('input', atualizaFalta);
+  // o valor muda a frase de quanto fica pra cada um (e, nas partes diferentes, o quanto falta)
+  $('#amount').addEventListener('input', updateHint);
   document.addEventListener('input', (ev) => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
     if (tgt.matches('#sharesBox input[data-share]')) atualizaFalta();
@@ -2044,7 +2108,7 @@
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
-      }`,
+      }${temDados() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
       !aberto,
     );
     if (aberto) {
@@ -2067,24 +2131,36 @@
     ligaDigital();
     $('#gateForm').onsubmit = async (ev) => {
       ev.preventDefault();
-      // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto (inclusive o "Criar …?")
+      const btn = ev.target.querySelector('button');
+      // dois toques no botão criariam dois eventos: ele fica apagado até a página mudar
+      if (btn.disabled) return;
+      // com um evento aberto, o outro entra pelo endereço: o começo do app faz o resto
       if (aberto) {
-        const { code, quem } = codigoDoCampo($('#gateCode').value);
+        const { code, quem, link, meu } = codigoDoCampo($('#gateCode').value);
         if (!code) return;
         if (code === roomName) return closeOverlay();
-        location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
+        btn.disabled = true;
+        // nome digitado que não existe cria direto, pelo ?novo=; link que não abre nada vai pelo ?evento=, que pergunta
+        let novo = false;
+        if (!link && !meu && !pareceLink(code) && DB)
+          try {
+            await apiGet(await sha(code));
+          } catch (e) {
+            novo = !!e.notFound;
+          }
+        location.href =
+          location.pathname + (novo ? '?novo=' : '?evento=') + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
         return;
       }
-      const btn = ev.target.querySelector('button');
       btn.disabled = true;
       btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
       const code = $('#gateCode').value;
       try {
         const c = codigoDoCampo(code);
         quemDoLink = c.quem;
-        await enterRoom(c.code);
+        await enterRoom(c.code, !c.link && !c.meu);
       } catch (e) {
-        // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
+        // o "Não achei …" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
           showGate();
           $('#gateCode').value = code;
@@ -2106,7 +2182,7 @@
     const list = state.people
       .map(
         (p) =>
-          `<div class="row pessoa" style="--cor:${colorOf(p.id)}">${bolinha(p)}<span class="l" contenteditable="plaintext-only" spellcheck="false" data-renome="${p.id}">${esc(p.name)}</span><span class="v">${temConta(p.id) ? '' : `<button class="ico" data-drop="${p.id}" title="tirar">✕</button>`}</span></div>`,
+          `<div class="row pessoa" style="--cor:${colorOf(p.id)}">${bolinha(p)}<span class="l" contenteditable="plaintext-only" spellcheck="false" data-renome="${p.id}">${esc(p.name)}</span><span class="v">${temConta(p.id) ? '' : `<button class="ico" data-drop="${p.id}" title="tirar" aria-label="tirar ${esc(p.name)}">✕</button>`}</span></div>`,
       )
       .join('');
     const n = state.people.length;
@@ -2201,13 +2277,13 @@
       };
     }
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela. Quem veio com a turma já é alguém
-    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era
+    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era. Com duas ou mais
+    // e ninguém escolhido, também só fecha: o "Quem é você?" do topo da nota já pergunta, com os nomes
     $('#setupGo').onclick = () => {
       if (!poe(true) || !state.people.length) return;
-      if (temMe()) return void (closeOverlay(), render());
-      if (state.people.length === 1) return souEu(state.people[0].id);
+      if (!temMe() && state.people.length === 1) return souEu(state.people[0].id);
       closeOverlay();
-      showWho();
+      render();
     };
     // sair (ou tocar fora) só fecha: a nota fica esperando o toque no "quem é você?"
     $('#setupLeave').onclick = closeOverlay;
@@ -2278,21 +2354,28 @@
     updateHint();
     ficha.rejoga();
   }
+  /** quem ainda não é ninguém escolhe com um toque no nome, os mesmos botões do topo da nota; quem já
+   *  é alguém vê o próprio nome no menu, que só abre se tocar pra trocar */
   function showWho() {
-    // quem já é alguém vê o próprio nome escolhido; o menu só abre se tocar pra trocar
+    if (!temMe()) {
+      overlay(`<h2>Quem é você?</h2>${linkpras(state.people, 'sou')}
+      <div class="c voltar"><a class="link" id="whoNova">+ outra pessoa</a></div>`);
+      for (const b of inputs('#overlayBox [data-sou]')) b.onclick = () => souEu(b.dataset.sou);
+      // "+ outra pessoa" leva pro Quem vai?, onde dá pra pôr uma ou várias de uma vez
+      $('#whoNova').onclick = showSetup;
+      return;
+    }
     const opts = state.people
       .map((p) => `<option value="${p.id}"${p.id === me ? ' selected' : ''}>${esc(p.name)}</option>`)
       .join('');
     overlay(`<h2>Quem é você?</h2>
-      <form id="whoForm"><select id="whoSel">${me ? '' : '<option value="">— escolha seu nome —</option>'}${opts}<option value="__new">+ outra pessoa</option></select></form>${whoPix()}`);
-    /** escolher já é confirmar: quem é você não tem botão de continuar */
-    const entra = souEu;
-    // "+ outra pessoa" leva pro Quem vai?, onde dá pra pôr uma ou várias de uma vez,
-    // sem deixar de ser quem você é (quem ainda não é ninguém volta aqui pra escolher)
+      <form id="whoForm"><select id="whoSel">${opts}<option value="__new">+ outra pessoa</option></select></form>${whoPix()}`);
+    // escolher já é confirmar: quem é você não tem botão de continuar. "+ outra pessoa" leva pro
+    // Quem vai?, sem deixar de ser quem você é
     $('#whoSel').onchange = () => {
       const v = $('#whoSel').value;
       if (v === '__new') return showSetup();
-      if (v) entra(v);
+      if (v) souEu(v);
     };
     $('#whoForm').onsubmit = (ev) => ev.preventDefault();
     if ($('#pixTroca')) $('#pixTroca').onclick = savePix;
@@ -2301,8 +2384,6 @@
       $('#pixApaga').onclick = async () => {
         if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
       };
-    // no iPhone o focus já abre o menu: só pra quem ainda não escolheu
-    if (!me) $('#whoSel').focus();
   }
   // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
   // o cartão nunca fica mudo sobre o pix: sem chave, cadastra; com chave de outro aparelho, diz por que não troca
@@ -2348,7 +2429,8 @@
   /** o que a pessoa pôs no campo vira código. O que ela tem no zap é o link, sozinho ou no meio da
    *  mensagem: o código sai do ?evento= (ou do ?senha= antigo) e o &quem= do mesmo link vem junto.
    *  Nome igual ao de um evento da lista é esse evento, não um novo com o mesmo nome
-   *  @returns {{ code: string, quem: string|null }} */
+   *  (`meu`: o evento pode ter sumido do banco, e aí ele pergunta antes de criar outro em silêncio)
+   *  @returns {{ code: string, quem: string|null, link: boolean, meu?: boolean }} */
   function codigoDoCampo(texto) {
     const t = texto.trim(),
       // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
@@ -2360,14 +2442,19 @@
       try {
         code = decodeURIComponent(code.replace(/\+/g, ' '));
       } catch {}
-      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null };
+      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null, link: true };
     }
     const code = t.toLowerCase(),
       evs = meusEventos(),
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
-    return { code: meu ? meu.code : code, quem: null };
+    return { code: meu ? meu.code : code, quem: null, link: false, meu: !!meu };
   }
-  async function enterRoom(code) {
+  /** código com cara de final sorteado (6 letras e números, com algum número): veio de um link */
+  function pareceLink(code) {
+    return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+  }
+  /** `digitou` é o nome escrito no campo, que cria sem perguntar */
+  async function enterRoom(code, digitou = false) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
@@ -2379,11 +2466,11 @@
     }
     let criou = false;
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    if (!existing && !seed) {
-      // código com cara de final sorteado (6 letras e números, com algum número) é link velho ou cortado,
-      // não nome novo: "esse nome tá livre" ali faria a pessoa criar um evento fantasma
-      const veioDeLink = /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
-      const [titulo, desc, ok] = veioDeLink
+    // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link
+    if (!existing && !seed && (pareceLink(code) || !digitou)) {
+      // código com cara de final sorteado é link velho ou cortado, não nome novo:
+      // "esse nome tá livre" ali faria a pessoa criar um evento fantasma
+      const [titulo, desc, ok] = pareceLink(code)
         ? [
             `Não achei "${esc(code)}"`,
             'esse link não abre evento nenhum. confere com quem te mandou.',
@@ -2499,7 +2586,10 @@
     $('#quitOk').onclick = fecha;
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
-      abreZap(`✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`);
+      abreZap(
+        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`,
+        zapDe(to) || '',
+      );
       fecha();
     };
   }
@@ -2544,6 +2634,97 @@
     mexe(roomKey(id), (o) => {
       o.hidden = true;
     });
+  /** as gavetas dos eventos, inclusive as esquecidas (o ✕ só esconde) */
+  const gavetasDeEvento = () => {
+    try {
+      return Object.keys(localStorage).filter((k) => k.startsWith(DEVICE + ':'));
+    } catch {
+      return [];
+    }
+  };
+  /** tem o que apagar: algum evento, ou o nome e a chave pix lembrados pro próximo */
+  const temDados = () => gavetasDeEvento().length > 0 || !!device().myName || !!device().pixKey;
+  /** celular emprestado, vendido ou de casal: tira a minha chave pix de cada evento (com o tok, que só este
+   * aparelho tem, e por isso antes de tudo), desliga os avisos e apaga as gavetas. Sem rede, as chaves ficam */
+  async function apagaTudo() {
+    const semRede = navigator.onLine === false;
+    const ok = await ask(
+      'Apagar meus dados deste aparelho?',
+      `tira a sua chave pix de cada evento e apaga daqui os eventos, o seu nome e os avisos. os eventos continuam pra turma, pelo link.${
+        semRede
+          ? '<br><br>sem internet: as chaves pix ficam nos eventos, e o segredo delas fica aqui até você apagar de novo com internet.'
+          : ''
+      }`,
+      'apagar tudo',
+      true,
+    );
+    if (!ok) return showGate();
+    overlay('<h2>Apagando…</h2>', true);
+    apagando = true;
+    clearInterval(pollTimer);
+    const gavetas = gavetasDeEvento();
+    /** @type {Promise<unknown>[]} */ const feito = [];
+    /** o tok que o banco não confirmou fica: a chave pode estar lá ainda, e sem ele ninguém tira mais
+     *  @type {Record<string, Record<string, string>>} */ const ficam = {};
+    let sub = null;
+    try {
+      const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+      sub = reg ? await reg.pushManager.getSubscription() : null;
+    } catch {}
+    for (const k of gavetas) {
+      const sala = k.slice(DEVICE.length + 1),
+        o = gaveta(k);
+      if (!/^[0-9a-f]{64}$/.test(sala)) continue;
+      // a chave vazia com o tok solta o nó: qualquer aparelho cadastra de novo
+      if (o.pixTokens && typeof o.pixTokens === 'object')
+        for (const [pid, tok] of Object.entries(o.pixTokens))
+          if (okId(pid) && typeof tok === 'string' && tok)
+            feito.push(
+              gravaPix(sala, pid, '', tok)
+                // 401/403: a chave já não é deste aparelho, o tok não serve mais pra nada
+                .then((r) => r.ok || r.status === 401 || r.status === 403)
+                .catch(() => false)
+                .then((saiu) => {
+                  if (!saiu) (ficam[k] ||= {})[pid] = tok;
+                }),
+            );
+      if (sub && okId(o.pushOn) && typeof o.pushTok === 'string')
+        feito.push(
+          postaApi('/desinscreve', { sala, pessoa: o.pushOn, endpoint: sub.endpoint, tok: o.pushTok }).catch(() => {}),
+        );
+    }
+    await Promise.all(feito);
+    if (sub) await sub.unsubscribe().catch(() => {});
+    await new Promise((fim) => {
+      try {
+        const r = indexedDB.deleteDatabase('tolisa');
+        r.onsuccess = r.onerror = r.onblocked = fim;
+      } catch {
+        fim(null);
+      }
+    });
+    if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
+    /** @type {string[]} */ const falhou = [];
+    for (const k of gavetas) {
+      if (!ficam[k]) {
+        ls.del(k);
+        continue;
+      }
+      // fica só o tok (e o código, pro aviso), esquecida: o "apagar meus dados" segue na tela pra tentar de novo
+      const code = gaveta(k).code,
+        nome = typeof code === 'string' && code && code.length <= 100 ? code : 'um evento';
+      falhou.push(nome);
+      ls.set(k, JSON.stringify({ code, hidden: true, pixTokens: ficam[k] }));
+    }
+    ls.del(DEVICE);
+    if (falhou.length)
+      await ask(
+        'Faltou a chave pix',
+        `não deu pra tirar a chave de ${falhou.map((n) => `<b>${esc(n)}</b>`).join(', ')}, tenta de novo com internet. o resto já saiu daqui.`,
+        'ok',
+      );
+    location.replace(location.pathname);
+  }
   /** dias de calendário de `at` até hoje (ontem é 1, mesmo que tenha sido há 2 horas) */
   function diasDesde(at) {
     const dia = (t) => new Date(new Date(t).toDateString()).getTime();
@@ -2636,7 +2817,7 @@
           ? `<span class="parado">${AMPULHETA}há ${dias} dias</span>`
           : `<span>${quando(e.at)}</span>`;
       return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
-        <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>
+        <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer" aria-label="esquecer o evento ${esc(e.nome)}">✕</button>` : ''}</div>
         <div class="sub"><span>${sub}</span>${data}</div></div>`;
     };
     // quite e parado há tempo desce pro fim, recolhido como os itens apagados; o evento aberto fica sempre à vista
@@ -2945,9 +3126,11 @@
       c.checked = e.among.includes(c.value);
       c.closest('.chip').classList.toggle('on', c.checked);
     }
-    splitMode = e.shares ? 'custom' : 'equal';
+    // o igual com o centavo girado também tem `shares`, mas volta na aba igual
+    const partes = !ehIgual(e);
+    splitMode = partes ? 'custom' : 'equal';
     updateHint();
-    if (e.shares) {
+    if (partes) {
       for (const i of inputs('#sharesBox input[data-share]')) i.value = reais(e.shares[i.dataset.share] || 0);
       atualizaFalta();
     }
@@ -3046,6 +3229,13 @@
       for (const id of among) exp.shares[id] = sh[id] || 0;
     }
     const velho = editando && state.expenses.find((x) => x.id === editando);
+    if (splitMode !== 'custom' && total % among.length) {
+      // editou só a descrição (ou o pagante): o centavo fica com quem já estava
+      const igual = velho && ehIgual(velho) && centavos(velho) === total && velho.among.join() === among.join();
+      if (igual) {
+        if (velho.shares) exp.shares = { ...velho.shares };
+      } else exp.shares = sharesGirando(total, among, velho ? state.expenses.indexOf(velho) : state.expenses.length);
+    }
     // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
     if (!editando) {
       // o banco tem prazo: com a rede engasgada, confere com o que já chegou e anota (o sync mescla depois)
@@ -3115,12 +3305,10 @@
   // cada botão diz o que é num data-* (ou num id), e esta lista diz o que cada um faz.
   // Um clique só no document atende a página toda, inclusive o que o render() refaz.
   const achaGasto = (id) => state.expenses.find((x) => x.id === id);
-  /** copia pro clipboard; sem permissão, mostra o texto num cartão pra copiar na mão */
-  const copia = (texto, recado, titulo) =>
-    navigator.clipboard.writeText(texto).then(
-      () => toast(recado),
-      () => showCopy(titulo, texto),
-    );
+  /** copia pro clipboard; sem permissão, mostra o texto num cartão pra copiar na mão
+   * (ou onde `naMao` mandar, quando o cartão aberto não pode sumir) */
+  const copia = (texto, recado, titulo, naMao = () => showCopy(titulo, texto)) =>
+    navigator.clipboard.writeText(texto).then(() => toast(recado), naMao);
   /** abre ou fecha os detalhes de um item (quem pagou, como dividiu, editar) */
   const abreItem = (it) => {
     const id = it.dataset.item;
@@ -3129,12 +3317,15 @@
   };
   function copiaPix(el) {
     const [to, cents] = el.dataset.pix.split('|');
-    copia(
-      pixCode(pixKeys[to], nameOf(to), +cents),
-      'Pix copia e cola copiado. Cola no app do banco.',
-      'Pix copia e cola',
-    );
+    const texto = pixCode(pixKeys[to], nameOf(to), +cents);
+    // no Quitar? o cartão fica aberto: sem clipboard, o código aparece ali embaixo do botão
+    const noQuitar = el.id === 'quitaPix' ? () => el.insertAdjacentHTML('afterend', pixNaMao(texto)) : undefined;
+    copia(texto, 'Pix copia e cola copiado. Cola no app do banco.', 'Pix copia e cola', noQuitar);
   }
+  const pixNaMao = (texto) => {
+    $('#quitaPixCode')?.remove();
+    return `<code id="quitaPixCode" class="box">${esc(texto)}</code>`;
+  };
   // desfazer é escondido: três toques seguidos no carimbo. Guarda o id, não o elemento,
   // porque o render do sync troca o carimbo no meio dos toques
   let toques = { id: '', n: 0, at: 0 };
@@ -3175,10 +3366,15 @@
     // quem paga escolhe quanto: "te mando 50 agora e o resto sexta". Vem com o total, na máscara do anotar
     // quitar é pagar tudo: com menos que o total, o cartão vira "pagar"
     const total = cents;
+    // com a chave de quem recebe, o pix sai do próprio cartão com o valor digitado (a linha copia o total)
     const pergunta = () => {
+      const pix =
+        pixReady && pixKeys[to]
+          ? `<button id="quitaPix" class="ico" data-pix="${to}|${cents}">${PIX_SVG} copiar pix de <span>${comSifrao(cents)}</span></button>`
+          : '';
       const p = ask(
         'Quitar?',
-        `${nomeHtml(from)} pagou <b id="quitaFrase" style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>`,
+        `${nomeHtml(from)} pagou <b id="quitaFrase" style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>${pix}`,
         'quitei',
       );
       const cx = /** @type {HTMLInputElement} */ ($('#quitaValor'));
@@ -3195,6 +3391,14 @@
         cents = +cx.value.replace(/\D/g, '');
         /** @type {HTMLButtonElement} */ ($('#okBtn')).disabled = !cents;
         ajusta();
+        const bt = /** @type {HTMLButtonElement|null} */ ($('#quitaPix'));
+        if (!bt) return;
+        // o pix não passa da dívida da dupla: o quitei também só grava até ela
+        const noPix = Math.min(cents, total);
+        bt.dataset.pix = `${to}|${noPix}`;
+        bt.disabled = !noPix;
+        bt.querySelector('span').textContent = comSifrao(noPix);
+        $('#quitaPixCode')?.remove();
       });
       cx.addEventListener('keydown', (ev) => {
         if (ev.key === 'Enter' && cents) $('#okBtn').click();
@@ -3291,7 +3495,9 @@
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
     ['[data-aviso]', tocaAviso],
+    ['#apagaTudo', apagaTudo],
     ['[data-cobra]', cobra],
+    ['[data-trocazap]', (el) => state.people.some((p) => p.id === el.dataset.trocazap) && pedeZap(el.dataset.trocazap)],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],
     [
@@ -3346,17 +3552,101 @@
   const linkDoQr = () => `${SITE}?evento=${encodeURIComponent(roomName)}`;
   // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
-  const abreZap = (txt) =>
-    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  // com o número (55 + DDD + número), o zap cai direto na conversa da pessoa
+  const abreZap = (txt, tel = '') =>
+    window.open(
+      'https://api.whatsapp.com/send?' + (tel ? `phone=${tel}&` : '') + 'text=' + encodeURIComponent(txt),
+      '_blank',
+      'noopener',
+    );
+  // o zap de cada pessoa fica só neste aparelho (gaveta `tolisa`, em `phones`), pelo nome: vale em
+  // qualquer evento. Nunca vai pro banco: lá ele ficaria à vista de quem tem o link, como o pix sem telefone.
+  // '' é o "pular": não pergunta mais
+  const chaveDoNome = (n) =>
+    n
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  /** o número guardado ('55…'), '' se pulou, null se nunca perguntei @returns {string|null} */
+  const zapDe = (id) => {
+    const ps = device().phones,
+      v = ps && typeof ps === 'object' ? ps[chaveDoNome(nameOf(id))] : undefined;
+    return v === '' || (typeof v === 'string' && /^55\d{10,11}$/.test(v)) ? v : null;
+  };
+  /** `tel` undefined esquece: a próxima cobrança pergunta de novo */
+  const guardaZap = (id, tel) =>
+    mexe(DEVICE, (o) => {
+      const ps = { ...(o.phones && typeof o.phones === 'object' ? o.phones : {}), [chaveDoNome(nameOf(id))]: tel };
+      if (tel === undefined) delete ps[chaveDoNome(nameOf(id))];
+      o.phones = ps;
+    });
+  /** número de celular ou fixo do Brasil, do jeito que vier: '55' + DDD + número, ou null */
+  const telBR = (v) => {
+    let d = String(v).replace(/\D/g, '').replace(/^0+/, '');
+    if (/^55\d{10,11}$/.test(d)) d = d.slice(2);
+    return /^\d{10,11}$/.test(d) ? '55' + d : null;
+  };
+  /** a primeira cobrança de alguém pede o zap dela, uma vez só. O zap abre do próprio toque
+   *  no cobrar ou no pular, sem await no meio (senão o celular barra o pop-up).
+   *  Sem `msg` é o trocar: guarda o número novo, ou esquece, e não abre o zap */
+  function pedeZap(quem, msg = '') {
+    // a agenda do celular (Contact Picker, Chrome no Android) só preenche a caixa
+    const nav = /** @type {any} */ (navigator),
+      agenda = nav.contacts && typeof nav.contacts.select === 'function',
+      velho = msg ? '' : zapDe(quem) || '';
+    overlay(
+      `<h2 class="pergunta">Zap de ${nomeHtml(quem)}?</h2>
+      <p class="muted recado" id="askDesc">com o número, a cobrança já cai na conversa. ele fica só neste aparelho</p>
+      <form id="zapForm" autocomplete="off"><input id="askInput" type="tel" inputmode="tel" placeholder="(81) 99999-9999" value="${velho.slice(2)}">${agenda ? '<div class="c"><button type="button" id="zapAgenda" class="ghost">📇 pegar da agenda</button></div>' : ''}<button class="big">${msg ? `${WA_SVG} cobrar` : 'guardar'}</button></form>
+      <div class="c voltar"><button id="zapPular" class="ghost">${msg ? 'pular' : 'esquecer o número'}</button></div>`,
+    );
+    const caixa = $('#askInput'),
+      erro = [caixa, $('#askDesc')];
+    caixa.addEventListener('input', () => erro.forEach((e) => e.classList.remove('erro')));
+    /** @param {string|undefined} tel @param {boolean} [guarda] */
+    const manda = (tel, guarda = true) => {
+      if (guarda) guardaZap(quem, tel);
+      closeOverlay();
+      if (msg) abreZap(msg, tel || '');
+      else render();
+    };
+    $('#zapForm').onsubmit = (ev) => {
+      ev.preventDefault();
+      // caixa vazia não é pular: cobra sem número, e a próxima cobrança pergunta de novo
+      if (!caixa.value.trim()) return msg ? manda('', false) : manda(undefined);
+      const tel = telBR(caixa.value);
+      if (tel) return manda(tel);
+      erro.forEach((e) => {
+        e.classList.remove('erro');
+        void e.offsetWidth;
+        e.classList.add('erro');
+      });
+      caixa.focus();
+    };
+    $('#zapPular').onclick = () => manda(msg ? '' : undefined);
+    if (agenda)
+      $('#zapAgenda').onclick = () =>
+        nav.contacts.select(['tel']).then(
+          (cs) => {
+            const t = cs && cs[0] && cs[0].tel && cs[0].tel[0];
+            if (t && caixa.isConnected) caixa.value = t;
+          },
+          () => {},
+        );
+    caixa.focus();
+  }
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
     const [quem, cents] = el.dataset.cobra.split('|');
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    abreZap(
-      `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`,
-    );
+    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`;
+    const tel = zapDe(quem);
+    if (tel === null) pedeZap(quem, msg);
+    else abreZap(msg, tel);
   }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque, e cada pessoa numa cápsula com contorno e pontinho na cor dela.
    * Resolve com o id escolhido, '' pra qualquer um, ou null se voltou @returns {Promise<string|null>} */
@@ -3368,7 +3658,7 @@
         `<h2 class="pergunta">Mandar pra quem?</h2>
       <button class="big" data-link-pra="">👥 pro grupo todo</button>
       <div class="c muted linkou">ou um link que já entra como:</div>
-      <div class="linkpras">${outros.map((p) => `<button class="linkpra" data-link-pra="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
+      ${linkpras(outros, 'link-pra')}
       <div class="c"><button id="qrBtn" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
       <div class="c voltar"><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
@@ -3587,7 +3877,7 @@
         /** @type {{ t: string, id?: string, w?: number }[]} */
         const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
         const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
-        if (e.shares) {
+        if (!ehIgual(e)) {
           // partes diferentes: cada nome com o valor dele
           e.among.forEach((id, i) => {
             const n = cabe(nameOf(id), 14),
@@ -4516,6 +4806,16 @@
     const c = q.get('evento') || q.get('senha');
     const quem = q.get('quem');
     if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
+    // o nome digitado no cartão de um evento aberto: o endereço já sai do ?novo=, e recarregar não cria mais um
+    const novo = (q.get('novo') || '').trim().toLowerCase();
+    if (novo) {
+      history.replaceState(null, '', location.pathname);
+      try {
+        return await enterRoom(novo, true);
+      } catch (e) {
+        return showGate(e.message);
+      }
+    }
     if (c) {
       const code = c.trim().toLowerCase(),
         id = await sha(code);

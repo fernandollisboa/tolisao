@@ -584,8 +584,9 @@ button.linkpra span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button.linkpra i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--cor)}
 /* o QR do link do grupo: botão pequeno embaixo das cápsulas, e o cartão com o QR na largura toda, em fundo branco pro leitor */
 button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-shadow:2px 2px 0 var(--ink)}
-/* no cartão do evento o QR é um quadradinho escrito QR, antes do link, na mesma linha */
-button.qrmini{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:30px;height:30px;margin:0 10px 0 0;padding:0;font-size:16px;letter-spacing:0;box-shadow:2px 2px 0 var(--ink);position:relative;top:-2px}
+/* no cartão do evento o QR é um botãozinho com o ícone e o QR escrito, antes do link, na mesma linha */
+button.qrmini{display:inline-flex;align-items:center;justify-content:center;gap:5px;vertical-align:middle;height:30px;margin:0 10px 0 0;padding:0 7px;font-size:16px;letter-spacing:0;box-shadow:2px 2px 0 var(--ink);position:relative;top:-2px}
+button.qrmini svg{width:13px;height:13px}
 .qr svg{display:block;width:100%;max-width:320px;margin:4px auto 0;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
 /* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
 .pessoa.row .l[contenteditable]{outline:0;cursor:text}

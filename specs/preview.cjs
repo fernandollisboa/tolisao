@@ -49,7 +49,12 @@ async function preview(opts = {}) {
     } else {
       await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
       // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é
-      if (quem) { await p.click('#whoBtn'); await p.locator('#overlayBox [data-sou]', { hasText: new RegExp(`^${quem}$`) }).click(); }
+      // com a flag QUEM_NO_TOPO desligada o cabeçalho não pergunta: escolhe pelos nomes do topo da nota
+      if (quem) {
+        await p.waitForSelector('#whoBtn, #chegada [data-chegou]');
+        if (await p.locator('#whoBtn').count()) await p.click('#whoBtn');
+        await p.locator('#chegada [data-chegou], #overlayBox [data-sou]', { hasText: new RegExp(`^${quem}$`) }).first().click();
+      }
       await p.waitForTimeout(900);
     }
 

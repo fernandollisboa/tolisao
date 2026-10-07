@@ -1795,7 +1795,8 @@
   // É troca de textContent com setTimeout, não animação CSS: um clip-path animado
   // travava num navegador, e setTimeout não depende do relógio de animação.
   let tituloJaAnimou = false;
-  function digitaTitulo(el) {
+  /** @param {HTMLElement | null} el @param {(entrou: boolean) => void} [ponto] avisa quando o ponto final entra e sai */
+  function digitaTitulo(el, ponto) {
     if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
     tituloJaAnimou = true;
     document.fonts.ready.then(() => {
@@ -1819,7 +1820,9 @@
           el.classList.remove('digitando');
           return;
         }
+        const tinha = el.textContent.endsWith('.');
         el.textContent = passos[i].t;
+        if (ponto && tinha !== el.textContent.endsWith('.')) ponto(!tinha);
         const atraso = passos[i + 1]?.d ?? 90;
         i++;
         setTimeout(passo, atraso);
@@ -1827,28 +1830,78 @@
       setTimeout(passo, passos[0].d);
     });
   }
+  /** quem chega pela primeira vez: fichas caindo atrás do cartão e uma comandinha que se anota
+   * sozinha (Lia paga, Fernando acerta, Júlia fica devendo). A comanda roda uma vez por página: o
+   * cartão volta depois de um código errado, e ela volta já parada no fim */
+  let estreiaRodou = false;
+  const CHUVA = [
+    // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor
+    [8, 34, 11, -2, 40, 500, ''],
+    [78, 46, 14, -9, -60, -300, 'quite'],
+    [30, 28, 12, -5, 30, 700, ''],
+    [60, 40, 16, -12, -40, -500, ''],
+    [90, 30, 10, -1, -30, 400, ''],
+    [18, 52, 15, -7, 50, -720, ''],
+    [46, 24, 13, -3, 20, 360, ''],
+  ];
+  function estreia() {
+    const parada = estreiaRodou || semMovimento();
+    estreiaRodou = true;
+    const chuva = parada
+      ? ''
+      : `<div class="chuva" aria-hidden="true">${CHUVA.map(
+          ([x, s, t, d, vx, r, c]) =>
+            `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
+        ).join('')}</div>`;
+    return `${chuva}<div class="comandinha${parada ? ' parada' : ''}" aria-hidden="true">
+      <div class="row f1"><span class="l">lia pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
+      <div class="row paid novo f2"><span class="l"><span class="n">fernando deve</span><span class="stampbox"><span class="stamp">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f3"><span class="l">júlia deve</span><span class="d"></span><span class="v">30,00</span></div>
+      <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
+  }
+  /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila) */
+  function fichaDoPonto(entrou) {
+    const t = $('#tituloGate'),
+      box = $('#overlayBox');
+    if (!t || !t.isConnected) return;
+    if (entrou) {
+      const r = t.getBoundingClientRect(),
+        b = box.getBoundingClientRect();
+      box.insertAdjacentHTML(
+        'beforeend',
+        `<img class="fichinha ponto" src="diva.png" alt="" aria-hidden="true" style="--s:18px;left:${r.right - b.left - 14}px;top:${r.bottom - b.top - 22}px">`,
+      );
+    } else {
+      const f = box.querySelector('.fichinha.ponto');
+      if (!f) return;
+      f.classList.add('foge');
+      f.addEventListener('animationend', () => f.remove(), { once: true });
+    }
+  }
   function showGate(msg) {
     $('#app').classList.add('loading', 'nospin');
     // quem já tem evento neste aparelho cai na lista; o convite e o autofocus (que abre o teclado por cima dela) são pra quem chega
     const evs = meusEventos(),
-      botao = evs.length ? 'Entrar' : 'Abrir';
-    const intro =
-      msg || evs.length
-        ? ''
-        : `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta e anota quem deve, sem app e sem cadastro.</div>
+      botao = evs.length ? 'Entrar' : 'Bora';
+    const chegou = !msg && !evs.length;
+    // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
+    const intro = chegou
+      ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê sem app e sem cadastro.</div>
+      ${estreia()}
       <div style="font-size:17px;color:var(--ink2);line-height:1.5;margin:0 auto 4px;max-width:340px">
-        <div>1. anote quem pagou o quê, quando e com quem</div>
-        <div>2. copie o pix e pague o deves</div>
-        <div>3. cobre o amiguinho a fazer o mesmo</div>
-      </div>`;
+        <div>1. dá um nome pro rolê (ou cola o código)</div>
+        <div>2. anota quem pagou o quê</div>
+        <div>3. a nota diz quem deve, e o pix tá ali</div>
+      </div>`
+      : '';
     const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, false)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado">${msg || ''}</p>` : ''}
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="código do evento" required${evs.length ? '' : ' autofocus'} autocapitalize="none"><button class="small">${botao}</button></form>
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado">${msg || 'não tem código? digita um nome que a gente cria.'}</p>` : ''}
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome ou código" required${evs.length ? '' : ' autofocus'} autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
-    digitaTitulo($('#tituloGate'));
+    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined);
     ligaEventos(evs);
     atualizaDatas(evs, false);
     $('#gateForm').onsubmit = async (ev) => {
@@ -1860,7 +1913,7 @@
       try {
         await enterRoom(code.trim().toLowerCase());
       } catch (e) {
-        // o "Evento novo?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
+        // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
           showGate();
           $('#gateCode').value = code;
@@ -2136,9 +2189,9 @@
     if (!existing && !seed) {
       if (
         !(await ask(
-          'Evento novo?',
-          `não existe evento com o código "${esc(code)}". criar um agora? o link ganha um final sorteado, pra ninguém adivinhar.`,
-          'criar evento',
+          `Criar "${esc(code)}"?`,
+          'ninguém usou esse nome ainda. a gente cria e põe um final sorteado no código, pra nenhum enxerido achar.',
+          'criar',
         ))
       )
         throw new Error('confira o código');
@@ -2252,7 +2305,7 @@
     const evs = meusEventos();
     overlay(`<h2>*** Evento ***</h2>
       <div class="row" style="font-size:22px"><span class="l">código</span><span class="d"></span><span class="v"><a class="link" id="evCode" title="copiar código">${esc(roomName)}</a></span></div>
-      <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">a senha</span></div>
+      <div class="row" style="font-size:17px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v">o código</span></div>
       <div class="hr"></div>
       ${
         evs.length
@@ -2262,7 +2315,7 @@
       }
       <div class="hr"></div><h2>*** Outro evento ***</h2>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="gateCode" placeholder="código do evento" required autocapitalize="none"><button class="small">entrar</button></form>
+        <input id="gateCode" placeholder="nome ou código" required autocapitalize="none"><button class="small">entrar</button></form>
       <div class="hr"></div>
       <button id="evBack" class="sec">voltar</button>`);
     $('#evBack').onclick = closeOverlay;
@@ -2273,7 +2326,7 @@
         () => showCopy('Código do evento', roomName),
       );
     // o mesmo campo da tela inicial: entra (ou cria) outro evento sem voltar pra ela. O endereço
-    // novo carrega o código, e o começo do app faz o resto (inclusive o "Evento novo?")
+    // novo carrega o código, e o começo do app faz o resto (inclusive o "Criar …?")
     $('#gateForm').onsubmit = (ev) => {
       ev.preventDefault();
       const code = $('#gateCode').value.trim().toLowerCase();
@@ -3806,7 +3859,7 @@
       const code = c.trim().toLowerCase(),
         id = await sha(code);
       // o endereço sempre carrega o código: recarregar um evento que o aparelho conhece não é entrar de novo
-      // (e, se ele sumiu do banco, cai no "Evento não encontrado" com a cópia, não no "Evento novo?")
+      // (e, se ele sumiu do banco, cai no "Evento não encontrado" com a cópia, não no "Criar …?")
       if (DB && gaveta(roomKey(id)).code === code) return openGroup(code, id);
       try {
         return await enterRoom(code);

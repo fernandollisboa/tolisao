@@ -109,7 +109,7 @@ Funcionalidade: Entrar no evento
       CÓDIGO
       bailedamada
       ENTRA QUEM TEM
-      a senha
+      o código
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite

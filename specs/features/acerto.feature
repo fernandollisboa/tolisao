@@ -135,6 +135,16 @@ Funcionalidade: Acertar as contas
       tudo aqui 👉 {site}/fiado/?evento=bailedamada
       """
 
+  Cenário: a comanda de uma viagem longa sai inteira
+    Uma semana de viagem tem gasto demais pra uma imagem só: a comanda traz os mais novos,
+    o total soma tudo e o resto fica no link.
+    Dado mais 74 gastos de R$ 10,00 pagos pela Lia, divididos entre todo mundo
+    Quando eu abro o evento como Lia
+    E eu toco em enviar
+    Então a comanda lista os 25 gastos mais novos
+    E a comanda diz "+ 55 ITENS · TUDO NO LINK"
+    E a comanda fecha com o total de R$ 1.480,32 e o "tolisa.com.br"
+
   Cenário: os botões dizem o que fazem
     Dado que o Fernando tem a chave pix "fernando@exemplo.com"
     Quando eu abro o evento como Lia

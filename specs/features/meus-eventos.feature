@@ -61,6 +61,7 @@ Funcionalidade: Meus eventos
       COPIAR LINK DO EVENTO
       MOSTRAR QR
       VOLTAR
+      apagar meus dados deste aparelho
       """
     E o saldo do "praia" é verde
     E o saldo do "churras" é vermelho
@@ -83,6 +84,7 @@ Funcionalidade: Meus eventos
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      apagar meus dados deste aparelho
       """
     E o código do evento não pega o foco sozinho
     Quando eu digito o código "praia"
@@ -187,6 +189,20 @@ Funcionalidade: Meus eventos
     Quando eu abro o evento "churras" como Lia
     E eu toco em enviar
     Então a mensagem do zap começa com "👀 lembra do *churras*? faz 40 dias e ainda tem R$ 60,00 pendurado…"
+
+  Cenário: apagar meus dados deixa o aparelho como o de quem nunca entrou
+    Celular emprestado, vendido ou de casal: a minha chave pix sai de cada evento, até dos esquecidos,
+    e o aparelho não lembra de mais nada. Os eventos continuam pra turma.
+    Dado que neste aparelho eu sou Lia no "churras"
+    E que neste aparelho eu sou Lia no "praia"
+    E que neste aparelho eu cadastrei a chave pix "lia@email.com" da Lia no "praia"
+    E que eu esqueci o "praia" neste aparelho
+    E que eu abro o site sem evento
+    Quando eu toco em apagar meus dados deste aparelho
+    Então o site pergunta "Apagar meus dados deste aparelho?" com o botão vermelho
+    Quando eu confirmo, e a página recarrega
+    Então a tela é a de quem nunca entrou
+    E o "praia" no banco não tem mais a chave pix da Lia
 
   Regra: com o app instalado, a bolinha no ícone diz quantos acertos faltam
     Conta as linhas do acerto que são minhas, devendo ou recebendo, em todos os eventos do aparelho.

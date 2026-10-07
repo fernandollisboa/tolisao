@@ -40,5 +40,6 @@ Funcionalidade: O que fica guardado no aparelho
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      apagar meus dados deste aparelho
       """
     E o aparelho não guarda mais o último evento na gaveta dele

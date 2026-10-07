@@ -169,6 +169,7 @@ Funcionalidade: Entrar no evento
       COPIAR LINK DO EVENTO
       MOSTRAR QR
       VOLTAR
+      apagar meus dados deste aparelho
       """
     Quando eu toco em voltar
     Então o cartão fecha

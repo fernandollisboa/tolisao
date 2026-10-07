@@ -98,8 +98,11 @@
       return {};
     }
   };
+  /** "apagar meus dados" começou: nada mais grava, senão um sync no meio devolvia a gaveta que acabou de sair */
+  let apagando = false;
   /** abre a gaveta, deixa `f` mexer nela e grava de volta @param {string} k @param {(o: Record<string, any>) => void} f */
   const mexe = (k, f) => {
+    if (apagando) return false;
     const o = gaveta(k);
     f(o);
     return ls.set(k, JSON.stringify(o));
@@ -837,7 +840,10 @@
     NATAL_JIT = 90,
     FECHO_JIT = 45;
   const PISCA_LEAD = 420; // o quanto a fila reserva além da última piscada começar
-  const pixUrl = (pid, child = '') => `${DB}/pix/${groupId}/${pid}${child}.json`;
+  const pixUrl = (pid, child = '', sala = groupId) => `${DB}/pix/${sala}/${pid}${child}.json`;
+  /** grava a chave no banco com o tok deste aparelho (chave vazia apaga) @returns {Promise<Response>} */
+  const gravaPix = (sala, pid, key, tok) =>
+    noBanco(pixUrl(pid, '', sala), { method: 'PUT', body: JSON.stringify({ key, tok }) });
   async function loadPixKeys() {
     const out = {};
     await Promise.all(
@@ -919,7 +925,7 @@
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     }
     try {
-      const r = await noBanco(pixUrl(pid), { method: 'PUT', body: JSON.stringify({ key, tok }) });
+      const r = await gravaPix(groupId, pid, key, tok);
       if (r.status === 401 || r.status === 403)
         return toast('Essa chave foi cadastrada em outro aparelho: só ele troca');
       if (!r.ok) return toast('A chave não salvou, tenta de novo');
@@ -2039,7 +2045,7 @@
       <div class="c"><button id="evQr" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
       <div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>`
           : ''
-      }`,
+      }${temDados() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
       !aberto,
     );
     if (aberto) {
@@ -2545,6 +2551,67 @@
     mexe(roomKey(id), (o) => {
       o.hidden = true;
     });
+  /** as gavetas dos eventos, inclusive as esquecidas (o ✕ só esconde) */
+  const gavetasDeEvento = () => {
+    try {
+      return Object.keys(localStorage).filter((k) => k.startsWith(DEVICE + ':'));
+    } catch {
+      return [];
+    }
+  };
+  /** tem o que apagar: algum evento, ou o nome e a chave pix lembrados pro próximo */
+  const temDados = () => gavetasDeEvento().length > 0 || !!device().myName || !!device().pixKey;
+  /** celular emprestado, vendido ou de casal: tira a minha chave pix de cada evento (com o tok, que só este
+   * aparelho tem, e por isso antes de tudo), desliga os avisos e apaga as gavetas. Sem rede, as chaves ficam */
+  async function apagaTudo() {
+    const semRede = navigator.onLine === false;
+    const ok = await ask(
+      'Apagar meus dados deste aparelho?',
+      `tira a sua chave pix de cada evento e apaga daqui os eventos, o seu nome e os avisos. os eventos continuam pra turma, pelo link.${
+        semRede ? '<br><br>sem internet: as chaves pix ficam nos eventos, e daqui ninguém troca mais.' : ''
+      }`,
+      'apagar tudo',
+      true,
+    );
+    if (!ok) return showGate();
+    overlay('<h2>Apagando…</h2>', true);
+    apagando = true;
+    clearInterval(pollTimer);
+    const gavetas = gavetasDeEvento();
+    /** @type {Promise<unknown>[]} */ const feito = [];
+    let sub = null;
+    try {
+      const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+      sub = reg ? await reg.pushManager.getSubscription() : null;
+    } catch {}
+    for (const k of gavetas) {
+      const sala = k.slice(DEVICE.length + 1),
+        o = gaveta(k);
+      if (!/^[0-9a-f]{64}$/.test(sala)) continue;
+      // a chave vazia com o tok solta o nó: qualquer aparelho cadastra de novo
+      if (o.pixTokens && typeof o.pixTokens === 'object')
+        for (const [pid, tok] of Object.entries(o.pixTokens))
+          if (okId(pid) && typeof tok === 'string' && tok) feito.push(gravaPix(sala, pid, '', tok).catch(() => {}));
+      if (sub && okId(o.pushOn) && typeof o.pushTok === 'string')
+        feito.push(
+          postaApi('/desinscreve', { sala, pessoa: o.pushOn, endpoint: sub.endpoint, tok: o.pushTok }).catch(() => {}),
+        );
+    }
+    await Promise.all(feito);
+    if (sub) await sub.unsubscribe().catch(() => {});
+    await new Promise((fim) => {
+      try {
+        const r = indexedDB.deleteDatabase('tolisa');
+        r.onsuccess = r.onerror = r.onblocked = fim;
+      } catch {
+        fim(null);
+      }
+    });
+    if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
+    for (const k of gavetas) ls.del(k);
+    ls.del(DEVICE);
+    location.replace(location.pathname);
+  }
   /** dias de calendário de `at` até hoje (ontem é 1, mesmo que tenha sido há 2 horas) */
   function diasDesde(at) {
     const dia = (t) => new Date(new Date(t).toDateString()).getTime();
@@ -3106,6 +3173,7 @@
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
     ['[data-aviso]', tocaAviso],
+    ['#apagaTudo', apagaTudo],
     ['[data-cobra]', cobra],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],

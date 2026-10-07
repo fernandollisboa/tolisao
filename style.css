@@ -186,6 +186,9 @@ button.small{padding:0 8px;font-size:16px;display:inline-flex;align-items:center
 button.small svg{display:block}
 button.danger{border-color:transparent;background:transparent;color:var(--red);padding:2px 6px}
 button.ghost{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 4px}
+/* apagar meus dados: discreto no pé do cartão do evento, pra quem procura e não pra quem passa */
+.apaga{margin-top:14px}
+.apaga button.ghost{font-size:15px;color:var(--ink2);text-transform:none}
 /* o voltar dos cartões sem ação principal: botão de verdade, não link — tocar fora
    pra fechar não é óbvio pra ninguém */
 /* confirmar o que não tem volta (sair do evento): preenchido de vermelho, pra não

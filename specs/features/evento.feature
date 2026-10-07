@@ -95,10 +95,24 @@ Funcionalidade: Entrar no evento
 
   Cenário: na mesa, a turma escaneia o QR e cai no evento
     A turma tá do lado: em vez de passar o link pelo zap, quem tá com o celular mostra o QR.
+    O QR abre o evento direto, sem passar pela página do preview do zap: na rede do bar, é um salto a menos.
     Dado o evento de exemplo "bailedamada"
     Quando eu abro o evento como Fernando
     E eu peço o QR do evento
-    Então o QR na tela leva pro link do grupo
+    Então o QR na tela abre o evento direto
+
+  Cenário: o evento que acabou de nascer, só comigo, já mostra o QR
+    É logo na criação que a turma da mesa precisa entrar, antes de qualquer gasto.
+    Enquanto o QR tá aberto, a tela não apaga na cara de quem aponta a câmera.
+    Dado o evento "praia" com Lia
+    E que meu celular deixa o site manter a tela acesa
+    Quando eu abro o evento como Lia
+    E eu toco no nome do evento
+    E eu peço o QR no cartão do evento
+    Então o QR na tela abre o evento direto
+    E a tela fica acesa
+    Quando eu fecho o QR
+    Então a tela já pode apagar
 
   Cenário: quem chega pelo link do grupo diz quem é na própria nota
     O link do grupo não diz quem abriu. A nota já mostra a turma no topo, um nome
@@ -145,6 +159,7 @@ Funcionalidade: Entrar no evento
       bailedamada
       ENTRA QUEM TEM
       o link
+      MOSTRAR QR
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite
@@ -154,6 +169,7 @@ Funcionalidade: Entrar no evento
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      + CRIAR OUTRO BAILEDAMADA
       VOLTAR
       """
     Quando eu toco em voltar

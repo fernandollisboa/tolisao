@@ -46,6 +46,7 @@ Funcionalidade: Meus eventos
       praia
       ENTRA QUEM TEM
       o link
+      MOSTRAR QR
       *** MEUS EVENTOS ***
       no total: te devem R$ 70,00
       PRAIA
@@ -61,6 +62,7 @@ Funcionalidade: Meus eventos
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      + CRIAR OUTRO PRAIA
       VOLTAR
       """
     E o saldo do "praia" é verde

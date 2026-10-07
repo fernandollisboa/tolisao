@@ -32,6 +32,13 @@ Given('a/o {word} pagou R$ {num} dividido igual entre todo mundo', async ({ mund
     payer: mundo.pessoa(quem).id, among: mundo.evento.people.map(p => p.id), at: AGORA - 86400000 });
 });
 
+// gastos miúdos de uma viagem longa, todos depois dos que já estão no evento: Lanche 1 é o mais velho
+Given('mais {int} gastos de R$ {num} pagos pela/pelo {word}, divididos entre todo mundo', async ({ mundo }, n, valor, quem) => {
+  const ultimo = Math.max(0, ...mundo.evento.expenses.map(e => e.at));
+  for (let i = 1; i <= n; i++)
+    mundo.evento.expenses.push({ id: 'g' + (mundo.evento.expenses.length + 1), desc: 'Lanche ' + i, amount: valor,
+      payer: mundo.pessoa(quem).id, among: mundo.evento.people.map(p => p.id), at: ultimo + i * 60000 });
+});
 Given('os gastos:', async ({ mundo }, tabela) => { poeGastos(mundo, tabela.hashes()); });
 
 // a mesma festa que o acerto e o anotar usam, de specs/_festa.cjs
@@ -53,6 +60,12 @@ When('eu abro o evento como {word} em outro aparelho', async ({ mundo }, quem) =
 When('eu recarrego a página', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#app:not(.loading)'); });
 
 When('eu digito o código {string}', async ({ mundo }, codigo) => { await mundo.p.fill('#gateCode', codigo); await mundo.p.click('#gateForm button'); });
+// evento criado pelo campo: o código tem o final sorteado, o nome é o que a pessoa digitou
+Given('que este aparelho já abriu o evento {string} pelo link {string}', async ({ mundo }, nome, codigo) => {
+  const ev = mundo.criaEvento({ name: codigo, people: [], expenses: [], deleted: [] }); ev.name = nome;
+  mundo.antes = { ...mundo.antes, ['tolisa:' + mundo.sala]: JSON.stringify({ code: codigo, openedAt: AGORA, snapshot: ev }) };
+});
+When('eu colo no campo do código:', async ({ mundo }, txt) => { await mundo.p.fill('#gateCode', txt); await mundo.p.click('#gateForm button'); });
 Then('o site pergunta se é um evento novo', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeVisible(); });
 When('eu volto', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
 Then('o cartão do código volta com {string} escrito', async ({ mundo }, codigo) => { await expect(mundo.p.locator('#gateCode')).toHaveValue(codigo); });
@@ -110,9 +123,13 @@ When('eu tiro o/a {word} da lista', async ({ mundo }, nome) => {
   await expect(linha).toHaveCount(0);
 });
 When('eu escrevo {word} e aperto pronto sem dar enter', async ({ mundo }, n) => { await mundo.p.fill('#setupName', n); await mundo.p.click('#setupGo'); });
+// pega a pessoa pelo id, não pelo texto (que muda), e espera a troca assentar: senão, em máquina lenta,
+// a próxima troca começa antes desta gravar e a digitação cai num nome que a lista acabou de redesenhar
 When('eu troco o nome da/do {word} pra {word} na lista', async ({ mundo }, de, pra) => {
-  const el = mundo.p.locator('#overlayBox [data-renome]', { hasText: de }); await el.click();
+  const id = await mundo.p.locator('#overlayBox [data-renome]', { hasText: de }).first().getAttribute('data-renome');
+  const el = mundo.p.locator(`#overlayBox [data-renome="${id}"]`); await el.click();
   await mundo.p.keyboard.press('ControlOrMeta+A'); await mundo.p.keyboard.type(pra); await mundo.p.keyboard.press('Enter');
+  await expect(el).not.toBeFocused(); await expect(el).toHaveText(new RegExp(`^(${pra}|${de})$`));
 });
 When('eu escolho outra pessoa', async ({ mundo }) => { await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName'); });
 Then('só a/o {word} tem ✕ na lista', async ({ mundo }, nome) => {

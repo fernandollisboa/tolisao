@@ -40,6 +40,24 @@ Funcionalidade: Anotar um gasto
     E eu anoto "Cerveja" de R$ 50,00 dividido igualmente
     Então o banco tem os itens "Cerveja" e "Gelo"
 
+  Cenário: o mesmo gasto anotado duas vezes pede confirmação
+    No rolê, quem pagou e quem tava com o celular na mão anotam o mesmo Uber, e a conta dobra sem ninguém ver.
+    Quando eu abro o evento como Lia
+    E a Júlia anota em outro aparelho um "Uber" de R$ 32,50 que a Lia pagou, há 3 minutos
+    E eu tento anotar "Uber" de R$ 32,50 que eu paguei
+    Então o cartão mostra:
+      """
+      JÁ ANOTARAM?
+      Uber · R$ 32,50 · Lia pagou, anotado por Júlia há 3 min
+      ANOTAR MESMO ASSIM
+      VOLTAR
+      """
+    Quando eu volto
+    Então o anotar continua aberto com R$ 32,50 de "Uber"
+    Quando eu salvo
+    E eu anoto mesmo assim
+    Então a lista tem 8 itens
+
   Cenário: dividir em partes diferentes
     Quando eu abro o evento como Júlia
     E eu toco no ✎
@@ -101,6 +119,19 @@ Funcionalidade: Anotar um gasto
     Quando eu abro o evento como Fernando em outro aparelho
     E eu abro a lista de itens
     Então o "Uber volta" fica de 40,00
+
+  Cenário: quem não editou vê o que mudou desde a última visita
+    Valor trocado calado muda o saldo de alguém sem rastro: o item editado diz quem mexeu e o que era.
+    Dado que eu vi o evento pela última vez ontem
+    E que a Lia trocou o valor do "Uber volta" pra R$ 40,00 em outro aparelho
+    Quando eu abro o evento como Fernando
+    E eu abro a lista de itens
+    Então o "Uber volta" está marcado como mudou
+    E o "Uber volta" diz "editado por Lia · era 32,50"
+    Quando eu abro o evento como Lia em outro aparelho
+    E eu abro a lista de itens
+    Então o "Uber volta" não está marcado
+    E o "Uber volta" diz "editado por Lia · era 32,50"
 
   Cenário: excluir um item
     Quando eu abro o evento como Lia

@@ -13,14 +13,14 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase. mudou na main, o `regras.yml` publica sozinho (conta de serviço no secret `FIREBASE_SA`); regra nova tem que aceitar o app que já está no ar, porque as duas sobem juntas.
 - preview do link no zap: o `index.html` usa `og/inicio.jpg` (o pin 😳 é fixo nele); `semverba/`, `sextou/`, `fiado/` (cobrança, a figurinha sai do código do evento; `c/h`, `c/i`, `c/j` ficam pros links velhos), `pago/` e `quitado/` são páginas só com as `og:`, imagem em `og/`; o `vai.js` repassa pro app. quem escolhe a pasta é o `shareUrl()`.
-- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_api.cjs` imita a API do aviso, `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, imagens do link). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
+- `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_api.cjs` imita a API do aviso (os dois são uma função `responde()`, que serve o playwright e o `npm run dev`; o `dev.cjs` sobe o site com eles), `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, `clean()`, imagens do link). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `servidor/`: a API (Worker da Cloudflare, KV `tolisa`) do aviso de pagamento por push. JS puro, testes em `node --test` (`cd servidor && npm test`). dependência só ali (o `wrangler`, pra subir). quem sobe é o `servidor.yml`, que gera as chaves VAPID na primeira vez; o `pages.yml` não publica a pasta.
 - `docs/qa.md`: roteiro e achados das sessões de QA.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
 
 ## comandos
 
-- rodar: `python3 -m http.server`.
+- rodar: `npm run dev` (banco e API falsos, em memória; `npm run dev -- --festa` já abre o bailedamada). o `python3 -m http.server` abre com o banco de verdade: visita em localhost não conta, mas evento criado vai pro ar.
 - testes: `npm ci`, depois `npm test` (`npm test -- pix` roda um arquivo). a saída é pontinho, falhas e os 5 cenários mais lerdos; `npm run relatorio` gera o passo a passo em `specs/relatorio.html`. o `specs/_pw.cjs` acha o chromium da máquina se faltar o da versão do playwright; `PW_CHROMIUM=/caminho/do/chrome` escolhe na mão.
 - cobertura: `npm run cobertura` (aceita `-- pix`) diz o % de linhas do `app.js` que os cenários executam e os trechos sem cenário. é lanterna, não meta nem check.
 - tipos: `npm run types` (tem que sair limpo). sintaxe: `node --check app.js`.
@@ -49,7 +49,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **aspas simples no `const DB = '...'` e no `const API = '...'`:** o `specs/_serve.cjs` troca essas linhas pelo banco e pela API falsos, e sem elas o `app.js` nem sai pros testes.
 - **o banco é hostil.** id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`, tudo que vem do banco ou do cache passa por `clean()`.
 - **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário. `visitas/<dia>` só se soma (+1 por aparelho por dia, `CONTA_VISITAS`): sem `.read`, sem apagar, o dono lê no console.
-- **CSP** no `<meta>` do `index.html`: só o próprio site, `*.firebaseio.com` e a API do aviso (`tolisa-api.fernando-costa-fd0.workers.dev`, o `const API`). o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
+- **CSP** no `<meta>` do `index.html`: só o próprio site, `*.firebaseio.com`, a API do aviso (`tolisa-api.fernando-costa-fd0.workers.dev`, o `const API`) e o Cloudflare Web Analytics (`static.cloudflareinsights.com` no script, `cloudflareinsights.com` no envio; ele leva o `?evento=`, o dono aceitou). o `_serve.cjs` tira o script nos testes. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.

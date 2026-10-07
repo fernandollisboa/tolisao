@@ -27,7 +27,9 @@
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
+  const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const RECEBI = false; // "recebi" na linha de quem me deve (pagaram por fora): desligado por enquanto
+  const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
@@ -167,7 +169,7 @@
   setDevice('visits', visitas);
   // aparelhos por dia: um +1 no banco, que ninguém lê (só o dono, no console). O dia é o de Brasília (2026-10-06)
   const hojeBR = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  if (CONTA_VISITAS && DB && device().countedDay !== hojeBR)
+  if (CONTA_VISITAS && !LOCAL && DB && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
       method: 'PUT',
       body: '{".sv":{"increment":1}}',
@@ -953,7 +955,7 @@
     'input',
     (ev) => {
       const t = /** @type {HTMLInputElement} */ (ev.target);
-      if (t.matches && t.matches('#amount, #sharesBox input[data-share]')) mascara(t);
+      if (t.matches && t.matches('#amount, #sharesBox input[data-share], #quitaValor')) mascara(t);
     },
     true,
   );
@@ -1002,14 +1004,23 @@
       );
     }
   }
-  /** o navegador sabe receber push; no iPhone só com o app instalado na tela de início */
+  /** no iPhone o push só existe com o app na tela de início: no Safari o 🔔 ensina a instalar */
+  const iPhoneSemApp = () => INSTALAR && ehIOS() && !jaInstalado() && !iOSSemPush();
+  /** antes do 16.4 o iPhone não tem push nem instalado: o 🔔 não teria o que ensinar */
+  const iOSSemPush = () => {
+    const v = navigator.userAgent.match(/OS (\d+)_(\d+)/);
+    return !!v && (+v[1] < 16 || (+v[1] === 16 && +v[2] < 4));
+  };
+  /** o navegador sabe receber push, ou é um iPhone que vai saber depois de instalar */
   const temAviso = () =>
     AVISO_PUSH &&
-    'Notification' in window &&
-    'PushManager' in window &&
-    'serviceWorker' in navigator &&
-    (!ehIOS() || jaInstalado());
-  const avisoLigado = () => !!me && room().pushOn === me && Notification.permission === 'granted';
+    (iPhoneSemApp() ||
+      ('Notification' in window &&
+        'PushManager' in window &&
+        'serviceWorker' in navigator &&
+        (!ehIOS() || jaInstalado())));
+  const avisoLigado = () =>
+    !!me && room().pushOn === me && 'Notification' in window && Notification.permission === 'granted';
   /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta,
    * e a bolinha do ícone ({ sala: 'bolinha', n, eu }) */
   const avisosDb = (modo, f) =>
@@ -1051,10 +1062,22 @@
   async function tocaAviso() {
     if (!me || !groupId || mexendoAviso) return;
     if (avisoLigado()) return;
+    if (iPhoneSemApp())
+      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, daí o código
+      return ensinaInstalar(
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento <b>${esc(roomName)}</b> e toca no 🔔.`,
+      );
     const quem = me,
       sala = groupId;
     mexendoAviso = true;
     try {
+      // no Android dá pra receber sem instalar, mas instalado o aviso abre o app: aproveita o toque e convida, uma vez só
+      if (convite && !device().installPrompted && !jaInstalado()) {
+        await pedeInstalar().catch(() => false);
+        // demorou no convite, o toque venceu: sem ele o navegador esconde o pedido de permissão
+        if (navigator.userActivation && !navigator.userActivation.isActive)
+          return toast('Agora toca no 🔔 de novo pra ligar o aviso');
+      }
       if ((await Notification.requestPermission()) !== 'granted')
         return toast('Sem permissão: libera os avisos do site nas configurações do navegador');
       await navigator.serviceWorker.register('sw.js');
@@ -1167,6 +1190,9 @@
   }
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) => (lastSeen > 0 && e.at > lastSeen && !anotouQuem(e, me) ? '<span class="tag">novo</span>' : '');
+  /** foi editado depois da última visita, e por outra pessoa @param {Gone | undefined} g */
+  const tagMudou = (g) =>
+    g && lastSeen > 0 && g.goneAt > lastSeen && !anotouQuem(g, me) ? '<span class="tag">mudou</span>' : '';
   /** uma linha da nota: texto à esquerda, pontinhos, valor à direita (`vat` são atributos a mais no valor) */
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
@@ -1522,6 +1548,8 @@
       new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
     const days = new Set(all.map(dayOf));
     let lastDay = null;
+    // editar troca o item por outro: o que saiu fica no `gone` com `to`, e vale a última edição
+    const editou = new Map(state.gone.filter((g) => g.to).map((g) => [g.to, g]));
     $('#expenses').innerHTML =
       list
         .map((e) => {
@@ -1533,8 +1561,18 @@
               lastDay = d;
             }
           }
-          const by =
-            autorNome(e) && !anotouQuem(e, e.payer) ? `<span class="by"> · anotado por ${autorHtml(e)}</span>` : '';
+          const g = editou.get(e.id);
+          // o que era antes: só o que mudou, descrição e/ou valor
+          const era = g
+            ? [g.desc !== e.desc ? esc(g.desc) : '', centavos(g) !== centavos(e) ? reais(centavos(g)) : '']
+                .filter(Boolean)
+                .join(' de ')
+            : '';
+          const by = g
+            ? `<span class="by"> · editado${autorNome(g) ? ` por ${autorHtml(g)}` : ''}${era ? ` · era ${era}` : ''}</span>`
+            : autorNome(e) && !anotouQuem(e, e.payer)
+              ? `<span class="by"> · anotado por ${autorHtml(e)}</span>`
+              : '';
           const meu = e.byId || e.by ? anotouQuem(e, me) : !!me && e.payer === me;
           const botoes = meu
             ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
@@ -1542,7 +1580,7 @@
           return (
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
-            linha(`${tagNovo(e)}${esc(e.desc)}`, reais(centavos(e))) +
+            linha(`${tagNovo(e) || tagMudou(g)}${esc(e.desc)}`, reais(centavos(e))) +
             `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
           );
         })
@@ -1809,8 +1847,9 @@
   // travava num navegador, e setTimeout não depende do relógio de animação.
   let tituloJaAnimou = false;
   /** @param {HTMLElement | null} el @param {(entrou: boolean, el: HTMLElement) => void} [ponto] o ponto final vira
-   * um espaço do tamanho dele, e quem passou `ponto` desenha o que quiser ali (avisado quando entra e sai) */
-  function digitaTitulo(el, ponto) {
+   * um espaço do tamanho dele, e quem passou `ponto` desenha o que quiser ali (avisado quando entra e sai)
+   * @param {() => Promise<void>} [intervalo] no "tô lisa!!!" o título espera isso acabar antes de seguir */
+  function digitaTitulo(el, ponto, intervalo) {
     if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
     tituloJaAnimou = true;
     document.fonts.ready.then(() => {
@@ -1819,9 +1858,10 @@
       // `d` é a espera *antes* daquele texto aparecer.
       const BASE = 'tô lisa';
       const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
+      /** @type {{ t: string, d: number, pausa?: boolean }[]} */
       const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
       passos.push({ t: BASE + '!', d: 765 }); // olha o que escreveu e crava um !
-      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 }); // volta pra pôr mais um, e emenda o terceiro
+      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165, pausa: true }); // volta pra pôr mais um, e emenda o terceiro
       passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
       passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
       passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
@@ -1839,16 +1879,20 @@
         el.textContent = passos[i].t;
         const tem = el.textContent.length > BASE.length && !/[!?]$/.test(el.textContent);
         if (ponto && tinha !== tem) ponto(tem, el);
-        const atraso = passos[i + 1]?.d ?? 90;
+        const atraso = passos[i + 1]?.d ?? 90,
+          pausa = passos[i].pausa && intervalo;
         i++;
-        setTimeout(passo, atraso);
+        // uma coisa de cada vez: a estreia roda no meio do título, não por cima dele
+        if (pausa) intervalo().then(() => setTimeout(passo, atraso));
+        else setTimeout(passo, atraso);
       };
       setTimeout(passo, passos[0].d);
     });
   }
   /** quem chega pela primeira vez: fichas caindo atrás do cartão e uma comandinha que se anota
-   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). A comanda roda uma vez por página: o
-   * cartão volta depois de um código errado, e ela volta já parada no fim */
+   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). Ela espera o título chegar no "tô lisa!!!"
+   * e o título espera ela acabar (`rodaComanda`). Roda uma vez por página: o cartão volta depois de
+   * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
   const CHUVA = [
     // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor
@@ -1871,11 +1915,19 @@
           ([x, s, t, d, vx, r, c]) =>
             `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
         ).join('')}</div>`;
-    return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' logo'}" aria-hidden="true">
+    return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' roda'}" aria-hidden="true">
       <div class="row f1"><span class="l">afonso pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
       <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">bia deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
       <div class="row f3"><span class="l">charles deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
+  }
+  /** solta a comandinha e avisa quando ela termina (o tempo é o da última animação dela no style.css) */
+  const COMANDA_MS = 3600;
+  function rodaComanda() {
+    const c = $('#overlayBox .comandinha:not(.parada)');
+    if (!c) return Promise.resolve();
+    c.classList.add('roda');
+    return new Promise((ok) => setTimeout(ok, COMANDA_MS));
   }
   /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila)
    * @param {boolean} entrou @param {HTMLElement} t */
@@ -1917,7 +1969,9 @@
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
-    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined);
+    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
+    // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
+    if (chegou) setTimeout(() => $('#overlayBox .comandinha')?.classList.add('roda'), 6000);
     // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o
     // teclado por cima da estreia: o foco vem sem rolar, e só onde tem teclado de verdade
     if (!evs.length && !matchMedia('(pointer: coarse)').matches) $('#gateCode').focus({ preventScroll: true });
@@ -1932,7 +1986,9 @@
       btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
       const code = $('#gateCode').value;
       try {
-        await enterRoom(code.trim().toLowerCase());
+        const c = codigoDoCampo(code);
+        quemDoLink = c.quem;
+        await enterRoom(c.code);
       } catch (e) {
         // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
@@ -2195,6 +2251,28 @@
   // #endregion
   // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
+  /** o que a pessoa pôs no campo vira código. O que ela tem no zap é o link, sozinho ou no meio da
+   *  mensagem: o código sai do ?evento= (ou do ?senha= antigo) e o &quem= do mesmo link vem junto.
+   *  Nome igual ao de um evento da lista é esse evento, não um novo com o mesmo nome
+   *  @returns {{ code: string, quem: string|null }} */
+  function codigoDoCampo(texto) {
+    const t = texto.trim(),
+      // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
+      m = t.match(/[?&](?:evento|senha)=([\w%.~!*'()-]+)/);
+    if (m) {
+      const link = t.slice(m.index).split(/\s/)[0],
+        q = link.match(/[?&]quem=([\w%.~!*'()-]+)/);
+      let code = m[1];
+      try {
+        code = decodeURIComponent(code.replace(/\+/g, ' '));
+      } catch {}
+      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null };
+    }
+    const code = t.toLowerCase(),
+      evs = meusEventos(),
+      meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
+    return { code: meu ? meu.code : code, quem: null };
+  }
   async function enterRoom(code) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
@@ -2312,8 +2390,8 @@
     sync();
     loadPixKeys();
   }
-  function showQuitado(to, cents) {
-    overlay(`<h2>Quitado!</h2>
+  function showQuitado(to, cents, parcial = false) {
+    overlay(`<h2>${parcial ? 'Pago!' : 'Quitado!'}</h2>
       <p class="muted recado" style="margin-bottom:14px">avise ${nomeHtml(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
       <div class="c voltar"><button id="quitOk" class="ghost">fechar</button></div>`);
@@ -2357,10 +2435,10 @@
     // novo carrega o código, e o começo do app faz o resto (inclusive o "Criar …?")
     $('#gateForm').onsubmit = (ev) => {
       ev.preventDefault();
-      const code = $('#gateCode').value.trim().toLowerCase();
+      const { code, quem } = codigoDoCampo($('#gateCode').value);
       if (!code) return;
       if (code === roomName) return closeOverlay();
-      location.href = location.pathname + '?evento=' + encodeURIComponent(code);
+      location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
     };
     /** @param {MeuEvento} e */
     const esquece = (e) => esqueceEvento(e, showRoom);
@@ -2691,8 +2769,24 @@
   $('#sheet').addEventListener('click', (ev) => {
     if (ev.target.id === 'sheet') closeSheet();
   });
-  $('#expenseForm').onsubmit = (ev) => {
+  /** o gasto que parece o mesmo: mesmo valor e mesmo pagante, anotado há pouco. No rolê, quem pagou
+   *  e quem tava com o celular na mão anotam o mesmo Uber @param {Expense} exp */
+  const jaAnotado = (exp) =>
+    state.expenses
+      .filter(
+        (x) =>
+          !x.kind && x.payer === exp.payer && centavos(x) === centavos(exp) && exp.at - x.at < JA_ANOTADO_H * 3600000,
+      )
+      .pop();
+  /** "há 3 min", pro cartão do já anotado */
+  const ha = (at) => {
+    const min = Math.round((Date.now() - at) / 60000);
+    return min < 1 ? 'agora' : min < 60 ? `há ${min} min` : `há ${Math.round(min / 60)} h`;
+  };
+  let conferindo = false; // o anotar espera o banco: o segundo toque no botão não anota de novo
+  $('#expenseForm').onsubmit = async (ev) => {
     ev.preventDefault();
+    if (conferindo) return;
     const among = inputs('#splitChips input:checked').map((i) => i.value);
     const total = lerCentavos($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro');
@@ -2720,6 +2814,31 @@
       for (const id of among) exp.shares[id] = sh[id] || 0;
     }
     const velho = editando && state.expenses.find((x) => x.id === editando);
+    // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
+    if (!editando) {
+      // o banco tem prazo: com a rede engasgada, confere com o que já chegou e anota (o sync mescla depois)
+      const botao = /** @type {HTMLButtonElement} */ ($('#expenseForm button.big'));
+      conferindo = true;
+      botao.disabled = true;
+      botao.textContent = 'conferindo…';
+      await Promise.race([sync(), new Promise((r) => setTimeout(r, 1500))]);
+      conferindo = false;
+      botao.disabled = false;
+      botao.textContent = 'Anotar';
+      if ($('#sheet').classList.contains('hidden')) return; // fechou o anotar enquanto conferia: desistiu
+      const ja = jaAnotado(exp);
+      if (ja) {
+        const autor = autorNome(ja) ? `, anotado por ${autorHtml(ja)}` : '';
+        const desc = ja.desc ? `${esc(ja.desc)} · ` : '';
+        const mesmo = await ask(
+          'Já anotaram?',
+          `${desc}${comSifrao(centavos(ja))} · ${nomeHtml(ja.payer)} pagou${autor} ${ha(ja.at)}`,
+          'anotar mesmo assim',
+        );
+        if (!mesmo) return;
+      }
+      exp.at = Date.now();
+    }
     if (velho) {
       exp.at = velho.at;
       apagaItem(velho, exp.id);
@@ -2821,11 +2940,28 @@
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
     const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
+    // quem paga escolhe quanto: "te mando 50 agora e o resto sexta". Vem com o total, na máscara do anotar
+    const pergunta = () => {
+      const p = ask(
+        'Quitar?',
+        `${nomeHtml(from)} pagou pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>`,
+        'quitei',
+      );
+      const cx = /** @type {HTMLInputElement} */ ($('#quitaValor'));
+      cx.addEventListener('input', () => {
+        cents = +cx.value.replace(/\D/g, '');
+        /** @type {HTMLButtonElement} */ ($('#okBtn')).disabled = !cents;
+      });
+      cx.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && cents) $('#okBtn').click();
+      });
+      return p;
+    };
     const certeza = await (modo === 'perdoa'
       ? ask('Perdoar?', `${nomeHtml(from)} não te deve mais ${valor}`, 'perdoar')
       : modo === 'recebi'
         ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
-        : ask('Quitar?', `${nomeHtml(from)} pagou ${valor} pra ${nomeHtml(to)}`, 'quitei'));
+        : pergunta());
     if (!certeza) return;
     // a nota pode estar velha: o outro lado pode já ter marcado do aparelho dele. Baixa o banco
     // e grava só o que ainda falta, senão o pagamento entra duas vezes e a dívida vira ao contrário
@@ -2860,8 +2996,10 @@
     seguraRisco = true;
     commit();
     festa(r.left + r.width / 2, r.top + r.height / 2);
-    toast('Quitado! 🎉');
-    showQuitado(to, cents);
+    // pagou só uma parte: o resto segue na nota, então ainda não é quitado
+    const parcial = !!t && cents < t.cents;
+    toast(parcial ? 'Pago! 🎉' : 'Quitado! 🎉');
+    showQuitado(to, cents, parcial);
   }
   async function excluiGasto(el) {
     const e = achaGasto(el.dataset.delExpense);
@@ -2948,9 +3086,7 @@
     }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
-  const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
-    ? location.origin + location.pathname
-    : 'https://tolisa.com.br/';
+  const SITE = LOCAL ? location.origin + location.pathname : 'https://tolisa.com.br/';
   // as figurinhas de cobrança, uma pasta cada: nome que se lê no link (as velhas c/h, c/i e c/j seguem de pé pros links já mandados)
   const COBRA_PASTAS = ['semverba', 'sextou', 'fiado'];
   /** a pasta escolhe o preview do link no zap: cada uma tem as suas og: e o vai.js manda pro app.
@@ -3059,192 +3195,203 @@
       TINTA_CLARA = '#5a5a5a',
       PAPEL = '#efe9d8',
       VERDE = '#15703a';
-    // escreve num rascunho bem alto e depois copia só a altura usada pro papel de verdade
-    const rascunho = document.createElement('canvas');
-    rascunho.width = LARGURA * ESCALA;
-    rascunho.height = 4000 * ESCALA;
-    const ctx = rascunho.getContext('2d');
-    ctx.scale(ESCALA, ESCALA);
-    ctx.font = `${FONTE}px 'VT323'`;
-    ctx.textBaseline = 'alphabetic';
-    const larguraLetra = ctx.measureText('M').width,
-      COLUNAS = Math.floor((LARGURA - 2 * MARGEM - 2 * RECUO) / larguraLetra);
-    let y = MARGEM + 12 + 50; // a linha em que o próximo texto entra
-
-    /** pinta o marca-texto atrás de `len` letras a partir da coluna `col` da linha atual */
-    const marcaTexto = (col, len, cor) => {
-      ctx.fillStyle = cor;
-      ctx.fillRect(ESQ + col * larguraLetra - 3, y - FONTE * 0.72, len * larguraLetra + 6, FONTE * 0.9);
-    };
-    const maiusc = (t) => String(t).toUpperCase();
-    // a coluna continua contada em unidade UTF-16, que é o que a régua do papel usa;
-    // o apara() só não deixa a conta parar no meio de um par surrogate
-    /** o texto em maiúsculas, cortado com … se passar de n colunas */
-    const cabe = (t, n) => {
-      t = maiusc(t);
-      return t.length > n ? apara(t.slice(0, Math.max(1, n - 1))) + '…' : t;
-    };
-    const escreve = (t, cor = TINTA) => {
-      ctx.fillStyle = cor;
-      ctx.textAlign = 'left';
-      ctx.fillText(t, ESQ, y);
-      y += ENTRELINHA;
-    };
-    const centraliza = (t) => {
-      ctx.textAlign = 'center';
-      ctx.fillStyle = TINTA;
-      ctx.fillText(t, LARGURA / 2, y);
-      y += ENTRELINHA;
-    };
-    const traco = () => escreve('-'.repeat(COLUNAS), TINTA_CLARA);
-    const pula = () => {
-      y += ENTRELINHA * 0.6;
-    };
-    /** "ALGO ........ VALOR", ocupando a linha toda */
-    const comPontinhos = (l, v) => {
-      l = cabe(l, COLUNAS - 10 - 2); // guarda 10 colunas pro valor
-      const pontos = '.'.repeat(Math.max(1, COLUNAS - l.length - v.length - 2));
-      return `${l} ${pontos} ${v}`;
-    };
-    // as iniciais de quem divide ("F J L"): letras suficientes pra ninguém se confundir
-    const semAcento = (t) => maiusc(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const primeiras = (t, k) => apara(t.slice(0, k));
-    const inicial = (id) => {
-      const n = semAcento(nameOf(id));
-      let k = 1;
-      while (
-        k < n.length &&
-        state.people.some((p) => p.id !== id && primeiras(semAcento(nameOf(p.id)), k) === primeiras(n, k))
-      )
-        k++;
-      return primeiras(n, k);
-    };
-    /** escreve pedaços de texto, com marca-texto nos que têm `id`, quebrando a linha
-     *  quando o próximo pedaço (ou `w` colunas) não cabe
-     *  @param {{ t: string, id?: string, w?: number }[]} pedacos */
-    const escreveQuebrando = (pedacos) => {
-      let col = 0,
-        t = '';
-      for (const p of pedacos) {
-        if (!p.t) continue;
-        if (col > 2 && col + (p.w || p.t.length) > COLUNAS) {
-          escreve(t.trimEnd(), TINTA_CLARA);
-          t = '  ';
-          col = 2;
-        }
-        if (p.id) marcaTexto(col, p.t.length, markForte(p.id));
-        t += p.t;
-        col += p.t.length;
-      }
-      if (t.trim()) escreve(t.trimEnd(), TINTA_CLARA);
-    };
-
-    // cabeçalho
+    // a comanda mostra só os itens mais novos: viagem de uma semana passava de 12 mil px e o
+    // Safari do iPhone não gera imagem acima de ~16 Mpx. O total soma tudo, o resto fica no link
+    const TETO_ITENS = 25;
     const agora = new Date();
-    const data = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-    const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
-    centraliza(`*** TÔ LISA ***`);
-    centraliza(cabe(`${maiusc(evento())} · ${data} ${hora}`, COLUNAS));
-    pula();
-    traco();
+    /** escreve a comanda inteira e diz em que altura ela acabou
+     *  @param {CanvasRenderingContext2D} ctx */
+    const desenha = (ctx) => {
+      ctx.font = `${FONTE}px 'VT323'`;
+      ctx.textBaseline = 'alphabetic';
+      const larguraLetra = ctx.measureText('M').width,
+        COLUNAS = Math.floor((LARGURA - 2 * MARGEM - 2 * RECUO) / larguraLetra);
+      let y = MARGEM + 12 + 50; // a linha em que o próximo texto entra
 
-    // saldo: quem ainda paga quem, e depois quem já está quite
-    pula();
-    centraliza('*** FALTA PAGAR ***');
-    pula();
-    if (!acerto.length) centraliza('TUDO QUITADO');
-    for (const t of acerto) {
-      const de = cabe(nameOf(t.from), 12),
-        pra = cabe(nameOf(t.to), 12);
-      marcaTexto(0, de.length, markForte(t.from));
-      marcaTexto(de.length + 6, pra.length, markForte(t.to));
-      escreve(comPontinhos(`${de} PAGA ${pra}`, 'R$ ' + reais(t.cents)));
-    }
-    const quites = state.people.filter((p) => (saldo[p.id] || 0) === 0);
-    if (quites.length && acerto.length) pula();
-    for (const p of quites) {
-      const n = cabe(nameOf(p.id), COLUNAS - 16);
-      marcaTexto(0, n.length, markForte(p.id));
-      escreve(comPontinhos(n, 'QUITE'), VERDE);
-    }
-    traco();
+      /** pinta o marca-texto atrás de `len` letras a partir da coluna `col` da linha atual */
+      const marcaTexto = (col, len, cor) => {
+        ctx.fillStyle = cor;
+        ctx.fillRect(ESQ + col * larguraLetra - 3, y - FONTE * 0.72, len * larguraLetra + 6, FONTE * 0.9);
+      };
+      const maiusc = (t) => String(t).toUpperCase();
+      // a coluna continua contada em unidade UTF-16, que é o que a régua do papel usa;
+      // o apara() só não deixa a conta parar no meio de um par surrogate
+      /** o texto em maiúsculas, cortado com … se passar de n colunas */
+      const cabe = (t, n) => {
+        t = maiusc(t);
+        return t.length > n ? apara(t.slice(0, Math.max(1, n - 1))) + '…' : t;
+      };
+      const escreve = (t, cor = TINTA) => {
+        ctx.fillStyle = cor;
+        ctx.textAlign = 'left';
+        ctx.fillText(t, ESQ, y);
+        y += ENTRELINHA;
+      };
+      const centraliza = (t) => {
+        ctx.textAlign = 'center';
+        ctx.fillStyle = TINTA;
+        ctx.fillText(t, LARGURA / 2, y);
+        y += ENTRELINHA;
+      };
+      const traco = () => escreve('-'.repeat(COLUNAS), TINTA_CLARA);
+      const pula = () => {
+        y += ENTRELINHA * 0.6;
+      };
+      /** "ALGO ........ VALOR", ocupando a linha toda */
+      const comPontinhos = (l, v) => {
+        l = cabe(l, COLUNAS - 10 - 2); // guarda 10 colunas pro valor
+        const pontos = '.'.repeat(Math.max(1, COLUNAS - l.length - v.length - 2));
+        return `${l} ${pontos} ${v}`;
+      };
+      // as iniciais de quem divide ("F J L"): letras suficientes pra ninguém se confundir
+      const semAcento = (t) => maiusc(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+      const primeiras = (t, k) => apara(t.slice(0, k));
+      const inicial = (id) => {
+        const n = semAcento(nameOf(id));
+        let k = 1;
+        while (
+          k < n.length &&
+          state.people.some((p) => p.id !== id && primeiras(semAcento(nameOf(p.id)), k) === primeiras(n, k))
+        )
+          k++;
+        return primeiras(n, k);
+      };
+      /** escreve pedaços de texto, com marca-texto nos que têm `id`, quebrando a linha
+       *  quando o próximo pedaço (ou `w` colunas) não cabe
+       *  @param {{ t: string, id?: string, w?: number }[]} pedacos */
+      const escreveQuebrando = (pedacos) => {
+        let col = 0,
+          t = '';
+        for (const p of pedacos) {
+          if (!p.t) continue;
+          if (col > 2 && col + (p.w || p.t.length) > COLUNAS) {
+            escreve(t.trimEnd(), TINTA_CLARA);
+            t = '  ';
+            col = 2;
+          }
+          if (p.id) marcaTexto(col, p.t.length, markForte(p.id));
+          t += p.t;
+          col += p.t.length;
+        }
+        if (t.trim()) escreve(t.trimEnd(), TINTA_CLARA);
+      };
 
-    // itens: descrição ...... valor, com quem pagou e como dividiu embaixo
-    pula();
-    centraliza('*** ITENS ***');
-    pula();
-    if (!items.length) escreve('NADA ANOTADO');
-    for (const e of items) {
-      escreve(comPontinhos(e.desc, reais(centavos(e))));
-      const pagou = cabe(nameOf(e.payer), 14);
-      marcaTexto(2, pagou.length, markForte(e.payer));
-      /** @type {{ t: string, id?: string, w?: number }[]} */
-      const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
-      const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
-      if (e.shares) {
-        // partes diferentes: cada nome com o valor dele
-        e.among.forEach((id, i) => {
-          const n = cabe(nameOf(id), 14),
-            v = ' ' + reais(e.shares[id] || 0);
-          pedacos.push({ t: n, id, w: n.length + v.length }, { t: v + virgula(i) });
-        });
-        escreveQuebrando(pedacos);
-        continue;
-      }
-      if (!e.among.includes(e.payer)) {
-        // empréstimo: quem pagou não entra na divisão
-        e.among.forEach((id, i) => pedacos.push({ t: cabe(nameOf(id), 14), id }, { t: virgula(i) }));
-        pedacos.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
-        escreveQuebrando(pedacos);
-        continue;
-      }
-      if (state.people.every((p) => e.among.includes(p.id))) {
-        escreve('  ' + cabe(`${pagou} pagou · ÷${e.among.length} todos`, COLUNAS - 2), TINTA_CLARA);
-        continue;
-      }
-      // igual entre alguns: as iniciais de quem divide, até onde couber
-      const inicio = `  ${pagou} PAGOU · ÷${e.among.length} `;
-      let col = inicio.length,
-        t = inicio;
-      for (const id of e.among) {
-        const ini = inicial(id);
-        if (col + ini.length > COLUNAS) break;
-        marcaTexto(col, ini.length, markForte(id));
-        t += ini + ' ';
-        col += ini.length + 1;
-      }
-      escreve(t.trimEnd(), TINTA_CLARA);
-    }
-    pula();
-    escreve(comPontinhos('TOTAL', 'R$ ' + reais(totalCents)), TINTA_CLARA);
-    traco();
-    pula();
-    centraliza('* * *');
+      // cabeçalho
+      const data = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
+      centraliza(`*** TÔ LISA ***`);
+      centraliza(cabe(`${maiusc(evento())} · ${data} ${hora}`, COLUNAS));
+      pula();
+      traco();
 
-    // o código de barras do rodapé, o mesmo da página
-    {
-      const barras = code128Widths('420420420420');
-      const unidades = [...barras].reduce((a, n) => a + +n, 0);
-      const LARG_BARRAS = 240,
-        ALT_BARRAS = 40,
-        porUnidade = LARG_BARRAS / unidades;
-      let bx = LARGURA / 2 - LARG_BARRAS / 2;
-      ctx.fillStyle = TINTA;
-      for (let i = 0; i < barras.length; i++) {
-        const w = +barras[i] * porUnidade;
-        if (i % 2 === 0) ctx.fillRect(bx, y - 8, w, ALT_BARRAS); // posição par é barra, ímpar é vão
-        bx += w;
+      // saldo: quem ainda paga quem, e depois quem já está quite
+      pula();
+      centraliza('*** FALTA PAGAR ***');
+      pula();
+      if (!acerto.length) centraliza('TUDO QUITADO');
+      for (const t of acerto) {
+        const de = cabe(nameOf(t.from), 12),
+          pra = cabe(nameOf(t.to), 12);
+        marcaTexto(0, de.length, markForte(t.from));
+        marcaTexto(de.length + 6, pra.length, markForte(t.to));
+        escreve(comPontinhos(`${de} PAGA ${pra}`, 'R$ ' + reais(t.cents)));
       }
-      y += ALT_BARRAS + 4;
-    }
-    ctx.fillStyle = TINTA_CLARA;
-    ctx.textAlign = 'center';
-    ctx.fillText('tolisa.com.br', LARGURA / 2, y + 16);
-    y += ENTRELINHA + 6;
+      const quites = state.people.filter((p) => (saldo[p.id] || 0) === 0);
+      if (quites.length && acerto.length) pula();
+      for (const p of quites) {
+        const n = cabe(nameOf(p.id), COLUNAS - 16);
+        marcaTexto(0, n.length, markForte(p.id));
+        escreve(comPontinhos(n, 'QUITE'), VERDE);
+      }
+      traco();
 
-    // o papel na altura exata: fundo escuro, papel com a borda picotada em zigue-zague
-    // em cima e embaixo, riscos bem leves de papel térmico, e o rascunho por cima
-    const ALTURA = y + MARGEM + 12;
+      // itens: descrição ...... valor, com quem pagou e como dividiu embaixo
+      pula();
+      centraliza('*** ITENS ***');
+      pula();
+      if (!items.length) escreve('NADA ANOTADO');
+      for (const e of items.slice(0, TETO_ITENS)) {
+        escreve(comPontinhos(e.desc, reais(centavos(e))));
+        const pagou = cabe(nameOf(e.payer), 14);
+        marcaTexto(2, pagou.length, markForte(e.payer));
+        /** @type {{ t: string, id?: string, w?: number }[]} */
+        const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
+        const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
+        if (e.shares) {
+          // partes diferentes: cada nome com o valor dele
+          e.among.forEach((id, i) => {
+            const n = cabe(nameOf(id), 14),
+              v = ' ' + reais(e.shares[id] || 0);
+            pedacos.push({ t: n, id, w: n.length + v.length }, { t: v + virgula(i) });
+          });
+          escreveQuebrando(pedacos);
+          continue;
+        }
+        if (!e.among.includes(e.payer)) {
+          // empréstimo: quem pagou não entra na divisão
+          e.among.forEach((id, i) => pedacos.push({ t: cabe(nameOf(id), 14), id }, { t: virgula(i) }));
+          pedacos.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
+          escreveQuebrando(pedacos);
+          continue;
+        }
+        if (state.people.every((p) => e.among.includes(p.id))) {
+          escreve('  ' + cabe(`${pagou} pagou · ÷${e.among.length} todos`, COLUNAS - 2), TINTA_CLARA);
+          continue;
+        }
+        // igual entre alguns: as iniciais de quem divide, até onde couber
+        const inicio = `  ${pagou} PAGOU · ÷${e.among.length} `;
+        let col = inicio.length,
+          t = inicio;
+        for (const id of e.among) {
+          const ini = inicial(id);
+          if (col + ini.length > COLUNAS) break;
+          marcaTexto(col, ini.length, markForte(id));
+          t += ini + ' ';
+          col += ini.length + 1;
+        }
+        escreve(t.trimEnd(), TINTA_CLARA);
+      }
+      if (items.length > TETO_ITENS) {
+        pula();
+        centraliza(`+ ${items.length - TETO_ITENS} ITENS · TUDO NO LINK`);
+      }
+      pula();
+      escreve(comPontinhos('TOTAL', 'R$ ' + reais(totalCents)), TINTA_CLARA);
+      traco();
+      pula();
+      centraliza('* * *');
+
+      // o código de barras do rodapé, o mesmo da página
+      {
+        const barras = code128Widths('420420420420');
+        const unidades = [...barras].reduce((a, n) => a + +n, 0);
+        const LARG_BARRAS = 240,
+          ALT_BARRAS = 40,
+          porUnidade = LARG_BARRAS / unidades;
+        let bx = LARGURA / 2 - LARG_BARRAS / 2;
+        ctx.fillStyle = TINTA;
+        for (let i = 0; i < barras.length; i++) {
+          const w = +barras[i] * porUnidade;
+          if (i % 2 === 0) ctx.fillRect(bx, y - 8, w, ALT_BARRAS); // posição par é barra, ímpar é vão
+          bx += w;
+        }
+        y += ALT_BARRAS + 4;
+      }
+      ctx.fillStyle = TINTA_CLARA;
+      ctx.textAlign = 'center';
+      ctx.fillText('tolisa.com.br', LARGURA / 2, y + 16);
+      y += ENTRELINHA + 6;
+      return y;
+    };
+
+    // o papel na altura exata: o texto quebra conforme os nomes, então a altura só se sabe
+    // escrevendo. Primeiro escreve num rascunho de 1 px só pra medir, depois no papel de verdade:
+    // fundo escuro, papel com a borda picotada em zigue-zague em cima e embaixo, riscos bem
+    // leves de papel térmico, e o texto por cima
+    const ALTURA =
+      desenha(/** @type {CanvasRenderingContext2D} */ (document.createElement('canvas').getContext('2d'))) +
+      MARGEM +
+      12;
     const papel = document.createElement('canvas');
     papel.width = LARGURA * ESCALA;
     papel.height = ALTURA * ESCALA;
@@ -3269,7 +3416,7 @@
     }
     p.fillStyle = 'rgba(0,0,0,.03)';
     for (let yy = MARGEM; yy < ALTURA - MARGEM; yy += 4) p.fillRect(MARGEM, yy, LARGURA - 2 * MARGEM, 1);
-    p.drawImage(rascunho, 0, 0, LARGURA * ESCALA, ALTURA * ESCALA, 0, 0, LARGURA, ALTURA);
+    desenha(p);
     return new Promise((res) => papel.toBlob(res, 'image/png'));
   }
   // compartilhar começa perguntando pra quem é o link: quem abrir já entra como essa pessoa
@@ -3333,18 +3480,25 @@
     mostraInstalar();
     toast('Instalado! 🎉');
   });
+  /** o convite do navegador: o evento só serve pra um prompt(), depois some e o navegador manda
+   *  outro quando quiser. Aceite ou recuse, o ✎ e o 🔔 não perguntam de novo */
+  async function pedeInstalar() {
+    const c = convite;
+    convite = null;
+    setDevice('installPrompted', true);
+    mostraInstalar();
+    c.prompt();
+    return (await c.userChoice).outcome === 'accepted';
+  }
   $('#instalar').onclick = async () => {
-    // o evento só serve pra um prompt(): depois some, e o navegador manda outro quando quiser
     if (convite) {
-      const c = convite;
-      convite = null;
-      c.prompt();
-      const r = await c.userChoice;
-      setDevice('installPrompted', true);
-      mostraInstalar();
-      if (r.outcome !== 'accepted') toast('Deixa pra próxima, meu bem.');
+      if (!(await pedeInstalar())) toast('Deixa pra próxima, meu bem.');
       return;
     }
+    ensinaInstalar();
+  };
+  /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 (HTML: já vem escapado) */
+  function ensinaInstalar(porque = '') {
     // quadrinhos: cada passo com o desenho do que vai aparecer no Safari e o botão a tocar
     // pintado, e uma seta pulando em cima do lugar de verdade. O Safari 26 guarda o
     // Compartilhar no •••, no canto de baixo; o antigo deixa ele no meio da barra de baixo,
@@ -3380,21 +3534,17 @@
             `<div class="barra"><span class="toca">${SHARE_SVG}</span></div>`,
             `toque no <b>${SHARE_SVG}</b> lá ${onde === 'cima' ? 'em cima' : 'embaixo'}.`,
           ) + tela(2);
-    overlay(`<h2>Instalar</h2>${passos}
+    overlay(`<h2>Instalar</h2>${porque ? `<p class="porque">${porque}</p>` : ''}${passos}
       <button id="instOk" class="sec" style="margin-top:10px">entendi</button>
       <svg class="seta ${onde}" width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 8C30 90 70 150 122 176"/><path d="M96 178H124L116 152"/></svg>`);
     $('#overlay').classList.add('ensina', onde);
     $('#instOk').onclick = closeOverlay;
-  };
+  }
   mostraInstalar();
   function convidaInstalar() {
     if (!INSTALAR || !convite || device().installPrompted || jaInstalado()) return;
     if (visitas < 2 || !state || !state.expenses.length) return;
-    setDevice('installPrompted', true); // aceite ou recuse, o ✎ não pergunta de novo
-    const c = convite;
-    convite = null;
-    mostraInstalar();
-    c.prompt();
+    pedeInstalar().catch(() => {});
   }
   function festa(x, y) {
     if (semMovimento()) return;

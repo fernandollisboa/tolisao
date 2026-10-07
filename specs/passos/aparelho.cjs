@@ -66,6 +66,10 @@ Then('o {string} no banco ainda tem a chave pix {string} da/do {word}', async ({
   const sala = salaDe(mundo, nome);
   expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe(chave);
 });
+// o ?apagar do endereço, que o aparelho guarda (o APAGAR_DADOS vem desligado)
+Given('que eu pedi pra testar o apagar meus dados', async ({ mundo }) => {
+  naGaveta(mundo, 'tolisa', { apagarOn: true });
+});
 When('eu toco em apagar meus dados deste aparelho', async ({ mundo }) => { await mundo.p.click('#apagaTudo'); await mundo.p.waitForSelector('#okBtn'); });
 Then('a tela é a de quem nunca entrou', async ({ mundo }) => {
   await expect(mundo.p.locator('#overlayBox')).toContainText('racha a conta do rolê');

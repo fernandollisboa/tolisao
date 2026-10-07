@@ -42,6 +42,9 @@
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
+  // "apagar meus dados deste aparelho" no fim do cartão do evento: desligado pra todo mundo. Liga no aparelho
+  // abrindo o site com ?apagar (fica lembrado; ?apagar=0 desliga)
+  const APAGAR_DADOS = false;
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -88,10 +91,11 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, apagarOn,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista;
+  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
@@ -2117,7 +2121,7 @@
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
-      }${temDados() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
+      }${ofereceApagar() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
       !aberto,
     );
     if (aberto) {
@@ -2658,6 +2662,11 @@
   };
   /** tem o que apagar: algum evento, ou o nome e a chave pix lembrados pro próximo */
   const temDados = () => gavetasDeEvento().length > 0 || !!device().myName || !!device().pixKey;
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('apagar')) setDevice('apagarOn', q.get('apagar') === '0' ? undefined : true);
+  })();
+  const ofereceApagar = () => (APAGAR_DADOS || device().apagarOn === true) && temDados();
   /** celular emprestado, vendido ou de casal: tira a minha chave pix de cada evento (com o tok, que só este
    * aparelho tem, e por isso antes de tudo), desliga os avisos e apaga as gavetas. Sem rede, as chaves ficam */
   async function apagaTudo() {
@@ -2730,7 +2739,9 @@
       falhou.push(nome);
       ls.set(k, JSON.stringify({ code, hidden: true, pixTokens: ficam[k] }));
     }
-    ls.del(DEVICE);
+    // quem ligou o apagar pelo ?apagar e ficou com chave pra tirar continua vendo o botão pra tentar de novo
+    if (falhou.length && device().apagarOn === true) ls.set(DEVICE, JSON.stringify({ apagarOn: true }));
+    else ls.del(DEVICE);
     if (falhou.length)
       await ask(
         'Faltou a chave pix',

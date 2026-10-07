@@ -185,7 +185,6 @@ Funcionalidade: Entrar no evento
       qualquer nome cria o evento.
       BORA
       VOLTAR
-      apagar meus dados deste aparelho
       """
     Quando eu toco em voltar
     Então o cartão fecha

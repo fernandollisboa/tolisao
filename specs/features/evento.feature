@@ -18,6 +18,19 @@ Funcionalidade: Entrar no evento
     Quando eu toco fora do cartão
     Então o cartão do código volta com "bailedamda" escrito
 
+  Cenário: Esc fecha o cartão, como tocar fora
+    No computador, Esc é o gesto que todo mundo tenta pra fechar.
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco no nome do evento
+    E eu aperto Esc
+    Então o cartão fecha
+
+  Cenário: sem evento, o Esc não some com o cartão do código
+    Dado que eu abro o site sem evento
+    Quando eu aperto Esc
+    Então aparece o cartão do código
+
   Cenário: o código fica no endereço, com um final sorteado
     Código curto se adivinha testando direto no banco. O evento novo ganha um
     final sorteado no link, e a tela continua com o nome que a pessoa digitou.

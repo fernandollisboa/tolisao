@@ -141,6 +141,11 @@ Funcionalidade: Acertar as contas
     E a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho
     Então aparece o aviso "💸 Mengla e Klinsmann te pagaram R$ 248,04"
 
+  Cenário: o aviso também chega pra quem usa leitor de tela
+    Quando eu abro o evento como Fernando
+    E a Mengla paga R$ 174,43 pro Fernando em outro aparelho
+    Então o leitor de tela anuncia "💸 Mengla te pagou R$ 174,43"
+
   Cenário: quem não recebeu não vê aviso
     Quando eu abro o evento como Lia
     E a Mengla paga R$ 174,43 pro Fernando em outro aparelho

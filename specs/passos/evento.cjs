@@ -78,6 +78,12 @@ Then('o cartão de quem é você já vem com {word} escolhida/escolhido', async 
 Then('o cartão de quem é você não tem botão de sair', async ({ mundo }) => { await expect(mundo.p.locator('#leaveBtn')).toHaveCount(0); });
 
 Then('aparece o aviso {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#toast')).toHaveText(txt); });
+// o aviso some sozinho: sem região viva, o leitor de tela nem fica sabendo dele
+Then('o leitor de tela anuncia {string}', async ({ mundo }, txt) => {
+  const t = mundo.p.locator('#toast'); await expect(t).toHaveText(txt);
+  await expect(t).toHaveAttribute('role', 'status'); await expect(t).toHaveAttribute('aria-live', 'polite');
+});
+When('eu aperto Esc', async ({ mundo }) => { await mundo.p.keyboard.press('Escape'); });
 
 // evento sem ninguém: o "quem é você?" vira a lista de gente
 // a sala aberta é a gaveta que guarda o código que está no endereço

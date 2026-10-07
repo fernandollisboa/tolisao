@@ -110,7 +110,7 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .row .v{white-space:nowrap} .num{display:inline-block;min-width:7ch;text-align:right} .cur{display:inline-block;margin-right:5px}
 .small{font-size:16px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .small>span{flex:1}
-.stamp{--cy:0px;display:inline-block;margin-left:9px;vertical-align:middle;font-family:'Permanent Marker',cursive;color:var(--red);border:1.5px solid currentColor;border-radius:44% 56% 47% 53%/58% 46% 54% 42%;padding:2px 11px;font-size:11px;line-height:1.5;transform:translateY(calc(var(--cy) + var(--dy,0))) rotate(var(--rot,-8deg));opacity:.9;letter-spacing:.5px;pointer-events:none}
+.stamp{--cy:0px;display:inline-block;margin-left:9px;vertical-align:middle;font-family:'Permanent Marker',cursive;color:var(--red);border:1.5px solid currentColor;border-radius:44% 56% 47% 53%/58% 46% 54% 42%;padding:2px 11px;font-size:11px;line-height:1.5;transform:translateY(calc(var(--cy) + var(--dy,0px))) rotate(var(--rot,-8deg));opacity:.9;letter-spacing:.5px;pointer-events:none}
 @keyframes risca{from{width:0}to{width:100%}}
 @media (prefers-reduced-motion:reduce){.row.paid.novo:after{animation:none}}
 .paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;top:50%;border-top:2px solid var(--ri,#8a7a5a);pointer-events:none;z-index:2}
@@ -674,6 +674,8 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .comandinha.roda .f2{animation-delay:.5s}
 .comandinha.roda .f3{animation-delay:1s}
 .comandinha .f3 .v{color:var(--red)}
+/* o "deve" de quem pagou fica na tinta, que nem nas outras linhas: só o nome leva cor */
+.comandinha .f2 .n{color:var(--ink)}
 .comandinha.roda .f2 .n,.comandinha.roda .f2 .v{animation:desbota .3s 2.3s backwards}
 @keyframes desbota{from{color:var(--red)}}
 .comandinha .f2.paid.novo:after{--rd:2.3s}

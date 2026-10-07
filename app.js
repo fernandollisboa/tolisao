@@ -2093,31 +2093,46 @@
     'réveillon 2027',
     'festival de verão',
   ];
-  /** o "ex:" do campo mostra dois exemplos de cada vez e vai trocando entre três duplas sorteadas, pra mostrar
-   * que qualquer nome serve. Para sozinho quando o campo sai da tela; com movimento reduzido fica em praia, churras
+  /** o "ex:" do campo mostra dois exemplos e vai andando um de cada vez (1 2 → 2 3 → 3 4): apaga e se digita
+   * de novo, que nem o título. A dupla cabe no campo do celular (até 22 letras somando as duas) e uma raiz não
+   * volta logo (réveillon e réveillon 2027). Para sozinho quando o campo sai da tela; com movimento reduzido fica
+   * em praia, churras
    * @param {HTMLInputElement} campo */
   function trocaExemplo(campo) {
     if (semMovimento()) return;
-    const sobra = [...EXEMPLOS].sort(() => Math.random() - 0.5),
-      duplas = [],
-      raiz = (/** @type {string} */ x) => x.split(' ')[0];
-    // a dupla cabe no campo do celular: até 20 letras somando as duas
-    while (duplas.length < 3 && sobra.length > 1) {
-      const a = /** @type {string} */ (sobra.shift()),
-        j = sobra.findIndex((b) => a.length + b.length <= 20 && raiz(b) !== raiz(a));
-      if (j < 0) continue;
-      const b = sobra.splice(j, 1)[0];
-      duplas.push(`ex: ${a}, ${b}`);
-      // réveillon e réveillon 2027 não aparecem os dois: cada raiz vale uma vez
-      for (let k = sobra.length - 1; k >= 0; k--) if ([raiz(a), raiz(b)].includes(raiz(sobra[k]))) sobra.splice(k, 1);
-    }
-    let i = 0;
-    campo.placeholder = duplas[0];
-    const t = setInterval(() => {
-      if (!campo.isConnected) return clearInterval(t);
-      i = (i + 1) % duplas.length;
-      campo.placeholder = duplas[i];
-    }, 2600);
+    const raiz = (/** @type {string} */ x) => x.split(' ')[0],
+      sorteia1 = (/** @type {string[]} */ l) => l[Math.floor(Math.random() * l.length)];
+    let primeiro = sorteia1(EXEMPLOS),
+      vistos = [raiz(primeiro)];
+    const proximo = (/** @type {string} */ de) => {
+      const cabe = (/** @type {string} */ x) => de.length + x.length <= 22 && !vistos.includes(raiz(x));
+      // rodou a lista toda: só a de agora fica vista, pra não repetir em seguida
+      if (!EXEMPLOS.some(cabe)) vistos = [raiz(de)];
+      const x = sorteia1(EXEMPLOS.filter(cabe));
+      vistos.push(raiz(x));
+      return x;
+    };
+    let segundo = proximo(primeiro);
+    campo.placeholder = `ex: ${primeiro}, ${segundo}`;
+    const dorme = (/** @type {number} */ ms) => new Promise((ok) => setTimeout(ok, ms));
+    (async () => {
+      while (campo.isConnected) {
+        await dorme(2400);
+        const novo = proximo(segundo),
+          alvo = `ex: ${segundo}, ${novo}`;
+        // apaga até o "ex: " e escreve a dupla nova, letra por letra
+        while (campo.isConnected && campo.placeholder.length > 4) {
+          campo.placeholder = campo.placeholder.slice(0, -1);
+          await dorme(28);
+        }
+        for (let k = 5; campo.isConnected && k <= alvo.length; k++) {
+          campo.placeholder = alvo.slice(0, k);
+          await dorme(70);
+        }
+        primeiro = segundo;
+        segundo = novo;
+      }
+    })();
   }
   /** a chuva é enfeite: entra vazia e só enche quando o navegador folga, pra não atrasar o cartão */
   function chove() {

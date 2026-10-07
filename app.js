@@ -27,7 +27,9 @@
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
+  const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const RECEBI = false; // "recebi" na linha de quem me deve (pagaram por fora): desligado por enquanto
+  const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
@@ -167,7 +169,7 @@
   setDevice('visits', visitas);
   // aparelhos por dia: um +1 no banco, que ninguém lê (só o dono, no console). O dia é o de Brasília (2026-10-06)
   const hojeBR = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  if (CONTA_VISITAS && DB && device().countedDay !== hojeBR)
+  if (CONTA_VISITAS && !LOCAL && DB && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
       method: 'PUT',
       body: '{".sv":{"increment":1}}',
@@ -953,7 +955,7 @@
     'input',
     (ev) => {
       const t = /** @type {HTMLInputElement} */ (ev.target);
-      if (t.matches && t.matches('#amount, #sharesBox input[data-share]')) mascara(t);
+      if (t.matches && t.matches('#amount, #sharesBox input[data-share], #quitaValor')) mascara(t);
     },
     true,
   );
@@ -2331,8 +2333,8 @@
     sync();
     loadPixKeys();
   }
-  function showQuitado(to, cents) {
-    overlay(`<h2>Quitado!</h2>
+  function showQuitado(to, cents, parcial = false) {
+    overlay(`<h2>${parcial ? 'Pago!' : 'Quitado!'}</h2>
       <p class="muted recado" style="margin-bottom:14px">avise ${nomeHtml(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
       <div class="c voltar"><button id="quitOk" class="ghost">fechar</button></div>`);
@@ -2684,8 +2686,24 @@
   $('#sheet').addEventListener('click', (ev) => {
     if (ev.target.id === 'sheet') closeSheet();
   });
-  $('#expenseForm').onsubmit = (ev) => {
+  /** o gasto que parece o mesmo: mesmo valor e mesmo pagante, anotado há pouco. No rolê, quem pagou
+   *  e quem tava com o celular na mão anotam o mesmo Uber @param {Expense} exp */
+  const jaAnotado = (exp) =>
+    state.expenses
+      .filter(
+        (x) =>
+          !x.kind && x.payer === exp.payer && centavos(x) === centavos(exp) && exp.at - x.at < JA_ANOTADO_H * 3600000,
+      )
+      .pop();
+  /** "há 3 min", pro cartão do já anotado */
+  const ha = (at) => {
+    const min = Math.round((Date.now() - at) / 60000);
+    return min < 1 ? 'agora' : min < 60 ? `há ${min} min` : `há ${Math.round(min / 60)} h`;
+  };
+  let conferindo = false; // o anotar espera o banco: o segundo toque no botão não anota de novo
+  $('#expenseForm').onsubmit = async (ev) => {
     ev.preventDefault();
+    if (conferindo) return;
     const among = inputs('#splitChips input:checked').map((i) => i.value);
     const total = lerCentavos($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro');
@@ -2713,6 +2731,31 @@
       for (const id of among) exp.shares[id] = sh[id] || 0;
     }
     const velho = editando && state.expenses.find((x) => x.id === editando);
+    // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
+    if (!editando) {
+      // o banco tem prazo: com a rede engasgada, confere com o que já chegou e anota (o sync mescla depois)
+      const botao = /** @type {HTMLButtonElement} */ ($('#expenseForm button.big'));
+      conferindo = true;
+      botao.disabled = true;
+      botao.textContent = 'conferindo…';
+      await Promise.race([sync(), new Promise((r) => setTimeout(r, 1500))]);
+      conferindo = false;
+      botao.disabled = false;
+      botao.textContent = 'Anotar';
+      if ($('#sheet').classList.contains('hidden')) return; // fechou o anotar enquanto conferia: desistiu
+      const ja = jaAnotado(exp);
+      if (ja) {
+        const autor = autorNome(ja) ? `, anotado por ${autorHtml(ja)}` : '';
+        const desc = ja.desc ? `${esc(ja.desc)} · ` : '';
+        const mesmo = await ask(
+          'Já anotaram?',
+          `${desc}${comSifrao(centavos(ja))} · ${nomeHtml(ja.payer)} pagou${autor} ${ha(ja.at)}`,
+          'anotar mesmo assim',
+        );
+        if (!mesmo) return;
+      }
+      exp.at = Date.now();
+    }
     if (velho) {
       exp.at = velho.at;
       apagaItem(velho, exp.id);
@@ -2814,11 +2857,28 @@
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
     const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
+    // quem paga escolhe quanto: "te mando 50 agora e o resto sexta". Vem com o total, na máscara do anotar
+    const pergunta = () => {
+      const p = ask(
+        'Quitar?',
+        `${nomeHtml(from)} pagou pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>`,
+        'quitei',
+      );
+      const cx = /** @type {HTMLInputElement} */ ($('#quitaValor'));
+      cx.addEventListener('input', () => {
+        cents = +cx.value.replace(/\D/g, '');
+        /** @type {HTMLButtonElement} */ ($('#okBtn')).disabled = !cents;
+      });
+      cx.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && cents) $('#okBtn').click();
+      });
+      return p;
+    };
     const certeza = await (modo === 'perdoa'
       ? ask('Perdoar?', `${nomeHtml(from)} não te deve mais ${valor}`, 'perdoar')
       : modo === 'recebi'
         ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
-        : ask('Quitar?', `${nomeHtml(from)} pagou ${valor} pra ${nomeHtml(to)}`, 'quitei'));
+        : pergunta());
     if (!certeza) return;
     // a nota pode estar velha: o outro lado pode já ter marcado do aparelho dele. Baixa o banco
     // e grava só o que ainda falta, senão o pagamento entra duas vezes e a dívida vira ao contrário
@@ -2853,8 +2913,10 @@
     seguraRisco = true;
     commit();
     festa(r.left + r.width / 2, r.top + r.height / 2);
-    toast('Quitado! 🎉');
-    showQuitado(to, cents);
+    // pagou só uma parte: o resto segue na nota, então ainda não é quitado
+    const parcial = !!t && cents < t.cents;
+    toast(parcial ? 'Pago! 🎉' : 'Quitado! 🎉');
+    showQuitado(to, cents, parcial);
   }
   async function excluiGasto(el) {
     const e = achaGasto(el.dataset.delExpense);
@@ -2941,9 +3003,7 @@
     }
   });
   // endereço fixo: uma cópia velha em cache não pode mandar gente pro caminho antigo
-  const SITE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
-    ? location.origin + location.pathname
-    : 'https://tolisa.com.br/';
+  const SITE = LOCAL ? location.origin + location.pathname : 'https://tolisa.com.br/';
   // as figurinhas de cobrança, uma pasta cada: nome que se lê no link (as velhas c/h, c/i e c/j seguem de pé pros links já mandados)
   const COBRA_PASTAS = ['semverba', 'sextou', 'fiado'];
   /** a pasta escolhe o preview do link no zap: cada uma tem as suas og: e o vai.js manda pro app.
@@ -3052,192 +3112,203 @@
       TINTA_CLARA = '#5a5a5a',
       PAPEL = '#efe9d8',
       VERDE = '#15703a';
-    // escreve num rascunho bem alto e depois copia só a altura usada pro papel de verdade
-    const rascunho = document.createElement('canvas');
-    rascunho.width = LARGURA * ESCALA;
-    rascunho.height = 4000 * ESCALA;
-    const ctx = rascunho.getContext('2d');
-    ctx.scale(ESCALA, ESCALA);
-    ctx.font = `${FONTE}px 'VT323'`;
-    ctx.textBaseline = 'alphabetic';
-    const larguraLetra = ctx.measureText('M').width,
-      COLUNAS = Math.floor((LARGURA - 2 * MARGEM - 2 * RECUO) / larguraLetra);
-    let y = MARGEM + 12 + 50; // a linha em que o próximo texto entra
-
-    /** pinta o marca-texto atrás de `len` letras a partir da coluna `col` da linha atual */
-    const marcaTexto = (col, len, cor) => {
-      ctx.fillStyle = cor;
-      ctx.fillRect(ESQ + col * larguraLetra - 3, y - FONTE * 0.72, len * larguraLetra + 6, FONTE * 0.9);
-    };
-    const maiusc = (t) => String(t).toUpperCase();
-    // a coluna continua contada em unidade UTF-16, que é o que a régua do papel usa;
-    // o apara() só não deixa a conta parar no meio de um par surrogate
-    /** o texto em maiúsculas, cortado com … se passar de n colunas */
-    const cabe = (t, n) => {
-      t = maiusc(t);
-      return t.length > n ? apara(t.slice(0, Math.max(1, n - 1))) + '…' : t;
-    };
-    const escreve = (t, cor = TINTA) => {
-      ctx.fillStyle = cor;
-      ctx.textAlign = 'left';
-      ctx.fillText(t, ESQ, y);
-      y += ENTRELINHA;
-    };
-    const centraliza = (t) => {
-      ctx.textAlign = 'center';
-      ctx.fillStyle = TINTA;
-      ctx.fillText(t, LARGURA / 2, y);
-      y += ENTRELINHA;
-    };
-    const traco = () => escreve('-'.repeat(COLUNAS), TINTA_CLARA);
-    const pula = () => {
-      y += ENTRELINHA * 0.6;
-    };
-    /** "ALGO ........ VALOR", ocupando a linha toda */
-    const comPontinhos = (l, v) => {
-      l = cabe(l, COLUNAS - 10 - 2); // guarda 10 colunas pro valor
-      const pontos = '.'.repeat(Math.max(1, COLUNAS - l.length - v.length - 2));
-      return `${l} ${pontos} ${v}`;
-    };
-    // as iniciais de quem divide ("F J L"): letras suficientes pra ninguém se confundir
-    const semAcento = (t) => maiusc(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const primeiras = (t, k) => apara(t.slice(0, k));
-    const inicial = (id) => {
-      const n = semAcento(nameOf(id));
-      let k = 1;
-      while (
-        k < n.length &&
-        state.people.some((p) => p.id !== id && primeiras(semAcento(nameOf(p.id)), k) === primeiras(n, k))
-      )
-        k++;
-      return primeiras(n, k);
-    };
-    /** escreve pedaços de texto, com marca-texto nos que têm `id`, quebrando a linha
-     *  quando o próximo pedaço (ou `w` colunas) não cabe
-     *  @param {{ t: string, id?: string, w?: number }[]} pedacos */
-    const escreveQuebrando = (pedacos) => {
-      let col = 0,
-        t = '';
-      for (const p of pedacos) {
-        if (!p.t) continue;
-        if (col > 2 && col + (p.w || p.t.length) > COLUNAS) {
-          escreve(t.trimEnd(), TINTA_CLARA);
-          t = '  ';
-          col = 2;
-        }
-        if (p.id) marcaTexto(col, p.t.length, markForte(p.id));
-        t += p.t;
-        col += p.t.length;
-      }
-      if (t.trim()) escreve(t.trimEnd(), TINTA_CLARA);
-    };
-
-    // cabeçalho
+    // a comanda mostra só os itens mais novos: viagem de uma semana passava de 12 mil px e o
+    // Safari do iPhone não gera imagem acima de ~16 Mpx. O total soma tudo, o resto fica no link
+    const TETO_ITENS = 25;
     const agora = new Date();
-    const data = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-    const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
-    centraliza(`*** TÔ LISA ***`);
-    centraliza(cabe(`${maiusc(evento())} · ${data} ${hora}`, COLUNAS));
-    pula();
-    traco();
+    /** escreve a comanda inteira e diz em que altura ela acabou
+     *  @param {CanvasRenderingContext2D} ctx */
+    const desenha = (ctx) => {
+      ctx.font = `${FONTE}px 'VT323'`;
+      ctx.textBaseline = 'alphabetic';
+      const larguraLetra = ctx.measureText('M').width,
+        COLUNAS = Math.floor((LARGURA - 2 * MARGEM - 2 * RECUO) / larguraLetra);
+      let y = MARGEM + 12 + 50; // a linha em que o próximo texto entra
 
-    // saldo: quem ainda paga quem, e depois quem já está quite
-    pula();
-    centraliza('*** FALTA PAGAR ***');
-    pula();
-    if (!acerto.length) centraliza('TUDO QUITADO');
-    for (const t of acerto) {
-      const de = cabe(nameOf(t.from), 12),
-        pra = cabe(nameOf(t.to), 12);
-      marcaTexto(0, de.length, markForte(t.from));
-      marcaTexto(de.length + 6, pra.length, markForte(t.to));
-      escreve(comPontinhos(`${de} PAGA ${pra}`, 'R$ ' + reais(t.cents)));
-    }
-    const quites = state.people.filter((p) => (saldo[p.id] || 0) === 0);
-    if (quites.length && acerto.length) pula();
-    for (const p of quites) {
-      const n = cabe(nameOf(p.id), COLUNAS - 16);
-      marcaTexto(0, n.length, markForte(p.id));
-      escreve(comPontinhos(n, 'QUITE'), VERDE);
-    }
-    traco();
+      /** pinta o marca-texto atrás de `len` letras a partir da coluna `col` da linha atual */
+      const marcaTexto = (col, len, cor) => {
+        ctx.fillStyle = cor;
+        ctx.fillRect(ESQ + col * larguraLetra - 3, y - FONTE * 0.72, len * larguraLetra + 6, FONTE * 0.9);
+      };
+      const maiusc = (t) => String(t).toUpperCase();
+      // a coluna continua contada em unidade UTF-16, que é o que a régua do papel usa;
+      // o apara() só não deixa a conta parar no meio de um par surrogate
+      /** o texto em maiúsculas, cortado com … se passar de n colunas */
+      const cabe = (t, n) => {
+        t = maiusc(t);
+        return t.length > n ? apara(t.slice(0, Math.max(1, n - 1))) + '…' : t;
+      };
+      const escreve = (t, cor = TINTA) => {
+        ctx.fillStyle = cor;
+        ctx.textAlign = 'left';
+        ctx.fillText(t, ESQ, y);
+        y += ENTRELINHA;
+      };
+      const centraliza = (t) => {
+        ctx.textAlign = 'center';
+        ctx.fillStyle = TINTA;
+        ctx.fillText(t, LARGURA / 2, y);
+        y += ENTRELINHA;
+      };
+      const traco = () => escreve('-'.repeat(COLUNAS), TINTA_CLARA);
+      const pula = () => {
+        y += ENTRELINHA * 0.6;
+      };
+      /** "ALGO ........ VALOR", ocupando a linha toda */
+      const comPontinhos = (l, v) => {
+        l = cabe(l, COLUNAS - 10 - 2); // guarda 10 colunas pro valor
+        const pontos = '.'.repeat(Math.max(1, COLUNAS - l.length - v.length - 2));
+        return `${l} ${pontos} ${v}`;
+      };
+      // as iniciais de quem divide ("F J L"): letras suficientes pra ninguém se confundir
+      const semAcento = (t) => maiusc(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+      const primeiras = (t, k) => apara(t.slice(0, k));
+      const inicial = (id) => {
+        const n = semAcento(nameOf(id));
+        let k = 1;
+        while (
+          k < n.length &&
+          state.people.some((p) => p.id !== id && primeiras(semAcento(nameOf(p.id)), k) === primeiras(n, k))
+        )
+          k++;
+        return primeiras(n, k);
+      };
+      /** escreve pedaços de texto, com marca-texto nos que têm `id`, quebrando a linha
+       *  quando o próximo pedaço (ou `w` colunas) não cabe
+       *  @param {{ t: string, id?: string, w?: number }[]} pedacos */
+      const escreveQuebrando = (pedacos) => {
+        let col = 0,
+          t = '';
+        for (const p of pedacos) {
+          if (!p.t) continue;
+          if (col > 2 && col + (p.w || p.t.length) > COLUNAS) {
+            escreve(t.trimEnd(), TINTA_CLARA);
+            t = '  ';
+            col = 2;
+          }
+          if (p.id) marcaTexto(col, p.t.length, markForte(p.id));
+          t += p.t;
+          col += p.t.length;
+        }
+        if (t.trim()) escreve(t.trimEnd(), TINTA_CLARA);
+      };
 
-    // itens: descrição ...... valor, com quem pagou e como dividiu embaixo
-    pula();
-    centraliza('*** ITENS ***');
-    pula();
-    if (!items.length) escreve('NADA ANOTADO');
-    for (const e of items) {
-      escreve(comPontinhos(e.desc, reais(centavos(e))));
-      const pagou = cabe(nameOf(e.payer), 14);
-      marcaTexto(2, pagou.length, markForte(e.payer));
-      /** @type {{ t: string, id?: string, w?: number }[]} */
-      const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
-      const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
-      if (e.shares) {
-        // partes diferentes: cada nome com o valor dele
-        e.among.forEach((id, i) => {
-          const n = cabe(nameOf(id), 14),
-            v = ' ' + reais(e.shares[id] || 0);
-          pedacos.push({ t: n, id, w: n.length + v.length }, { t: v + virgula(i) });
-        });
-        escreveQuebrando(pedacos);
-        continue;
-      }
-      if (!e.among.includes(e.payer)) {
-        // empréstimo: quem pagou não entra na divisão
-        e.among.forEach((id, i) => pedacos.push({ t: cabe(nameOf(id), 14), id }, { t: virgula(i) }));
-        pedacos.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
-        escreveQuebrando(pedacos);
-        continue;
-      }
-      if (state.people.every((p) => e.among.includes(p.id))) {
-        escreve('  ' + cabe(`${pagou} pagou · ÷${e.among.length} todos`, COLUNAS - 2), TINTA_CLARA);
-        continue;
-      }
-      // igual entre alguns: as iniciais de quem divide, até onde couber
-      const inicio = `  ${pagou} PAGOU · ÷${e.among.length} `;
-      let col = inicio.length,
-        t = inicio;
-      for (const id of e.among) {
-        const ini = inicial(id);
-        if (col + ini.length > COLUNAS) break;
-        marcaTexto(col, ini.length, markForte(id));
-        t += ini + ' ';
-        col += ini.length + 1;
-      }
-      escreve(t.trimEnd(), TINTA_CLARA);
-    }
-    pula();
-    escreve(comPontinhos('TOTAL', 'R$ ' + reais(totalCents)), TINTA_CLARA);
-    traco();
-    pula();
-    centraliza('* * *');
+      // cabeçalho
+      const data = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const hora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + 'H';
+      centraliza(`*** TÔ LISA ***`);
+      centraliza(cabe(`${maiusc(evento())} · ${data} ${hora}`, COLUNAS));
+      pula();
+      traco();
 
-    // o código de barras do rodapé, o mesmo da página
-    {
-      const barras = code128Widths('420420420420');
-      const unidades = [...barras].reduce((a, n) => a + +n, 0);
-      const LARG_BARRAS = 240,
-        ALT_BARRAS = 40,
-        porUnidade = LARG_BARRAS / unidades;
-      let bx = LARGURA / 2 - LARG_BARRAS / 2;
-      ctx.fillStyle = TINTA;
-      for (let i = 0; i < barras.length; i++) {
-        const w = +barras[i] * porUnidade;
-        if (i % 2 === 0) ctx.fillRect(bx, y - 8, w, ALT_BARRAS); // posição par é barra, ímpar é vão
-        bx += w;
+      // saldo: quem ainda paga quem, e depois quem já está quite
+      pula();
+      centraliza('*** FALTA PAGAR ***');
+      pula();
+      if (!acerto.length) centraliza('TUDO QUITADO');
+      for (const t of acerto) {
+        const de = cabe(nameOf(t.from), 12),
+          pra = cabe(nameOf(t.to), 12);
+        marcaTexto(0, de.length, markForte(t.from));
+        marcaTexto(de.length + 6, pra.length, markForte(t.to));
+        escreve(comPontinhos(`${de} PAGA ${pra}`, 'R$ ' + reais(t.cents)));
       }
-      y += ALT_BARRAS + 4;
-    }
-    ctx.fillStyle = TINTA_CLARA;
-    ctx.textAlign = 'center';
-    ctx.fillText('tolisa.com.br', LARGURA / 2, y + 16);
-    y += ENTRELINHA + 6;
+      const quites = state.people.filter((p) => (saldo[p.id] || 0) === 0);
+      if (quites.length && acerto.length) pula();
+      for (const p of quites) {
+        const n = cabe(nameOf(p.id), COLUNAS - 16);
+        marcaTexto(0, n.length, markForte(p.id));
+        escreve(comPontinhos(n, 'QUITE'), VERDE);
+      }
+      traco();
 
-    // o papel na altura exata: fundo escuro, papel com a borda picotada em zigue-zague
-    // em cima e embaixo, riscos bem leves de papel térmico, e o rascunho por cima
-    const ALTURA = y + MARGEM + 12;
+      // itens: descrição ...... valor, com quem pagou e como dividiu embaixo
+      pula();
+      centraliza('*** ITENS ***');
+      pula();
+      if (!items.length) escreve('NADA ANOTADO');
+      for (const e of items.slice(0, TETO_ITENS)) {
+        escreve(comPontinhos(e.desc, reais(centavos(e))));
+        const pagou = cabe(nameOf(e.payer), 14);
+        marcaTexto(2, pagou.length, markForte(e.payer));
+        /** @type {{ t: string, id?: string, w?: number }[]} */
+        const pedacos = [{ t: '  ' }, { t: pagou, id: e.payer }, { t: ' PAGOU · ' }];
+        const virgula = (i) => (i < e.among.length - 1 ? ', ' : '');
+        if (e.shares) {
+          // partes diferentes: cada nome com o valor dele
+          e.among.forEach((id, i) => {
+            const n = cabe(nameOf(id), 14),
+              v = ' ' + reais(e.shares[id] || 0);
+            pedacos.push({ t: n, id, w: n.length + v.length }, { t: v + virgula(i) });
+          });
+          escreveQuebrando(pedacos);
+          continue;
+        }
+        if (!e.among.includes(e.payer)) {
+          // empréstimo: quem pagou não entra na divisão
+          e.among.forEach((id, i) => pedacos.push({ t: cabe(nameOf(id), 14), id }, { t: virgula(i) }));
+          pedacos.push({ t: ` DEVE${e.among.length === 1 ? '' : 'M'} TUDO` });
+          escreveQuebrando(pedacos);
+          continue;
+        }
+        if (state.people.every((p) => e.among.includes(p.id))) {
+          escreve('  ' + cabe(`${pagou} pagou · ÷${e.among.length} todos`, COLUNAS - 2), TINTA_CLARA);
+          continue;
+        }
+        // igual entre alguns: as iniciais de quem divide, até onde couber
+        const inicio = `  ${pagou} PAGOU · ÷${e.among.length} `;
+        let col = inicio.length,
+          t = inicio;
+        for (const id of e.among) {
+          const ini = inicial(id);
+          if (col + ini.length > COLUNAS) break;
+          marcaTexto(col, ini.length, markForte(id));
+          t += ini + ' ';
+          col += ini.length + 1;
+        }
+        escreve(t.trimEnd(), TINTA_CLARA);
+      }
+      if (items.length > TETO_ITENS) {
+        pula();
+        centraliza(`+ ${items.length - TETO_ITENS} ITENS · TUDO NO LINK`);
+      }
+      pula();
+      escreve(comPontinhos('TOTAL', 'R$ ' + reais(totalCents)), TINTA_CLARA);
+      traco();
+      pula();
+      centraliza('* * *');
+
+      // o código de barras do rodapé, o mesmo da página
+      {
+        const barras = code128Widths('420420420420');
+        const unidades = [...barras].reduce((a, n) => a + +n, 0);
+        const LARG_BARRAS = 240,
+          ALT_BARRAS = 40,
+          porUnidade = LARG_BARRAS / unidades;
+        let bx = LARGURA / 2 - LARG_BARRAS / 2;
+        ctx.fillStyle = TINTA;
+        for (let i = 0; i < barras.length; i++) {
+          const w = +barras[i] * porUnidade;
+          if (i % 2 === 0) ctx.fillRect(bx, y - 8, w, ALT_BARRAS); // posição par é barra, ímpar é vão
+          bx += w;
+        }
+        y += ALT_BARRAS + 4;
+      }
+      ctx.fillStyle = TINTA_CLARA;
+      ctx.textAlign = 'center';
+      ctx.fillText('tolisa.com.br', LARGURA / 2, y + 16);
+      y += ENTRELINHA + 6;
+      return y;
+    };
+
+    // o papel na altura exata: o texto quebra conforme os nomes, então a altura só se sabe
+    // escrevendo. Primeiro escreve num rascunho de 1 px só pra medir, depois no papel de verdade:
+    // fundo escuro, papel com a borda picotada em zigue-zague em cima e embaixo, riscos bem
+    // leves de papel térmico, e o texto por cima
+    const ALTURA =
+      desenha(/** @type {CanvasRenderingContext2D} */ (document.createElement('canvas').getContext('2d'))) +
+      MARGEM +
+      12;
     const papel = document.createElement('canvas');
     papel.width = LARGURA * ESCALA;
     papel.height = ALTURA * ESCALA;
@@ -3262,7 +3333,7 @@
     }
     p.fillStyle = 'rgba(0,0,0,.03)';
     for (let yy = MARGEM; yy < ALTURA - MARGEM; yy += 4) p.fillRect(MARGEM, yy, LARGURA - 2 * MARGEM, 1);
-    p.drawImage(rascunho, 0, 0, LARGURA * ESCALA, ALTURA * ESCALA, 0, 0, LARGURA, ALTURA);
+    desenha(p);
     return new Promise((res) => papel.toBlob(res, 'image/png'));
   }
   // compartilhar começa perguntando pra quem é o link: quem abrir já entra como essa pessoa

@@ -82,6 +82,17 @@ Funcionalidade: Acertar as contas
       | Klinsmann | Fernando | 73,61  |
       | Klinsmann | Júlia    | 34,72  |
 
+  Cenário: desfazer pelo aviso, logo depois de quitar
+    Errou o valor ou tocou no ✔ sem querer: o aviso de quitado já traz o desfazer, sem caçar o carimbo.
+    Quando eu abro o evento como Lia
+    E eu toco no ✔ da primeira linha de Minha conta e confirmo
+    E eu toco em "desfazer" no aviso
+    Então o cartão do quitado fecha
+    E nenhum pagamento está carimbado
+    E eu devo R$ 117,84 pro Fernando
+    Quando eu abro o evento como Fernando em outro aparelho
+    Então nenhum pagamento está carimbado
+
   Cenário: quitar e avisar no zap
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta e aviso no zap

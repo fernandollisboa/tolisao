@@ -36,6 +36,12 @@ const quita = async (p, fecha, valor) => {
 When('eu pago R$ {num} da primeira linha de Minha conta e aviso no zap', async ({ mundo }, valor) => { await quita(mundo.p, '#waAviso', valor.toFixed(2)); });
 When('eu quito a primeira linha de Minha conta', async ({ mundo }) => { await quita(mundo.p, '#quitOk'); });
 When('eu quito a primeira linha de Minha conta e aviso no zap', async ({ mundo }) => { await quita(mundo.p, '#waAviso'); });
+When('eu toco no ✔ da primeira linha de Minha conta e confirmo', async ({ mundo }) => {
+  await mundo.p.click('#mineRows [data-settle]'); await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#quitOk');
+});
+// force: o aviso ainda tá subindo, e o clique não espera a animação acabar
+When('eu toco em {string} no aviso', async ({ mundo }, txt) => { await mundo.p.locator('#toast button', { hasText: txt }).click({ force: true }); });
+Then('o cartão do quitado fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toBeHidden(); });
 const pago = (p, txt) => p.locator('#settle .row.paid').filter({ has: p.locator('.n', { hasText: txt }) });
 const desfaz = async (p, txt) => { await pago(p, txt).locator('[data-undo]').click({ clickCount: 3 }); await p.waitForSelector('#okBtn'); };
 When('eu começo a desfazer o pagamento {string} e volto atrás', async ({ mundo }, txt) => {

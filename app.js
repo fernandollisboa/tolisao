@@ -22,6 +22,7 @@
   const POLL_MS = 6000;
   const REDE_MS = 8000; // prazo de cada ida ao banco: rede engasgada no bar vira "Offline" em vez de prender o sync
   const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
+  const DESFAZ_MS = 6000; // quanto tempo o aviso de quitado fica com o "desfazer"
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
   // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
   const INSTALAR = true;
@@ -2928,14 +2929,30 @@
       `${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])} · ${comSifrao(centavos(e))}`,
       'desfazer',
     );
-    if (!certeza) return;
+    if (certeza) tiraPagamento(e.id);
+  }
+  /** o desfazer de verdade, do carimbo e do aviso logo depois de quitar */
+  function tiraPagamento(id) {
+    if (!achaGasto(id)) return;
     // não é apagaItem(): pagamento desfeito não vai pra lista de itens apagados
-    state.expenses = state.expenses.filter((x) => x.id !== e.id);
-    state.deleted.push(e.id);
-    anim.riscos.delete(e.id);
+    state.expenses = state.expenses.filter((x) => x.id !== id);
+    state.deleted.push(id);
+    anim.riscos.delete(id);
     commit();
     toast('Desfeito');
   }
+  /** o "desfazer" do aviso de quitado: o aviso já é a confirmação, então não pergunta de novo.
+   *  Fecha o cartão do quitado, se ainda estiver aberto: o "avisar no zap" mentiria */
+  const desfazNoAviso = (id) => ({
+    texto: 'desfazer',
+    faz: () => {
+      if ($('#quitOk') && !$('#overlay').classList.contains('hidden')) {
+        closeOverlay();
+        seguraRisco = false;
+      }
+      tiraPagamento(id);
+    },
+  });
   /** o ✔ paguei de quem deve, e o ✔ recebi e o perdoar de quem recebe: todos viram um
    *  gasto do tipo 'payment' de quem deve pra quem recebe; o perdão leva `forgiven` */
   async function quita(el) {
@@ -2995,7 +3012,7 @@
       // quem recebe não tem quem avisar no zap: quem devia fica sabendo pelo aviso
       commit();
       if (modo === 'recebi') festa(r.left + r.width / 2, r.top + r.height / 2);
-      toast(modo === 'perdoa' ? 'Perdoado 🙏' : 'Recebido! 🎉');
+      toast(modo === 'perdoa' ? 'Perdoado 🙏' : 'Recebido! 🎉', DESFAZ_MS, '', desfazNoAviso(id));
       return;
     }
     seguraRisco = true;
@@ -3003,7 +3020,7 @@
     festa(r.left + r.width / 2, r.top + r.height / 2);
     // pagou só uma parte: o resto segue na nota, então ainda não é quitado
     const parcial = !!t && cents < t.cents;
-    toast(parcial ? 'Pago! 🎉' : 'Quitado! 🎉');
+    toast(parcial ? 'Pago! 🎉' : 'Quitado! 🎉', DESFAZ_MS, '', desfazNoAviso(id));
     showQuitado(to, cents, parcial);
   }
   async function excluiGasto(el) {
@@ -4067,13 +4084,22 @@
   }
   armaOlho();
   let tt;
-  function toast(msg, ms = 3500, cls = '') {
+  /** `acao` põe um botão no aviso (o "desfazer" do quitado), que só se toca enquanto ele está na tela
+   * @param {string} msg @param {number} [ms] @param {string} [cls] @param {{ texto: string, faz: () => void }} [acao] */
+  function toast(msg, ms = 3500, cls = '', acao) {
     const t = $('#toast');
     t.textContent = msg;
+    if (acao) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = acao.texto;
+      b.onclick = acao.faz;
+      t.append(' ', b);
+    }
     // tira a classe e mede antes de pôr de novo: aviso em cima de aviso recomeça a subida
     t.className = 'toast';
     void t.offsetWidth;
-    t.className = 'toast show' + (cls ? ' ' + cls : '');
+    t.className = 'toast show' + (cls ? ' ' + cls : '') + (acao ? ' acao' : '');
     clearTimeout(tt);
     tt = setTimeout(() => t.classList.replace('show', 'sai'), ms);
   }

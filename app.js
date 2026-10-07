@@ -2984,13 +2984,17 @@
   const QR_ICONE =
     '<svg viewBox="0 0 7 7" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 0h3v3H0zM1 1v1h1V1zM4 0h3v3H4zM5 1v1h1V1zM0 4h3v3H0zM1 5v1h1V5zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z" fill-rule="evenodd"/></svg>';
   function mostraQr() {
+    const url = shareUrl(),
+      svg = qrSvg(url);
+    if (!svg) return showCopy('Link do evento', url); // link comprido demais pro QR
     overlay(
       `<h2 class="pergunta">Aponta a câmera</h2>
-      <div class="qr">${qrSvg(shareUrl())}</div>
+      <div class="qr">${svg}</div>
       <p class="muted recado c">quem escanear cai no ${esc(evento())}</p>
       <div class="c voltar"><button id="cancelBtn" class="ghost">fechar</button></div>`,
     );
     $('#cancelBtn').onclick = closeOverlay;
+    $('#cancelBtn').focus(); // o botão que tinha o foco sumiu com o cartão anterior
   }
   $('#shareBtn').onclick = async () => {
     const quem = await linkPraQuem();
@@ -3908,7 +3912,8 @@
   // ---------- QR (modo byte, correção M, versões 1 a 6) ----------
   // escrito à mão como o code128Widths e o crc16: sai uma matriz de sim/não, e quem desenha
   // é a página (qrSvg) ou a comanda (fillRect). A versão 6 leva 106 bytes, o bastante pro link
-  // do evento; o copia e cola do pix pode usar o mesmo qrMatriz depois.
+  // do evento. O copia e cola do pix (~150 bytes) vai pedir as versões 7 a 9: bits de versão,
+  // alinhamento em grade e blocos de tamanhos diferentes.
   // [blocos, bytes de dados por bloco, bytes de correção por bloco], da versão 1 à 6, correção M
   const QR_BLOCOS = [
     [1, 16, 10],
@@ -3931,7 +3936,7 @@
     bits += '0000'.slice(0, cabe - bits.length);
     bits += '0'.repeat((8 - (bits.length % 8)) % 8);
     const dados = bits.match(/.{8}/g).map((b) => parseInt(b, 2));
-    while (dados.length < nb * nd) dados.push(dados.length % 2 ? 0x11 : 0xec);
+    for (let i = 0; dados.length < nb * nd; i++) dados.push(i % 2 ? 0x11 : 0xec); // enchimento: 0xEC, 0x11, 0xEC…
     // Reed-Solomon no corpo de 256 do QR (x⁸+x⁴+x³+x²+1); o gerador é (x-α⁰)…(x-α^(ne-1))
     const exp = [],
       log = [];
@@ -4037,7 +4042,8 @@
         pretos = 0;
       for (const s of [...linhas, ...colunas]) {
         for (const run of s.match(/0+|1+/g) || []) if (run.length >= 5) pena += run.length - 2;
-        pena += 40 * (s.match(/(?=10111010000|00001011101)/g) || []).length;
+        // a borda branca conta como claro: falso canto encostado na beira também confunde
+        pena += 40 * (('0000' + s + '0000').match(/(?=10111010000|00001011101)/g) || []).length;
       }
       for (let y = 0; y < n; y++)
         for (let x = 0; x < n; x++) {

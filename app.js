@@ -776,12 +776,15 @@
     const out = {};
     await Promise.all(
       state.people.map(async (p) => {
+        // rede engasgou ou o banco falhou: fica a chave que já tinha. Só some quando o banco diz que não tem
+        if (pixKeys[p.id]) out[p.id] = pixKeys[p.id];
         try {
           const r = await fetch(pixUrl(p.id, '/key'), { cache: 'no-store' });
           if (r.ok) {
             const v = await r.json();
             const k = typeof v === 'string' ? validPixKey(v) : null;
             if (k) out[p.id] = k;
+            else delete out[p.id];
           }
         } catch {}
       }),

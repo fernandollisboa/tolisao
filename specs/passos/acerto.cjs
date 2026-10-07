@@ -60,6 +60,15 @@ When('eu cobro o/a {word} no zap', async ({ mundo }, nome) => {
   await mundo.p.locator('#mineRows .row.sub').filter({ has: mundo.p.locator('.nm', { hasText: nome }) }).locator('[data-cobra]').click();
 });
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
+// as chaves se buscam de novo a cada 30s: o relógio anda até lá com o banco sem responder.
+// Depois da falha a nota se redesenha na hora; os 300ms são folga pra esse redesenho
+When('a rede engasga quando o app busca as chaves pix de novo', async ({ mundo }) => {
+  await mundo.p.locator('#mineRows [data-pix]').waitFor();
+  mundo.banco.pixFora = true;
+  await mundo.p.context().clock.runFor(30000);
+  await expect.poll(() => mundo.banco.pixFalhas || 0).toBeGreaterThan(0);
+  await mundo.p.waitForTimeout(300);
+});
 Then('fica copiado o pix copia e cola:', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt.trim()); });
 
 // enviar pergunta antes pra quem é o link: "qualquer um" é o data-link-pra vazio

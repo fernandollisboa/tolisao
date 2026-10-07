@@ -440,6 +440,8 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 /* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
 .quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}
 #quitaValor{width:5ch;flex:none;padding:0;border:0;text-align:left;font-size:30px;color:var(--green)}
+/* o copiar pix do Quitar? acompanha o valor digitado; sem clipboard, o código cai logo embaixo */
+#quitaPix{display:flex;margin:12px auto 0;white-space:nowrap} #quitaPixCode{margin-top:8px;text-align:left}
 .shares{display:grid;gap:4px}
 .shares .row{font-size:18px;line-height:1.4;align-items:center}
 /* o campo da parte é o mesmo do valor do gasto (a mesma linha de tinta, a mesma letra

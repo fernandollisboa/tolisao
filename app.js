@@ -2936,12 +2936,10 @@
   // cada botão diz o que é num data-* (ou num id), e esta lista diz o que cada um faz.
   // Um clique só no document atende a página toda, inclusive o que o render() refaz.
   const achaGasto = (id) => state.expenses.find((x) => x.id === id);
-  /** copia pro clipboard; sem permissão, mostra o texto num cartão pra copiar na mão */
-  const copia = (texto, recado, titulo) =>
-    navigator.clipboard.writeText(texto).then(
-      () => toast(recado),
-      () => showCopy(titulo, texto),
-    );
+  /** copia pro clipboard; sem permissão, mostra o texto num cartão pra copiar na mão
+   * (ou onde `naMao` mandar, quando o cartão aberto não pode sumir) */
+  const copia = (texto, recado, titulo, naMao = () => showCopy(titulo, texto)) =>
+    navigator.clipboard.writeText(texto).then(() => toast(recado), naMao);
   /** abre ou fecha os detalhes de um item (quem pagou, como dividiu, editar) */
   const abreItem = (it) => {
     const id = it.dataset.item;
@@ -2950,12 +2948,15 @@
   };
   function copiaPix(el) {
     const [to, cents] = el.dataset.pix.split('|');
-    copia(
-      pixCode(pixKeys[to], nameOf(to), +cents),
-      'Pix copia e cola copiado. Cola no app do banco.',
-      'Pix copia e cola',
-    );
+    const texto = pixCode(pixKeys[to], nameOf(to), +cents);
+    // no Quitar? o cartão fica aberto: sem clipboard, o código aparece ali embaixo do botão
+    const noQuitar = el.id === 'quitaPix' ? () => el.insertAdjacentHTML('afterend', pixNaMao(texto)) : undefined;
+    copia(texto, 'Pix copia e cola copiado. Cola no app do banco.', 'Pix copia e cola', noQuitar);
   }
+  const pixNaMao = (texto) => {
+    $('#quitaPixCode')?.remove();
+    return `<code id="quitaPixCode" class="box">${esc(texto)}</code>`;
+  };
   // desfazer é escondido: três toques seguidos no carimbo. Guarda o id, não o elemento,
   // porque o render do sync troca o carimbo no meio dos toques
   let toques = { id: '', n: 0, at: 0 };
@@ -2996,10 +2997,15 @@
     // quem paga escolhe quanto: "te mando 50 agora e o resto sexta". Vem com o total, na máscara do anotar
     // quitar é pagar tudo: com menos que o total, o cartão vira "pagar"
     const total = cents;
+    // com a chave de quem recebe, o pix sai do próprio cartão com o valor digitado (a linha copia o total)
     const pergunta = () => {
+      const pix =
+        pixReady && pixKeys[to]
+          ? `<button id="quitaPix" class="ico" data-pix="${to}|${cents}">${PIX_SVG} copiar pix de <span>${comSifrao(cents)}</span></button>`
+          : '';
       const p = ask(
         'Quitar?',
-        `${nomeHtml(from)} pagou <b id="quitaFrase" style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>`,
+        `${nomeHtml(from)} pagou <b id="quitaFrase" style="color:var(--green)">${comSifrao(cents)}</b> pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>${pix}`,
         'quitei',
       );
       const cx = /** @type {HTMLInputElement} */ ($('#quitaValor'));
@@ -3010,6 +3016,12 @@
         $('#overlayBox h2').textContent = parte ? 'Pagar?' : 'Quitar?';
         $('#quitaFrase').textContent = comSifrao(cents);
         $('#okBtn').textContent = parte ? 'paguei' : 'quitei';
+        const bt = /** @type {HTMLButtonElement|null} */ ($('#quitaPix'));
+        if (!bt) return;
+        bt.dataset.pix = `${to}|${cents}`;
+        bt.disabled = !cents;
+        bt.querySelector('span').textContent = comSifrao(cents);
+        $('#quitaPixCode')?.remove();
       };
       ajusta();
       cx.addEventListener('input', () => {

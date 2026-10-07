@@ -119,6 +119,24 @@ Funcionalidade: Acertar as contas
       00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d5204000053039865406117.845802BR5908FERNANDO6006BRASIL62070503***630476B9
       """
 
+  Cenário: pagar uma parte e copiar o pix dessa parte
+    Quem só manda um pedaço agora copia o pix já com esse pedaço, sem fechar o cartão.
+    Dado que o Fernando tem a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
+    Quando eu abro o evento como Lia
+    E eu toco no paguei da primeira linha de Minha conta
+    E eu troco o valor por R$ 50,00
+    E eu toco em copiar pix no cartão
+    Então fica copiado o pix copia e cola:
+      """
+      00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d520400005303986540550.005802BR5908FERNANDO6006BRASIL62070503***6304F8BE
+      """
+    E o cartão pergunta "Pagar?" com o botão "paguei"
+
+  Cenário: sem chave pix, o cartão de pagar não oferece pix
+    Quando eu abro o evento como Lia
+    E eu toco no paguei da primeira linha de Minha conta
+    Então o cartão não tem copiar pix
+
   Cenário: a rede engasga e o copiar pix fica
     No bar a rede cai toda hora: uma busca que falha não tira da nota a chave que já chegou.
     Dado que o Fernando tem a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"

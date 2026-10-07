@@ -70,6 +70,10 @@ When('eu cobro o/a {word} no zap', async ({ mundo }, nome) => {
   await mundo.p.locator('#mineRows .row.sub').filter({ has: mundo.p.locator('.nm', { hasText: nome }) }).locator('[data-cobra]').click();
 });
 When('eu toco em copiar pix', async ({ mundo }) => { await mundo.p.click('#mineRows [data-pix]'); });
+When('eu toco em copiar pix no cartão', async ({ mundo }) => { await mundo.p.click('#overlayBox [data-pix]'); });
+Then('o cartão não tem copiar pix', async ({ mundo }) => {
+  await expect(mundo.p.locator('#quitaValor')).toBeVisible(); await expect(mundo.p.locator('#overlayBox [data-pix]')).toHaveCount(0);
+});
 // as chaves se buscam de novo a cada 30s: o relógio anda até lá com o banco sem responder.
 // Depois da falha a nota se redesenha na hora; os 300ms são folga pra esse redesenho
 When('a rede engasga quando o app busca as chaves pix de novo', async ({ mundo }) => {

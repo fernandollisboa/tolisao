@@ -4,7 +4,7 @@ const sha256 = t => createHash('sha256').update(t).digest('hex');
 class Banco {
   constructor(op = {}) { this.arvore = { rooms: {}, pix: {}, visitas: {} }; this.listagens = 0; this.atrasoPix = op.atrasoPix || 0; this.congelado = !!op.congelado; }
   sala(dados) { const id = sha256(dados.name); this.arvore.rooms[id] = dados; return id; }
-  pix(sala, pessoa, key) { (this.arvore.pix[sala] ||= {})[pessoa] = { key, tok: 'tok-de-outro-aparelho' }; }
+  pix(sala, pessoa, key) { (this.arvore.pix[sala] ||= {})[pessoa] = { key, tok: 'tokdeoutroaparelho' }; }
   pega(partes) { let n = this.arvore; for (const p of partes) { if (n == null || typeof n !== 'object') return null; n = n[p]; } return n ?? null; }
 
   // o banco inteiro numa função: (método, caminho, cabeçalhos, corpo) → { status, corpo, cabecalhos }.
@@ -23,6 +23,11 @@ class Banco {
       if (m !== 'PUT' || filho) return nega();
       const novo = JSON.parse(texto || 'null');
       if (cur && cur.key !== '' && cur.tok !== novo?.tok) return nega();
+      // o .validate do pix/$room/$person: sala é hash, pessoa é id, só {key, tok} e cada um no formato
+      const pixOk = /^[0-9a-f]{64}$/.test(sala) && /^[a-z0-9]{1,32}$/.test(pessoa) && novo && typeof novo === 'object'
+        && Object.keys(novo).every(k => k === 'key' || k === 'tok') && typeof novo.key === 'string' && novo.key.length <= 80
+        && typeof novo.tok === 'string' && /^[a-z0-9]{1,32}$/.test(novo.tok);
+      if (!pixOk) return nega();
       if (!this.congelado) (this.arvore.pix[sala] ||= {})[pessoa] = novo;
       return json(200, novo);
     }

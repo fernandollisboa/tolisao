@@ -2030,13 +2030,17 @@
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
       : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${
+        aberto
+          ? `<div class="hr"></div><h2>*** Evento ***</h2>
+      <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
+      <div class="c"><button id="evQr" class="qrbtn escuro">${QR_ICONE} mostrar QR</button></div>`
+          : ''
+      }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${
         aberto
           ? `<div class="c"><button id="evNovo" class="ghost">+ criar outro ${esc(evento())}</button></div>
-      <div class="hr"></div><button id="evLink" class="sec">copiar link do evento</button>
-      <div class="c"><button id="evQr" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
       <div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>`
           : ''
       }`,
@@ -2044,7 +2048,8 @@
     );
     if (aberto) {
       $('#evBack').onclick = closeOverlay;
-      $('#evLink').onclick = () => $('#shareBtn').click();
+      // o link do grupo vai direto pra área de copiar: o "Mandar pra quem?" segue no botão de compartilhar
+      $('#evLink').onclick = () => copia(shareUrl(), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
       // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
       $('#evQr').onclick = mostraQr;
       // o nome de um evento da lista abre ele: quem faz churras todo mês cria o próximo daqui,

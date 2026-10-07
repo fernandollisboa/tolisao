@@ -251,15 +251,18 @@ When('eu colo o link do evento pra {word} na mesma aba', async ({ mundo }, quem)
 });
 When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre({ link: mundo.base + '/' + q }); await mundo.p.waitForSelector('#app:not(.loading)'); });
 
-// o QR do link do grupo, do "Mandar pra quem?": o SVG da tela vira imagem e passa pelo leitor
+// o QR do link do grupo, do "Mandar pra quem?" ou do cartão do evento: o SVG da tela vira imagem e passa pelo leitor
 When('eu peço o QR do evento', async ({ mundo }) => { await mundo.p.click('#waBtn'); await mundo.p.click('#qrBtn'); });
-const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}$`);
-Then('o QR na tela leva pro link do grupo', async ({ mundo }) => {
+When('eu peço o QR no cartão do evento', async ({ mundo }) => { await mundo.p.click('#evQr'); await mundo.p.waitForSelector('#overlayBox .qr svg'); });
+When('eu fecho o QR', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
+// o link curto, sem a pasta do preview do zap (semverba, sextou, fiado): o index.html abre o evento direto
+const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\?evento=${mundo.evento.name}$`);
+Then('o QR na tela abre o evento direto', async ({ mundo }) => {
   const svg = await mundo.p.locator('#overlayBox .qr svg').evaluate(s => s.outerHTML.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" '));
   expect(await leQr(mundo.p, 'data:image/svg+xml,' + encodeURIComponent(svg))).toMatch(doGrupo(mundo));
 });
 // a comanda é a que o "baixa a imagem" guardou
-Then('o QR da comanda leva pro link do grupo', async ({ mundo }) => {
+Then('o QR da comanda abre o evento direto', async ({ mundo }) => {
   expect(mundo.nota.comanda, 'a comanda não foi baixada antes').toBeTruthy();
   const png = 'data:image/png;base64,' + require('fs').readFileSync(mundo.nota.comanda).toString('base64');
   expect(await leQr(mundo.p, png)).toMatch(doGrupo(mundo));
@@ -275,3 +278,21 @@ When('eu toco no meu nome, {word}, no topo da nota', async ({ mundo }, quem) => 
   await mundo.p.click(`#chegada [data-chegou="${mundo.pessoa(quem).id}"]`);
 });
 When('eu digo que não tô na turma', async ({ mundo }) => { await mundo.p.click('#chegouFora'); await mundo.p.waitForSelector('#setupName'); });
+
+// a tela acesa do celular: quantos pedidos de tela acesa estão de pé fica em window.__acesa
+Given('que meu celular deixa o site manter a tela acesa', async ({ mundo }) => {
+  mundo.aparelho.push(() => {
+    const w = /** @type {any} */ (window); w.__acesa = 0;
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: async () => { w.__acesa++; let solta = false;
+      return { release: async () => { if (!solta) { solta = true; w.__acesa--; } } }; } } });
+  });
+});
+Then('a tela fica acesa', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(1); });
+Then('a tela já pode apagar', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(0); });
+
+// o "criar outro" do cartão do evento: a página vai pro evento novo, que começa pela lista de gente
+When('eu crio outro {string}', async ({ mundo }, nome) => {
+  await expect(mundo.p.locator('#evNovo')).toHaveText(`+ criar outro ${nome}`);
+  await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#evNovo')]);
+  await mundo.p.waitForSelector('#setupName');
+});

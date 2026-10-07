@@ -57,7 +57,9 @@ Funcionalidade: Meus eventos
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      + CRIAR OUTRO PRAIA
       COPIAR LINK DO EVENTO
+      MOSTRAR QR
       VOLTAR
       """
     E o saldo do "praia" é verde

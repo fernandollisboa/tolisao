@@ -1801,7 +1801,26 @@
   const voltaFoco = (el) => {
     if (el && el.isConnected && typeof el.focus === 'function') el.focus({ preventScroll: true });
   };
+  /** a tela acesa enquanto o QR tá aberto: tela que escurece, a câmera da turma não pega
+   *  @type {WakeLockSentinel | null} */
+  let telaAcesa = null;
+  const acendeTela = () => {
+    // navegador sem wakeLock (ou que recusa, como o de economia de bateria): a tela segue como sempre
+    navigator.wakeLock?.request('screen').then(
+      (t) => {
+        // o cartão fechou antes de o pedido voltar: solta na hora
+        if ($('#overlay').classList.contains('hidden') || !$('#overlayBox .qr')) t.release().catch(() => {});
+        else telaAcesa = t;
+      },
+      () => {},
+    );
+  };
+  const apagaTela = () => {
+    telaAcesa?.release().catch(() => {});
+    telaAcesa = null;
+  };
   const overlay = (html, sticky = false) => {
+    apagaTela();
     if (semCartao()) overlayDeQuem = /** @type {HTMLElement | null} */ (document.activeElement);
     overlayCancel = null;
     overlaySticky = sticky;
@@ -1809,6 +1828,7 @@
     $('#overlay').classList.remove('hidden');
   };
   const closeOverlay = () => {
+    apagaTela();
     $('#overlay').classList.add('hidden');
     $('#overlay').classList.remove('ensina', 'canto', 'meio', 'cima');
     const de = overlayDeQuem;
@@ -2014,7 +2034,9 @@
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${
         aberto
-          ? `<div class="hr"></div><button id="evLink" class="sec">copiar link do evento</button>
+          ? `<div class="c"><button id="evNovo" class="ghost">+ criar outro ${esc(evento())}</button></div>
+      <div class="hr"></div><button id="evLink" class="sec">copiar link do evento</button>
+      <div class="c"><button id="evQr" class="qrbtn">${QR_ICONE} mostrar QR</button></div>
       <div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>`
           : ''
       }`,
@@ -2023,6 +2045,13 @@
     if (aberto) {
       $('#evBack').onclick = closeOverlay;
       $('#evLink').onclick = () => $('#shareBtn').click();
+      // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
+      $('#evQr').onclick = mostraQr;
+      // o nome de um evento da lista abre ele: quem faz churras todo mês cria o próximo daqui,
+      // com o mesmo nome. O ?novo= cai direto no evento novo, sem procurar o nome na lista nem no banco
+      $('#evNovo').onclick = () => {
+        location.href = location.pathname + '?novo=' + encodeURIComponent(evento());
+      };
     }
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
@@ -2336,19 +2365,22 @@
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
     return { code: meu ? meu.code : code, quem: null };
   }
-  async function enterRoom(code) {
+  /** `novo` cria um evento com esse nome mesmo que ele já exista (o "criar outro" do cartão do evento) */
+  async function enterRoom(code, novo = false) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
       existing = null;
-    try {
-      existing = await apiGet(id);
-    } catch (e) {
-      if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
-    }
+    if (!novo)
+      try {
+        existing = await apiGet(id);
+      } catch (e) {
+        if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
+      }
     let criou = false;
-    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    if (!existing && !seed) {
+    const seed = !novo && location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
+    // quem pediu o "criar outro" já disse que quer o evento novo: nada de perguntar de novo
+    if (!existing && !seed && !novo) {
       // código com cara de final sorteado (6 letras e números, com algum número) é link velho ou cortado,
       // não nome novo: "esse nome tá livre" ali faria a pessoa criar um evento fantasma
       const veioDeLink = /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
@@ -2364,6 +2396,8 @@
             'criar',
           ];
       if (!(await ask(titulo, desc, ok))) throw new Error('nada foi criado.');
+    }
+    if (!existing && !seed) {
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
       // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
       const nome = code;
@@ -3122,6 +3156,9 @@
     const dir = pasta || COBRA_PASTAS[[...roomName].reduce((a, c) => a + c.charCodeAt(0), 0) % COBRA_PASTAS.length];
     return `${SITE}${dir}/?evento=${encodeURIComponent(roomName)}${quem ? '&quem=' + quem : ''}`;
   };
+  /** o link do QR, sem a pasta: preview é coisa do zap, e quem escaneia na mesa abre o evento sem o salto
+   *  do vai.js. Mais curto, o QR também fica menos denso pra câmera pegar de longe */
+  const linkDoQr = () => `${SITE}?evento=${encodeURIComponent(roomName)}`;
   // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
@@ -3173,7 +3210,7 @@
   const QR_ICONE =
     '<svg viewBox="0 0 7 7" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 0h3v3H0zM1 1v1h1V1zM4 0h3v3H4zM5 1v1h1V1zM0 4h3v3H0zM1 5v1h1V5zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z" fill-rule="evenodd"/></svg>';
   function mostraQr() {
-    const url = shareUrl(),
+    const url = linkDoQr(),
       svg = qrSvg(url);
     if (!svg) return showCopy('Link do evento', url); // link comprido demais pro QR
     overlay(
@@ -3184,6 +3221,7 @@
     );
     $('#cancelBtn').onclick = closeOverlay;
     $('#cancelBtn').focus(); // o botão que tinha o foco sumiu com o cartão anterior
+    acendeTela();
   }
   $('#shareBtn').onclick = async () => {
     const quem = await linkPraQuem();
@@ -3409,7 +3447,7 @@
       centraliza('* * *');
 
       // o QR do link do grupo, como o da nota fiscal: a imagem encaminhada sem o texto ainda leva pro evento
-      const qr = qrMatriz(shareUrl());
+      const qr = qrMatriz(linkDoQr());
       if (qr) {
         const MODULO = 4,
           lado = qr.length * MODULO,
@@ -4293,6 +4331,16 @@
     const c = q.get('evento') || q.get('senha');
     const quem = q.get('quem');
     if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
+    // o "criar outro" do cartão do evento: o endereço já sai do ?novo=, e recarregar não cria mais um
+    const novo = (q.get('novo') || '').trim().toLowerCase();
+    if (novo) {
+      history.replaceState(null, '', location.pathname);
+      try {
+        return await enterRoom(novo, true);
+      } catch (e) {
+        return showGate(e.message);
+      }
+    }
     if (c) {
       const code = c.trim().toLowerCase(),
         id = await sha(code);

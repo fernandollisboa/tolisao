@@ -1,7 +1,7 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
 /** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, byId?: string, shares?: Record<string, number> }} Expense */
-/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, byId?: string, goneAt: number, to?: string }} Gone */
+/** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, byId?: string, goneAt: number, to?: string, lostTo?: string }} Gone */
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
 (() => {
@@ -277,7 +277,8 @@
         }
         return o;
       });
-    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição
+    // item apagado guarda quem apagou e o que era; `to` é o item que tomou o lugar dele, numa edição;
+    // `lostTo` marca a edição que perdeu pra outra feita ao mesmo tempo, e diz qual ganhou
     const gone = (Array.isArray(d.gone) ? d.gone : [])
       .filter((g) => g && okId(g.id) && Number.isFinite(+g.amount))
       .map((g) => {
@@ -291,6 +292,7 @@
         };
         if (okId(g.byId)) o.byId = g.byId;
         if (okId(g.to)) o.to = g.to;
+        if (okId(g.lostTo)) o.lostTo = g.lostTo;
         return o;
       });
     return {
@@ -327,16 +329,31 @@
       return m;
     };
     // editar troca o item por outro (`to`): dois aparelhos editando o mesmo item deixam dois
-    // substitutos. Vale a edição mais nova, e o outro substituto sai também, senão o gasto conta duas vezes
+    // substitutos. Vale a edição mais nova, e o outro substituto sai também, senão o gasto conta duas vezes.
+    // O que saiu fica no `gone` com `lostTo`: quem editou vê que a edição dela não valeu
     const gone = new Map();
+    const todos = [...a.expenses, ...b.expenses];
     for (const g of [...a.gone, ...b.gone]) {
       if (!deleted.has(g.id)) continue;
       const o = gone.get(g.id);
       if (!o) gone.set(g.id, g);
       else if (o.to && g.to && o.to !== g.to) {
         const novo = g.goneAt > o.goneAt || (g.goneAt === o.goneAt && g.to > o.to); // empate: os dois aparelhos escolhem igual
-        gone.set(g.id, novo ? g : o);
-        deleted.add(novo ? o.to : g.to);
+        const [ganhou, perdeu] = novo ? [g, o] : [o, g];
+        gone.set(g.id, ganhou);
+        deleted.add(perdeu.to);
+        const e = todos.find((x) => x.id === perdeu.to);
+        if (e && !gone.has(e.id))
+          gone.set(e.id, {
+            id: e.id,
+            desc: e.desc,
+            amount: e.amount,
+            at: e.at,
+            by: perdeu.by,
+            ...(perdeu.byId ? { byId: perdeu.byId } : {}),
+            goneAt: perdeu.goneAt,
+            lostTo: ganhou.to,
+          });
       }
     }
     // quem está num gasto não sai da turma: o ✕ só olha este aparelho, e outro pode ter
@@ -1585,18 +1602,34 @@
         .join('') || '<div class="empty">nada anotado ainda</div>';
     const tg = $('#toggleAll');
     tg.classList.toggle('hidden', all.length <= 10);
-    // os apagados ficam recolhidos no fim: a lista não se enche de risco, e "cadê a janta?" está a um toque
+    // os apagados ficam recolhidos no fim: a lista não se enche de risco, e "cadê a janta?" está a um toque.
+    // A edição que perdeu pra outra feita ao mesmo tempo fica junto, dizendo de quem era e qual valeu
     const gone = state.gone.filter((g) => !g.to).reverse();
+    const sobrescritas = gone.filter((g) => g.lostTo).length,
+      apagados = gone.length - sobrescritas;
     const dia = (t) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const deQuem = (g) => (autorNome(g) ? ` de ${autorHtml(g)}` : '');
+    /** @param {Gone} g */
+    const porQue = (g) => {
+      if (!g.lostTo) return `apagado${autorNome(g) ? ` por ${autorHtml(g)}` : ''}`;
+      const ganhou = state.gone.find((x) => x.to === g.lostTo);
+      return `edição${deQuem(g)}, sobrescrita ${ganhou ? `pela${deQuem(ganhou)}` : 'por outra'}`;
+    };
+    const resumo = [
+      apagados ? `${apagados} ${apagados === 1 ? 'item apagado' : 'itens apagados'}` : '',
+      sobrescritas ? `${sobrescritas} ${sobrescritas === 1 ? 'edição sobrescrita' : 'edições sobrescritas'}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
     $('#gone').innerHTML = gone.length
-      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${gone.length} ${gone.length === 1 ? 'item apagado' : 'itens apagados'}</a></div>` +
+      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${resumo}</a></div>` +
         (showGone
           ? gone
               .map(
                 (g) =>
                   `<div class="item apagado" data-gone="${g.id}">` +
                   linha(esc(g.desc), reais(centavos(g))) +
-                  `<div class="small"><span>apagado${autorNome(g) ? ` por ${autorHtml(g)}` : ''} · ${dia(g.goneAt)}</span></div></div>`,
+                  `<div class="small"><span>${porQue(g)} · ${dia(g.goneAt)}</span></div></div>`,
               )
               .join('')
           : '')

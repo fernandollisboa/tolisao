@@ -953,7 +953,7 @@
     'input',
     (ev) => {
       const t = /** @type {HTMLInputElement} */ (ev.target);
-      if (t.matches && t.matches('#amount, #sharesBox input[data-share]')) mascara(t);
+      if (t.matches && t.matches('#amount, #sharesBox input[data-share], #quitaValor')) mascara(t);
     },
     true,
   );
@@ -2310,8 +2310,8 @@
     sync();
     loadPixKeys();
   }
-  function showQuitado(to, cents) {
-    overlay(`<h2>Quitado!</h2>
+  function showQuitado(to, cents, parcial = false) {
+    overlay(`<h2>${parcial ? 'Pago!' : 'Quitado!'}</h2>
       <p class="muted recado" style="margin-bottom:14px">avise ${nomeHtml(to)} pra não cobrar de novo</p>
       <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
       <div class="c voltar"><button id="quitOk" class="ghost">fechar</button></div>`);
@@ -2793,11 +2793,28 @@
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
     const valor = `<b style="color:var(--green)">${comSifrao(cents)}</b>`;
+    // quem paga escolhe quanto: "te mando 50 agora e o resto sexta". Vem com o total, na máscara do anotar
+    const pergunta = () => {
+      const p = ask(
+        'Quitar?',
+        `${nomeHtml(from)} pagou pra ${nomeHtml(to)}<label class="quitaValor">${CURRENCY}<input id="quitaValor" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="0,00" value="${reais(cents)}" aria-label="quanto pagou"></label>`,
+        'quitei',
+      );
+      const cx = /** @type {HTMLInputElement} */ ($('#quitaValor'));
+      cx.addEventListener('input', () => {
+        cents = +cx.value.replace(/\D/g, '');
+        /** @type {HTMLButtonElement} */ ($('#okBtn')).disabled = !cents;
+      });
+      cx.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && cents) $('#okBtn').click();
+      });
+      return p;
+    };
     const certeza = await (modo === 'perdoa'
       ? ask('Perdoar?', `${nomeHtml(from)} não te deve mais ${valor}`, 'perdoar')
       : modo === 'recebi'
         ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
-        : ask('Quitar?', `${nomeHtml(from)} pagou ${valor} pra ${nomeHtml(to)}`, 'quitei'));
+        : pergunta());
     if (!certeza) return;
     // a nota pode estar velha: o outro lado pode já ter marcado do aparelho dele. Baixa o banco
     // e grava só o que ainda falta, senão o pagamento entra duas vezes e a dívida vira ao contrário
@@ -2832,8 +2849,10 @@
     seguraRisco = true;
     commit();
     festa(r.left + r.width / 2, r.top + r.height / 2);
-    toast('Quitado! 🎉');
-    showQuitado(to, cents);
+    // pagou só uma parte: o resto segue na nota, então ainda não é quitado
+    const parcial = !!t && cents < t.cents;
+    toast(parcial ? 'Pago! 🎉' : 'Quitado! 🎉');
+    showQuitado(to, cents, parcial);
   }
   async function excluiGasto(el) {
     const e = achaGasto(el.dataset.delExpense);

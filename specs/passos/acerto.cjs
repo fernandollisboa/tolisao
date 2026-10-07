@@ -30,7 +30,10 @@ Then('a página não fica mais larga que a tela', async ({ mundo }) => {
   expect(await mundo.p.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
 });
 
-const quita = async (p, fecha) => { await p.click('#mineRows [data-settle]'); await p.click('#okBtn'); await p.click(fecha); };
+const quita = async (p, fecha, valor) => {
+  await p.click('#mineRows [data-settle]'); if (valor) await p.fill('#quitaValor', valor); await p.click('#okBtn'); await p.click(fecha);
+};
+When('eu pago R$ {num} da primeira linha de Minha conta e aviso no zap', async ({ mundo }, valor) => { await quita(mundo.p, '#waAviso', valor.toFixed(2)); });
 When('eu quito a primeira linha de Minha conta', async ({ mundo }) => { await quita(mundo.p, '#quitOk'); });
 When('eu quito a primeira linha de Minha conta e aviso no zap', async ({ mundo }) => { await quita(mundo.p, '#waAviso'); });
 const pago = (p, txt) => p.locator('#settle .row.paid').filter({ has: p.locator('.n', { hasText: txt }) });

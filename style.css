@@ -435,6 +435,9 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
 .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
 #amount{font-size:30px;letter-spacing:1px}
+/* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
+.quitaValor{display:flex;align-items:baseline;justify-content:center;gap:6px;margin-top:10px;font-size:30px;color:var(--green)}
+#quitaValor{width:5em;flex:none;text-align:left;font-size:30px;letter-spacing:1px;color:var(--green);border-color:var(--green)}
 .shares{display:grid;gap:4px}
 .shares .row{font-size:18px;line-height:1.4;align-items:center}
 /* o campo da parte é o mesmo do valor do gasto (a mesma linha de tinta, a mesma letra

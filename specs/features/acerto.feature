@@ -45,6 +45,18 @@ Funcionalidade: Acertar as contas
       | Klinsmann | Fernando | 73,61  |
       | Klinsmann | Júlia    | 34,72  |
 
+  Cenário: pagar só uma parte
+    "Te mando 50 agora e o resto sexta": o que eu pago sai da dívida e o resto segue na nota.
+    Quando eu abro o evento como Lia
+    E eu pago R$ 50,00 da primeira linha de Minha conta e aviso no zap
+    Então o zap abre com a mensagem:
+      """
+      ✅ Fernando, te paguei R$ 50,00 do *bailedamada* 👍
+      {site}/pago/?evento=bailedamada
+      """
+    E Minha conta diz "eu devo" R$ 67,84
+    E o pagamento "Lia → Fernando" está carimbado "PAGO"
+
   Cenário: desfazer um pagamento
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta

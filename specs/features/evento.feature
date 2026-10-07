@@ -134,17 +134,14 @@ Funcionalidade: Entrar no evento
     Então o nome do evento no cabeçalho é "churras"
     E o endereço termina em "?evento=churras"
 
-  Cenário: o cartão do evento
+  Cenário: o cartão do evento é a tela inicial, com o evento aberto marcado
+    Quem entra é quem tem o link: o cartão não mostra código, só copia o link.
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia
     E eu toco no nome do evento
     Então o cartão mostra:
       """
-      *** EVENTO ***
-      CÓDIGO
-      bailedamada
-      ENTRA QUEM TEM
-      o link
+      TÔ LISA
       *** MEUS EVENTOS ***
       BAILEDAMADA
       quite
@@ -154,6 +151,7 @@ Funcionalidade: Entrar no evento
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
+      COPIAR LINK DO EVENTO
       VOLTAR
       """
     Quando eu toco em voltar
@@ -162,13 +160,13 @@ Funcionalidade: Entrar no evento
     Então o cartão de quem é você já vem com Lia escolhida
     E o cartão de quem é você não tem botão de sair
 
-  Cenário: tocar no código do cartão do evento copia ele
+  Cenário: o cartão do evento copia o link, não o código
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
     Quando eu abro o evento como Lia
     E eu toco no nome do evento
-    E eu toco no código do evento
-    Então fica copiado "bailedamada"
-    E aparece o aviso "Código copiado."
+    E eu toco em copiar link do evento
+    E eu mando pro grupo todo
+    Então fica copiado o link do evento
 
   Cenário: no caderno em branco, a caixa abre o anotar
     Dado o evento "churras" com Fernando, Júlia e Lia

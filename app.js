@@ -1189,6 +1189,9 @@
   }
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) => (lastSeen > 0 && e.at > lastSeen && !anotouQuem(e, me) ? '<span class="tag">novo</span>' : '');
+  /** foi editado depois da última visita, e por outra pessoa @param {Gone | undefined} g */
+  const tagMudou = (g) =>
+    g && lastSeen > 0 && g.goneAt > lastSeen && !anotouQuem(g, me) ? '<span class="tag">mudou</span>' : '';
   /** uma linha da nota: texto à esquerda, pontinhos, valor à direita (`vat` são atributos a mais no valor) */
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
@@ -1543,6 +1546,8 @@
       new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
     const days = new Set(all.map(dayOf));
     let lastDay = null;
+    // editar troca o item por outro: o que saiu fica no `gone` com `to`, e vale a última edição
+    const editou = new Map(state.gone.filter((g) => g.to).map((g) => [g.to, g]));
     $('#expenses').innerHTML =
       list
         .map((e) => {
@@ -1554,8 +1559,18 @@
               lastDay = d;
             }
           }
-          const by =
-            autorNome(e) && !anotouQuem(e, e.payer) ? `<span class="by"> · anotado por ${autorHtml(e)}</span>` : '';
+          const g = editou.get(e.id);
+          // o que era antes: só o que mudou, descrição e/ou valor
+          const era = g
+            ? [g.desc !== e.desc ? esc(g.desc) : '', centavos(g) !== centavos(e) ? reais(centavos(g)) : '']
+                .filter(Boolean)
+                .join(' de ')
+            : '';
+          const by = g
+            ? `<span class="by"> · editado${autorNome(g) ? ` por ${autorHtml(g)}` : ''}${era ? ` · era ${era}` : ''}</span>`
+            : autorNome(e) && !anotouQuem(e, e.payer)
+              ? `<span class="by"> · anotado por ${autorHtml(e)}</span>`
+              : '';
           const meu = e.byId || e.by ? anotouQuem(e, me) : !!me && e.payer === me;
           const botoes = meu
             ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
@@ -1563,7 +1578,7 @@
           return (
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
-            linha(`${tagNovo(e)}${esc(e.desc)}`, reais(centavos(e))) +
+            linha(`${tagNovo(e) || tagMudou(g)}${esc(e.desc)}`, reais(centavos(e))) +
             `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
           );
         })
@@ -1830,8 +1845,9 @@
   // travava num navegador, e setTimeout não depende do relógio de animação.
   let tituloJaAnimou = false;
   /** @param {HTMLElement | null} el @param {(entrou: boolean, el: HTMLElement) => void} [ponto] o ponto final vira
-   * um espaço do tamanho dele, e quem passou `ponto` desenha o que quiser ali (avisado quando entra e sai) */
-  function digitaTitulo(el, ponto) {
+   * um espaço do tamanho dele, e quem passou `ponto` desenha o que quiser ali (avisado quando entra e sai)
+   * @param {() => Promise<void>} [intervalo] no "tô lisa!!!" o título espera isso acabar antes de seguir */
+  function digitaTitulo(el, ponto, intervalo) {
     if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
     tituloJaAnimou = true;
     document.fonts.ready.then(() => {
@@ -1840,9 +1856,10 @@
       // `d` é a espera *antes* daquele texto aparecer.
       const BASE = 'tô lisa';
       const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
+      /** @type {{ t: string, d: number, pausa?: boolean }[]} */
       const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
       passos.push({ t: BASE + '!', d: 765 }); // olha o que escreveu e crava um !
-      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 }); // volta pra pôr mais um, e emenda o terceiro
+      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165, pausa: true }); // volta pra pôr mais um, e emenda o terceiro
       passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
       passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
       passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
@@ -1860,16 +1877,20 @@
         el.textContent = passos[i].t;
         const tem = el.textContent.length > BASE.length && !/[!?]$/.test(el.textContent);
         if (ponto && tinha !== tem) ponto(tem, el);
-        const atraso = passos[i + 1]?.d ?? 90;
+        const atraso = passos[i + 1]?.d ?? 90,
+          pausa = passos[i].pausa && intervalo;
         i++;
-        setTimeout(passo, atraso);
+        // uma coisa de cada vez: a estreia roda no meio do título, não por cima dele
+        if (pausa) intervalo().then(() => setTimeout(passo, atraso));
+        else setTimeout(passo, atraso);
       };
       setTimeout(passo, passos[0].d);
     });
   }
   /** quem chega pela primeira vez: fichas caindo atrás do cartão e uma comandinha que se anota
-   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). A comanda roda uma vez por página: o
-   * cartão volta depois de um código errado, e ela volta já parada no fim */
+   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). Ela espera o título chegar no "tô lisa!!!"
+   * e o título espera ela acabar (`rodaComanda`). Roda uma vez por página: o cartão volta depois de
+   * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
   const CHUVA = [
     // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor
@@ -1892,11 +1913,19 @@
           ([x, s, t, d, vx, r, c]) =>
             `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
         ).join('')}</div>`;
-    return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' logo'}" aria-hidden="true">
+    return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' roda'}" aria-hidden="true">
       <div class="row f1"><span class="l">afonso pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
       <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">bia deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
       <div class="row f3"><span class="l">charles deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
+  }
+  /** solta a comandinha e avisa quando ela termina (o tempo é o da última animação dela no style.css) */
+  const COMANDA_MS = 3600;
+  function rodaComanda() {
+    const c = $('#overlayBox .comandinha:not(.parada)');
+    if (!c) return Promise.resolve();
+    c.classList.add('roda');
+    return new Promise((ok) => setTimeout(ok, COMANDA_MS));
   }
   /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila)
    * @param {boolean} entrou @param {HTMLElement} t */
@@ -1938,7 +1967,9 @@
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
-    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined);
+    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
+    // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
+    if (chegou) setTimeout(() => $('#overlayBox .comandinha')?.classList.add('roda'), 6000);
     // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o
     // teclado por cima da estreia: o foco vem sem rolar, e só onde tem teclado de verdade
     if (!evs.length && !matchMedia('(pointer: coarse)').matches) $('#gateCode').focus({ preventScroll: true });
@@ -1953,7 +1984,9 @@
       btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
       const code = $('#gateCode').value;
       try {
-        await enterRoom(code.trim().toLowerCase());
+        const c = codigoDoCampo(code);
+        quemDoLink = c.quem;
+        await enterRoom(c.code);
       } catch (e) {
         // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
@@ -2216,6 +2249,28 @@
   // #endregion
   // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
+  /** o que a pessoa pôs no campo vira código. O que ela tem no zap é o link, sozinho ou no meio da
+   *  mensagem: o código sai do ?evento= (ou do ?senha= antigo) e o &quem= do mesmo link vem junto.
+   *  Nome igual ao de um evento da lista é esse evento, não um novo com o mesmo nome
+   *  @returns {{ code: string, quem: string|null }} */
+  function codigoDoCampo(texto) {
+    const t = texto.trim(),
+      // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
+      m = t.match(/[?&](?:evento|senha)=([\w%.~!*'()-]+)/);
+    if (m) {
+      const link = t.slice(m.index).split(/\s/)[0],
+        q = link.match(/[?&]quem=([\w%.~!*'()-]+)/);
+      let code = m[1];
+      try {
+        code = decodeURIComponent(code.replace(/\+/g, ' '));
+      } catch {}
+      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null };
+    }
+    const code = t.toLowerCase(),
+      evs = meusEventos(),
+      meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
+    return { code: meu ? meu.code : code, quem: null };
+  }
   async function enterRoom(code) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
@@ -2378,10 +2433,10 @@
     // novo carrega o código, e o começo do app faz o resto (inclusive o "Criar …?")
     $('#gateForm').onsubmit = (ev) => {
       ev.preventDefault();
-      const code = $('#gateCode').value.trim().toLowerCase();
+      const { code, quem } = codigoDoCampo($('#gateCode').value);
       if (!code) return;
       if (code === roomName) return closeOverlay();
-      location.href = location.pathname + '?evento=' + encodeURIComponent(code);
+      location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
     };
     /** @param {MeuEvento} e */
     const esquece = (e) => esqueceEvento(e, showRoom);

@@ -87,7 +87,7 @@ Then('o cartão mostra:', async ({ mundo }, txt) => {
   await expect.poll(async () => (await mundo.linhas('#overlayBox')).map(l => l.replace(/\u00a0/g, ' '))).toEqual(txt.split('\n').map(l => l.trim()).filter(Boolean));
 });
 When('eu toco em voltar', async ({ mundo }) => { await mundo.p.click('#evBack'); });
-When('eu toco em copiar link do evento', async ({ mundo }) => { await mundo.p.click('#evLink'); });
+When('eu toco no link do cartão do evento', async ({ mundo }) => { await mundo.p.click('#evLink'); });
 When('eu mando pro grupo todo', async ({ mundo }) => { await mundo.p.click('[data-link-pra=""]'); });
 Then('fica copiado o link do evento', async ({ mundo }) => {
   await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado))

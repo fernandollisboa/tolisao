@@ -30,7 +30,10 @@ Then('a página não fica mais larga que a tela', async ({ mundo }) => {
   expect(await mundo.p.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
 });
 
-const quita = async (p, fecha) => { await p.click('#mineRows [data-settle]'); await p.click('#okBtn'); await p.click(fecha); };
+const quita = async (p, fecha, valor) => {
+  await p.click('#mineRows [data-settle]'); if (valor) await p.fill('#quitaValor', valor); await p.click('#okBtn'); await p.click(fecha);
+};
+When('eu pago R$ {num} da primeira linha de Minha conta e aviso no zap', async ({ mundo }, valor) => { await quita(mundo.p, '#waAviso', valor.toFixed(2)); });
 When('eu quito a primeira linha de Minha conta', async ({ mundo }) => { await quita(mundo.p, '#quitOk'); });
 When('eu quito a primeira linha de Minha conta e aviso no zap', async ({ mundo }) => { await quita(mundo.p, '#waAviso'); });
 const pago = (p, txt) => p.locator('#settle .row.paid').filter({ has: p.locator('.n', { hasText: txt }) });
@@ -72,12 +75,28 @@ When('a rede engasga quando o app busca as chaves pix de novo', async ({ mundo }
 Then('fica copiado o pix copia e cola:', async ({ mundo }, txt) => { await expect.poll(() => mundo.p.evaluate(() => window.__copiado)).toBe(txt.trim()); });
 
 // enviar pergunta antes pra quem é o link: "qualquer um" é o data-link-pra vazio
+// cada texto escrito na comanda fica anotado com o papel em que foi escrito: o app escreve
+// duas vezes (mede, depois desenha) e só o último papel é o que vai pro zap
 const envia = async (mundo, id) => {
+  await mundo.p.evaluate(() => { const w = /** @type {any} */ (window), escreve = CanvasRenderingContext2D.prototype.fillText; w.__comanda = [];
+    CanvasRenderingContext2D.prototype.fillText = function (t, ...r) { w.__comanda.push({ papel: this.canvas, t: String(t) }); return escreve.call(this, t, ...r); }; });
   await mundo.p.click('#waBtn');
   const [baixou] = await Promise.all([mundo.p.waitForEvent('download'), mundo.p.click(`[data-link-pra="${id}"]`)]); mundo.nota.download = baixou;
 };
 When('eu toco em enviar', async ({ mundo }) => { await envia(mundo, ''); });
 When('eu toco em enviar pra {word}', async ({ mundo }, quem) => { await envia(mundo, mundo.pessoa(quem).id); });
+const comanda = p => p.evaluate(() => { const l = /** @type {any} */ (window).__comanda, ult = l[l.length - 1].papel;
+  return l.filter(x => x.papel === ult).map(x => x.t); });
+Then('a comanda lista os {int} gastos mais novos', async ({ mundo }, n) => {
+  const linhas = await comanda(mundo.p), gastos = [...mundo.evento.expenses].sort((a, b) => b.at - a.at).map(e => e.desc.toUpperCase() + ' ');
+  expect(linhas.filter(l => gastos.some(g => l.startsWith(g)))).toEqual(gastos.slice(0, n).map(g => expect.stringMatching('^' + g)));
+});
+Then('a comanda diz {string}', async ({ mundo }, txt) => { expect(await comanda(mundo.p)).toContain(txt); });
+Then('a comanda fecha com o total de R$ {word} e o {string}', async ({ mundo }, valor, fim) => {
+  const linhas = await comanda(mundo.p);
+  expect(linhas.find(l => l.startsWith('TOTAL '))).toMatch(new RegExp(`R\\$ ${valor.replace(/\./g, '\\.')}$`));
+  expect(linhas[linhas.length - 1]).toBe(fim);
+});
 Then('baixa a imagem {string}', async ({ mundo }, nome) => {
   const d = mundo.nota.download; expect(d.suggestedFilename()).toBe(nome);
   const arq = path.join(os.tmpdir(), 'receipt.png'); await d.saveAs(arq); mundo.nota.comanda = arq;

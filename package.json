@@ -3,7 +3,8 @@
   "private": true,
   "description": "Ferramentas de desenvolvimento do tô lisa. O site é estático e não depende de nada disso.",
   "scripts": {
-    "test": "bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
+    "dev": "node specs/dev.cjs",
+    "test":"bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
     "relatorio": "HTML=1 npm test",
     "cobertura": "node specs/_cobertura.cjs",
     "types": "tsc -p jsconfig.json",

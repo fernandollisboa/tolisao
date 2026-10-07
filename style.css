@@ -198,7 +198,8 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 /* instalar no iPhone: quadrinhos do Safari, com o que tocar pintado de âmbar, e a seta
    pulando em cima do botão de verdade, que fica fora da página */
 .passo{display:flex;gap:12px;align-items:center;margin:10px 0}
-.passo p{margin:0;text-transform:none;font-size:18px;line-height:1.25}
+.passo p,#overlay .porque{margin:0;text-transform:none;font-size:18px;line-height:1.25}
+#overlay .porque{margin:4px 0 8px}
 .passo .tela{flex:none;width:118px;box-sizing:border-box;border:2px solid var(--ink);border-radius:10px;background:#f2f2f7;padding:6px;font:12px -apple-system,Helvetica,sans-serif;color:#111;display:grid;gap:3px}
 .passo .tela span{background:#fff;border-radius:6px;padding:3px 6px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .passo .tela .barra{display:flex;gap:4px;justify-content:center}
@@ -296,6 +297,7 @@ form{display:grid;gap:10px}
    o retângulo do botão a cada quadro, e o Playwright nunca via ele "parado" pra clicar */
 @keyframes pulsaFab{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
 #overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto;overflow-x:hidden;overscroll-behavior:contain}
+#overlay{z-index:11}   /* o cartão abre por cima do anotar (o "Já anotaram?") */
 /* com cartão aberto a página de trás não rola: senão ficam duas barras, a dela e a do cartão */
 html:has(#overlay:not(.hidden)),html:has(#sheet:not(.hidden)){overflow:hidden}
 #overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
@@ -435,6 +437,9 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
 .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
 #amount{font-size:30px;letter-spacing:1px}
+/* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
+.quitaValor{display:flex;align-items:baseline;justify-content:center;gap:6px;margin-top:10px;font-size:30px;color:var(--green)}
+#quitaValor{width:5em;flex:none;text-align:left;font-size:30px;letter-spacing:1px;color:var(--green);border-color:var(--green)}
 .shares{display:grid;gap:4px}
 .shares .row{font-size:18px;line-height:1.4;align-items:center}
 /* o campo da parte é o mesmo do valor do gasto (a mesma linha de tinta, a mesma letra
@@ -621,22 +626,25 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .fichinha.ponto.foge{margin-left:-6px;animation:foge 1.1s cubic-bezier(.4,0,.9,.6) both}
 @media (prefers-reduced-motion:reduce){.fichinha.ponto{display:none}}
 @keyframes foge{from{transform:rotate(-10deg);opacity:1}to{transform:translate(260px,6px) rotate(900deg);opacity:0}}
-/* a comandinha começa quando o título termina de digitar o "tô lisa" (--t0) e para no fim, já pago */
-.comandinha{--t0:2.3s;position:relative;max-width:300px;margin:8px auto 12px;padding:6px 12px 8px;border:2px dashed var(--rule);background:#fff8e6;transform:rotate(-1.2deg);pointer-events:none}
-.comandinha.logo{--t0:.2s} /* o título não digita (já é visita repetida): nada de caixa vazia esperando ele */
-.comandinha .row{font-size:18px;line-height:1.6;animation:fadein .35s ease both}
-.comandinha .f1{animation-delay:.2s} /* a primeira linha já chega: caixa vazia parece imagem quebrada */
-.comandinha .f2{animation-delay:calc(var(--t0) + .7s)}
-.comandinha .f3{animation-delay:calc(var(--t0) + 1.2s)}
-.comandinha .f3 .v{color:var(--red);display:inline-block;animation:chama 1.8s calc(var(--t0) + 6.6s) ease-in-out}
-.comandinha .f2 .n,.comandinha .f2 .v{animation:desbota .3s calc(var(--t0) + 3.1s) backwards}
+/* a comandinha espera o título chegar no "tô lisa!!!" (.roda): antes disso só a caixa vazia aparece, e o tempo
+   de cada passo conta da .roda. O fim dela (3,5 s) é o COMANDA_MS do app.js, quando o título volta a digitar */
+.comandinha{position:relative;max-width:300px;margin:8px auto 12px;padding:6px 12px 8px;border:2px dashed var(--rule);background:#fff8e6;transform:rotate(-1.2deg);pointer-events:none}
+.comandinha:not(.roda):not(.parada) .row{opacity:0}
+.comandinha:not(.roda) .row:after{animation:none}
+.comandinha .row{font-size:18px;line-height:1.6}
+.comandinha.roda .row{animation:fadein .35s ease both}
+.comandinha.roda .f2{animation-delay:.5s}
+.comandinha.roda .f3{animation-delay:1s}
+.comandinha .f3 .v{color:var(--red)}
+.comandinha.roda .f2 .n,.comandinha.roda .f2 .v{animation:desbota .3s 2.3s backwards}
 @keyframes desbota{from{color:var(--red)}}
-.comandinha .f2.paid.novo:after{--rd:calc(var(--t0) + 3.1s)}
-.comandinha .f2 .stamp{animation:carimba .25s calc(var(--t0) + 3.5s) cubic-bezier(.2,1.6,.4,1) both}
+.comandinha .f2.paid.novo:after{--rd:2.3s}
+.comandinha.roda .f2 .stamp{animation:carimba .25s 2.6s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes carimba{from{opacity:0;scale:2}to{opacity:.9;scale:1}}
 /* a ficha cai na dívida da Bia e vai pro Afonso, que pagou */
-.comandinha .fichinha.cai{right:64px;top:24px;z-index:5;--dx:0px;--dy:0px;--vx:-140px;--vy:-110px;--rot:-14deg;filter:drop-shadow(1px 3px 3px rgba(0,0,0,.3));animation:jogada .85s calc(var(--t0) + 2.1s) linear both,passa .6s calc(var(--t0) + 3.8s) ease-in-out forwards}
+.comandinha .fichinha.cai{display:none;right:64px;top:24px;z-index:5;--dx:0px;--dy:0px;--vx:-140px;--vy:-110px;--rot:-14deg;filter:drop-shadow(1px 3px 3px rgba(0,0,0,.3))}
+.comandinha.roda .fichinha.cai{display:block;animation:jogada .85s 1.5s linear both,passa .6s 2.9s ease-in-out forwards}
 @keyframes passa{to{translate:40px -28px;opacity:0}}
 .comandinha.parada *,.comandinha.parada .row:after{animation:none !important}
 .comandinha.parada .fichinha.cai{display:none}
-@media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .fichinha.cai{display:none}}
+@media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}

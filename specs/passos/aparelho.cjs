@@ -7,6 +7,8 @@ Given('que neste aparelho eu sou {word} no {string}', async ({ mundo }, quem, no
   naGaveta(mundo, `tolisa:${sala}`, { code: nome, openedAt: AGORA - 86400000, me: ev.people.find(p => p.name === quem).id,
     snapshot: JSON.parse(JSON.stringify({ v: 2, updatedAt: AGORA - 86400000, gone: [], ...ev })) });
 });
+// a última visita deste aparelho ao evento: o que mudou depois dela ganha marca na lista
+Given('que eu vi o evento pela última vez ontem', async ({ mundo }) => { naGaveta(mundo, `tolisa:${mundo.sala}`, { lastSeen: AGORA - 86400000 }); });
 Given('que eu já usei a chave pix {string} em outro evento', async ({ mundo }, chave) => { naGaveta(mundo, 'tolisa', { pixKey: chave }); });
 Given('que da última vez, em outro evento, eu fui {string}', async ({ mundo }, nome) => { naGaveta(mundo, 'tolisa', { myName: nome }); });
 

@@ -2,7 +2,8 @@ const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
 
 const dinheiro = v => v.toFixed(2).replace('.', ',');
 const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
-const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^${nome.replace(/[()]/g, '\\$&')}$`) }) });
+// a marca de novo/mudou vem colada na frente do nome do item
+const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^(?:novo|mudou)?\\s*${nome.replace(/[()]/g, '\\$&')}$`) }) });
 
 Then('a lista tem {int} itens', async ({ mundo }, n) => { await expect(mundo.p.locator('#expenses .item[data-item]')).toHaveCount(n); });
 Then('o primeiro item da lista é {string} de {word}', async ({ mundo }, nome, valor) => {
@@ -165,11 +166,18 @@ When('outro aparelho anota:', async ({ mundo }, tabela) => {
     amount: Number(g.valor.replace(/\./g, '').replace(',', '.')), payer: id(g.pagou), among: g['divide entre'].split(/\s*,\s*/).map(id), at: AGORA }))];
 });
 // a edição do outro aparelho é de um minuto antes da minha (o relógio da página começa em AGORA)
-When('a/o {word} troca o valor do/da {string} pra R$ {num} em outro aparelho', async ({ mundo }, quem, desc, valor) => {
+const trocaValor = async ({ mundo }, quem, desc, valor) => {
   const sala = salaNoBanco(mundo), velho = sala.expenses.find(e => e.desc === desc);
   sala.expenses = [...sala.expenses.filter(e => e !== velho), { ...velho, id: 'dooutro', amount: valor, by: quem }];
   sala.deleted = [...(sala.deleted || []), velho.id];
   sala.gone = [...(sala.gone || []), { id: velho.id, desc, amount: velho.amount, at: velho.at, by: quem, goneAt: AGORA - 60000, to: 'dooutro' }];
+};
+When('a/o {word} troca o valor do/da {string} pra R$ {num} em outro aparelho', trocaValor);
+Given('que a/o {word} trocou o valor do/da {string} pra R$ {num} em outro aparelho', trocaValor);
+Then('o {string} está marcado como mudou', async ({ mundo }, nome) => { await expect(item(mundo.p, nome).locator('.row .tag')).toHaveText('mudou'); });
+Then('o {string} não está marcado', async ({ mundo }, nome) => { await expect(item(mundo.p, nome).locator('.row .tag')).toHaveCount(0); });
+Then('o {string} diz {string}', async ({ mundo }, nome, txt) => {
+  await expect(item(mundo.p, nome).locator('.small .by')).toHaveText(`· ${txt}`);
 });
 
 // quem anotou: o aparelho grava o nome e o id de quem estava nele na hora
@@ -192,3 +200,19 @@ Then('eu posso editar e excluir o {string}', async ({ mundo }, nome) => {
 Then('eu não posso editar nem excluir o {string}', async ({ mundo }, nome) => {
   await expect(item(mundo.p, nome).locator('[data-edit-expense], [data-del-expense]')).toHaveCount(0);
 });
+
+// o outro aparelho grava direto no banco, uns minutos antes: a minha nota ainda não sabe dele
+When('a/o {word} anota em outro aparelho um {string} de R$ {num} que a/o {word} pagou, há {int} minutos', async ({ mundo }, quem, desc, valor, pagou, min) => {
+  const sala = salaNoBanco(mundo), p = mundo.pessoa(quem);
+  sala.expenses = [...(sala.expenses || []), { id: 'dooutro', desc, amount: valor, payer: mundo.pessoa(pagou).id,
+    among: sala.people.map(x => x.id), at: AGORA - min * 60000, by: p.name, byId: p.id }];
+});
+When('eu tento anotar {string} de R$ {num} que eu paguei', async ({ mundo }, desc, valor) => {
+  const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+  await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.click('#expenseForm button.big');
+});
+Then('o anotar continua aberto com R$ {num} de {string}', async ({ mundo }, v, desc) => {
+  await expect(mundo.p.locator('#sheet')).toBeVisible();
+  await expect(mundo.p.locator('#amount')).toHaveValue(dinheiro(v)); await expect(mundo.p.locator('#desc')).toHaveValue(desc);
+});
+When('eu anoto mesmo assim', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' }); });

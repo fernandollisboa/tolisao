@@ -18,6 +18,8 @@ node specs/preview.cjs --ninguem --recorte=0,0,390,600  # quem chegou pelo link 
 node specs/preview.cjs --saida=/tmp/tudo.png        # página inteira
 node specs/preview.cjs --recorte=0,0,390,240        # pedaço por coordenadas (cabeçalho, rodapé)
 node specs/preview.cjs '#settle' --variantes=/tmp/v.cjs --saida=/tmp/opts.png
+node specs/preview.cjs '#overlay .paper' --inicio  # a estreia, aparelho limpo, depois do título e da comandinha
+node specs/preview.cjs '#overlay .paper' --inicio --quieto  # a mesma com movimento reduzido (quadro parado)
 ```
 
 Seletores úteis: `#mine`, `#itemsSec`, `#settle`, `#app`, `#overlay .paper`.
@@ -37,9 +39,12 @@ node specs/video.cjs ficha --saida=/tmp/f.webm  # a ficha caindo no rodapé
 node specs/video.cjs risco --vel=0.35           # o risco correndo nas linhas pagas
 node specs/video.cjs mira --altura=640          # a ficha levada pela borda até o ▸ e o ✔, e apertando eles
 node specs/video.cjs dobra --altura=400         # Falta pagar abaixo da dobra: os riscos não esperam o natal
+node specs/video.cjs inicio                     # a estreia: aparelho limpo, fichas caindo, título digitando (~12 s)
+node specs/video.cjs inicio --js=/tmp/v.js      # variação da estreia: o js roda antes do app
+node specs/video.cjs inicio --quieto            # a estreia com movimento reduzido
 ```
 
-`--vel` é a velocidade das animações (0.35 = bem devagar). `--css=arq.css` injeta uma folha depois da do app: como o `@keyframes` de mesmo nome vence o anterior, dá pra gravar uma variação da animação sem tocar no `style.css` — é assim que se oferecem opções de movimento, um vídeo por letra. Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é, quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.
+`--vel` é a velocidade das animações (0.35 = bem devagar). `--css=arq.css` injeta uma folha depois da do app: como o `@keyframes` de mesmo nome vence o anterior, dá pra gravar uma variação da animação sem tocar no `style.css` — é assim que se oferecem opções de movimento, um vídeo por letra. Na cena `inicio` o `--css` entra depois do `goto` e desalinha os atrasos com o título: variação vai de `--js` (roda antes do app, também no `preview.cjs`). Ela grava em `--vel=1` por padrão, porque o título digita com `setTimeout`, que o `--vel` não desacelera. `--quieto` liga o `prefers-reduced-motion` nas duas ferramentas. Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é (ou `inicio: true`, pra estreia sem evento), quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.
 
 ## Opções de design
 

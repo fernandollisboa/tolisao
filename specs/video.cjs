@@ -155,14 +155,19 @@ const CENAS = {
       await p.route(/fake-db.*\/rooms\//, r => r.request().method() === 'GET' ? r.fulfill({ json: pago }) : r.fulfill({ json: {} }));
       await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
       await p.waitForTimeout(7000); } },
+  // aparelho limpo, sem evento: a estreia de quem chega. o título digita por ~7,5 s com setTimeout, que o --vel
+  // não desacelera, então a cena grava em vel 1; variação vai de --js, que roda antes do app
+  inicio: { nome: 'a estreia: fichas caindo, a comandinha se anotando e o título se digitando', inicio: true, vel: 1,
+    acao: async p => { await p.waitForTimeout(11500); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
 };
 
 async function video(opts = {}) {
-  const { cena = 'pix', vel = 0.8, largura = 390, altura = 844 } = opts;
+  const { cena = 'pix', largura = 390, altura = 844 } = opts;
   const c = CENAS[cena]; if (!c) throw new Error(`cena desconhecida: ${cena} (tem ${Object.keys(CENAS).join(', ')})`);
+  const vel = opts.vel ?? c.vel ?? 0.8;
   const dados = opts.dados || c.dados || DADOS;
   const saida = opts.saida || path.join(os.tmpdir(), `video-${cena}.webm`);
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'tolisa-vid-'));
@@ -170,6 +175,7 @@ async function video(opts = {}) {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
   try {
     const ctx = await b.newContext({ viewport: { width: largura, height: altura }, hasTouch: true,
+      reducedMotion: opts.quieto ? 'reduce' : 'no-preference',
       recordVideo: { dir: pasta, size: { width: largura, height: altura } } });
     await ctx.route(/fake-db/, async r => {
       const u = r.request().url();
@@ -181,7 +187,7 @@ async function video(opts = {}) {
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
     const sala = await sha256(dados.name);
-    await p.addInitScript(([sala, code, quem, gente]) => {
+    if (!c.inicio) await p.addInitScript(([sala, code, quem, gente]) => {
       try { localStorage.setItem('tolisa', JSON.stringify({ lastRoom: { code, id: sala } }));
         const eu = gente.find(x => x.name === quem);
         if (eu) localStorage.setItem(`tolisa:${sala}`, JSON.stringify({ me: eu.id })); } catch {}
@@ -189,9 +195,9 @@ async function video(opts = {}) {
     if (opts.js) await p.addInitScript(opts.js);
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
-    await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
+    await p.goto(`http://localhost:${porta}/${c.inicio ? '' : `?evento=${dados.name}`}`);
     if (opts.css) await p.addStyleTag({ content: opts.css });
-    await p.waitForSelector('#mine:not(.hidden)', { timeout: 8000 });
+    await p.waitForSelector(c.inicio ? '#gateCode' : '#mine:not(.hidden)', { timeout: 8000 });
     await c.acao(p);
     if (erros.length) console.error('ERROS NA PÁGINA:', erros);
     const v = p.video(); await ctx.close();
@@ -209,7 +215,7 @@ if (require.main === module) {
   const arqCss = op('css'), arqJs = op('js');
   video({ cena, saida: op('saida'), vel: op('vel') ? Number(op('vel')) : undefined,
           css: arqCss ? fs.readFileSync(arqCss, 'utf8') : undefined,
-          js: arqJs ? fs.readFileSync(arqJs, 'utf8') : undefined,
+          js: arqJs ? fs.readFileSync(arqJs, 'utf8') : undefined, quieto: args.includes('--quieto'),
           largura: op('largura') ? Number(op('largura')) : undefined, altura: op('altura') ? Number(op('altura')) : undefined })
     .then(f => console.log(f)).catch(e => { console.error('FAIL', e); process.exit(1); });
 }

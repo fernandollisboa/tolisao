@@ -679,3 +679,5 @@ button.qrmini svg{width:13px;height:13px}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
 /* o instalar mora no topo, embaixo do subtítulo: âmbar cheio, como o botão do form.lado */
 #instalar{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:#9a5b00;color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
+/* sem o quem é você no cabeçalho, o ponto do lado do evento sai junto */
+#eventLine .sep:has(+ #whoLine:empty){display:none}

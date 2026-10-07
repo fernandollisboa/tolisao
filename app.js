@@ -40,6 +40,7 @@
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
+  const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -1314,13 +1315,15 @@
       ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
       : sug
         ? `<a class="link amb" id="whoSugere" data-quem="${sug.id}">você é ${esc(sug.name)}?</a> <a class="link" id="whoBtn">não</a>`
-        : `<a class="link amb" id="whoBtn">Quem é você?</a>`;
+        : QUEM_NO_TOPO || !state.people.length
+          ? `<a class="link amb" id="whoBtn">Quem é você?</a>`
+          : '';
     if (wl.dataset.k !== html) {
       wl.innerHTML = html;
       wl.dataset.k = html;
     }
     // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
-    $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
+    if ($('#whoBtn')) $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
     if ($('#whoSugere')) $('#whoSugere').onclick = () => souEu($('#whoSugere').dataset.quem);
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));

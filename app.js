@@ -232,6 +232,9 @@
   // na comanda e no zap. Aparar a metade órfã nunca deixa a string maior que o orçamento.
   const apara = (t) => (/[\uD800-\uDBFF]$/.test(t) ? t.slice(0, -1) : t);
   const str = (v, n) => (typeof v === 'string' ? apara(v.slice(0, n)) : '');
+  // um gasto se divide entre até 100 pessoas: o banco valida o among com índice de até 2 dígitos.
+  // Acima disso o gasto inteiro fica de fora, porque cortar gente deixaria a conta sem fechar
+  const RACHA_MAX = 100;
   /** @param {any} d @returns {Room|null} */
   function clean(d) {
     if (!d || typeof d !== 'object') return null;
@@ -246,6 +249,7 @@
           okId(e.payer) &&
           Array.isArray(e.among) &&
           e.among.length &&
+          e.among.length <= RACHA_MAX &&
           e.among.every(okId) &&
           Number.isFinite(+e.amount),
       )
@@ -255,7 +259,7 @@
           desc: str(e.desc, 60),
           amount: Math.round(+e.amount * 100) / 100,
           payer: e.payer,
-          among: e.among.slice(0, 50),
+          among: e.among.slice(),
           at: +e.at || 0,
         };
         if (e.kind === 'payment') o.kind = 'payment';
@@ -2532,6 +2536,7 @@
     const total = lerCentavos($('#amount').value);
     if (!state.people.length) return toast('Adicione pessoas primeiro');
     if (!among.length) return toast('Marque quem divide esse gasto');
+    if (among.length > RACHA_MAX) return toast(`Dá pra dividir entre até ${RACHA_MAX} pessoas`);
     if (!(total > 0)) return toast('Valor inválido');
     const exp = {
       id: uid(),

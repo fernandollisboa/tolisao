@@ -66,6 +66,10 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     const cod = +(corpo.match(re)?.[1] ?? NaN);
     return cod === banco ? null : `${nome}: banco ${banco}, clean() ${Number.isNaN(cod) ? 'não achei' : cod}`;
   }).filter(Boolean);
+  // quantos dividem um gasto: o banco conta pelo índice do among ({1,2} → 100), o app pelo RACHA_MAX
+  const digitos = +(item.among.$j['.validate'].match(/\{1,(\d)\}/)?.[1] ?? NaN), racha = +(app.match(/const RACHA_MAX = (\d+)/)?.[1] ?? NaN);
+  if (racha !== 10 ** digitos) errados.push(`quantos dividem: banco ${10 ** digitos}, RACHA_MAX ${Number.isNaN(racha) ? 'não achei' : racha}`);
+  if (!/among\.length <= RACHA_MAX/.test(corpo)) errados.push('clean() não confere o among com o RACHA_MAX');
   const idApp = app.match(/const okId = [^\n]*?(\/\^\[[^/]+\/)/)?.[1];
   const idsBanco = [...new Set([...JSON.stringify(banco).matchAll(/matches\((\/\^\[a-z[^)]+)\)/g)].map(m => m[1]))];
   if (!idApp) errados.push('não achei o okId no app.js');

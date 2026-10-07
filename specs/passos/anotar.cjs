@@ -222,3 +222,30 @@ Then('o anotar continua aberto com R$ {num} de {string}', async ({ mundo }, v, d
   await expect(mundo.p.locator('#amount')).toHaveValue(dinheiro(v)); await expect(mundo.p.locator('#desc')).toHaveValue(desc);
 });
 When('eu anoto mesmo assim', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' }); });
+
+// quem leva o centavo a mais sai do id do gasto, que é sorteado: aqui o sorteio da página
+// fica fixo, pra o cenário não depender da sorte de dois ids caírem na mesma pessoa
+When('eu anoto {string} e depois {string}, os dois de R$ {num} divididos igualmente', async ({ mundo }, a, b, valor) => {
+  await mundo.p.evaluate(() => { let k = 0; crypto.getRandomValues = a => { for (let i = 0; i < a.length; i++) a[i] = (k++ * 7) % 256; return a; }; });
+  for (const desc of [a, b]) {
+    const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+    await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.click('#expenseForm button.big');
+    // o segundo, de mesmo valor e mesmo pagador, cai no "já anotaram?": anota mesmo assim
+    if (desc === b) await p.click('#okBtn');
+    await p.waitForSelector('#sheet', { state: 'hidden' });
+  }
+});
+Then('no banco, o centavo a mais do {string} e o do {string} ficam com pessoas diferentes', async ({ mundo }, a, b) => {
+  const quemLeva = desc => {
+    const e = (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).find(x => x.desc === desc);
+    if (!e) return undefined;
+    // sem partes gravadas, a divisão igual põe o centavo no primeiro da turma
+    if (!e.shares) return e.among[0];
+    const max = Math.max(...Object.values(e.shares)); return Object.keys(e.shares).find(id => e.shares[id] === max);
+  };
+  await expect.poll(() => [quemLeva(a), quemLeva(b)].every(Boolean)).toBe(true);
+  expect(quemLeva(a)).not.toBe(quemLeva(b));
+});
+Then('a aba igual fica marcada', async ({ mundo }) => {
+  const aba = mundo.p.locator('#splitSeg [data-modo="equal"]'); await expect(aba).toHaveClass(/\bon\b/); await expect(aba).toHaveAttribute('aria-selected', 'true');
+});

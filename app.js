@@ -823,20 +823,40 @@
     k = k.trim();
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k)) return k.toLowerCase();
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(k) && /^[\x20-\x7e]+$/.test(k)) return k.toLowerCase();
-    return null;
+    return celularPix(k);
+  }
+  /** celular com DDD vira a chave pix no formato do BCB (+55DDDNÚMERO). CPF não passa: escrito
+   *  como CPF, ou 11 dígitos sem o +55 que fecham o dígito de CPF (aí não dá pra saber o que é) */
+  function celularPix(k) {
+    if (!/^[\d\s()+.-]+$/.test(k) || /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(k)) return null;
+    const d = k.replace(/\D/g, ''),
+      n = d.length === 13 && d.startsWith('55') ? d.slice(2) : d.length === 11 ? d : '';
+    if (!/^[1-9]{2}9\d{8}$/.test(n)) return null;
+    if (d.length === 11 && !k.startsWith('+') && cpfValido(n)) return null;
+    return '+55' + n;
+  }
+  /** os dois dígitos verificadores do CPF batem */
+  function cpfValido(c) {
+    if (/^(\d)\1{10}$/.test(c)) return false;
+    const dv = (n) => {
+      let s = 0;
+      for (let i = 0; i < n; i++) s += +c[i] * (n + 1 - i);
+      return ((s * 10) % 11) % 10;
+    };
+    return dv(9) === +c[9] && dv(10) === +c[10];
   }
   async function savePix() {
     if (!me) return showWho();
-    // a chave fica à vista de todo mundo do evento: CPF e telefone não passam. O erro fica
-    // no próprio cartão, que não fecha — um toast no pé da tela a pessoa nem via
+    // a chave fica à vista de todo mundo do evento: celular passa (o grupo já tem o número),
+    // CPF não. O erro fica no próprio cartão, que não fecha — um toast no pé da tela a pessoa nem via
     const k = await askText(
       'Chave Pix',
       '',
-      'chave aleatória ou e-mail',
+      'celular, e-mail ou chave aleatória',
       pixKeys[me] || minhaChave(),
       'salvar',
       (v) => !!validPixKey(v),
-      '✋ CPF e celular não ✋',
+      '✋ CPF não: todos veem ✋',
     );
     if (k === null) return;
     const key = validPixKey(k);

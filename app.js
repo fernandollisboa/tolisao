@@ -23,7 +23,7 @@
   const REDE_MS = 8000; // prazo de cada ida ao banco: rede engasgada no bar vira "Offline" em vez de prender o sync
   const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
   // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
-  // beforeinstallprompt e espera o site pedir. Pede o #instalar do rodapé, e o toque do ✎.
+  // beforeinstallprompt e espera o site pedir. Pede o #instalar do topo, e o toque do ✎.
   const INSTALAR = true;
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
@@ -3562,8 +3562,8 @@
   // #endregion
   // #region instalar
   // ---------- instalar na tela de início ----------
-  // O navegador avisa que dá (beforeinstallprompt) e espera o site pedir. O #instalar
-  // do rodapé pede; o toque do ✎ também convida, uma vez só, na segunda visita e só
+  // O navegador avisa que dá (beforeinstallprompt) e espera o site pedir. O #instalar,
+  // no topo, embaixo do subtítulo, pede; o toque do ✎ também convida, uma vez só, na segunda visita e só
   // com gasto anotado. No iPhone o evento não existe: o botão ensina o caminho do Safari.
   let convite = null;
   const jaInstalado = () =>

@@ -1947,7 +1947,9 @@
       btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
       const code = $('#gateCode').value;
       try {
-        await enterRoom(code.trim().toLowerCase());
+        const c = codigoDoCampo(code);
+        quemDoLink = c.quem;
+        await enterRoom(c.code);
       } catch (e) {
         // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
@@ -2210,6 +2212,28 @@
   // #endregion
   // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
+  /** o que a pessoa pôs no campo vira código. O que ela tem no zap é o link, sozinho ou no meio da
+   *  mensagem: o código sai do ?evento= (ou do ?senha= antigo) e o &quem= do mesmo link vem junto.
+   *  Nome igual ao de um evento da lista é esse evento, não um novo com o mesmo nome
+   *  @returns {{ code: string, quem: string|null }} */
+  function codigoDoCampo(texto) {
+    const t = texto.trim(),
+      // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
+      m = t.match(/[?&](?:evento|senha)=([\w%.~!*'()-]+)/);
+    if (m) {
+      const link = t.slice(m.index).split(/\s/)[0],
+        q = link.match(/[?&]quem=([\w%.~!*'()-]+)/);
+      let code = m[1];
+      try {
+        code = decodeURIComponent(code.replace(/\+/g, ' '));
+      } catch {}
+      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null };
+    }
+    const code = t.toLowerCase(),
+      evs = meusEventos(),
+      meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
+    return { code: meu ? meu.code : code, quem: null };
+  }
   async function enterRoom(code) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
@@ -2372,10 +2396,10 @@
     // novo carrega o código, e o começo do app faz o resto (inclusive o "Criar …?")
     $('#gateForm').onsubmit = (ev) => {
       ev.preventDefault();
-      const code = $('#gateCode').value.trim().toLowerCase();
+      const { code, quem } = codigoDoCampo($('#gateCode').value);
       if (!code) return;
       if (code === roomName) return closeOverlay();
-      location.href = location.pathname + '?evento=' + encodeURIComponent(code);
+      location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
     };
     /** @param {MeuEvento} e */
     const esquece = (e) => esqueceEvento(e, showRoom);

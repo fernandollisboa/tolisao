@@ -3495,8 +3495,22 @@
     }
     ensinaInstalar();
   };
+  /** Chrome, Firefox e Edge do iPhone, e o navegador de dentro do Facebook e do Instagram: o passo a passo
+   *  do Safari não existe neles */
+  const foraDoSafari = () => /CriOS|FxiOS|EdgiOS|FBAN|FBAV|Instagram/.test(navigator.userAgent);
   /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 (HTML: já vem escapado) */
   function ensinaInstalar(porque = '') {
+    if (foraDoSafari()) {
+      // o Safari não enxerga o que este navegador guardou: o link do evento já entra como a pessoa
+      const link = groupId ? shareUrl(me || '') : SITE;
+      overlay(`<h2>Instalar</h2>${porque ? `<p class="porque">${porque}</p>` : ''}
+        <p class="porque">Daqui não dá pra instalar: só pelo <b>Safari</b>. Copia o link, abre o Safari e cola lá em cima.</p>
+        <button id="instLink" class="big">copiar o link</button>
+        <div class="c voltar"><button id="instOk" class="ghost">fechar</button></div>`);
+      $('#instLink').onclick = () => copia(link, 'Link copiado. Agora cola no Safari.', 'Link pro Safari');
+      $('#instOk').onclick = closeOverlay;
+      return;
+    }
     // quadrinhos: cada passo com o desenho do que vai aparecer no Safari e o botão a tocar
     // pintado, e uma seta pulando em cima do lugar de verdade. O Safari 26 guarda o
     // Compartilhar no •••, no canto de baixo; o antigo deixa ele no meio da barra de baixo,

@@ -39,6 +39,15 @@ Funcionalidade: Aviso no celular quando me pagam
     Então aparece o passo a passo de instalar na Tela de Início
     Mas o celular não fica inscrito pra receber aviso
 
+  Cenário: no iPhone fora do Safari, o 🔔 manda abrir no Safari
+    No iPhone só o Safari põe o tô lisa na Tela de Início: no Chrome ou no navegador do Instagram o passo a passo não existe.
+    Dado que meu celular é um iPhone com o link aberto no Chrome
+    Quando eu abro o evento como Júlia
+    E eu ligo o aviso no celular
+    E eu copio o link pro Safari
+    Então fica copiado o link do evento que já entra como Júlia
+    Mas não aparece o passo a passo do Safari
+
   Cenário: ligar o aviso convida a instalar, quando o navegador deixa
     Instalado, o aviso abre o tô lisa direto. Recusar o convite não impede o aviso.
     Dado que meu navegador oferece instalar o tô lisa

@@ -147,8 +147,9 @@ When('eu abro o Quem vai?', async ({ mundo }) => {
   await mundo.p.click('#whoBtn'); await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName');
 });
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
-Then('o site pergunta quem é você', async ({ mundo }) => { await expect(mundo.p.locator('#whoSel')).toBeVisible(); });
-When('eu escolho {word}', async ({ mundo }, quem) => { await mundo.p.selectOption('#whoSel', { label: quem }); });
+Then('o site pergunta quem é você entre {gente}', async ({ mundo }, gente) => {
+  await expect(mundo.p.locator('#overlayBox [data-sou]')).toHaveText(gente);
+});
 Then('o evento no banco tem {gente}', async ({ mundo }, gente) => {
   const sala = await salaAberta(mundo);
   await expect.poll(() => (mundo.banco.pega(['rooms', sala, 'people']) || []).map(p => p.name)).toEqual(gente);
@@ -239,6 +240,7 @@ Then('a nota pergunta quem eu sou entre {gente}', async ({ mundo }, gente) => {
 });
 Then('a nota não pergunta quem eu sou', async ({ mundo }) => { await expect(mundo.p.locator('#chegada')).toBeHidden(); });
 When('eu toco no meu nome, {word}, no topo da nota', async ({ mundo }, quem) => {
-  await mundo.p.click(`#chegada [data-chegou="${mundo.pessoa(quem).id}"]`);
+  // pelo nome: o evento pode ter sido criado pela tela, sem passar pelo mundo
+  await mundo.p.locator('#chegada [data-chegou]', { hasText: new RegExp(`^${quem}$`) }).click();
 });
 When('eu digo que não tô na turma', async ({ mundo }) => { await mundo.p.click('#chegouFora'); await mundo.p.waitForSelector('#setupName'); });

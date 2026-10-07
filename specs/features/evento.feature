@@ -111,7 +111,7 @@ Funcionalidade: Entrar no evento
     E eu digo que não tô na turma
     E eu ponho Bia na lista
     E eu continuo
-    E eu escolho Bia
+    E eu toco no meu nome, Bia, no topo da nota
     Então o cabeçalho diz "sou Bia"
     E o evento no banco tem Fernando, Júlia, Lia e Bia
 
@@ -187,8 +187,7 @@ Funcionalidade: Entrar no evento
     E eu tento pôr fernando na lista de novo
     Então aparece o aviso "Já existe alguém com esse nome"
     Quando eu continuo
-    Então o site pergunta quem é você
-    Quando eu escolho Lia
+    E eu toco no meu nome, Lia, no topo da nota
     Então o cabeçalho diz "sou Lia"
     E o evento no banco tem Fernando e Lia
 
@@ -225,7 +224,7 @@ Funcionalidade: Entrar no evento
     E eu crio o evento
     E eu ponho Fernando na lista
     E eu escrevo Lia e aperto pronto sem dar enter
-    Então o site pergunta quem é você
+    Então a nota pergunta quem eu sou entre Fernando e Lia
     E o evento no banco tem Fernando e Lia
 
   Cenário: outra pessoa no quem é você abre a lista de gente, sem trocar quem eu sou
@@ -248,6 +247,16 @@ Funcionalidade: Entrar no evento
     Dado um evento com uma turma grande
     Quando eu abro o Quem vai?
     Então ninguém tem a mesma cor
+
+  Cenário: depois do pronto, quem é você é perguntado uma vez só, na própria nota
+    A nota já mostra a turma no topo, um nome por pessoa: um cartão por cima perguntaria a mesma coisa de novo.
+    Dado que eu abro o site sem evento
+    Quando eu digito o código "praia"
+    E eu crio o evento
+    E eu ponho Fernando e Lia na lista
+    E eu continuo
+    Então nenhum cartão abre
+    E a nota pergunta quem eu sou entre Fernando e Lia
 
   Cenário: evento de uma pessoa só não pergunta quem é você
     Dado que eu abro o site sem evento

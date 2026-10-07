@@ -35,7 +35,7 @@ async function preview(opts = {}) {
     const erros = []; p.on('pageerror', e => erros.push(e.message));
     await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
     // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é
-    if (quem) { await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: quem }); }
+    if (quem) { await p.click('#whoBtn'); await p.locator('#overlayBox [data-sou]', { hasText: new RegExp(`^${quem}$`) }).click(); }
     await p.waitForTimeout(900);
 
     // --comanda: a imagem que vai pro zap, do jeito que o canvas gera (enviar → qualquer um)

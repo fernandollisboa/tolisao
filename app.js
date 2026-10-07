@@ -1669,8 +1669,14 @@
   // #region cartões (overlays)
   // ---------- cartões (overlays) ----------
   let overlayCancel = null,
-    overlaySticky = false;
+    overlaySticky = false,
+    /** @type {HTMLElement | null} quem abriu o cartão: o foco volta pra ele */ overlayDeQuem = null;
+  /** devolve o foco pra quem abriu, se ele ainda tá na página */
+  const voltaFoco = (el) => {
+    if (el && el.isConnected && typeof el.focus === 'function') el.focus({ preventScroll: true });
+  };
   const overlay = (html, sticky = false) => {
+    if (semCartao()) overlayDeQuem = /** @type {HTMLElement | null} */ (document.activeElement);
     overlayCancel = null;
     overlaySticky = sticky;
     $('#overlayBox').innerHTML = html;
@@ -1679,13 +1685,20 @@
   const closeOverlay = () => {
     $('#overlay').classList.add('hidden');
     $('#overlay').classList.remove('ensina', 'canto', 'meio', 'cima');
+    const de = overlayDeQuem;
+    overlayDeQuem = null;
+    voltaFoco(de);
   };
-  $('#overlay').addEventListener('click', (ev) => {
-    if (ev.target.id !== 'overlay' || overlaySticky) return;
+  /** toque fora ou Esc: fecha como o voltar, menos o cartão que pede uma escolha */
+  const fechaPorFora = () => {
+    if (overlaySticky) return;
     const c = overlayCancel;
     overlayCancel = null;
     closeOverlay();
     if (c) c();
+  };
+  $('#overlay').addEventListener('click', (ev) => {
+    if (ev.target.id === 'overlay') fechaPorFora();
   });
 
   /** `perigo` pinta o botão de vermelho: o que não tem volta não pode parecer um voltar */
@@ -1892,6 +1905,7 @@
           el.blur();
         }
         if (ev.key === 'Escape') {
+          ev.preventDefault(); // desfaz o nome, sem fechar o cartão
           el.textContent = p.name;
           el.blur();
         }
@@ -2444,7 +2458,11 @@
       $('#itemsHead').click();
     }
   });
+  /** @type {HTMLElement | null} */
+  let sheetDeQuem = null;
   const openSheet = () => {
+    if ($('#sheet').classList.contains('hidden'))
+      sheetDeQuem = /** @type {HTMLElement | null} */ (document.activeElement);
     $('#sheet').classList.remove('hidden');
     $('#amount').focus();
   };
@@ -2466,6 +2484,9 @@
       limpaForm();
       render();
     }
+    const de = sheetDeQuem;
+    sheetDeQuem = null;
+    voltaFoco(de);
   };
   /** o anotar abre com o item preenchido; salvar troca ele por um novo no mesmo lugar */
   function editaItem(e) {
@@ -2523,6 +2544,14 @@
     convidaInstalar();
   };
   $('#sheetClose').onclick = closeSheet;
+  // Esc fecha o que tá por cima: o cartão primeiro, depois o anotar
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+    if (!semCartao()) fechaPorFora();
+    else if (!$('#sheet').classList.contains('hidden')) closeSheet();
+    else return;
+    ev.preventDefault();
+  });
   $('#sheet').addEventListener('click', (ev) => {
     if (ev.target.id === 'sheet') closeSheet();
   });

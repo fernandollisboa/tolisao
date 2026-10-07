@@ -23,6 +23,8 @@ Then('o {string} esconde quem divide', async ({ mundo }, nome) => {
 });
 
 When('eu toco no ✎', async ({ mundo }) => { await mundo.p.click('#fab'); await mundo.p.waitForSelector('#sheet:not(.hidden)'); });
+Then('o anotar fecha', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).toHaveClass(/\bhidden\b/); });
+Then('o ✎ fica com o foco', async ({ mundo }) => { await expect(mundo.p.locator('#fab')).toBeFocused(); });
 When('eu anoto {string} de R$ {num} dividido igualmente', async ({ mundo }, desc, valor) => {
   const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
   await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.click('#expenseForm button.big');

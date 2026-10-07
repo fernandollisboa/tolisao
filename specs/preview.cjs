@@ -19,12 +19,13 @@ const DADOS = {
 
 async function preview(opts = {}) {
   const { alvo = null, quem = 'Lia', pix = true, largura = 390, altura = 900,
-          dados = DADOS, variantes = null, recorte = null } = opts;
+          dados = DADOS, variantes = null, recorte = null, inicio = false } = opts;
   const saida = opts.saida || path.join(os.tmpdir(), 'preview.png');
   const { srv, porta } = await servir();
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
   try {
-    const ctx = await b.newContext({ viewport: { width: largura, height: altura }, deviceScaleFactor: 2 });
+    const ctx = await b.newContext({ viewport: { width: largura, height: altura }, deviceScaleFactor: 2,
+      reducedMotion: opts.quieto ? 'reduce' : 'no-preference' });
     await ctx.route(/fake-db/, r => {
       const u = r.request().url();
       if (u.includes('/pix/')) return r.fulfill({ json: pix && u.includes('/fernando/') ? 'fernando@exemplo.com' : null });
@@ -33,10 +34,21 @@ async function preview(opts = {}) {
     });
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
-    await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
-    // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é
-    if (quem) { await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: quem }); }
-    await p.waitForTimeout(900);
+    if (opts.js) await p.addInitScript(opts.js);
+    if (inicio) {
+      // aparelho limpo, sem evento: a estreia. o quadro sai depois do título se digitar (~7,5 s)
+      await p.goto(`http://localhost:${porta}/`);
+      await p.waitForSelector('#gateCode');
+      // o título só começa depois da fonte: espera ele começar (se for digitar) e acabar
+      if (!opts.quieto) await p.waitForSelector('#tituloGate.digitando', { timeout: 3000 }).catch(() => {});
+      await p.waitForSelector('#tituloGate:not(.digitando)', { timeout: 15000 });
+      await p.waitForTimeout(opts.quieto ? 300 : 1500);
+    } else {
+      await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
+      // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é
+      if (quem) { await p.click('#whoBtn'); await p.waitForSelector('#whoSel'); await p.selectOption('#whoSel', { label: quem }); }
+      await p.waitForTimeout(900);
+    }
 
     const tirar = async destino => recorte ? p.screenshot({ path: destino, clip: recorte })
       : alvo ? p.locator(alvo).screenshot({ path: destino }) : p.screenshot({ path: destino, fullPage: true });
@@ -71,11 +83,13 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const alvo = args.find(a => !a.startsWith('--')) || null;
   const op = a => (args.find(x => x.startsWith('--' + a + '=')) || '').split('=')[1];
-  const varArq = op('variantes');
+  const varArq = op('variantes'), arqJs = op('js');
   preview({
     alvo, quem: args.includes('--ninguem') ? '' : op('quem') || 'Lia', saida: op('saida'),
     largura: +op('largura') || 390,
     recorte: op('recorte') ? (([x,y,width,height]) => ({x,y,width,height}))(op('recorte').split(',').map(Number)) : null,
     variantes: varArq ? require(path.resolve(varArq)) : null,
+    inicio: args.includes('--inicio'), quieto: args.includes('--quieto'),
+    js: arqJs ? fs.readFileSync(arqJs, 'utf8') : undefined,
   }).then(f => console.log(f)).catch(e => { console.error(e); process.exit(1); });
 }

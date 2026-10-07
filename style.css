@@ -358,15 +358,21 @@ code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:brea
 /* o dedo acerta mais que o desenho: botão miúdo e link solto ganham uma área de toque
    invisível de 8px em volta (uns 40px), sem mudar o desenho. Só no dedo: no mouse a área
    maior acendia o hover longe do botão, em cima da linha vizinha */
-button.ico,button.danger,a.link.amb,#chegouFora,#whoBtn{position:relative}
+button.ico,button.danger,a.link.amb,#chegouFora,#whoBtn,.digital a.link{position:relative}
 @media (pointer:coarse){
-  button.ico:after,button.danger:after,a.link.amb:after,#chegouFora:after,#whoBtn:after{content:"";position:absolute;inset:-8px}
+  /* no dedo, as linhas de Minha conta com botão ganham 9px em cima e embaixo: sem folga, a área de
+     toque de uma linha caía em cima do botão da linha vizinha (o cobrar de baixo roubava o de cima) */
+  #mineRows .row.sub{padding:9px 0}
+  button.ico:after,button.danger:after,a.link.amb:after,#chegouFora:after,#whoBtn:after,.digital a.link:after{content:"";position:absolute;inset:-8px}
   /* o ✕ do Quem vai? fica colado no nome que se edita: cresce só pra direita e na vertical */
   #overlayBox .row.pessoa button.ico:after{inset:-8px -8px -8px 0}
+  /* o "não" vem colado no "você é fulano?": não rouba a borda dele */
+  #whoSugere~#whoBtn:after{inset:-8px -8px -8px -2px}
   /* o ✕ do gasto tem o editar do lado */
   .item button.danger:after{inset:-8px -8px -8px -2px}
-  /* os botões do acerto passam dos 44px que a Apple pede; na horizontal quase nada, que os dois são vizinhos */
-  #mineRows .dupla>button.ico:after{inset:-10px -1px}
+  /* os botões do acerto crescem até a borda da linha (26 + 2×9 = 44px, o que a Apple pede) e param
+     ali, sem pisar no vizinho; na horizontal quase nada, que os dois são vizinhos */
+  #mineRows .dupla>button.ico:after{inset:-9px -1px}
 }
 /* com nome escrito os dois botões precisam caber ao lado do nome em 360px: letra um
    tico menor, o valor sem folga à esquerda e, se ainda faltar, os botões descem pra baixo

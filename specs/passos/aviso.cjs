@@ -46,6 +46,7 @@ Given('que meu celular é um iPhone com o link aberto no Instagram', async ({ mu
   });
 });
 When('eu copio o link pro Safari', async ({ mundo }) => { await mundo.p.click('#instLink'); });
+When('eu copio o link do evento pro app instalado', async ({ mundo }) => { await mundo.p.click('#instEvLink'); });
 Then('fica copiado o link do evento que já entra como {word}', async ({ mundo }, quem) => {
   await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado))
     .toMatch(new RegExp(`^${mundo.base}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}&quem=${mundo.pessoa(quem).id}$`));
@@ -66,7 +67,7 @@ Given('que meu navegador oferece instalar o tô lisa', async ({ mundo }) => {
 Then('aparece o passo a passo de instalar na Tela de Início', async ({ mundo }) => {
   const o = mundo.p.locator('#overlay');
   await expect(o.locator('h2')).toHaveText('Instalar');
-  await expect(o).toContainText(`aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento ${mundo.evento.name}`);
+  await expect(o).toContainText('aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo');
   await expect(o).toContainText('Adicionar à Tela de Início');
 });
 Then('o celular não fica inscrito pra receber aviso', async ({ mundo }) => { expect(pedidos(mundo, '/inscreve')).toHaveLength(0); });

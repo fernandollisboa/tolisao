@@ -60,7 +60,8 @@ Funcionalidade: Meus eventos
       agora
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      ENTRAR
+      qualquer nome cria o evento.
+      BORA
       VOLTAR
       apagar meus dados deste aparelho
       """
@@ -84,7 +85,8 @@ Funcionalidade: Meus eventos
       agora
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
-      ENTRAR
+      qualquer nome cria o evento.
+      BORA
       apagar meus dados deste aparelho
       """
     E o código do evento não pega o foco sozinho

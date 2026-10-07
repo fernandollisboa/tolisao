@@ -24,6 +24,13 @@ Funcionalidade: Entrar com a digital
     E o "churras" volta pra lista, comigo como Lia
     E o saldo do "churras" na lista é "R$ 30,00"
 
+  Cenário: quem usa teclado também guarda na digital
+    Dado que eu pedi pra testar a digital
+    E que neste aparelho eu sou Lia no "churras"
+    Quando eu abro o tô lisa
+    E eu guardo meus eventos na digital pelo teclado
+    Então aparece o aviso "Guardei 1 evento na digital. Noutro celular, é só entrar com ela."
+
   Cenário: a digital só aparece pra quem pediu, e o aparelho lembra
     Quando eu abro o tô lisa
     Então o cartão não oferece a digital

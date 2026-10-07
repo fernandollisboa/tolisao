@@ -319,10 +319,21 @@
       for (const x of list || []) if (!deleted.has(x.id)) m.set(x.id, x);
       return m;
     };
+    // editar troca o item por outro (`to`): dois aparelhos editando o mesmo item deixam dois
+    // substitutos. Vale a edição mais nova, e o outro substituto sai também, senão o gasto conta duas vezes
+    const gone = new Map();
+    for (const g of [...a.gone, ...b.gone]) {
+      if (!deleted.has(g.id)) continue;
+      const o = gone.get(g.id);
+      if (!o) gone.set(g.id, g);
+      else if (o.to && g.to && o.to !== g.to) {
+        const novo = g.goneAt > o.goneAt || (g.goneAt === o.goneAt && g.to > o.to); // empate: os dois aparelhos escolhem igual
+        gone.set(g.id, novo ? g : o);
+        deleted.add(novo ? o.to : g.to);
+      }
+    }
     const people = new Map([...byId(a.people), ...byId(b.people)]);
     const expenses = new Map([...byId(a.expenses), ...byId(b.expenses)]);
-    const gone = new Map();
-    for (const g of [...a.gone, ...b.gone]) if (deleted.has(g.id) && !gone.has(g.id)) gone.set(g.id, g);
     return {
       v: 2,
       name: a.name || b.name || '',

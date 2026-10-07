@@ -1,4 +1,4 @@
-const { When, Then, expect } = require('./_mundo.cjs');
+const { When, Then, expect, AGORA } = require('./_mundo.cjs');
 
 const dinheiro = v => v.toFixed(2).replace('.', ',');
 const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
@@ -153,4 +153,14 @@ When('outro aparelho anota {string} de R$ {num} bem na hora que eu gravo o {stri
 });
 Then('o banco tem os itens {string} e {string}', async ({ mundo }, a, b) => {
   await expect.poll(() => (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).map(e => e.desc)).toEqual(expect.arrayContaining([a, b]));
+});
+
+// o outro aparelho grava direto no banco; este só fica sabendo no próximo sync, o de quando eu gravo
+const salaNoBanco = mundo => mundo.banco.arvore.rooms[mundo.sala];
+// a edição do outro aparelho é de um minuto antes da minha (o relógio da página começa em AGORA)
+When('a/o {word} troca o valor do/da {string} pra R$ {num} em outro aparelho', async ({ mundo }, quem, desc, valor) => {
+  const sala = salaNoBanco(mundo), velho = sala.expenses.find(e => e.desc === desc);
+  sala.expenses = [...sala.expenses.filter(e => e !== velho), { ...velho, id: 'dooutro', amount: valor, by: quem }];
+  sala.deleted = [...(sala.deleted || []), velho.id];
+  sala.gone = [...(sala.gone || []), { id: velho.id, desc, amount: velho.amount, at: velho.at, by: quem, goneAt: AGORA - 60000, to: 'dooutro' }];
 });

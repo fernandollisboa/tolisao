@@ -1,4 +1,4 @@
-const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
+const { Given, When, Then, expect, idDe, AGORA, leQr } = require('./_mundo.cjs');
 
 const festa = require('../_festa.cjs');
 
@@ -246,6 +246,20 @@ When('eu colo o link do evento pra {word} na mesma aba', async ({ mundo }, quem)
   await mundo.p.waitForSelector('#app:not(.loading)');
 });
 When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre({ link: mundo.base + '/' + q }); await mundo.p.waitForSelector('#app:not(.loading)'); });
+
+// o QR do link do grupo, do "Mandar pra quem?": o SVG da tela vira imagem e passa pelo leitor
+When('eu peço o QR do evento', async ({ mundo }) => { await mundo.p.click('#waBtn'); await mundo.p.click('#qrBtn'); });
+const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}$`);
+Then('o QR na tela leva pro link do grupo', async ({ mundo }) => {
+  const svg = await mundo.p.locator('#overlayBox .qr svg').evaluate(s => s.outerHTML.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" '));
+  expect(await leQr(mundo.p, 'data:image/svg+xml,' + encodeURIComponent(svg))).toMatch(doGrupo(mundo));
+});
+// a comanda é a que o "baixa a imagem" guardou
+Then('o QR da comanda leva pro link do grupo', async ({ mundo }) => {
+  expect(mundo.nota.comanda, 'a comanda não foi baixada antes').toBeTruthy();
+  const png = 'data:image/png;base64,' + require('fs').readFileSync(mundo.nota.comanda).toString('base64');
+  expect(await leQr(mundo.p, png)).toMatch(doGrupo(mundo));
+});
 
 // a chegada pelo link do grupo: a nota pergunta quem é você no topo, sem cartão
 When('eu abro o link do grupo', async ({ mundo }) => { await mundo.abre(); await mundo.p.waitForSelector('#app:not(.loading)'); });

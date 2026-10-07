@@ -2597,6 +2597,9 @@
       ligaEventos(novos, esquece);
     });
   }
+  // a ampulheta do evento parado, em pixel como o resto (o emoji destoava): 5×7, areia no tom fraco
+  const AMPULHETA =
+    '<svg class="ampulheta" viewBox="0 0 5 7" width="10" height="14" shape-rendering="crispEdges" role="img" aria-label="parado"><path fill="currentColor" d="M0 0h5v1H0zM0 1h1v1H0zM4 1h1v1H4zM1 2h1v1H1zM3 2h1v1H3zM2 3h1v1H2zM1 4h1v1H1zM3 4h1v1H3zM0 5h1v1H0zM4 5h1v1H4zM0 6h5v1H0z"/><path fill="var(--ink2)" d="M2 5h1v1H2z"/></svg>';
   /** cada evento com o meu saldo nele, contado da cópia do aparelho: abre sem internet.
    * Em cima, a soma dos saldos (com dois eventos ou mais, e se não der zero); no evento parado
    * em que me devem, "parado há N dias" no lugar da data; os quites antigos, recolhidos no fim */
@@ -2630,7 +2633,7 @@
       // parado e me devem: no lugar da data, há quanto tempo ninguém mexe (o valor já está em cima)
       const data =
         b > 0 && dias >= PARADO_DIAS
-          ? `<span class="parado">⏳ há ${dias} dias</span>`
+          ? `<span class="parado">${AMPULHETA}há ${dias} dias</span>`
           : `<span>${quando(e.at)}</span>`;
       return `<div class="ev${e.id === groupId ? ' aqui' : ''}" data-ev="${e.id}" role="button" tabindex="0">
         <div class="row"><span class="l">${esc(e.nome)}</span><span class="d"></span><span class="v ${cls}">${v}</span>${comX ? `<button class="ico x" data-esquece="${e.id}" title="esquecer">✕</button>` : ''}</div>

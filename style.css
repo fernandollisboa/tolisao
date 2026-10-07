@@ -546,10 +546,10 @@ button.ico.ok:active{transform:translate(2px,2px);box-shadow:none}
 .ev.aqui .l:before{content:"▸ "}
 .ev.aqui .l{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .ev .x{margin-left:8px}
-/* a soma de todos, em cima; o evento parado em que te devem troca a data por "⏳ parado há N dias", na tinta forte (o verde fica no valor) */
+/* a soma de todos, em cima; o evento parado em que te devem troca a data por "há N dias" com a ampulheta em pixel, na tinta forte (o verde fica no valor) */
 .evtotal{text-align:center;font-size:20px;padding:0 0 5px;margin-bottom:3px;border-bottom:1px dashed var(--rule)}
 .evtotal b{font-weight:normal}
-.ev .parado{color:var(--ink)}
+.ev .parado{color:var(--ink)} .ev .parado .ampulheta{vertical-align:-1px;margin-right:6px}
 /* os quites antigos, recolhidos no fim como os itens apagados */
 .evs details.antigos>summary{display:block;list-style:none;cursor:pointer;text-align:center;text-transform:none;font-size:17px;color:var(--muted);margin:10px 0 2px}
 .evs details.antigos>summary::-webkit-details-marker{display:none}

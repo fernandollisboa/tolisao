@@ -1,7 +1,14 @@
 // rede primeiro, cache como reserva: atualizações chegam na hora e o app abre offline com a última versão vista
-const CACHE = 'tolisa-v4';
+const CACHE = 'tolisa-v5';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
+// o ?v= vira o SHA a cada deploy: guardada a versão nova de um arquivo, as outras dele saem,
+// senão o cache juntava uma cópia do app.js e do style.css por deploy, pra sempre
+const guarda = (c, chave, copia) => c.put(chave, copia).then(() => {
+  const url = new URL(chave.url);
+  if (!url.searchParams.has('v')) return;
+  return c.keys().then(ks => Promise.all(ks.filter(k => k.url !== chave.url && new URL(k.url).pathname === url.pathname).map(k => c.delete(k))));
+});
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
@@ -14,7 +21,7 @@ self.addEventListener('fetch', e => {
   const chave = nav ? new Request(url.origin + url.pathname) : e.request;
   // o clone tem que sair antes de devolver r: se esperar o caches.open() abrir pra
   // clonar, o navegador já começou a ler o corpo e o clone falha ("body is already used")
-  e.respondWith(fetch(pedido).then(r => { if (r.ok) { const copia = r.clone(); caches.open(CACHE).then(c => c.put(chave, copia)); } return r; })
+  e.respondWith(fetch(pedido).then(r => { if (r.ok) { const copia = r.clone(); caches.open(CACHE).then(c => guarda(c, chave, copia)); } return r; })
     .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || (nav ? caches.match('./index.html') : undefined))));
 });
 

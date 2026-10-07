@@ -1878,21 +1878,12 @@
   /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila)
    * @param {boolean} entrou @param {HTMLElement} t */
   function fichaDoPonto(entrou, t) {
-    const box = $('#overlayBox');
-    if (!t.isConnected || !t.firstChild) return;
-    if (entrou) {
-      // mede só o último caractere: o retângulo do título inteiro inclui o cursor piscando
-      const fim = document.createRange();
-      fim.setStart(t.firstChild, t.textContent.length - 1);
-      fim.setEnd(t.firstChild, t.textContent.length);
-      const r = fim.getBoundingClientRect(),
-        b = box.getBoundingClientRect();
-      box.insertAdjacentHTML(
-        'beforeend',
-        `<img class="fichinha ponto" src="diva.png" alt="" aria-hidden="true" style="--s:18px;left:${r.left + r.width / 2 - b.left - 9}px;top:${r.bottom - b.top - 22}px">`,
-      );
-    } else {
-      const f = box.querySelector('.fichinha.ponto');
+    if (!t.isConnected) return;
+    // sem medir nada: absoluta e sem left/top, a ficha fica onde o texto acaba (o zoom do desktop não desalinha)
+    if (entrou)
+      t.insertAdjacentHTML('afterend', '<img class="fichinha ponto" src="diva.png" alt="" aria-hidden="true">');
+    else {
+      const f = t.parentElement?.querySelector('.fichinha.ponto');
       if (!f) return;
       f.classList.add('foge');
       f.addEventListener('animationend', () => f.remove(), { once: true });
@@ -1900,7 +1891,7 @@
   }
   function showGate(msg) {
     $('#app').classList.add('loading', 'nospin');
-    // quem já tem evento neste aparelho cai na lista; o convite e o autofocus (que abre o teclado por cima dela) são pra quem chega
+    // quem já tem evento neste aparelho cai na lista; o convite e o foco no campo são pra quem chega
     const evs = meusEventos(),
       botao = evs.length ? 'Entrar' : 'Bora';
     const chegou = !msg && !evs.length;
@@ -1919,12 +1910,15 @@
       <div class="c muted" style="text-transform:none;margin-top:6px">o ✕ tira da lista só neste aparelho</div>`
       : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado">${msg || 'qualquer nome já cria o rolê.'}</p>` : ''}
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome do rolê" required${evs.length ? '' : ' autofocus'} autocapitalize="none"><button class="small">${botao}</button></form>
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome já cria o rolê.'}</p>` : ''}
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="nome do rolê" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
     digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined);
+    // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o
+    // teclado por cima da estreia: o foco vem sem rolar, e só onde tem teclado de verdade
+    if (!evs.length && !matchMedia('(pointer: coarse)').matches) $('#gateCode').focus({ preventScroll: true });
     /** @param {MeuEvento} e */
     const esquece = (e) => esqueceEvento(e, () => showGate());
     ligaEventos(evs, esquece);
@@ -2200,7 +2194,7 @@
   // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
   async function enterRoom(code) {
-    if (!code) throw new Error('Digite um código.');
+    if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('Armazenamento ainda não configurado (DB vazio no index.html).');
     let id = await sha(code),
       existing = null;
@@ -2212,14 +2206,21 @@
     let criou = false;
     const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
     if (!existing && !seed) {
-      if (
-        !(await ask(
-          `Criar "${esc(code)}"?`,
-          'esse nome tá livre. o link ganha um final sorteado, à prova de enxerido.',
-          'criar',
-        ))
-      )
-        throw new Error('confira o código');
+      // código com cara de final sorteado (6 letras e números, com algum número) é link velho ou cortado,
+      // não nome novo: "esse nome tá livre" ali faria a pessoa criar um evento fantasma
+      const veioDeLink = /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+      const [titulo, desc, ok] = veioDeLink
+        ? [
+            `Não achei "${esc(code)}"`,
+            'esse link não abre evento nenhum. confere com quem te mandou.',
+            'criar mesmo assim',
+          ]
+        : [
+            `Criar "${esc(code)}"?`,
+            'esse nome tá livre. o link ganha um final sorteado, à prova de enxerido.',
+            'criar',
+          ];
+      if (!(await ask(titulo, desc, ok))) throw new Error('nada foi criado.');
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
       // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
       const nome = code;
@@ -2340,7 +2341,7 @@
       }
       <div class="hr"></div><h2>*** Outro evento ***</h2>
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="gateCode" placeholder="nome ou código" required autocapitalize="none"><button class="small">entrar</button></form>
+        <input id="gateCode" placeholder="nome do rolê" required autocapitalize="none"><button class="small">entrar</button></form>
       <div class="hr"></div>
       <button id="evBack" class="sec">voltar</button>`);
     $('#evBack').onclick = closeOverlay;

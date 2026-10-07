@@ -2918,13 +2918,21 @@
   /** a linha do cartão de Meus eventos: guardar só aparece com evento pra guardar */
   const linhaDigital = (temEventos) =>
     temDigital()
-      ? `<div class="c digital">${temEventos ? '<a class="link" id="digGuarda">guardar com a digital</a> · ' : ''}<a class="link" id="digEntra">entrar com a digital</a></div>`
+      ? `<div class="c digital">${temEventos ? '<a class="link" id="digGuarda" role="button" tabindex="0">guardar com a digital</a> · ' : ''}<a class="link" id="digEntra" role="button" tabindex="0">entrar com a digital</a></div>`
       : '';
   function ligaDigital() {
     const g = $('#digGuarda'),
       e = $('#digEntra');
     if (g) g.onclick = guardaDigital;
     if (e) e.onclick = entraDigital;
+    // são botões pra quem usa teclado também: Enter e Espaço fazem o mesmo que o toque
+    for (const b of [g, e])
+      b?.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          b.click();
+        }
+      });
   }
   /** o desafio vale uma vez e por pouco tempo: um pra cada toque */
   async function desafioDigital() {

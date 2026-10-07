@@ -40,6 +40,24 @@ Funcionalidade: Anotar um gasto
     E eu anoto "Cerveja" de R$ 50,00 dividido igualmente
     Então o banco tem os itens "Cerveja" e "Gelo"
 
+  Cenário: o mesmo gasto anotado duas vezes pede confirmação
+    No rolê, quem pagou e quem tava com o celular na mão anotam o mesmo Uber, e a conta dobra sem ninguém ver.
+    Quando eu abro o evento como Lia
+    E a Júlia anota em outro aparelho um "Uber" de R$ 32,50 que a Lia pagou, há 3 minutos
+    E eu tento anotar "Uber" de R$ 32,50 que eu paguei
+    Então o cartão mostra:
+      """
+      JÁ ANOTARAM?
+      Uber · R$ 32,50 · Lia pagou, anotado por Júlia há 3 min
+      ANOTAR MESMO ASSIM
+      VOLTAR
+      """
+    Quando eu volto
+    Então o anotar continua aberto com R$ 32,50 de "Uber"
+    Quando eu salvo
+    E eu anoto mesmo assim
+    Então a lista tem 8 itens
+
   Cenário: dividir em partes diferentes
     Quando eu abro o evento como Júlia
     E eu toco no ✎

@@ -99,7 +99,7 @@ Then('a comanda fecha com o total de R$ {word} e o {string}', async ({ mundo }, 
 });
 Then('baixa a imagem {string}', async ({ mundo }, nome) => {
   const d = mundo.nota.download; expect(d.suggestedFilename()).toBe(nome);
-  const arq = path.join(os.tmpdir(), 'receipt.png'); await d.saveAs(arq);
+  const arq = path.join(os.tmpdir(), 'receipt.png'); await d.saveAs(arq); mundo.nota.comanda = arq;
   expect(fs.readFileSync(arq).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
 });
 

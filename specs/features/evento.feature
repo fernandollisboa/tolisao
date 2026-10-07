@@ -93,6 +93,13 @@ Funcionalidade: Entrar no evento
     E a nota não pergunta quem eu sou
     E o endereço termina em "?evento=churras"
 
+  Cenário: na mesa, a turma escaneia o QR e cai no evento
+    A turma tá do lado: em vez de passar o link pelo zap, quem tá com o celular mostra o QR.
+    Dado o evento de exemplo "bailedamada"
+    Quando eu abro o evento como Fernando
+    E eu peço o QR do evento
+    Então o QR na tela leva pro link do grupo
+
   Cenário: quem chega pelo link do grupo diz quem é na própria nota
     O link do grupo não diz quem abriu. A nota já mostra a turma no topo, um nome
     por pessoa, sem cartão na frente: ninguém é interrompido na chegada.
@@ -176,7 +183,7 @@ Funcionalidade: Entrar no evento
     Então o cartão mostra:
       """
       Quem vai?
-      enter pula pra próxima
+      um nome por vez, enter pro próximo
       +
       + OUTRA PESSOA
       PRONTO
@@ -202,7 +209,7 @@ Funcionalidade: Entrar no evento
     Então o cartão mostra:
       """
       Quem vai?
-      enter pula pra próxima
+      um nome por vez, enter pro próximo
       +
       + OUTRA PESSOA
       PRONTO
@@ -267,12 +274,12 @@ Funcionalidade: Entrar no evento
     E eu abro o site de novo
     Então o cartão mostra:
       """
-      EVENTO NÃO ENCONTRADO
-      esse evento não está mais no banco
-      RESTAURAR DA MINHA CÓPIA
+      SUMIU!
+      esse evento não tá mais aqui, mas teu celular guardou uma cópia.
+      TRAZER DE VOLTA
       VOLTAR
       """
-    Quando eu restauro da minha cópia
+    Quando eu trago o evento de volta da minha cópia
     Então o evento volta pro banco com o Carvão
     E o cabeçalho diz "sou Lia"
 

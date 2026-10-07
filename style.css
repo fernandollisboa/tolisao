@@ -577,7 +577,7 @@ button.linkpra{display:inline-flex;align-items:center;gap:8px;color:var(--ink);b
 button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 /* o QR do link do grupo: botão pequeno embaixo das cápsulas, e o cartão com o QR na largura toda, em fundo branco pro leitor */
 button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-shadow:2px 2px 0 var(--ink)}
-button.qrbtn.escuro{background:var(--ink);color:var(--paper);margin-top:2px}
+button.qrbtn.colado{margin-top:2px}
 .qr svg{display:block;width:100%;max-width:320px;margin:4px auto 0;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
 /* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
 .pessoa.row .l[contenteditable]{outline:0;cursor:text}
@@ -652,7 +652,3 @@ button.qrbtn.escuro{background:var(--ink);color:var(--paper);margin-top:2px}
 .comandinha.parada *,.comandinha.parada .row:after{animation:none !important}
 .comandinha.parada .fichinha.cai{display:none}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
-/* o convite de instalar de quem chegou pelo QR: no topo da nota, tracejado como o 🔔, sem chamar mais atenção que a conta */
-#chegada .instala{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 12px;text-transform:none}
-#chegada .instala button.ico{font-size:15px;height:24px;color:var(--ink2);border-color:var(--ink2);border-style:dashed}
-#chegada .instala .link{font-size:15px;color:var(--ink2)}

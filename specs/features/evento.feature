@@ -169,7 +169,6 @@ Funcionalidade: Entrar no evento
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
-      + CRIAR OUTRO BAILEDAMADA
       VOLTAR
       """
     Quando eu toco em voltar

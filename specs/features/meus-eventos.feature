@@ -61,7 +61,6 @@ Funcionalidade: Meus eventos
       o ✕ tira da lista só neste aparelho
       *** OUTRO EVENTO ***
       ENTRAR
-      + CRIAR OUTRO PRAIA
       VOLTAR
       """
     E o saldo do "praia" é verde

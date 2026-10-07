@@ -82,9 +82,8 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, qrInvited, itemsOpened, boringMode, myName, pixKey }
-  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
-  //                  qrInvited: quem chegou pelo QR já ganhou o convite de instalar)
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey }
+  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
@@ -188,8 +187,6 @@
   /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
   /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
   /** o &quem= do link compartilhado: quem abre já entra como essa pessoa @type {string|null} */ let quemDoLink = null;
-  /** o &qr do link do QR: quem escaneou na mesa, depois de dizer quem é, ganha o convite de instalar */ let veioDoQr = false;
-  /** o convite de instalar de quem veio pelo QR está no topo da nota (até instalar ou dispensar) */ let conviteQr = false;
   /** quando esta pessoa viu o evento pela última vez: o que chegou depois ganha "novo" */ let lastSeen = 0;
   /** pessoa → chave pix, lida do banco @type {Record<string, string>} */ let pixKeys = {};
   /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
@@ -1291,24 +1288,20 @@
    *  interrompido na chegada, e some quando a pessoa diz quem é */
   function renderChegada(hasMe) {
     const el = $('#chegada'),
-      quer = !hasMe && state.people.length > 0,
-      instala = !quer && hasMe && convidaDoQr();
+      quer = !hasMe && state.people.length > 0;
     const html = quer
       ? `<h2>*** Quem é você? ***</h2>
       <div class="linkpras">${state.people.map((p) => `<button class="linkpra" data-chegou="${p.id}" style="--cor:${colorOf(p.id)}"><i></i>${esc(p.name)}</button>`).join('')}</div>
       <div class="c"><a class="link" id="chegouFora">não tô aqui</a></div><div class="hr"></div>`
-      : instala
-        ? `<div class="instala"><button class="ico" data-instala>📲 instala pra ser avisado quando te pagarem</button><a class="link" data-instala-nao>agora não</a></div><div class="hr"></div>`
-        : '';
-    el.classList.toggle('hidden', !quer && !instala);
+      : '';
+    el.classList.toggle('hidden', !quer);
     if (el.dataset.k === html) return;
     el.innerHTML = html;
     el.dataset.k = html;
     for (const b of inputs('#chegada [data-chegou]'))
       b.onclick = () => {
         souEu(b.dataset.chegou);
-        // com o convite do QR no topo, ele fica à vista logo acima de Minha conta
-        const m = conviteQr ? $('#chegada') : $('#mine');
+        const m = $('#mine');
         if (!m.classList.contains('hidden')) m.scrollIntoView({ behavior: semMovimento() ? 'auto' : 'smooth' });
       };
     if (quer) $('#chegouFora').onclick = showSetup;
@@ -2041,15 +2034,12 @@
         aberto
           ? `<div class="hr"></div><h2>*** Evento ***</h2>
       <div class="row" style="font-size:19px;color:var(--ink2)"><span class="l">entra quem tem</span><span class="d"></span><span class="v"><a class="link" id="evLink">o link</a></span></div>
-      <div class="c"><button id="evQr" class="qrbtn escuro">${QR_ICONE} mostrar QR</button></div>`
+      <div class="c"><button id="evQr" class="qrbtn colado">${QR_ICONE} mostrar QR</button></div>`
           : ''
       }${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Evento'} ***</h2>${msg || !evs.length ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome cria o evento.'}</p>` : ''}
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="gateCode" placeholder="ex: churras" required autocapitalize="none"><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p>${
-        aberto
-          ? `<div class="c"><button id="evNovo" class="ghost">+ criar outro ${esc(evento())}</button></div>
-      <div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>`
-          : ''
+        aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }`,
       !aberto,
     );
@@ -2059,11 +2049,6 @@
       $('#evLink').onclick = () => copia(shareUrl(), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
       // o QR não espera gasto nem gente: logo que o evento nasce, a turma da mesa já entra por ele
       $('#evQr').onclick = mostraQr;
-      // o nome de um evento da lista abre ele: quem faz churras todo mês cria o próximo daqui,
-      // com o mesmo nome. O ?novo= cai direto no evento novo, sem procurar o nome na lista nem no banco
-      $('#evNovo').onclick = () => {
-        location.href = location.pathname + '?novo=' + encodeURIComponent(evento());
-      };
     }
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
@@ -2280,7 +2265,6 @@
   function souEu(v) {
     me = v;
     setRoom('me', me);
-    if (veioDoQr && !device().qrInvited) conviteQr = true; // aparece no topo da nota, no lugar do "quem é você?"
     if (temMe()) setDevice('myName', nameOf(me)); // o palpite de quem eu sou num evento que não tem a minha turma
     rearmaAnims();
     closeOverlay();
@@ -2378,22 +2362,19 @@
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
     return { code: meu ? meu.code : code, quem: null };
   }
-  /** `novo` cria um evento com esse nome mesmo que ele já exista (o "criar outro" do cartão do evento) */
-  async function enterRoom(code, novo = false) {
+  async function enterRoom(code) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
       existing = null;
-    if (!novo)
-      try {
-        existing = await apiGet(id);
-      } catch (e) {
-        if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
-      }
+    try {
+      existing = await apiGet(id);
+    } catch (e) {
+      if (!e.notFound) throw new Error('sem internet ou o banco cochilou. tenta de novo?');
+    }
     let criou = false;
-    const seed = !novo && location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
-    // quem pediu o "criar outro" já disse que quer o evento novo: nada de perguntar de novo
-    if (!existing && !seed && !novo) {
+    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
+    if (!existing && !seed) {
       // código com cara de final sorteado (6 letras e números, com algum número) é link velho ou cortado,
       // não nome novo: "esse nome tá livre" ali faria a pessoa criar um evento fantasma
       const veioDeLink = /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
@@ -3119,8 +3100,6 @@
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
     ['[data-aviso]', tocaAviso],
-    ['[data-instala]', instalaDoQr],
-    ['[data-instala-nao]', () => fechaConviteQr()],
     ['[data-cobra]', cobra],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],
@@ -3172,9 +3151,8 @@
     return `${SITE}${dir}/?evento=${encodeURIComponent(roomName)}${quem ? '&quem=' + quem : ''}`;
   };
   /** o link do QR, sem a pasta: preview é coisa do zap, e quem escaneia na mesa abre o evento sem o salto
-   *  do vai.js. Mais curto, o QR também fica menos denso pra câmera pegar de longe. O &qr marca quem
-   *  escaneou (ganha o convite de instalar) e sai do endereço assim que a página abre */
-  const linkDoQr = () => `${SITE}?evento=${encodeURIComponent(roomName)}&qr`;
+   *  do vai.js. Mais curto, o QR também fica menos denso pra câmera pegar de longe */
+  const linkDoQr = () => `${SITE}?evento=${encodeURIComponent(roomName)}`;
   // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
   const abreZap = (txt) =>
@@ -3669,28 +3647,6 @@
     $('#instOk').onclick = closeOverlay;
   }
   mostraInstalar();
-  /** quem chegou pelo QR da mesa e já disse quem é: um convite discreto no topo da nota, uma vez por
-   *  aparelho. Só onde dá pra instalar de verdade: o Android com o convite do navegador, o iPhone
-   *  que ganha o aviso instalando. O aparelho anota na primeira vez que o convite aparece */
-  function convidaDoQr() {
-    if (!conviteQr) return false;
-    if (!INSTALAR || jaInstalado() || !(convite || iPhoneSemApp())) return false;
-    if (!device().qrInvited) setDevice('qrInvited', true);
-    return true;
-  }
-  const fechaConviteQr = () => {
-    conviteQr = false;
-    render();
-  };
-  /** o toque no convite do QR: o Android pergunta pelo navegador, o iPhone ganha o passo a passo do Safari */
-  async function instalaDoQr() {
-    fechaConviteQr();
-    if (convite) {
-      if (!(await pedeInstalar().catch(() => true))) toast('Deixa pra próxima, meu bem.');
-      return;
-    }
-    ensinaInstalar(`Na Tela de Início o tô lisa abre sem nada: entra lá de novo no evento <b>${esc(roomName)}</b>.`);
-  }
   function convidaInstalar() {
     if (!INSTALAR || !convite || device().installPrompted || jaInstalado()) return;
     if (visitas < 2 || !state || !state.expenses.length) return;
@@ -4369,23 +4325,6 @@
     const c = q.get('evento') || q.get('senha');
     const quem = q.get('quem');
     if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
-    // o &qr só marca quem escaneou: sai do endereço na hora, pra não ir junto se a pessoa mandar o link adiante
-    if (q.has('qr')) {
-      veioDoQr = true;
-      q.delete('qr');
-      const resto = q.toString();
-      history.replaceState(null, '', location.pathname + (resto ? '?' + resto : '') + location.hash);
-    }
-    // o "criar outro" do cartão do evento: o endereço já sai do ?novo=, e recarregar não cria mais um
-    const novo = (q.get('novo') || '').trim().toLowerCase();
-    if (novo) {
-      history.replaceState(null, '', location.pathname);
-      try {
-        return await enterRoom(novo, true);
-      } catch (e) {
-        return showGate(e.message);
-      }
-    }
     if (c) {
       const code = c.trim().toLowerCase(),
         id = await sha(code);

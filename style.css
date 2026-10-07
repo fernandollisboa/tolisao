@@ -628,7 +628,7 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 .comandinha .f2.paid.novo:after{--rd:calc(var(--t0) + 3.1s)}
 .comandinha .f2 .stamp{animation:carimba .25s calc(var(--t0) + 3.5s) cubic-bezier(.2,1.6,.4,1) both}
 @keyframes carimba{from{opacity:0;scale:2}to{opacity:.9;scale:1}}
-/* a ficha cai na dívida do Fernando e vai pra Lia, que pagou */
+/* a ficha cai na dívida da Bia e vai pro Afonso, que pagou */
 .comandinha .fichinha.cai{right:64px;top:24px;z-index:5;--dx:0px;--dy:0px;--vx:-140px;--vy:-110px;--rot:-14deg;filter:drop-shadow(1px 3px 3px rgba(0,0,0,.3));animation:jogada .85s calc(var(--t0) + 2.1s) linear both,passa .6s calc(var(--t0) + 3.8s) ease-in-out forwards}
 @keyframes passa{to{translate:40px -28px;opacity:0}}
 .comandinha.parada *,.comandinha.parada .row:after{animation:none !important}

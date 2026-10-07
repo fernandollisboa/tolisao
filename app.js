@@ -1831,7 +1831,7 @@
     });
   }
   /** quem chega pela primeira vez: fichas caindo atrás do cartão e uma comandinha que se anota
-   * sozinha (Lia paga, Fernando acerta, Júlia fica devendo). A comanda roda uma vez por página: o
+   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). A comanda roda uma vez por página: o
    * cartão volta depois de um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
   const CHUVA = [
@@ -1854,9 +1854,9 @@
             `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
         ).join('')}</div>`;
     return `${chuva}<div class="comandinha${parada ? ' parada' : ''}" aria-hidden="true">
-      <div class="row f1"><span class="l">lia pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
-      <div class="row paid novo f2"><span class="l"><span class="n">fernando deve</span><span class="stampbox"><span class="stamp">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
-      <div class="row f3"><span class="l">júlia deve</span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f1"><span class="l">afonso pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
+      <div class="row paid novo f2"><span class="l"><span class="n">bia deve</span><span class="stampbox"><span class="stamp">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
+      <div class="row f3"><span class="l">charles deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
   }
   /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila) */

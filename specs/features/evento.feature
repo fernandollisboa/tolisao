@@ -71,6 +71,13 @@ Funcionalidade: Entrar no evento
     E a nota não pergunta quem eu sou
     E o endereço termina em "?evento=churras"
 
+  Cenário: na mesa, a turma escaneia o QR e cai no evento
+    A turma tá do lado: em vez de passar o link pelo zap, quem tá com o celular mostra o QR.
+    Dado o evento de exemplo "bailedamada"
+    Quando eu abro o evento como Fernando
+    E eu peço o QR do evento
+    Então o QR na tela leva pro link do grupo
+
   Cenário: quem chega pelo link do grupo diz quem é na própria nota
     O link do grupo não diz quem abriu. A nota já mostra a turma no topo, um nome
     por pessoa, sem cartão na frente: ninguém é interrompido na chegada.

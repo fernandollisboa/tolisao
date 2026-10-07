@@ -79,4 +79,18 @@ const test = base.extend({
   mundo: async ({ browser, servidor }, use) => { const m = new Mundo(browser, servidor); await use(m); await m.fecha(); },
 });
 
-module.exports = { test, expect, idDe, AGORA, ...createBdd(test) };
+// lê um QR como a câmera leria: a imagem (data: URL) vira pixels na página e o jsQR decifra aqui fora
+const jsQR = require('jsqr');
+const leQr = async (p, src) => {
+  const { w, h, b64 } = await p.evaluate(async src => {
+    const img = new Image(); img.src = src; await img.decode();
+    const c = document.createElement('canvas'), w = (c.width = img.naturalWidth || 400), h = (c.height = img.naturalHeight || 400), x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+    const d = x.getImageData(0, 0, w, h).data; let s = '';
+    for (let i = 0; i < d.length; i += 8192) s += String.fromCharCode(...d.subarray(i, i + 8192));
+    return { w, h, b64: btoa(s) };
+  }, src);
+  return jsQR(new Uint8ClampedArray(Buffer.from(b64, 'base64')), w, h)?.data ?? null;
+};
+
+module.exports = { test, expect, idDe, AGORA, leQr, ...createBdd(test) };

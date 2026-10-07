@@ -122,6 +122,7 @@ Funcionalidade: Acertar as contas
 
       tudo aqui 👉 {site}/fiado/?evento=bailedamada
       """
+    E o QR da comanda leva pro link do grupo
 
   Cenário: os botões dizem o que fazem
     Dado que o Fernando tem a chave pix "fernando@exemplo.com"

@@ -158,36 +158,22 @@ Funcionalidade: Acertar as contas
     E a Mengla paga R$ 174,43 pro Fernando em outro aparelho
     Então não aparece aviso de pagamento
 
-  Cenário: quem recebe marca o que pagaram por fora
-    Pagaram em dinheiro ou num pix fora daqui, e quem devia esqueceu do ✔: quem recebeu dá baixa.
-    Quando eu abro o evento como Fernando
-    E eu marco que recebi da Lia
-    Então falta pagar:
-      | quem      | paga pra | valor  |
-      | Mengla    | Fernando | 174,43 |
-      | Klinsmann | Fernando | 73,61  |
-      | Klinsmann | Júlia    | 34,72  |
-    E o pagamento "Lia → Fernando" está carimbado "PAGO" por Fernando
+  # o "recebi" de quem recebe está desligado (RECEBI no app.js); o cenário dele volta junto com a flag
 
-  Cenário: quem recebe marca recebi depois de quem deve já ter marcado paguei em outro aparelho
-    A minha nota ainda não sabia do paguei: o recebi não quita de novo, senão quem pagou passa a ter a receber.
+  Cenário: quem recebe perdoa depois de quem deve já ter marcado paguei em outro aparelho
+    A minha nota ainda não sabia do paguei: o perdão não quita de novo, senão quem pagou passa a ter a receber.
+    Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
     Quando eu abro o evento como Fernando
-    E a Lia paga R$ 117,84 pro Fernando em outro aparelho, antes da minha nota atualizar
-    E eu marco que recebi da Lia
+    E o Klinsmann paga R$ 3,61 pro Fernando em outro aparelho, antes da minha nota atualizar
+    E eu perdoo o Klinsmann
     Então aparece o aviso "Já tá quitado"
-    E falta pagar:
-      | quem      | paga pra | valor  |
-      | Mengla    | Fernando | 174,43 |
-      | Klinsmann | Fernando | 73,61  |
-      | Klinsmann | Júlia    | 34,72  |
-    E o banco tem 1 pagamento da Lia pro Fernando
+    E o banco tem 2 pagamentos do Klinsmann pro Fernando
 
   # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar; dívida grande não se perdoa, só se dá baixa
   Cenário: só dívida pequena se perdoa
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
     Quando eu abro o evento como Fernando
     Então só o Klinsmann tem perdoar em Minha conta
-    E os outros têm recebi
     Quando eu perdoo o Klinsmann
     Então falta pagar:
       | quem      | paga pra | valor  |

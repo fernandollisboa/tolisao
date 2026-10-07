@@ -27,6 +27,7 @@
   const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
+  const RECEBI = false; // "recebi" na linha de quem me deve (pagaram por fora): desligado por enquanto
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
@@ -1342,7 +1343,7 @@
     };
     const valor = (t) =>
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
-    // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi"
+    // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi" (se RECEBI)
     // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
     // o cobrar pisca como o ✔ paguei, linha atrás da linha; depois da piscada o recebi (ou o
     // perdoar) brota de trás dele sem piscar, como o copiar pix sai de trás do ✔
@@ -1359,9 +1360,11 @@
     const botoesRecebe = (t, i) => {
       const d = `${t.from}|${t.to}|${t.cents}`,
         pi = brotaRecebe(i);
-      return t.cents < PERDOA_ATE
-        ? `<button class="ico${pi}" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`
-        : `<button class="ico${pi}" data-recebi="${d}" title="marcar como recebido">🫱🏿‍🫲🏻 recebi</button>`;
+      if (t.cents < PERDOA_ATE)
+        return `<button class="ico${pi}" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`;
+      return RECEBI
+        ? `<button class="ico${pi}" data-recebi="${d}" title="marcar como recebido">🫱🏿‍🫲🏻 recebi</button>`
+        : '';
     };
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
     const quem =
@@ -2697,8 +2700,10 @@
     // a nota pode estar velha: o outro lado pode já ter marcado do aparelho dele. Baixa o banco
     // e grava só o que ainda falta, senão o pagamento entra duas vezes e a dívida vira ao contrário
     await sync();
-    const b = balances();
-    const falta = Math.min(cents, Math.max(0, -(b[from] || 0)), Math.max(0, b[to] || 0));
+    // o que falta é o desta dupla, não o saldo de cada um: quem deve pra duas pessoas segue
+    // devendo pra outra depois de pagar esta
+    const t = settlements(balances()).find((x) => x.from === from && x.to === to);
+    const falta = Math.min(cents, t ? t.cents : 0);
     if (!falta) return toast('Já tá quitado');
     cents = falta;
     const id = uid();

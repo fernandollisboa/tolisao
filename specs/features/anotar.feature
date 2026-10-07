@@ -102,6 +102,19 @@ Funcionalidade: Anotar um gasto
     E eu abro a lista de itens
     Então o "Uber volta" fica de 40,00
 
+  Cenário: quem não editou vê o que mudou desde a última visita
+    Valor trocado calado muda o saldo de alguém sem rastro: o item editado diz quem mexeu e o que era.
+    Dado que eu vi o evento pela última vez ontem
+    E que a Lia trocou o valor do "Uber volta" pra R$ 40,00 em outro aparelho
+    Quando eu abro o evento como Fernando
+    E eu abro a lista de itens
+    Então o "Uber volta" está marcado como mudou
+    E o "Uber volta" diz "editado por Lia · era 32,50"
+    Quando eu abro o evento como Lia em outro aparelho
+    E eu abro a lista de itens
+    Então o "Uber volta" não está marcado
+    E o "Uber volta" diz "editado por Lia · era 32,50"
+
   Cenário: excluir um item
     Quando eu abro o evento como Lia
     E eu abro a lista de itens

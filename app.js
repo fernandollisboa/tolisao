@@ -1166,6 +1166,9 @@
   }
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) => (lastSeen > 0 && e.at > lastSeen && !anotouQuem(e, me) ? '<span class="tag">novo</span>' : '');
+  /** foi editado depois da última visita, e por outra pessoa @param {Gone | undefined} g */
+  const tagMudou = (g) =>
+    g && lastSeen > 0 && g.goneAt > lastSeen && !anotouQuem(g, me) ? '<span class="tag">mudou</span>' : '';
   /** uma linha da nota: texto à esquerda, pontinhos, valor à direita (`vat` são atributos a mais no valor) */
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
@@ -1520,6 +1523,8 @@
       new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
     const days = new Set(all.map(dayOf));
     let lastDay = null;
+    // editar troca o item por outro: o que saiu fica no `gone` com `to`, e vale a última edição
+    const editou = new Map(state.gone.filter((g) => g.to).map((g) => [g.to, g]));
     $('#expenses').innerHTML =
       list
         .map((e) => {
@@ -1531,8 +1536,18 @@
               lastDay = d;
             }
           }
-          const by =
-            autorNome(e) && !anotouQuem(e, e.payer) ? `<span class="by"> · anotado por ${autorHtml(e)}</span>` : '';
+          const g = editou.get(e.id);
+          // o que era antes: só o que mudou, descrição e/ou valor
+          const era = g
+            ? [g.desc !== e.desc ? esc(g.desc) : '', centavos(g) !== centavos(e) ? reais(centavos(g)) : '']
+                .filter(Boolean)
+                .join(' de ')
+            : '';
+          const by = g
+            ? `<span class="by"> · editado${autorNome(g) ? ` por ${autorHtml(g)}` : ''}${era ? ` · era ${era}` : ''}</span>`
+            : autorNome(e) && !anotouQuem(e, e.payer)
+              ? `<span class="by"> · anotado por ${autorHtml(e)}</span>`
+              : '';
           const meu = e.byId || e.by ? anotouQuem(e, me) : !!me && e.payer === me;
           const botoes = meu
             ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
@@ -1540,7 +1555,7 @@
           return (
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
-            linha(`${tagNovo(e)}${esc(e.desc)}`, reais(centavos(e))) +
+            linha(`${tagNovo(e) || tagMudou(g)}${esc(e.desc)}`, reais(centavos(e))) +
             `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
           );
         })

@@ -45,6 +45,18 @@ Funcionalidade: Acertar as contas
       | Klinsmann | Fernando | 73,61  |
       | Klinsmann | Júlia    | 34,72  |
 
+  Cenário: pagar só uma parte
+    "Te mando 50 agora e o resto sexta": o que eu pago sai da dívida e o resto segue na nota.
+    Quando eu abro o evento como Lia
+    E eu pago R$ 50,00 da primeira linha de Minha conta e aviso no zap
+    Então o zap abre com a mensagem:
+      """
+      ✅ Fernando, te paguei R$ 50,00 do *bailedamada* 👍
+      {site}/pago/?evento=bailedamada
+      """
+    E Minha conta diz "eu devo" R$ 67,84
+    E o pagamento "Lia → Fernando" está carimbado "PAGO"
+
   Cenário: desfazer um pagamento
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta
@@ -122,6 +134,16 @@ Funcionalidade: Acertar as contas
 
       tudo aqui 👉 {site}/fiado/?evento=bailedamada
       """
+
+  Cenário: a comanda de uma viagem longa sai inteira
+    Uma semana de viagem tem gasto demais pra uma imagem só: a comanda traz os mais novos,
+    o total soma tudo e o resto fica no link.
+    Dado mais 74 gastos de R$ 10,00 pagos pela Lia, divididos entre todo mundo
+    Quando eu abro o evento como Lia
+    E eu toco em enviar
+    Então a comanda lista os 25 gastos mais novos
+    E a comanda diz "+ 55 ITENS · TUDO NO LINK"
+    E a comanda fecha com o total de R$ 1.480,32 e o "tolisa.com.br"
 
   Cenário: os botões dizem o que fazem
     Dado que o Fernando tem a chave pix "fernando@exemplo.com"

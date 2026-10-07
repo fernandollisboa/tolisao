@@ -1,6 +1,6 @@
 # language: pt
 Funcionalidade: Cadastrar a chave pix
-  Só chave aleatória ou e-mail. Quem cadastra guarda um segredo no aparelho,
+  Chave aleatória, e-mail ou celular; CPF não, que todo mundo com o link vê a chave. Quem cadastra guarda um segredo no aparelho,
   e só esse aparelho consegue trocar ou apagar a chave depois, no cartão de quem é você.
 
   Contexto:
@@ -22,7 +22,8 @@ Funcionalidade: Cadastrar a chave pix
     Exemplos:
       | tipo               | chave            |
       | CPF                | 123.456.789-09   |
-      | telefone           | +5583999998888   |
+      | CPF sem pontos     | 12345678909      |
+      | telefone fixo      | (83) 3222-1234   |
       | e-mail sem o ponto | fernando@exemplo |
 
   Esquema do Cenário: <tipo> passa
@@ -37,6 +38,8 @@ Funcionalidade: Cadastrar a chave pix
       | tipo            | chave                                | fica                                 |
       | chave aleatória | 7D9F2A1C-3B4E-4F5A-8C6D-0E1F2A3B4C5D | 7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d |
       | e-mail          | Fernando@Exemplo.com                 | fernando@exemplo.com                 |
+      | celular         | (83) 99999-8888                      | +5583999998888                       |
+      | celular com +55 | +55 83 99999-8888                    | +5583999998888                       |
 
   Cenário: outro aparelho não troca a chave
     Dado que o Fernando já cadastrou a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d" em outro aparelho

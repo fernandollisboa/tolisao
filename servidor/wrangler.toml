@@ -1,0 +1,16 @@
+# a API do tô lisa. quem sobe é o .github/workflows/servidor.yml: ele cria o KV `tolisa`
+# se faltar, troca o __KV_ID__ pelo id dele e gera as chaves VAPID na primeira vez.
+name = "tolisa-api"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+FIREBASE_DB = "https://racha-77bc7-default-rtdb.firebaseio.com"
+VAPID_SUB = "https://tolisa.com.br"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "__KV_ID__"
+
+# secrets (wrangler secret, nunca aqui): VAPID_PRIVATE (JWK P-256 em JSON) e VAPID_PUBLIC (base64url)

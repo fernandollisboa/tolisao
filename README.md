@@ -28,7 +28,7 @@ As regras ficam em [`database.rules.json`](database.rules.json) e são coladas n
 
 ## Desenvolvimento
 
-Não há build: `python3 -m http.server` na raiz e abra o endereço. A lógica está em `app.js` (verificada por `// @ts-check`, com `npm run types`), o estilo em `style.css`, e a URL do banco é a constante `DB` no topo do `app.js`.
+Não há build: `npm run dev` sobe o site com banco e API falsos (`npm run dev -- --festa` já abre um evento de exemplo). A lógica está em `app.js` (verificada por `// @ts-check`, com `npm run types`), o estilo em `style.css`, e a URL do banco é a constante `DB` no topo do `app.js`.
 
 Os testes são cenários do Cucumber em português, escritos como especificação:
 

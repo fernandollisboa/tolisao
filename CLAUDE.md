@@ -49,7 +49,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **aspas simples no `const DB = '...'` e no `const API = '...'`:** o `specs/_serve.cjs` troca essas linhas pelo banco e pela API falsos, e sem elas o `app.js` nem sai pros testes.
 - **o banco é hostil.** id casa `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`, tudo que vem do banco ou do cache passa por `clean()`.
 - **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário. `visitas/<dia>` só se soma (+1 por aparelho por dia, `CONTA_VISITAS`): sem `.read`, sem apagar, o dono lê no console.
-- **CSP** no `<meta>` do `index.html`: só o próprio site, `*.firebaseio.com` e a API do aviso (`tolisa-api.fernando-costa-fd0.workers.dev`, o `const API`). o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
+- **CSP** no `<meta>` do `index.html`: só o próprio site, `*.firebaseio.com`, a API do aviso (`tolisa-api.fernando-costa-fd0.workers.dev`, o `const API`) e o Cloudflare Web Analytics (`static.cloudflareinsights.com` no script, `cloudflareinsights.com` no envio; ele leva o `?evento=`, o dono aceitou). o `_serve.cjs` tira o script nos testes. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
 - **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.

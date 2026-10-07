@@ -27,7 +27,9 @@ module.exports = ({ banco = null, api = null, porta = 0 } = {}) => new Promise(o
       if (!API.test(src)) { r.statusCode = 500; return r.end("_serve.cjs: não achei a linha `const API = '...'` no app.js"); }
       return r.end(src.replace(DB, `const DB = '${DB_FALSO}';`).replace(API, `const API = '${API_APP}';`)); }
     if (file === '/index.html') { const real = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8').match(/const API = '([^']*)';/)?.[1];
-      const html = fs.readFileSync(abs, 'utf8'); return r.end(real ? html.split(real).join(API_FALSA) : html); }
+      // tira o Cloudflare Web Analytics: teste não conta visita
+      const html = fs.readFileSync(abs, 'utf8').replace(/<script[^>]*cloudflareinsights[^>]*><\/script>/, '');
+      return r.end(real ? html.split(real).join(API_FALSA) : html); }
     r.end(fs.readFileSync(abs));
   }).listen(porta, () => ok({ srv, porta: (srv.address()).port }));
 });

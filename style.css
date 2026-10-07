@@ -295,13 +295,13 @@ form{display:grid;gap:10px}
 /* o pulso desktop (abaixo, em hover:hover) é só de brilho: mexer em transform mudava
    o retângulo do botão a cada quadro, e o Playwright nunca via ele "parado" pra clicar */
 @keyframes pulsaFab{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
-#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto;overscroll-behavior:contain}
+#overlay,#sheet{position:fixed;inset:0;background:rgba(40,25,10,.7);display:flex;padding:16px;z-index:10;overflow:auto;overflow-x:hidden;overscroll-behavior:contain}
 /* com cartão aberto a página de trás não rola: senão ficam duas barras, a dela e a do cartão */
 html:has(#overlay:not(.hidden)),html:has(#sheet:not(.hidden)){overflow:hidden}
 #overlay .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 #sheet .paper{max-width:420px;width:100%;padding:24px 20px;margin:auto}
 /* o miolo dos cartões: título colado no topo, recado centrado embaixo dele, o voltar no pé */
-#overlayBox h2{margin-top:0}
+#overlayBox h2{margin-top:0;overflow-wrap:anywhere}
 .recado{margin:0 0 12px;text-align:center}
 .voltar{margin-top:12px}
 code.box{display:block;padding:8px;border:1px dashed var(--rule);word-break:break-all;font-size:16px;user-select:all}
@@ -604,3 +604,36 @@ button.linkpra i{width:14px;height:14px;border-radius:50%;background:var(--cor)}
 #overlayBox .turmaPix .chip{text-transform:none}
 #overlayBox .turmaPix .muted{text-transform:none;margin-top:4px;word-break:break-all}
 @media (hover:hover){#overlayBox .turma .chip:hover:not(:disabled){background:#fff8e6;color:var(--ink)}}
+/* a estreia: quem chega sem evento vê fichas caindo atrás do cartão e uma comandinha que se anota
+   sozinha. A ficha é a mesma da diva (.stain), em miniatura. Tudo some com o cartão (mora no #overlayBox) */
+.fichinha{position:absolute;width:var(--s);height:var(--s);box-sizing:border-box;padding:calc(var(--s) * .1);border-radius:50%;--f1:#9a5b00;--f2:#fff8e6;background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);pointer-events:none}
+.fichinha.quite{--f1:#d94f8a;--f2:#ffe3ef}
+/* fixed com z-index negativo: cobre a tela toda, mas pinta atrás do papel */
+.chuva{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.chuva .fichinha{top:-70px;left:var(--x);box-shadow:2px 4px 6px rgba(0,0,0,.35);animation:chove var(--t) linear var(--d) 3}
+@keyframes chove{from{transform:translate(0,0) rotate(0)}to{transform:translate(var(--vx),calc(100vh + 140px)) rotate(var(--r))}}
+@media (prefers-reduced-motion:reduce){.chuva{display:none}}
+.fichinha.ponto{--s:18px;z-index:3;margin:var(--pt,.55em) 0 0 calc(-1ch - 6px);--dx:0px;--dy:0px;--vx:160px;--vy:-90px;--rot:-10deg;animation:jogada .85s linear both}
+/* quando o espaço do ponto sai, o título recentra: a ficha acompanha o fim do texto em vez de ficar em cima do A */
+.fichinha.ponto.foge{margin-left:-6px;animation:foge 1.1s cubic-bezier(.4,0,.9,.6) both}
+@media (prefers-reduced-motion:reduce){.fichinha.ponto{display:none}}
+@keyframes foge{from{transform:rotate(-10deg);opacity:1}to{transform:translate(260px,6px) rotate(900deg);opacity:0}}
+/* a comandinha começa quando o título termina de digitar o "tô lisa" (--t0) e para no fim, já pago */
+.comandinha{--t0:2.3s;position:relative;max-width:300px;margin:8px auto 12px;padding:6px 12px 8px;border:2px dashed var(--rule);background:#fff8e6;transform:rotate(-1.2deg);pointer-events:none}
+.comandinha.logo{--t0:.2s} /* o título não digita (já é visita repetida): nada de caixa vazia esperando ele */
+.comandinha .row{font-size:18px;line-height:1.6;animation:fadein .35s ease both}
+.comandinha .f1{animation-delay:.2s} /* a primeira linha já chega: caixa vazia parece imagem quebrada */
+.comandinha .f2{animation-delay:calc(var(--t0) + .7s)}
+.comandinha .f3{animation-delay:calc(var(--t0) + 1.2s)}
+.comandinha .f3 .v{color:var(--red);display:inline-block;animation:chama 1.8s calc(var(--t0) + 6.6s) ease-in-out}
+.comandinha .f2 .n,.comandinha .f2 .v{animation:desbota .3s calc(var(--t0) + 3.1s) backwards}
+@keyframes desbota{from{color:var(--red)}}
+.comandinha .f2.paid.novo:after{--rd:calc(var(--t0) + 3.1s)}
+.comandinha .f2 .stamp{animation:carimba .25s calc(var(--t0) + 3.5s) cubic-bezier(.2,1.6,.4,1) both}
+@keyframes carimba{from{opacity:0;scale:2}to{opacity:.9;scale:1}}
+/* a ficha cai na dívida da Bia e vai pro Afonso, que pagou */
+.comandinha .fichinha.cai{right:64px;top:24px;z-index:5;--dx:0px;--dy:0px;--vx:-140px;--vy:-110px;--rot:-14deg;filter:drop-shadow(1px 3px 3px rgba(0,0,0,.3));animation:jogada .85s calc(var(--t0) + 2.1s) linear both,passa .6s calc(var(--t0) + 3.8s) ease-in-out forwards}
+@keyframes passa{to{translate:40px -28px;opacity:0}}
+.comandinha.parada *,.comandinha.parada .row:after{animation:none !important}
+.comandinha.parada .fichinha.cai{display:none}
+@media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .fichinha.cai{display:none}}

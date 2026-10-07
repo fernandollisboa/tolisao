@@ -1002,15 +1002,25 @@
       );
     }
   }
-  /** o navegador sabe receber push; no iPhone só com o app instalado na tela de início */
+  /** no iPhone o push só existe com o app na tela de início: no Safari o 🔔 ensina a instalar */
+  const iPhoneSemApp = () => INSTALAR && ehIOS() && !jaInstalado() && !iOSSemPush();
+  /** antes do 16.4 o iPhone não tem push nem instalado: o 🔔 não teria o que ensinar */
+  const iOSSemPush = () => {
+    const v = navigator.userAgent.match(/OS (\d+)_(\d+)/);
+    return !!v && (+v[1] < 16 || (+v[1] === 16 && +v[2] < 4));
+  };
+  /** o navegador sabe receber push, ou é um iPhone que vai saber depois de instalar */
   const temAviso = () =>
     AVISO_PUSH &&
-    'Notification' in window &&
-    'PushManager' in window &&
-    'serviceWorker' in navigator &&
-    (!ehIOS() || jaInstalado());
-  const avisoLigado = () => !!me && room().pushOn === me && Notification.permission === 'granted';
-  /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta */
+    (iPhoneSemApp() ||
+      ('Notification' in window &&
+        'PushManager' in window &&
+        'serviceWorker' in navigator &&
+        (!ehIOS() || jaInstalado())));
+  const avisoLigado = () =>
+    !!me && room().pushOn === me && 'Notification' in window && Notification.permission === 'granted';
+  /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta,
+   * e a bolinha do ícone ({ sala: 'bolinha', n, eu }) */
   const avisosDb = (modo, f) =>
     new Promise((ok, erro) => {
       const pedido = indexedDB.open('tolisa', 1);
@@ -1050,10 +1060,22 @@
   async function tocaAviso() {
     if (!me || !groupId || mexendoAviso) return;
     if (avisoLigado()) return;
+    if (iPhoneSemApp())
+      // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, daí o código
+      return ensinaInstalar(
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Instala, abre lá o evento <b>${esc(roomName)}</b> e toca no 🔔.`,
+      );
     const quem = me,
       sala = groupId;
     mexendoAviso = true;
     try {
+      // no Android dá pra receber sem instalar, mas instalado o aviso abre o app: aproveita o toque e convida, uma vez só
+      if (convite && !device().installPrompted && !jaInstalado()) {
+        await pedeInstalar().catch(() => false);
+        // demorou no convite, o toque venceu: sem ele o navegador esconde o pedido de permissão
+        if (navigator.userActivation && !navigator.userActivation.isActive)
+          return toast('Agora toca no 🔔 de novo pra ligar o aviso');
+      }
       if ((await Notification.requestPermission()) !== 'granted')
         return toast('Sem permissão: libera os avisos do site nas configurações do navegador');
       await navigator.serviceWorker.register('sw.js');
@@ -1166,6 +1188,9 @@
   }
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) => (lastSeen > 0 && e.at > lastSeen && !anotouQuem(e, me) ? '<span class="tag">novo</span>' : '');
+  /** foi editado depois da última visita, e por outra pessoa @param {Gone | undefined} g */
+  const tagMudou = (g) =>
+    g && lastSeen > 0 && g.goneAt > lastSeen && !anotouQuem(g, me) ? '<span class="tag">mudou</span>' : '';
   /** uma linha da nota: texto à esquerda, pontinhos, valor à direita (`vat` são atributos a mais no valor) */
   const linha = (l, v, cls = '', extra = '', style = '', vat = '') =>
     `<div class="row ${cls}"${style ? ` style="${style}"` : ''}><span class="l">${l}</span><span class="d"></span><span class="v"${vat}>${v}</span>${extra}</div>`;
@@ -1202,6 +1227,7 @@
     agendaSouEFab(hasMe);
     renderAcerto(hasMe, acerto, pays, nMeus);
     renderItens();
+    atualizaBolinha();
   }
   /** o nome do evento, o "Sou Fulano", o subtítulo e a frase do rodapé */
   function renderCabecalho(hasMe, bal, allEven) {
@@ -1520,6 +1546,8 @@
       new Date(e.at).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
     const days = new Set(all.map(dayOf));
     let lastDay = null;
+    // editar troca o item por outro: o que saiu fica no `gone` com `to`, e vale a última edição
+    const editou = new Map(state.gone.filter((g) => g.to).map((g) => [g.to, g]));
     $('#expenses').innerHTML =
       list
         .map((e) => {
@@ -1531,8 +1559,18 @@
               lastDay = d;
             }
           }
-          const by =
-            autorNome(e) && !anotouQuem(e, e.payer) ? `<span class="by"> · anotado por ${autorHtml(e)}</span>` : '';
+          const g = editou.get(e.id);
+          // o que era antes: só o que mudou, descrição e/ou valor
+          const era = g
+            ? [g.desc !== e.desc ? esc(g.desc) : '', centavos(g) !== centavos(e) ? reais(centavos(g)) : '']
+                .filter(Boolean)
+                .join(' de ')
+            : '';
+          const by = g
+            ? `<span class="by"> · editado${autorNome(g) ? ` por ${autorHtml(g)}` : ''}${era ? ` · era ${era}` : ''}</span>`
+            : autorNome(e) && !anotouQuem(e, e.payer)
+              ? `<span class="by"> · anotado por ${autorHtml(e)}</span>`
+              : '';
           const meu = e.byId || e.by ? anotouQuem(e, me) : !!me && e.payer === me;
           const botoes = meu
             ? `<button class="edita" data-edit-expense="${e.id}" title="editar">editar</button><button class="danger" data-del-expense="${e.id}" title="Excluir">✕</button>`
@@ -1540,7 +1578,7 @@
           return (
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
-            linha(`${tagNovo(e)}${esc(e.desc)}`, reais(centavos(e))) +
+            linha(`${tagNovo(e) || tagMudou(g)}${esc(e.desc)}`, reais(centavos(e))) +
             `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
           );
         })
@@ -1807,8 +1845,9 @@
   // travava num navegador, e setTimeout não depende do relógio de animação.
   let tituloJaAnimou = false;
   /** @param {HTMLElement | null} el @param {(entrou: boolean, el: HTMLElement) => void} [ponto] o ponto final vira
-   * um espaço do tamanho dele, e quem passou `ponto` desenha o que quiser ali (avisado quando entra e sai) */
-  function digitaTitulo(el, ponto) {
+   * um espaço do tamanho dele, e quem passou `ponto` desenha o que quiser ali (avisado quando entra e sai)
+   * @param {() => Promise<void>} [intervalo] no "tô lisa!!!" o título espera isso acabar antes de seguir */
+  function digitaTitulo(el, ponto, intervalo) {
     if (!el || tituloJaAnimou || visitas !== 1 || semMovimento()) return;
     tituloJaAnimou = true;
     document.fonts.ready.then(() => {
@@ -1817,9 +1856,10 @@
       // `d` é a espera *antes* daquele texto aparecer.
       const BASE = 'tô lisa';
       const LETRAS = [150, 950, 265, 215, 185, 85, 200]; // uma por letra: tropeça no ô, embala no "lis"
+      /** @type {{ t: string, d: number, pausa?: boolean }[]} */
       const passos = BASE.split('').map((_, i) => ({ t: BASE.slice(0, i + 1), d: LETRAS[i] }));
       passos.push({ t: BASE + '!', d: 765 }); // olha o que escreveu e crava um !
-      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165 }); // volta pra pôr mais um, e emenda o terceiro
+      passos.push({ t: BASE + '!!', d: 965 }, { t: BASE + '!!!', d: 165, pausa: true }); // volta pra pôr mais um, e emenda o terceiro
       passos.push({ t: BASE + '!!', d: 535 }, { t: BASE + '!', d: 135 }); // pensa melhor e apaga dois
       passos.push({ t: BASE + '!?', d: 700 }); // tenta o ? ... e olha
       passos.push({ t: BASE + '!', d: 885 }, { t: BASE, d: 135 }); // apaga o !? também
@@ -1837,16 +1877,20 @@
         el.textContent = passos[i].t;
         const tem = el.textContent.length > BASE.length && !/[!?]$/.test(el.textContent);
         if (ponto && tinha !== tem) ponto(tem, el);
-        const atraso = passos[i + 1]?.d ?? 90;
+        const atraso = passos[i + 1]?.d ?? 90,
+          pausa = passos[i].pausa && intervalo;
         i++;
-        setTimeout(passo, atraso);
+        // uma coisa de cada vez: a estreia roda no meio do título, não por cima dele
+        if (pausa) intervalo().then(() => setTimeout(passo, atraso));
+        else setTimeout(passo, atraso);
       };
       setTimeout(passo, passos[0].d);
     });
   }
   /** quem chega pela primeira vez: fichas caindo atrás do cartão e uma comandinha que se anota
-   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). A comanda roda uma vez por página: o
-   * cartão volta depois de um código errado, e ela volta já parada no fim */
+   * sozinha (Afonso paga, Bia acerta, Charles fica devendo). Ela espera o título chegar no "tô lisa!!!"
+   * e o título espera ela acabar (`rodaComanda`). Roda uma vez por página: o cartão volta depois de
+   * um código errado, e ela volta já parada no fim */
   let estreiaRodou = false;
   const CHUVA = [
     // x%, tamanho, segundos pra cruzar a tela, atraso, deriva em px, giro, cor
@@ -1869,11 +1913,19 @@
           ([x, s, t, d, vx, r, c]) =>
             `<img class="fichinha ${c}" src="diva.png" alt="" style="--x:${x}%;--s:${s}px;--t:${t}s;--d:${d}s;--vx:${vx}px;--r:${r}deg">`,
         ).join('')}</div>`;
-    return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' logo'}" aria-hidden="true">
+    return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' roda'}" aria-hidden="true">
       <div class="row f1"><span class="l">afonso pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
       <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n">bia deve</span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v">30,00</span></div>
       <div class="row f3"><span class="l">charles deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
+  }
+  /** solta a comandinha e avisa quando ela termina (o tempo é o da última animação dela no style.css) */
+  const COMANDA_MS = 3600;
+  function rodaComanda() {
+    const c = $('#overlayBox .comandinha:not(.parada)');
+    if (!c) return Promise.resolve();
+    c.classList.add('roda');
+    return new Promise((ok) => setTimeout(ok, COMANDA_MS));
   }
   /** o ponto final do título é uma ficha: cai quando ele aparece e rola pra fora quando some (foi-se o último pila)
    * @param {boolean} entrou @param {HTMLElement} t */
@@ -1915,7 +1967,9 @@
       <p id="gateErr" class="status err" style="margin:0"></p>`,
       true,
     );
-    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined);
+    digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
+    // se a fonte demora e o título não chega no "!!!", a comanda não fica escondida pra sempre
+    if (chegou) setTimeout(() => $('#overlayBox .comandinha')?.classList.add('roda'), 6000);
     // autofocus rolava o cartão até o campo (o título sumia em cima, no notebook) e, no celular, abria o
     // teclado por cima da estreia: o foco vem sem rolar, e só onde tem teclado de verdade
     if (!evs.length && !matchMedia('(pointer: coarse)').matches) $('#gateCode').focus({ preventScroll: true });
@@ -1930,7 +1984,9 @@
       btn.textContent = evs.length ? 'Entrando…' : 'Abrindo…';
       const code = $('#gateCode').value;
       try {
-        await enterRoom(code.trim().toLowerCase());
+        const c = codigoDoCampo(code);
+        quemDoLink = c.quem;
+        await enterRoom(c.code);
       } catch (e) {
         // o "Criar …?" toma o lugar do cartão: voltando dele, o cartão do código volta junto
         if (!$('#gateForm')) {
@@ -2193,6 +2249,28 @@
   // #endregion
   // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
+  /** o que a pessoa pôs no campo vira código. O que ela tem no zap é o link, sozinho ou no meio da
+   *  mensagem: o código sai do ?evento= (ou do ?senha= antigo) e o &quem= do mesmo link vem junto.
+   *  Nome igual ao de um evento da lista é esse evento, não um novo com o mesmo nome
+   *  @returns {{ code: string, quem: string|null }} */
+  function codigoDoCampo(texto) {
+    const t = texto.trim(),
+      // só o que o encodeURIComponent gera: o <input> tira a quebra de linha, e o texto de depois grudaria no código
+      m = t.match(/[?&](?:evento|senha)=([\w%.~!*'()-]+)/);
+    if (m) {
+      const link = t.slice(m.index).split(/\s/)[0],
+        q = link.match(/[?&]quem=([\w%.~!*'()-]+)/);
+      let code = m[1];
+      try {
+        code = decodeURIComponent(code.replace(/\+/g, ' '));
+      } catch {}
+      return { code: code.trim().toLowerCase(), quem: q && /^[a-z0-9]{1,32}$/.test(q[1]) ? q[1] : null };
+    }
+    const code = t.toLowerCase(),
+      evs = meusEventos(),
+      meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
+    return { code: meu ? meu.code : code, quem: null };
+  }
   async function enterRoom(code) {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
@@ -2355,10 +2433,10 @@
     // novo carrega o código, e o começo do app faz o resto (inclusive o "Criar …?")
     $('#gateForm').onsubmit = (ev) => {
       ev.preventDefault();
-      const code = $('#gateCode').value.trim().toLowerCase();
+      const { code, quem } = codigoDoCampo($('#gateCode').value);
       if (!code) return;
       if (code === roomName) return closeOverlay();
-      location.href = location.pathname + '?evento=' + encodeURIComponent(code);
+      location.href = location.pathname + '?evento=' + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
     };
     /** @param {MeuEvento} e */
     const esquece = (e) => esqueceEvento(e, showRoom);
@@ -2449,6 +2527,7 @@
         } catch {}
       }),
     ).then(() => {
+      if (mudou) atualizaBolinha();
       const caixa = $('#overlayBox .evs');
       if (!mudou || !caixa) return;
       const novos = meusEventos(),
@@ -2516,6 +2595,7 @@
       await ask(`Esquecer ${esc(e.nome)}?`, 'some da lista só neste aparelho. você volta pelo link.', 'esquecer', true)
     ) {
       esconde(e.id);
+      atualizaBolinha();
       if (e.id === groupId) return leave();
     }
     volta();
@@ -2544,6 +2624,30 @@
         }
       };
     }
+  }
+
+  /** a bolinha no ícone do app instalado: quantas linhas do acerto são minhas (devo ou recebo), somando os
+   * eventos do aparelho. Só o número, nunca valor. Vai pro IndexedDB por evento, que o sw.js refaz o do
+   * evento quando chega o push de pagamento. Navegador sem bolinha: nada */
+  let bolinhaAntes = '';
+  function atualizaBolinha() {
+    if (!('setAppBadge' in navigator)) return;
+    /** @type {Record<string, number>} */ const n = {},
+      /** @type {Record<string, string>} */ quem = {};
+    for (const e of meusEventos()) {
+      const aqui = e.id === groupId && state,
+        s = aqui ? state : e.snap,
+        eu = aqui ? me : e.me;
+      if (!s || !eu) continue;
+      n[e.id] = settlements(balances(s)).filter((t) => t.from === eu || t.to === eu).length;
+      quem[e.id] = eu;
+    }
+    const k = JSON.stringify([n, quem]);
+    if (k === bolinhaAntes) return;
+    bolinhaAntes = k;
+    const total = Object.values(n).reduce((a, b) => a + b, 0);
+    (total ? navigator.setAppBadge(total) : navigator.clearAppBadge()).catch(() => {});
+    avisosDb('readwrite', (st) => st.put({ sala: 'bolinha', n, eu: quem })).catch(() => {});
   }
 
   // #endregion
@@ -3374,18 +3478,25 @@
     mostraInstalar();
     toast('Instalado! 🎉');
   });
+  /** o convite do navegador: o evento só serve pra um prompt(), depois some e o navegador manda
+   *  outro quando quiser. Aceite ou recuse, o ✎ e o 🔔 não perguntam de novo */
+  async function pedeInstalar() {
+    const c = convite;
+    convite = null;
+    setDevice('installPrompted', true);
+    mostraInstalar();
+    c.prompt();
+    return (await c.userChoice).outcome === 'accepted';
+  }
   $('#instalar').onclick = async () => {
-    // o evento só serve pra um prompt(): depois some, e o navegador manda outro quando quiser
     if (convite) {
-      const c = convite;
-      convite = null;
-      c.prompt();
-      const r = await c.userChoice;
-      setDevice('installPrompted', true);
-      mostraInstalar();
-      if (r.outcome !== 'accepted') toast('Deixa pra próxima, meu bem.');
+      if (!(await pedeInstalar())) toast('Deixa pra próxima, meu bem.');
       return;
     }
+    ensinaInstalar();
+  };
+  /** o passo a passo do Safari, com o porquê em cima quando quem pediu foi o 🔔 (HTML: já vem escapado) */
+  function ensinaInstalar(porque = '') {
     // quadrinhos: cada passo com o desenho do que vai aparecer no Safari e o botão a tocar
     // pintado, e uma seta pulando em cima do lugar de verdade. O Safari 26 guarda o
     // Compartilhar no •••, no canto de baixo; o antigo deixa ele no meio da barra de baixo,
@@ -3421,21 +3532,17 @@
             `<div class="barra"><span class="toca">${SHARE_SVG}</span></div>`,
             `toque no <b>${SHARE_SVG}</b> lá ${onde === 'cima' ? 'em cima' : 'embaixo'}.`,
           ) + tela(2);
-    overlay(`<h2>Instalar</h2>${passos}
+    overlay(`<h2>Instalar</h2>${porque ? `<p class="porque">${porque}</p>` : ''}${passos}
       <button id="instOk" class="sec" style="margin-top:10px">entendi</button>
       <svg class="seta ${onde}" width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 8C30 90 70 150 122 176"/><path d="M96 178H124L116 152"/></svg>`);
     $('#overlay').classList.add('ensina', onde);
     $('#instOk').onclick = closeOverlay;
-  };
+  }
   mostraInstalar();
   function convidaInstalar() {
     if (!INSTALAR || !convite || device().installPrompted || jaInstalado()) return;
     if (visitas < 2 || !state || !state.expenses.length) return;
-    setDevice('installPrompted', true); // aceite ou recuse, o ✎ não pergunta de novo
-    const c = convite;
-    convite = null;
-    mostraInstalar();
-    c.prompt();
+    pedeInstalar().catch(() => {});
   }
   function festa(x, y) {
     if (semMovimento()) return;
@@ -3945,6 +4052,7 @@
   // #region início
   // ---------- início ----------
   // colar outro link de evento na mesma aba: mudar a query já recarrega a página sozinho
+  atualizaBolinha();
   (async () => {
     // ?senha= é o nome antigo do parâmetro: link velho no zap continua abrindo
     const q = new URLSearchParams(location.search);

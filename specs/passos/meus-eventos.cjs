@@ -80,3 +80,8 @@ Given('que este aparelho está no modo chato', async ({ mundo }) => { mundo.ante
 Then('a mensagem do zap começa com {string}', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/ /g, ' ').split('\n')[0] : null)).toBe(txt);
 });
+
+// a bolinha no ícone do app instalado
+Given('que meu celular mostra bolinha no ícone do app', async ({ mundo }) => { mundo.celularComBolinha = true; });
+Then('a bolinha no ícone diz {int}', async ({ mundo }, n) => { await expect.poll(() => mundo.p.evaluate(() => window.__bolinha)).toBe(n); });
+Then('a bolinha some do ícone', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__bolinha)).toBe(0); });

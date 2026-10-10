@@ -6,12 +6,14 @@
 //   POST /desinscreve {sala, pessoa, endpoint, tok}
 //   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado)
 //   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
+//   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado
 //
 // O corpo nunca é confiável além dos ids: o /avisa lê o pagamento do próprio banco.
 // O banco (KV) é contado: o plano grátis dá 1000 gravações por dia, então só se grava o necessário.
 //   sub:<sala>:<pessoa>:<hash do endpoint>  a inscrição (JSON); o endpoint vai também no metadata, pro list bastar
 //   tok:<sala>:<pessoa>                     sha-256 do tok: quem inscreveu primeiro manda (igual ao tok do pix)
 //   avisado:<sala>:<id>                     esse pagamento já avisou (some sozinho em 1 dia)
+//   lembrou:<sala>:<pessoa>                 o lembrete do evento parado já foi (some sozinho em 7 dias)
 
 import { empurra } from './vapid.js';
 import * as digital from './digital.js';
@@ -23,6 +25,9 @@ const MAX_CORPO = 4096;
 const MAX_CORPO_DIGITAL = 16384; // a lista de eventos (até 100) e o que a passkey assinou
 const MAX_POR_PESSOA = 5;
 const JANELA_MS = 10 * 60 * 1000;
+const PARADO_MS = 7 * 86400 * 1000; // o PARADO_DIAS do app.js: evento sem mudança há uma semana
+// plano grátis: 50 fetch por execução (o KV tem teto à parte). cada sala gasta 1 leitura do banco e 1 por push
+const FETCH_POR_VEZ = 45;
 
 /** @typedef {{ get(k: string): Promise<string|null>, put(k: string, v: string, o?: { expirationTtl?: number, metadata?: any }): Promise<void>, delete(k: string): Promise<void>, list(o: { prefix: string, cursor?: string }): Promise<{ keys: { name: string, metadata?: any }[], list_complete: boolean, cursor?: string }> }} KV */
 /** @typedef {{ KV: KV, FIREBASE_DB: string, VAPID_PUBLIC: string, VAPID_PRIVATE: string, VAPID_SUB?: string, DIGITAL_ORIGENS?: string }} Env */
@@ -170,17 +175,92 @@ async function avisa(b, env, o) {
   if (await env.KV.get(marca)) return json(200, { avisados: 0, repetido: true }, o);
   await env.KV.put(marca, '1', { expirationTtl: 86400 });
   let avisados = 0;
-  for (const k of subs) {
-    const endpoint = k.metadata?.endpoint || JSON.parse((await env.KV.get(k.name)) || '{}').endpoint;
-    if (!endpoint) continue;
-    const st = await empurra(endpoint, env).catch(() => 0);
-    if (st === 404 || st === 410) await env.KV.delete(k.name);
-    else if (st >= 200 && st < 300) avisados++;
-  }
+  for (const k of subs) if (await manda(k, env)) avisados++;
   return json(200, { avisados }, o);
 }
 
+/** empurra pra uma inscrição; a que morreu (404/410) sai do banco. Devolve se chegou
+ * @param {{ name: string, metadata?: any }} k @param {Env} env */
+async function manda(k, env) {
+  const endpoint = k.metadata?.endpoint || JSON.parse((await env.KV.get(k.name)) || '{}').endpoint;
+  if (!endpoint) return false;
+  const st = await empurra(endpoint, env).catch(() => 0);
+  if (st === 404 || st === 410) await env.KV.delete(k.name);
+  return st >= 200 && st < 300;
+}
+
+/** o saldo de `pessoa` em centavos, a mesma conta do balances() do app.js (positivo = tem a receber)
+ * @param {any} sala @param {string} pessoa */
+export function saldo(sala, pessoa) {
+  const gente = new Set(valores(sala?.people).map((p) => p.id));
+  const fora = new Set(valores(sala?.deleted));
+  let s = 0;
+  for (const e of valores(sala?.expenses)) {
+    const among = valores(e.among),
+      ids = among.filter((id) => gente.has(id)),
+      c = Math.round(+e.amount * 100);
+    if (fora.has(e.id) || !Number.isFinite(c) || !ids.length || !gente.has(e.payer)) continue;
+    if (e.payer === pessoa) s += c;
+    const i = ids.indexOf(pessoa);
+    if (i < 0) continue;
+    // as partes valem se fecham o valor; senão divide igual, o centavo que sobra vai pros primeiros
+    const partes =
+      e.shares && typeof e.shares === 'object' ? among.map((id) => Math.max(0, Math.round(+e.shares[id] || 0))) : null;
+    const certas = partes && partes.reduce((a, x) => a + x, 0) === c;
+    const base = Math.floor(c / ids.length);
+    s -= certas ? partes[among.indexOf(pessoa)] : base + (i < c - base * ids.length ? 1 : 0);
+  }
+  return s;
+}
+
+/** a diva cobra sozinha: quem tem a receber num evento parado ganha um push, no máximo um por semana.
+ * o texto quem escreve é o sw.js, que relê o evento. Devolve quantos pushes chegaram
+ * @param {Env} env @param {number} [agora] */
+export async function lembra(env, agora = Date.now()) {
+  /** @type {Map<string, Map<string, { name: string, metadata?: any }[]>>} sala → pessoa → inscrições */
+  const salas = new Map();
+  for (const k of await lista(env.KV, 'sub:')) {
+    const [, sala, pessoa] = k.name.split(':');
+    if (!SALA.test(sala) || !ID.test(pessoa)) continue;
+    const gente = salas.get(sala) || salas.set(sala, new Map()).get(sala);
+    gente.set(pessoa, [...(gente.get(pessoa) || []), k]);
+  }
+  // embaralha: não cabe todo mundo num dia, e assim cada dia vê outras salas
+  const ordem = [...salas];
+  for (let i = ordem.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
+  }
+  let resta = FETCH_POR_VEZ,
+    lembrados = 0;
+  for (const [id, gente] of ordem) {
+    if (resta < 2) break; // a leitura e ao menos um push
+    resta--;
+    try {
+      const r = await fetch(`${env.FIREBASE_DB}/rooms/${id}.json`, { cache: 'no-store' });
+      const sala = r.ok ? await r.json() : null;
+      const em = +sala?.updatedAt || 0;
+      if (!em || agora - em < PARADO_MS) continue;
+      for (const [pessoa, subs] of gente) {
+        if (subs.length > resta || saldo(sala, pessoa) <= 0) continue;
+        const marca = `lembrou:${id}:${pessoa}`;
+        if (await env.KV.get(marca)) continue;
+        await env.KV.put(marca, '1', { expirationTtl: PARADO_MS / 1000 });
+        resta -= subs.length;
+        for (const k of subs) if (await manda(k, env)) lembrados++;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  return lembrados;
+}
+
 export default {
+  /** o cron do wrangler.toml @param {any} _ @param {Env} env @param {{ waitUntil(p: Promise<any>): void }} ctx */
+  scheduled(_, env, ctx) {
+    ctx.waitUntil(lembra(env));
+  },
   /** @param {Request} req @param {Env} env */
   async fetch(req, env) {
     const o = req.headers.get('Origin');

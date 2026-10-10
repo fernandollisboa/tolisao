@@ -32,6 +32,7 @@
             "forgiven": { ".validate": "newData.val() === true && newData.parent().child('kind').val() === 'payment'" },
             "by": { ".validate": "newData.isString() && newData.val().length <= 30" },
             "byId": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/)" },
+            "rec": { ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{1,32}$/) && !newData.parent().child('kind').exists()" },
             "shares": {
               "$p": { ".validate": "$p.matches(/^[a-z0-9]{1,32}$/) && newData.isNumber() && newData.val() >= 0" }
             },

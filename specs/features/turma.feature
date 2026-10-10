@@ -35,6 +35,18 @@ Funcionalidade: A mesma turma em outro evento
       E o segredo da chave da Lia no evento novo é só deste evento
       Mas o evento novo não tem a chave pix da Júlia
 
+    Exemplo: o evento quitado chama o próximo rolê, já com a turma
+      Quem acabou de acertar a conta tá a um toque de rachar de novo com a mesma gente.
+      Dado que o Fernando já pagou R$ 30,00 pra Júlia
+      E que a Lia já pagou R$ 30,00 pra Júlia
+      Quando eu abro o evento como Lia
+      E eu chamo o próximo rolê de "praia"
+      E eu trago a turma toda
+      E eu continuo
+      Então o cabeçalho diz "sou Lia"
+      E o evento no banco tem Fernando, Júlia e Lia
+      E o evento novo não tem nenhum gasto
+
   Cenário: a minha chave de sempre já vem escrita no cadastro
     Dado que eu já usei a chave pix "julia@exemplo.com" em outro evento
     Quando eu abro o evento como Júlia

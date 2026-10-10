@@ -1,7 +1,7 @@
 // a API com KV de mentira e fetch de mentira (Firebase e serviço de push). roda com `node --test`.
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import api from '../src/index.js';
+import api, { saldo } from '../src/index.js';
 import { jwt, b64url, deB64url } from '../src/vapid.js';
 
 const SALA = 'a'.repeat(64);
@@ -31,7 +31,7 @@ function kvFalso() {
   };
 }
 
-let env, sala, enviados, statusPush, fetchOriginal;
+let env, sala, enviados, lidas, statusPush, fetchOriginal;
 
 beforeEach(async () => {
   const par = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
@@ -66,11 +66,15 @@ beforeEach(async () => {
     ],
   };
   enviados = [];
+  lidas = 0;
   statusPush = 201;
   fetchOriginal = globalThis.fetch;
   globalThis.fetch = async (url, init = {}) => {
     const u = String(url);
-    if (u === `${env.FIREBASE_DB}/rooms/${SALA}.json`) return Response.json(sala);
+    if (u.startsWith(`${env.FIREBASE_DB}/rooms/`)) {
+      lidas++;
+      return Response.json(sala);
+    }
     if (u.startsWith(PUSH)) {
       enviados.push({ url: u, headers: init.headers, body: init.body });
       return new Response(null, { status: statusPush });
@@ -251,4 +255,80 @@ test('o JWT é ES256 e confere com a chave pública', async () => {
     new TextEncoder().encode(`${c}.${p}`),
   );
   assert.ok(ok);
+});
+
+// ---------- a diva cobra sozinha (o cron) ----------
+const DIA = 86400 * 1000;
+/** a Ana pagou 30 dividido com a Bia, e ninguém mexe no evento há `dias` dias */
+const parada = (dias = 8) => ({
+  name: 'churras',
+  updatedAt: Date.now() - dias * DIA,
+  people: [
+    { id: 'ana', name: 'Ana' },
+    { id: 'bia', name: 'Bia' },
+  ],
+  expenses: [{ id: 'g1', amount: 30, payer: 'ana', among: ['ana', 'bia'], at: Date.now() - dias * DIA }],
+});
+/** roda o cron como a Cloudflare roda: o trabalho vem pelo waitUntil */
+const cron = () => new Promise((ok) => api.scheduled({}, env, { waitUntil: ok }));
+
+test('evento parado: a diva cobra quem tem a receber, e só ele', async () => {
+  sala = parada();
+  await inscreve('ana');
+  await inscreve('bia', sub(9), 'tokdabia12345678');
+  assert.equal(await cron(), 1);
+  assert.deepEqual(
+    enviados.map((e) => e.url),
+    [`${PUSH}1`],
+  );
+  assert.equal(env.KV.m.get(`lembrou:${SALA}:ana`).ttl, 7 * 86400);
+  assert.equal(env.KV.m.has(`lembrou:${SALA}:bia`), false);
+});
+
+test('quem já foi lembrado na semana não é cobrado de novo', async () => {
+  sala = parada();
+  await inscreve('ana');
+  await cron();
+  const antes = env.KV.gravacoes;
+  assert.equal(await cron(), 0);
+  assert.equal(enviados.length, 1);
+  assert.equal(env.KV.gravacoes, antes);
+});
+
+test('evento mexido na semana não cobra nem grava nada', async () => {
+  sala = parada(6);
+  await inscreve('ana');
+  const antes = env.KV.gravacoes;
+  assert.equal(await cron(), 0);
+  assert.equal(enviados.length, 0);
+  assert.equal(env.KV.gravacoes, antes);
+});
+
+test('a cobrança cabe nos 50 fetch do plano grátis', async () => {
+  sala = parada();
+  for (let i = 0; i < 40; i++)
+    for (const n of [i, 100 + i])
+      await pede('/inscreve', {
+        corpo: { sala: i.toString(16).padStart(64, '0'), pessoa: 'ana', sub: sub(n), tok: TOK },
+      });
+  assert.ok((await cron()) > 0);
+  assert.ok(lidas + enviados.length <= 50, `${lidas} leituras + ${enviados.length} pushes`);
+});
+
+test('o saldo é a conta do app: partes que fecham, centavo que sobra, item apagado fora', () => {
+  const s = {
+    people: [{ id: 'ana' }, { id: 'bia' }, { id: 'caio' }],
+    deleted: ['x'],
+    expenses: [
+      { id: 'a', amount: 10, payer: 'ana', among: ['ana', 'bia', 'caio'] },
+      { id: 'b', amount: 10, payer: 'bia', among: { 0: 'ana', 1: 'bia' }, shares: { ana: 700, bia: 300 } },
+      { id: 'c', amount: 10, payer: 'bia', among: ['ana', 'bia'], shares: { ana: 1, bia: 1 } },
+      { id: 'x', amount: 99, payer: 'caio', among: ['ana'] },
+      { id: 'd', amount: 5, payer: 'ana', among: ['fantasma'] },
+    ],
+  };
+  // a: 3,34 da Ana (o centavo que sobra), 3,33 dos outros; b: as partes; c: partes que não fecham dividem igual
+  assert.equal(saldo(s, 'ana'), 1000 - 334 - 700 - 500);
+  assert.equal(saldo(s, 'bia'), -333 + 1000 - 300 + 1000 - 500);
+  assert.equal(saldo(s, 'caio'), -333);
 });

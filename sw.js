@@ -44,6 +44,7 @@ self.addEventListener('fetch', e => {
 // evento com aviso ligado. A página guardou (sala, me, code, db) no IndexedDB quando a pessoa ligou.
 // O texto é o mesmo do toast do avisaPagos, no app.js
 const JANELA_MS = 10 * 60 * 1000; // a mesma da API: pagamento mais velho que isso já não avisa
+const PARADO_MS = 7 * 86400 * 1000; // a mesma da API (o PARADO_DIAS do app.js): evento parado há tanto ganha cobrança
 const avisos = (modo, f) => new Promise((ok, erro) => {
   const pedido = indexedDB.open('tolisa', 1);
   pedido.onupgradeneeded = () => pedido.result.createObjectStore('avisos', { keyPath: 'sala' });
@@ -54,15 +55,26 @@ const avisos = (modo, f) => new Promise((ok, erro) => {
 const lista = x => (Array.isArray(x) ? x : x && typeof x === 'object' ? Object.values(x) : []).filter(v => v && typeof v === 'object');
 const reais = c => { const [i, d] = (Math.abs(c) / 100).toFixed(2).split('.'); return 'R$ ' + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
 const juntos = ns => ns.length > 1 ? ns.slice(0, -1).join(', ') + ' e ' + ns[ns.length - 1] : ns[0];
-/** o que caiu pra mim num evento desde o último aviso: { texto, code } ou null */
+/** o que caiu pra mim num evento desde o último aviso: { texto, code } ou null.
+ *  de passagem, refaz a bolinha (contas.n) e guarda a cobrança de evento parado (contas.cobra) */
 async function novidade(a, contas) {
   if (!/^[0-9a-f]{64}$/.test(a.sala) || !/^[a-z0-9]{1,32}$/.test(a.me) || !/^https:\/\/[a-z0-9-]+\.firebaseio\.com$/.test(a.db)) return null;
   const r = await fetch(`${a.db}/rooms/${a.sala}.json`, { cache: 'no-store' });
   if (!r.ok) return null;
   const sala = await r.json(), gente = lista(sala && sala.people), agora = Date.now();
-  // a página contou pra quem é "Sou" lá: outra pessoa no aviso deixa a conta como está
-  try { if (contas.eu[a.sala] === a.me) contas.n[a.sala] = pendentes(sala, a.me); } catch {}
   const nome = id => String((gente.find(p => p.id === id) || {}).name || '?').slice(0, 30), eu = nome(a.me);
+  const evento = sala && typeof sala.name === 'string' && sala.name ? ' · ' + sala.name.slice(0, 40) : '';
+  try {
+    const st = acerto(sala);
+    // a página contou pra quem é "Sou" lá: outra pessoa no aviso deixa a conta como está
+    if (contas.eu[a.sala] === a.me) contas.n[a.sala] = st.filter(t => t.from === a.me || t.to === a.me).length;
+    // a diva cobra sozinha: a API manda push pra quem tem a receber em evento parado. se nenhum pagamento
+    // novo explicar o push, o aviso é a cobrança do primeiro evento parado em que me devem
+    const meus = st.filter(t => t.to === a.me), quem = meus.map(t => nome(t.from));
+    if (!contas.cobra && meus.length && agora - (+sala.updatedAt || agora) >= PARADO_MS)
+      contas.cobra = { code: a.code, tag: 'cobra:' + a.code,
+        texto: `🧾 ${juntos(quem)} te deve${quem.length > 1 ? 'm' : ''} ${reais(meus.reduce((s, t) => s + t.c, 0))}${evento}. bora cobrar?` };
+  } catch {}
   const vistos = new Set(Array.isArray(a.vistos) ? a.vistos : []);
   const novos = lista(sala && sala.expenses).filter(e => e.kind === 'payment' && typeof e.id === 'string' && !vistos.has(e.id)
     && typeof e.at === 'number' && agora - e.at < JANELA_MS && e.by !== eu && typeof e.amount === 'number');
@@ -70,7 +82,6 @@ async function novidade(a, contas) {
   await avisos('readwrite', s => s.put({ ...a, vistos: [...vistos, ...novos.map(e => e.id)].slice(-50) }));
   const recebe = e => (Array.isArray(e.among) ? e.among : Object.values(e.among || {}))[0];
   const soma = es => reais(es.reduce((s, e) => s + Math.round(e.amount * 100), 0));
-  const evento = typeof sala.name === 'string' && sala.name ? ' · ' + sala.name.slice(0, 40) : '';
   const pra = novos.filter(e => !e.forgiven && recebe(e) === a.me && e.payer !== a.me);
   if (pra.length) {
     const quem = [...new Set(pra.map(e => nome(e.payer)))];
@@ -89,8 +100,8 @@ async function novidade(a, contas) {
 // mexeu na conta do app.js (clean, balances, settlements), mexa aqui também
 const okId = id => typeof id === 'string' && /^[a-z0-9]{1,32}$/.test(id);
 const membros = e => Array.isArray(e.among) ? e.among : Object.values(e.among || {});
-/** a mesma conta do app.js (balances + settlements): quantas linhas do acerto têm `me` */
-function pendentes(sala, me) {
+/** a mesma conta do app.js (balances + settlements): quem paga quanto (c, em centavos) pra quem */
+function acerto(sala) {
   const b = new Map(lista(sala && sala.people).filter(p => okId(p.id)).map(p => [p.id, 0]));
   const fora = new Set(Array.isArray(sala && sala.deleted) ? sala.deleted : []);
   for (const e of lista(sala && sala.expenses)) {
@@ -105,15 +116,15 @@ function pendentes(sala, me) {
   const d = [], cr = [];
   for (const [id, v] of b) if (v < 0) d.push({ id, c: -v }); else if (v > 0) cr.push({ id, c: v });
   d.sort((x, y) => y.c - x.c); cr.sort((x, y) => y.c - x.c);
-  let n = 0, i = 0, j = 0;
+  const st = []; let i = 0, j = 0;
   while (i < d.length && j < cr.length) {
     const v = Math.min(d[i].c, cr[j].c);
-    if (d[i].id === me || cr[j].id === me) n++;
+    st.push({ from: d[i].id, to: cr[j].id, c: v });
     d[i].c -= v; cr[j].c -= v;
     if (!d[i].c) i++;
     if (!cr[j].c) j++;
   }
-  return n;
+  return st;
 }
 self.addEventListener('push', e => e.waitUntil((async () => {
   let aviso = null;
@@ -121,6 +132,7 @@ self.addEventListener('push', e => e.waitUntil((async () => {
     const todos = await avisos('readonly', s => s.getAll()), bol = todos.find(a => a.sala === 'bolinha'),
       contas = { eu: { ...(bol && bol.eu) }, n: {} };
     for (const a of todos) if ((aviso = await novidade(a, contas).catch(() => null))) break;
+    aviso = aviso || contas.cobra || null;
     if (bol && 'setAppBadge' in self.navigator) {
       // relê e grava na mesma transação: a página pode ter regravado a bolinha enquanto o banco respondia
       // só os eventos que a página ainda conta: o esquecido lá não volta pela porta do push
@@ -133,9 +145,9 @@ self.addEventListener('push', e => e.waitUntil((async () => {
       await (total ? self.navigator.setAppBadge(total) : self.navigator.clearAppBadge());
     }
   } catch {}
-  // o navegador exige uma notificação por push: sem achar o pagamento, vai a genérica
-  const { texto = 'alguém marcou que te pagou no tô lisa', code = '' } = aviso || {};
-  await self.registration.showNotification('tô lisa', { body: texto, icon: 'ficha-192.png', tag: 'pago:' + code, data: { code } });
+  // o navegador exige uma notificação por push: sem achar o pagamento nem a cobrança, vai a genérica
+  const { texto = 'alguém marcou que te pagou no tô lisa', code = '', tag = 'pago:' + code } = aviso || {};
+  await self.registration.showNotification('tô lisa', { body: texto, icon: 'ficha-192.png', tag, data: { code } });
 })()));
 self.addEventListener('notificationclick', e => {
   e.notification.close();

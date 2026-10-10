@@ -295,6 +295,7 @@ form{display:grid;gap:10px}
 .chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);padding:2px 10px;font-size:17px;cursor:pointer;user-select:none;text-transform:uppercase;background:transparent}
 .chip input{width:auto;margin:0;accent-color:var(--ink)}
 .chip.on{background:var(--ink);color:var(--paper)}
+#expenseForm .fixo{justify-self:start;text-transform:none} /* o gasto que volta todo mês */
 .muted{color:var(--muted);font-size:17px}
 .status{font-size:15px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:6px}
 .status:empty{display:none}

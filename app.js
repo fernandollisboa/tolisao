@@ -1538,7 +1538,7 @@
     // quite vira um recado só: o subtítulo lá em cima já diz que você não deve nada
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite">tudo quite! ${festeja()}</div>`
+        ? `<div class="empty vazio quite">tudo quite! ${festeja()}${acerto.length ? '' : '<br><button type="button" class="ghost" id="proxRole">bora pro próximo rolê?</button>'}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +
@@ -2449,6 +2449,21 @@
     };
     desenha();
   }
+  /** evento quitado: o próximo rolê nasce com a mesma turma. O nome cria pelo ?novo=, e o &turma=
+   *  abre direto o cartão da turma deste evento */
+  function proximoRole() {
+    overlay(
+      `<h2 class="pergunta">Bora pro próximo?</h2><div class="c muted recado" style="text-transform:none">a mesma turma, a conta do zero</div>
+      <form id="proxForm" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><input id="proxNome" placeholder="ex: praia, churras" required autocapitalize="none"><button class="small">Bora</button></form>
+      <div class="c voltar"><button id="proxVolta" class="ghost">voltar</button></div>`,
+    );
+    $('#proxVolta').onclick = closeOverlay;
+    $('#proxForm').onsubmit = (ev) => {
+      ev.preventDefault();
+      const nome = $('#proxNome').value.trim().toLowerCase();
+      if (nome) location.href = `${location.pathname}?novo=${encodeURIComponent(nome)}&turma=${groupId}`;
+    };
+  }
   // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
   // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
   function souEu(v) {
@@ -2562,8 +2577,8 @@
     return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
   }
   const ENGASGOU = 'a internet engasgou. tenta de novo?';
-  /** `digitou` é o nome escrito no campo, que cria sem perguntar */
-  async function enterRoom(code, digitou = false) {
+  /** `digitou` é o nome escrito no campo, que cria sem perguntar; `turma` é o evento (meu) de onde vem a turma */
+  async function enterRoom(code, digitou = false, turma = '') {
     if (!code) throw new Error('digita um nome.');
     if (!DB) throw new Error('site em manutenção, volta já.');
     let id = await sha(code),
@@ -2620,7 +2635,11 @@
     }
     await openGroup(code, id);
     // evento recém-criado já abre na lista de gente; fechou, cai na nota pedindo o "quem é você?"
-    if (criou && !state.people.length) showSetup();
+    if (criou && !state.people.length) {
+      const de = turma && meusEventos().find((e) => e.id === turma && e.snap && e.snap.people.length);
+      if (de) showTurma(de);
+      else showSetup();
+    }
   }
   async function openGroup(code, id) {
     // o código fica no endereço: copiar a URL da barra já manda o evento
@@ -3624,6 +3643,7 @@
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
     ['[data-aviso]', tocaAviso],
     ['#apagaTudo', apagaTudo],
+    ['#proxRole', proximoRole],
     ['[data-cobra]', cobra],
     ['[data-trocazap]', (el) => state.people.some((p) => p.id === el.dataset.trocazap) && pedeZap(el.dataset.trocazap)],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
@@ -4937,7 +4957,7 @@
     if (novo) {
       history.replaceState(null, '', location.pathname);
       try {
-        return await enterRoom(novo, true);
+        return await enterRoom(novo, true, q.get('turma') || '');
       } catch (e) {
         return showGate(e.message);
       }

@@ -181,6 +181,12 @@ When('eu trago a turma do {string} sem o/a {word}', async ({ mundo }, nome, fora
   await mundo.p.locator('#overlayBox .turma .chip', { hasText: fora }).click();
   await mundo.p.click('#turmaGo'); await mundo.p.waitForSelector('#setupGo');
 });
+// o próximo rolê sai do evento quitado e cai direto no cartão da turma dele
+When('eu chamo o próximo rolê de {string}', async ({ mundo }, nome) => {
+  await mundo.p.click('#proxRole'); await mundo.p.fill('#proxNome', nome); await mundo.p.click('#proxForm button');
+  await mundo.p.waitForSelector('#turmaGo');
+});
+When('eu trago a turma toda', async ({ mundo }) => { await mundo.p.click('#turmaGo'); await mundo.p.waitForSelector('#setupGo'); });
 const pessoaNoBanco = (mundo, sala, nome) => (mundo.banco.pega(['rooms', sala, 'people']) || []).find(p => p.name === nome);
 Then('{gente} são as mesmas pessoas do {string}', async ({ mundo }, gente, nome) => {
   const sala = await salaAberta(mundo), antigo = Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome);

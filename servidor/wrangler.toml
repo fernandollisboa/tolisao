@@ -11,6 +11,10 @@ VAPID_SUB = "https://tolisa.com.br"
 # quem pode usar a digital (#168): o rpId é o domínio de cada origem
 DIGITAL_ORIGENS = "https://tolisa.com.br"
 
+# a diva cobra sozinha: todo dia às 19h de Brasília (22h UTC), lembra quem tem a receber em evento parado
+[triggers]
+crons = ["0 22 * * *"]
+
 [[kv_namespaces]]
 binding = "KV"
 id = "__KV_ID__"

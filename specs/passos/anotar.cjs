@@ -265,3 +265,22 @@ Then('o anotar continua aberto com R$ {num} de {string}', async ({ mundo }, v, d
   await expect(mundo.p.locator('#amount')).toHaveValue(dinheiro(v)); await expect(mundo.p.locator('#desc')).toHaveValue(desc);
 });
 When('eu anoto mesmo assim', async ({ mundo }) => { await mundo.p.click('#okBtn'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' }); });
+
+// conta fixa: o gasto que volta todo mês. Divide entre todo mundo; o dia e o mês são os do primeiro
+Given('o {string} de R$ {num}, que a/o {word} paga todo mês desde {int}\\/{int}', async ({ mundo }, desc, valor, quem, dia, mes) => {
+  const id = 'fixo' + mundo.evento.expenses.length, dd = String(dia).padStart(2, '0'), mm = String(mes).padStart(2, '0');
+  mundo.evento.expenses.push({ id, desc, amount: valor, payer: mundo.pessoa(quem).id, among: mundo.evento.people.map(p => p.id),
+    at: Date.parse(`2026-${mm}-${dd}T12:00:00-03:00`), rec: id });
+});
+When('eu anoto {string} de R$ {num} dividido igualmente, todo mês', async ({ mundo }, desc, valor) => {
+  const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');
+  await p.fill('#amount', dinheiro(valor)); await p.fill('#desc', desc); await p.check('#fixo'); await p.click('#expenseForm button.big');
+  await p.waitForSelector('#sheet', { state: 'hidden' });
+});
+Then('o {string} repete todo mês', async ({ mundo }, nome) => { await expect(item(mundo.p, nome).locator('.small .fixo')).toHaveText(' · todo mês'); });
+Then('o {string} aparece {int} vez(es) na lista', async ({ mundo }, nome, n) => { await expect(item(mundo.p, nome)).toHaveCount(n); });
+// a lista vem do mais novo pro mais velho: o primeiro com esse nome é o deste mês
+When('eu excluo o {string} deste mês', async ({ mundo }, nome) => {
+  const it = item(mundo.p, nome).first(); await it.locator('.row .l').click();
+  await it.getByRole('button', { name: `excluir o gasto ${nome}` }).click(); await mundo.p.click('#okBtn');
+});

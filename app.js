@@ -1,6 +1,6 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
-/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, byId?: string, shares?: Record<string, number> }} Expense */
+/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, byId?: string, shares?: Record<string, number>, rec?: string }} Expense */
 /** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, byId?: string, goneAt: number, to?: string, lostTo?: string }} Gone */
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
@@ -286,6 +286,7 @@
         if (o.kind && e.forgiven === true) o.forgiven = true; // pagamento perdoado: conta igual, carimbo PERDOADO
         if (typeof e.by === 'string') o.by = str(e.by, 30);
         if (okId(e.byId)) o.byId = e.byId; // quem anotou, pelo id: o `by` em texto fica pro item antigo
+        if (!o.kind && okId(e.rec)) o.rec = e.rec; // gasto fixo: o id da série, que a edição mantém
         if (e.shares && typeof e.shares === 'object') {
           o.shares = {};
           for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0));
@@ -390,6 +391,39 @@
     };
   }
 
+  /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
+   *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
+   *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
+  function lancaFixos(st) {
+    const agora = Date.now(),
+      fora = new Set(st.deleted),
+      tem = new Set(st.expenses.map((e) => e.id)),
+      antes = st.expenses.length;
+    // o modelo da série é o item mais novo com o `rec`: editar troca o item e o `rec` vai junto
+    /** @type {Map<string, Expense>} */ const modelos = new Map();
+    for (const e of st.expenses) if (e.rec && !((modelos.get(e.rec)?.at || -1) >= e.at)) modelos.set(e.rec, e);
+    for (const m of modelos.values()) {
+      const d = new Date(m.at);
+      for (let k = 1; k <= 24; k++) {
+        const mes = d.getUTCMonth() + k,
+          dias = new Date(Date.UTC(d.getUTCFullYear(), mes + 1, 0)).getUTCDate(),
+          at = Date.UTC(d.getUTCFullYear(), mes, Math.min(d.getUTCDate(), dias), d.getUTCHours(), d.getUTCMinutes());
+        if (at > agora) break;
+        const q = new Date(at),
+          id = `${m.rec.slice(0, 24)}m${q.getUTCFullYear()}${String(q.getUTCMonth() + 1).padStart(2, '0')}`;
+        if (tem.has(id) || fora.has(id)) continue;
+        const copia = { ...m, id, at };
+        delete copia.rec;
+        st.expenses.push(copia);
+        tem.add(id);
+      }
+    }
+    if (st.expenses.length === antes) return false;
+    st.expenses.sort((x, y) => x.at - y.at);
+    st.updatedAt = agora;
+    return true;
+  }
+
   // #endregion
   // #region o banco (sync)
   // ---------- o banco (Firebase via REST) ----------
@@ -452,6 +486,7 @@
       for (let vez = 1; ; vez++) {
         const { data: remote, etag } = await baixa(groupId);
         const merged = renomeia(merge(state, remote), remote);
+        lancaFixos(merged);
         const changed = canon(merged) !== canon(remote);
         state = merged;
         cacheSave();
@@ -1679,7 +1714,7 @@
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
             linha(`${tagNovo(e) || tagMudou(g)}${esc(e.desc)}`, reais(centavos(e))) +
-            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
+            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${e.rec ? '<span class="fixo"> · todo mês</span>' : ''}${by}</span>${botoes}</div></div>`
           );
         })
         .join('') || '<div class="empty">nada anotado ainda</div>';
@@ -3249,6 +3284,12 @@
     delete $('#sharesBox').dataset.k;
     $('#sheet h2').textContent = 'Anotar';
     $('#expenseForm button.big').textContent = 'Anotar';
+    marcaFixo(false);
+  };
+  const marcaFixo = (on) => {
+    const c = /** @type {HTMLInputElement} */ ($('#fixo'));
+    c.checked = on;
+    c.closest('.chip').classList.toggle('on', on);
   };
   // fechar no meio de uma edição joga ela fora: o próximo anotar começa limpo
   const closeSheet = () => {
@@ -3281,6 +3322,7 @@
       for (const i of inputs('#sharesBox input[data-share]')) i.value = reais(e.shares[i.dataset.share] || 0);
       atualizaFalta();
     }
+    marcaFixo(!!e.rec);
     $('#sheet h2').textContent = 'Editar';
     $('#expenseForm button.big').textContent = 'Salvar';
     openSheet();
@@ -3376,6 +3418,8 @@
       for (const id of among) exp.shares[id] = sh[id] || 0;
     }
     const velho = editando && state.expenses.find((x) => x.id === editando);
+    // a série continua a mesma na edição: senão os meses que já vieram viriam de novo
+    if (/** @type {HTMLInputElement} */ ($('#fixo')).checked) exp.rec = (velho && velho.rec) || exp.id;
     if (splitMode !== 'custom' && total % among.length) {
       // editou só a descrição (ou o pagante): o centavo fica com quem já estava
       const igual = velho && ehIgual(velho) && centavos(velho) === total && velho.among.join() === among.join();
@@ -3671,7 +3715,8 @@
   // os chips de quem divide e o ✔ das linhas das partes marcam a mesma lista
   document.addEventListener('change', (ev) => {
     const tgt = /** @type {HTMLInputElement} */ (ev.target);
-    if (tgt.matches('#splitChips input')) {
+    if (tgt.matches('#fixo')) marcaFixo(tgt.checked);
+    else if (tgt.matches('#splitChips input')) {
       tgt.closest('.chip').classList.toggle('on', tgt.checked);
       updateHint();
     } else if (tgt.matches('#sharesBox [data-quem]')) {

@@ -47,6 +47,8 @@ class Banco {
     const comTag = (status, v) => ({ status, corpo: v,
       cabecalhos: { etag: tag(), 'access-control-allow-origin': '*', 'access-control-expose-headers': 'ETag' } });
     if (m === 'GET') return cab['x-firebase-etag'] === 'true' ? comTag(200, this.pega(partes)) : json(200, this.pega(partes));
+    // banco lerdo pra gravar (rede ruim no bar): a gravação demora a voltar
+    if (m === 'PUT' && this.atrasoGrava) await new Promise(ok => setTimeout(ok, this.atrasoGrava));
     if (m === 'PUT' && partes.length === 2) { const v = JSON.parse(texto || 'null');
       if (this.noMeio?.(partes[1], v)) this.noMeio = null;
       const se = cab['if-match'];

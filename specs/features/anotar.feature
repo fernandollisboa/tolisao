@@ -40,6 +40,13 @@ Funcionalidade: Anotar um gasto
     E eu anoto "Cerveja" de R$ 50,00 dividido igualmente
     Então o banco tem os itens "Cerveja" e "Gelo"
 
+  Cenário: o gasto anotado enquanto o anterior ainda grava sobe junto
+    Com a rede lenta, o segundo gasto ficava só no aparelho até a próxima volta da nota.
+    Dado que o banco demora pra gravar
+    Quando eu abro o evento como Lia
+    E eu anoto "Cerveja" e depois "Gelo", os dois de R$ 20,00 divididos igualmente
+    Então o banco tem os itens "Cerveja" e "Gelo"
+
   Cenário: o mesmo gasto anotado duas vezes pede confirmação
     No rolê, quem pagou e quem tava com o celular na mão anotam o mesmo Uber, e a conta dobra sem ninguém ver.
     Quando eu abro o evento como Lia

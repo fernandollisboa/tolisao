@@ -220,7 +220,8 @@
   /** o gasto que o anotar está editando @type {string|null} */ let editando = null;
   /** modo chato (easter egg da ficha): sem diva, e o rodapé vira "Deus é fiel." */ let chato = !!device().boringMode;
   let pollTimer = null,
-    saving = false; // um sync de cada vez
+    saving = false, // um sync de cada vez
+    deNovo = false; // pediram sync no meio de outro: roda de novo no fim, senão o gasto anotado ali espera o próximo poll
   // a ficha do rodapé; as duas funções são preenchidas em jogaDiva(), lá no fim
   const ficha = {
     /** a ficha vai cair: o Sou Fulano e o ✎ esperam ela pegar a vez na fila */
@@ -496,8 +497,13 @@
   }
   async function sync() {
     // baixa, mescla e sobe se houver novidade
-    if (!groupId || saving) return;
+    if (!groupId) return;
+    if (saving) {
+      deNovo = true;
+      return;
+    }
     saving = true;
+    let deuCerto = false;
     try {
       // outro aparelho gravou no meio: baixa de novo e mescla por cima do que ele gravou
       for (let vez = 1; ; vez++) {
@@ -518,6 +524,7 @@
         }
       }
       cutucaApi(); // o banco já tem o pagamento: agora a API acha ele lá
+      deuCerto = true;
       setStatus(
         'Sincronizado ' +
           new Date().toLocaleDateString('pt-BR') +
@@ -529,6 +536,10 @@
       setStatus('Offline · ' + SEM_REDE, true);
     } finally {
       saving = false;
+      // deu errado (sem rede, sumiu do banco): quem tenta de novo é o poll, não um sync atrás do outro
+      const outro = deNovo && deuCerto;
+      deNovo = false;
+      if (outro) sync();
     }
   }
   function commit() {

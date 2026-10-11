@@ -1454,11 +1454,13 @@
       f.classList.toggle('recebe', hasMe && bal > 0);
       f.classList.toggle('quite', hasMe && bal === 0);
     }
+    // quem chega pelo link vê só o Quem é você?: a conta aparece depois que diz quem é
+    const chegando = !hasMe && state.people.length > 0;
     // todo mundo quite já é dito em Minha conta; repetir no Falta pagar era eco
-    $('#settleHead').classList.toggle('hidden', vazio || allEven);
-    $('#settle').classList.toggle('hidden', allEven);
-    $('#settleHr').classList.toggle('hidden', allEven);
-    $('#itemsSec').classList.toggle('hidden', vazio); // quem está quite também quer ver no que gastou
+    $('#settleHead').classList.toggle('hidden', vazio || allEven || chegando);
+    $('#settle').classList.toggle('hidden', allEven || chegando);
+    $('#settleHr').classList.toggle('hidden', allEven || chegando);
+    $('#itemsSec').classList.toggle('hidden', vazio || chegando); // quem está quite também quer ver no que gastou
   }
   /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
    *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a

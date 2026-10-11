@@ -310,3 +310,10 @@ Given('que meu celular deixa o site manter a tela acesa', async ({ mundo }) => {
 Then('a tela fica acesa', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(1); });
 Then('a tela já pode apagar', async ({ mundo }) => { await expect.poll(() => mundo.p.evaluate(() => window.__acesa)).toBe(0); });
 
+// a conta da nota: a linha dos itens e o Falta pagar
+Then('a conta ainda não aparece', async ({ mundo }) => {
+  await expect(mundo.p.locator('#itemsSec')).toBeHidden(); await expect(mundo.p.locator('#settleHead')).toBeHidden();
+});
+Then('a conta aparece', async ({ mundo }) => {
+  await expect(mundo.p.locator('#itemsSec')).toBeVisible(); await expect(mundo.p.locator('#settleHead')).toBeVisible();
+});

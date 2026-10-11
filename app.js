@@ -48,6 +48,9 @@
   // conta fixa, o "repete todo mês" do anotar: desligada pra todo mundo. Liga no aparelho abrindo o site com ?fixo
   // (fica lembrado; ?fixo=0 desliga). Desligada, o gasto que já repetia não lança mês novo
   const FIXO = false;
+  // "trocar o zap de Fulano" no pé de Minha conta: desligado pra todo mundo (ficava ali depois do pular e
+  // parecia bug). Liga no aparelho com ?trocazap (fica lembrado; ?trocazap=0 desliga)
+  const TROCA_ZAP = false;
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -94,11 +97,11 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, apagarOn, fixoOn,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, apagarOn, fixoOn, trocaZapOn,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista;
-  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar; fixoOn: a conta fixa, pelo ?fixo;
+  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar; fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
@@ -399,6 +402,11 @@
     if (q.has('fixo')) setDevice('fixoOn', q.get('fixo') === '0' ? undefined : true);
   })();
   const temFixo = () => FIXO || device().fixoOn === true;
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('trocazap')) setDevice('trocaZapOn', q.get('trocazap') === '0' ? undefined : true);
+  })();
+  const temTrocaZap = () => TROCA_ZAP || device().trocaZapOn === true;
   /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
    *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
    *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
@@ -1590,6 +1598,7 @@
   }
   /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */
   const botaoTrocaZap = (recebe) => {
+    if (!temTrocaZap()) return '';
     const gente = recebe.map((t) => t.from).filter((id) => zapDe(id) !== null);
     return gente.length
       ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}">${esc(nameOf(id))}</a>`).join(', ')}</div>`

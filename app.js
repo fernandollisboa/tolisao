@@ -962,10 +962,13 @@
         } catch {}
       }),
     );
-    const changed = JSON.stringify(out) !== JSON.stringify(pixKeys) || !pixReady;
+    const changed = JSON.stringify(out) !== JSON.stringify(pixKeys) || !pixReady,
+      primeira = !pixReady;
     pixKeys = out;
     pixReady = true;
     if (changed) render();
+    // o quem é você aberto antes das chaves chegarem ficava sem a parte do pix
+    if (primeira && $('#whoSel') && !$('#whoPix')) showWho();
   }
   function validPixKey(k) {
     k = k.trim();

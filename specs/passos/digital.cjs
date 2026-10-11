@@ -69,6 +69,8 @@ Then('o cartão oferece {string}', async ({ mundo }, txt) => {
 // limpar o navegador: o aparelho esquece tudo, o tok do pix junto, mas a passkey fica no celular.
 // Volta pelo endereço de testar a digital, que liga ela de novo
 When('eu limpo o navegador e volto ao evento como {word}', async ({ mundo }, quem) => {
+  // limpar no meio do cadastro é outra história: espera a chave chegar no banco
+  await expect.poll(() => mundo.banco.pega(['pix', mundo.sala, mundo.pessoa(quem).id, 'key'])).toBeTruthy();
   await mundo.p.evaluate(() => localStorage.clear());
   await mundo.p.goto(mundo.link + '&digital'); await mundo.souEu(quem);
 });

@@ -52,6 +52,14 @@ Funcionalidade: Cadastrar a chave pix
     Então o banco recusa
     E o banco guarda a chave do Fernando "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
 
+  Cenário: o quem é você aberto antes da chave chegar mostra ela quando chega
+    Com a rede lenta, o cartão abria sem a parte do pix e só mostrava fechando e abrindo de novo.
+    Dado que o Fernando já cadastrou a chave pix "fernando@exemplo.com" em outro aparelho
+    E que o banco demora pra mandar as chaves pix
+    Quando eu abro o evento como Fernando
+    E eu toco em quem é você
+    Então o cartão aberto mostra a minha chave, cadastrada em outro aparelho
+
   Cenário: sem chave, o cartão de quem é você cadastra
     Quando eu abro o evento como Lia
     E eu cadastro a chave pix "lia@exemplo.com" pelo cartão de quem é você

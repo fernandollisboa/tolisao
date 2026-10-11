@@ -67,6 +67,7 @@ Then('o {string} no banco ainda tem a chave pix {string} da/do {word}', async ({
   expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe(chave);
 });
 // o ?apagar do endereço, que o aparelho guarda (o APAGAR_DADOS vem desligado)
+Given('que eu pedi pra testar a conta fixa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { fixoOn: true }); });
 Given('que eu pedi pra testar o apagar meus dados', async ({ mundo }) => {
   naGaveta(mundo, 'tolisa', { apagarOn: true });
 });

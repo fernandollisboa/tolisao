@@ -284,3 +284,4 @@ When('eu excluo o {string} deste mês', async ({ mundo }, nome) => {
   const it = item(mundo.p, nome).first(); await it.locator('.row .l').click();
   await it.getByRole('button', { name: `excluir o gasto ${nome}` }).click(); await mundo.p.click('#okBtn');
 });
+Then('o anotar não oferece repetir todo mês', async ({ mundo }) => { await expect(mundo.p.locator('#fixo')).toBeHidden(); });

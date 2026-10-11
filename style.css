@@ -601,12 +601,12 @@ button.casinha{display:block;width:100%;border:2px dashed var(--rule);padding:8p
 /* a chave pix: o carimbo em cima da caixa, na largura dela, diz o que não passa */
 .carimbo{border:3px double var(--red);color:var(--red);padding:6px;font-size:18px;line-height:1.1;text-align:center;text-transform:uppercase;letter-spacing:1px;background:var(--paper)}
 #askDesc.carimbo.erro{background:var(--red);color:var(--paper);-webkit-text-stroke:0}
-/* mandar pra quem: o grupo todo é o botão grande, com o QR do lado; cada pessoa, uma cápsula com contorno e pontinho na cor dela */
-/* o QR é o quadrado do lado do grupo todo, da mesma altura; as pessoas em duas colunas iguais */
-.grupo{display:flex;gap:10px}
+/* mandar pra quem: o grupo todo é o botão grande, com o QR do lado, em tinta; cada pessoa, um botão reto com o pontinho na cor dela */
+/* o QR é o quadrado do lado do grupo todo, da mesma altura; as pessoas em duas colunas iguais, no mesmo espaço */
+.grupo{display:flex;gap:12px}
 .grupo .big{flex:1}
 .grupo .big svg{position:static}
-.grupo .qrbtn{flex:none;width:56px;margin:0;justify-content:center;box-shadow:4px 4px 0 var(--ink)}
+.grupo .qrbtn{flex:none;width:56px;margin:0;justify-content:center;box-shadow:4px 4px 0 var(--ink);background:var(--ink);color:var(--paper)}
 .grupo .qrbtn svg{width:26px;height:26px}
 .linkou{margin:22px 0 0;text-transform:none;font-size:17px;text-align:center}
 .linkpras{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:10px}
@@ -616,6 +616,9 @@ button.linkpra{display:inline-flex;align-items:center;gap:8px;min-width:0;color:
 /* a última sozinha na linha (e a única, quando é uma pessoa só) fica no meio, na largura de uma coluna */
 #overlayBox button.linkpra:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 5px)}
 button.linkpra span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#overlayBox .linkou+.linkpras{gap:12px;margin-top:12px}
+#overlayBox .linkou+.linkpras button.linkpra{height:52px;padding:0 14px;gap:10px;border:2px solid var(--ink);border-radius:4px;box-shadow:3px 3px 0 var(--ink);font-size:21px}
+#overlayBox .linkou+.linkpras button.linkpra:last-child:nth-child(odd){justify-self:stretch;width:auto}
 .linkpras+.voltar{margin-top:16px}
 button.linkpra i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--cor)}
 /* o QR do link do grupo: botão pequeno embaixo das cápsulas, e o cartão com o QR na largura toda, em fundo branco pro leitor */

@@ -203,6 +203,8 @@ When('outro aparelho anota {string} de R$ {num} bem na hora que eu gravo o {stri
     return true;
   };
 });
+// rede lenta no bar: cada gravação no banco demora quase 2 s pra voltar
+Given('que o banco demora pra gravar', async ({ mundo }) => { mundo.banco.atrasoGrava = 1800; });
 Then('o banco tem os itens {string} e {string}', async ({ mundo }, a, b) => {
   await expect.poll(() => (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).map(e => e.desc)).toEqual(expect.arrayContaining([a, b]));
 });

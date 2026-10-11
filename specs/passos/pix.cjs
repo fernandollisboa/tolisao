@@ -64,3 +64,8 @@ Then('nada na tela tem meia letra', async ({ mundo }) => {
   });
   expect(achado, 'sobrou meia letra na tela').toBeNull();
 });
+// rede lenta: as chaves pix chegam bem depois da nota
+Given('que o banco demora pra mandar as chaves pix', async ({ mundo }) => { mundo.banco.atrasoPix = 1500; });
+Then('o cartão aberto mostra a minha chave, cadastrada em outro aparelho', async ({ mundo }) => {
+  await expect(mundo.p.locator('#overlayBox #pixOutro')).toBeVisible();
+});

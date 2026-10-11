@@ -129,14 +129,17 @@ Funcionalidade: Entrar no evento
 
   Cenário: quem chega pelo link do grupo diz quem é na própria nota
     O link do grupo não diz quem abriu. A nota já mostra a turma no topo, um nome
-    por pessoa, sem cartão na frente: ninguém é interrompido na chegada.
+    por pessoa, sem cartão na frente: ninguém é interrompido na chegada. A conta
+    (os itens e o Falta pagar) aparece depois que a pessoa diz quem é.
     Dado o evento de exemplo "bailedamada"
     Quando eu abro o link do grupo
     Então nenhum cartão abre
     E a nota pergunta quem eu sou entre Fernando, Júlia, Lia, Mengla e Klinsmann
+    Mas a conta ainda não aparece
     Quando eu toco no meu nome, Lia, no topo da nota
     Então o cabeçalho diz "sou Lia"
     E Minha conta diz "eu devo" R$ 117,84
+    E a conta aparece
     E a nota não pergunta quem eu sou
 
   Cenário: quem chega e não está na turma se põe na lista

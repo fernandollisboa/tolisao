@@ -91,6 +91,7 @@ When('eu troco o zap da/do {word} pra {string}', async ({ mundo }, nome, tel) =>
   await mundo.p.locator('#mineRows [data-trocazap]', { hasText: nome }).click();
   await mundo.p.fill('#zapForm input', tel); await mundo.p.click('#zapForm button.big');
 });
+Then('Minha conta não oferece trocar o zap', async ({ mundo }) => { await expect(mundo.p.locator('#mineRows [data-trocazap]')).toHaveCount(0); });
 When('eu esqueço o zap da/do {word}', async ({ mundo }, nome) => {
   await mundo.p.locator('#mineRows [data-trocazap]', { hasText: nome }).click();
   await mundo.p.click('#zapPular');

@@ -143,15 +143,23 @@ Funcionalidade: Acertar as contas
     Quando eu cobro a Mengla no zap
     Então o site pergunta o número dela
 
+  Cenário: pular o número não deixa recado em Minha conta
+    Quando eu abro o evento como Fernando
+    E eu cobro a Mengla no zap
+    E eu pulo o número dela
+    Então Minha conta não oferece trocar o zap
+
   Cenário: trocar o número guardado
-    Dado que este aparelho já guardou o número "5581998765432" da Mengla, em outro evento
+    Dado que eu pedi pra testar o trocar zap
+    E que este aparelho já guardou o número "5581998765432" da Mengla, em outro evento
     Quando eu abro o evento como Fernando
     E eu troco o zap da Mengla pra "(81) 91234-5678"
     E eu cobro a Mengla no zap
     Então o zap abre na conversa do 5581912345678
 
   Cenário: esquecer o número guardado
-    Dado que este aparelho já guardou o número "5581998765432" da Mengla, em outro evento
+    Dado que eu pedi pra testar o trocar zap
+    E que este aparelho já guardou o número "5581998765432" da Mengla, em outro evento
     Quando eu abro o evento como Fernando
     E eu esqueço o zap da Mengla
     E eu cobro a Mengla no zap

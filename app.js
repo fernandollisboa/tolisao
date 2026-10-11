@@ -45,6 +45,9 @@
   // "apagar meus dados deste aparelho" no fim do cartão do evento: desligado pra todo mundo. Liga no aparelho
   // abrindo o site com ?apagar (fica lembrado; ?apagar=0 desliga)
   const APAGAR_DADOS = false;
+  // conta fixa, o "repete todo mês" do anotar: desligada pra todo mundo. Liga no aparelho abrindo o site com ?fixo
+  // (fica lembrado; ?fixo=0 desliga). Desligada, o gasto que já repetia não lança mês novo
+  const FIXO = false;
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -91,11 +94,11 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, apagarOn,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, apagarOn, fixoOn,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista;
-  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
+  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar; fixoOn: a conta fixa, pelo ?fixo;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
@@ -391,10 +394,16 @@
     };
   }
 
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('fixo')) setDevice('fixoOn', q.get('fixo') === '0' ? undefined : true);
+  })();
+  const temFixo = () => FIXO || device().fixoOn === true;
   /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
    *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
    *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
   function lancaFixos(st) {
+    if (!temFixo()) return false;
     const agora = Date.now(),
       fora = new Set(st.deleted),
       tem = new Set(st.expenses.map((e) => e.id)),
@@ -1623,6 +1632,7 @@
       prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
+    $('#expenseForm .fixo').classList.toggle('hidden', !temFixo());
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
@@ -1714,7 +1724,7 @@
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
             linha(`${tagNovo(e) || tagMudou(g)}${esc(e.desc)}`, reais(centavos(e))) +
-            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${e.rec ? '<span class="fixo"> · todo mês</span>' : ''}${by}</span>${botoes}</div></div>`
+            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${e.rec && temFixo() ? '<span class="fixo"> · todo mês</span>' : ''}${by}</span>${botoes}</div></div>`
           );
         })
         .join('') || '<div class="empty">nada anotado ainda</div>';
@@ -3322,7 +3332,7 @@
       for (const i of inputs('#sharesBox input[data-share]')) i.value = reais(e.shares[i.dataset.share] || 0);
       atualizaFalta();
     }
-    marcaFixo(!!e.rec);
+    marcaFixo(temFixo() && !!e.rec);
     $('#sheet h2').textContent = 'Editar';
     $('#expenseForm button.big').textContent = 'Salvar';
     openSheet();

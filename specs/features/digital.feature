@@ -37,3 +37,27 @@ Funcionalidade: Entrar com a digital
     Quando eu abro o tô lisa pelo endereço de testar a digital
     E eu abro o tô lisa
     Então o cartão oferece "entrar com a digital"
+
+  Regra: a chave pix cadastrada com a digital volta com a digital
+    Limpou o navegador, a chave ficava presa no aparelho de antes e ninguém mais trocava.
+    Com a digital, ela continua de quem cadastrou.
+
+    Contexto:
+      Dado que eu pedi pra testar a digital
+
+    Exemplo: limpei o navegador e ainda troco a minha chave
+      Quando eu abro o evento como Júlia
+      E eu cadastro a chave pix "julia@exemplo.com"
+      E eu limpo o navegador e volto ao evento como Júlia
+      E eu libero a minha chave com a digital
+      E eu toco em trocar a chave pix
+      E eu troco a chave por "julia@novo.com"
+      Então o banco guarda a chave da Júlia "julia@novo.com"
+
+    Exemplo: a digital de outra pessoa não libera a chave
+      Dado que o Fernando já cadastrou a chave pix "fernando@exemplo.com" em outro aparelho
+      Quando eu abro o evento como Júlia
+      E eu cadastro a chave pix "julia@exemplo.com"
+      E eu troco pra Fernando
+      E eu libero a minha chave com a digital
+      Então aparece o aviso "Essa digital não cadastrou essa chave"

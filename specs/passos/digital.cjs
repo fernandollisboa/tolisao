@@ -6,7 +6,8 @@ async function digital(ctx, p, credenciais = []) {
   const cdp = await ctx.newCDPSession(p);
   await cdp.send('WebAuthn.enable');
   const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
-    options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true },
+    options: { protocol: 'ctap2', ctap2Version: 'ctap2_1', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true,
+      automaticPresenceSimulation: true, hasPrf: true },
   });
   for (const credential of credenciais) await cdp.send('WebAuthn.addCredential', { authenticatorId, credential });
   return { cdp, authenticatorId };
@@ -63,4 +64,14 @@ Then('o cartão não oferece a digital', async ({ mundo }) => {
 });
 Then('o cartão oferece {string}', async ({ mundo }, txt) => {
   await expect(mundo.p.locator('#overlayBox .digital').getByRole('button', { name: txt })).toBeVisible();
+});
+
+// limpar o navegador: o aparelho esquece tudo, o tok do pix junto, mas a passkey fica no celular.
+// Volta pelo endereço de testar a digital, que liga ela de novo
+When('eu limpo o navegador e volto ao evento como {word}', async ({ mundo }, quem) => {
+  await mundo.p.evaluate(() => localStorage.clear());
+  await mundo.p.goto(mundo.link + '&digital'); await mundo.souEu(quem);
+});
+When('eu libero a minha chave com a digital', async ({ mundo }) => {
+  await mundo.p.click('#whoBtn'); await mundo.p.click('#pixDigital');
 });

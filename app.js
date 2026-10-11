@@ -97,10 +97,10 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, apagarOn, fixoOn, trocaZapOn,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, fixoOn, trocaZapOn,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
-  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista;
+  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: já fez a passkey do pix;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar; fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -1005,7 +1005,8 @@
   async function putPix(pid, key) {
     let tok = (room().pixTokens || {})[pid];
     if (typeof tok !== 'string' || !tok) {
-      const novo = (tok = sorteia(32));
+      // com a digital, o tok sai dela e volta depois de limpar o navegador; sem, é sorteado como sempre
+      const novo = (tok = (await tokDaDigital(pid, true)) || sorteia(32));
       // sem o tok no aparelho, a chave que subir fica presa pra sempre: aparelho cheio não manda nada
       const gravou = mexe(roomKey(groupId), (o) => {
         (o.pixTokens ||= {})[pid] = novo;
@@ -2557,6 +2558,7 @@
     $('#whoForm').onsubmit = (ev) => ev.preventDefault();
     if ($('#pixTroca')) $('#pixTroca').onclick = savePix;
     if ($('#pixNova')) $('#pixNova').onclick = savePix;
+    if ($('#pixDigital')) $('#pixDigital').onclick = liberaPix;
     if ($('#pixApaga'))
       $('#pixApaga').onclick = async () => {
         if (await ask('Apagar a chave pix?', esc(pixKeys[me]), 'apagar', true)) putPix(me, '');
@@ -2572,7 +2574,10 @@
       : linha('meu pix', esc(k), '', '', '', ' style="text-transform:none"') +
         ((room().pixTokens || {})[me]
           ? `<div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div>`
-          : `<p class="muted" id="pixOutro" style="margin:6px 0 0;text-align:center;text-transform:none">cadastrada em outro aparelho: só ele troca</p>`);
+          : `<p class="muted" id="pixOutro" style="margin:6px 0 0;text-align:center;text-transform:none">cadastrada em outro aparelho: só ele troca</p>` +
+            (temDigital()
+              ? `<div class="c" style="margin-top:8px"><button class="small" id="pixDigital">é minha: liberar com a digital</button></div>`
+              : ''));
     return `<div id="whoPix"><div class="hr"></div>${corpo}</div>`;
   }
   function showLost() {
@@ -3102,6 +3107,67 @@
   })();
   const temDigital = () =>
     (DIGITAL || device().passkeyOn === true) && 'PublicKeyCredential' in window && !!navigator.credentials;
+  // a chave pix presa à digital (#257): com a digital ligada, o tok do pix sai da passkey (extensão PRF) em vez
+  // do sorteio. Limpou o navegador, ou abriu noutro celular com a passkey sincronizada, a digital refaz o mesmo
+  // tok e a chave volta a ser de quem cadastrou. Nada vai pra API: o banco segue conferindo o tok, como sempre
+  /** o tok do pix de `pid` neste evento, tirado da digital; null sem PRF, sem passkey ou se a pessoa desistiu.
+   *  `cria` faz a passkey quando este aparelho ainda não fez nenhuma pro pix
+   *  @param {string} pid @param {boolean} cria @returns {Promise<string|null>} */
+  async function tokDaDigital(pid, cria) {
+    if (!temDigital()) return null;
+    const rpId = location.hostname,
+      desafio = () => crypto.getRandomValues(new Uint8Array(32)),
+      // o sal é do evento e da pessoa: cada chave tem o seu tok, e um não abre a outra
+      sal = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`tolisa:pix:${groupId}:${pid}`));
+    try {
+      if (cria && device().pixDigital !== true)
+        await navigator.credentials.create({
+          publicKey: {
+            challenge: desafio(),
+            rp: { name: 'tô lisa', id: rpId },
+            user: { id: desafio().slice(0, 16), name: 'tô lisa', displayName: 'tô lisa' },
+            pubKeyCredParams: [
+              { type: 'public-key', alg: -7 },
+              { type: 'public-key', alg: -257 },
+            ],
+            authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
+            extensions: /** @type {any} */ ({ prf: {} }),
+          },
+        });
+      const r = /** @type {PublicKeyCredential | null} */ (
+        await navigator.credentials.get({
+          publicKey: {
+            challenge: desafio(),
+            rpId,
+            userVerification: 'required',
+            extensions: /** @type {any} */ ({ prf: { eval: { first: sal } } }),
+          },
+        })
+      );
+      const saida = /** @type {any} */ (r && r.getClientExtensionResults()).prf?.results?.first;
+      if (!saida) return null;
+      setDevice('pixDigital', true);
+      return [...new Uint8Array(saida)]
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')
+        .slice(0, 32);
+    } catch {
+      return null;
+    }
+  }
+  /** "é minha": a chave cadastrada noutro aparelho (ou antes de limpar o navegador) volta pela digital. Regrava a
+   *  mesma chave com o tok da digital: o banco só aceita se foi esse tok que cadastrou */
+  async function liberaPix() {
+    const tok = await tokDaDigital(me, false);
+    if (!tok) return toast('A digital não respondeu');
+    const r = await gravaPix(groupId, me, pixKeys[me], tok).catch(() => null);
+    if (!r || !r.ok) return toast('Essa digital não cadastrou essa chave');
+    mexe(roomKey(groupId), (o) => {
+      (o.pixTokens ||= {})[me] = tok;
+    });
+    showWho();
+    toast('Chave liberada pela digital');
+  }
   /** os bytes em base64url, sem o = do fim (o jeito do WebAuthn) @param {ArrayBuffer} buf */
   const b64De = (buf) =>
     btoa(String.fromCharCode(...new Uint8Array(buf)))

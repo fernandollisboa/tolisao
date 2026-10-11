@@ -38,6 +38,11 @@ Funcionalidade: Entrar com a digital
     E eu abro o tô lisa
     Então o cartão oferece "entrar com a digital"
 
+  Cenário: sem pedir pra testar a digital, a chave de outro aparelho não oferece liberar
+    Dado que o Fernando já cadastrou a chave pix "fernando@exemplo.com" em outro aparelho
+    Quando eu abro o evento como Fernando
+    Então o cartão de quem é você não oferece liberar com a digital
+
   Regra: a chave pix cadastrada com a digital volta com a digital
     Limpou o navegador, a chave ficava presa no aparelho de antes e ninguém mais trocava.
     Com a digital, ela continua de quem cadastrou.
@@ -45,19 +50,24 @@ Funcionalidade: Entrar com a digital
     Contexto:
       Dado que eu pedi pra testar a digital
 
-    Exemplo: limpei o navegador e ainda troco a minha chave
+    Exemplo: limpei o navegador e a digital libera a minha chave
       Quando eu abro o evento como Júlia
       E eu cadastro a chave pix "julia@exemplo.com"
       E eu limpo o navegador e volto ao evento como Júlia
       E eu libero a minha chave com a digital
-      E eu toco em trocar a chave pix
-      E eu troco a chave por "julia@novo.com"
-      Então o banco guarda a chave da Júlia "julia@novo.com"
+      Então aparece o aviso "Chave liberada pela digital"
+      E o cartão de quem é você deixa trocar e apagar a minha chave
 
-    Exemplo: a digital de outra pessoa não libera a chave
+    Exemplo: a digital só libera a chave que ela mesma cadastrou
       Dado que o Fernando já cadastrou a chave pix "fernando@exemplo.com" em outro aparelho
       Quando eu abro o evento como Júlia
       E eu cadastro a chave pix "julia@exemplo.com"
       E eu troco pra Fernando
       E eu libero a minha chave com a digital
       Então aparece o aviso "Essa digital não cadastrou essa chave"
+
+    Exemplo: com a digital antiga, a chave salva do jeito de sempre
+      Dado que a digital do meu celular é antiga
+      Quando eu abro o evento como Júlia
+      E eu cadastro a chave pix "julia@exemplo.com"
+      Então o banco guarda a chave da Júlia "julia@exemplo.com"

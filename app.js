@@ -100,7 +100,7 @@
   //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, fixoOn, trocaZapOn,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
-  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: já fez a passkey do pix;
+  //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar; fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -1003,12 +1003,17 @@
   /** a última chave que cadastrei neste aparelho, se ainda serve: vem escrita no cadastro de um evento novo */
   const minhaChave = () => (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '';
   async function putPix(pid, key) {
+    const sala = groupId, // a digital demora: o evento e a pessoa são os de quando tocou
+      eu = me;
     let tok = (room().pixTokens || {})[pid];
     if (typeof tok !== 'string' || !tok) {
-      // com a digital, o tok sai dela e volta depois de limpar o navegador; sem, é sorteado como sempre
-      const novo = (tok = (await tokDaDigital(pid, true)) || sorteia(32));
+      // com a digital, o tok sai dela e volta depois de limpar o navegador; sem, é sorteado como sempre.
+      // A chave que já tinha tok sorteado continua com ele: a digital só entra no cadastro novo
+      const d = await tokDaDigital(sala, pid, true);
+      if (d) setDevice('pixDigital', d.id);
+      const novo = (tok = d ? d.tok : sorteia(32));
       // sem o tok no aparelho, a chave que subir fica presa pra sempre: aparelho cheio não manda nada
-      const gravou = mexe(roomKey(groupId), (o) => {
+      const gravou = mexe(roomKey(sala), (o) => {
         (o.pixTokens ||= {})[pid] = novo;
       });
       if (!gravou) return toast('Sem espaço neste aparelho: a chave não salvou');
@@ -1016,12 +1021,12 @@
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     }
     try {
-      const r = await gravaPix(groupId, pid, key, tok);
+      const r = await gravaPix(sala, pid, key, tok);
       if (r.status === 401 || r.status === 403)
         return toast('Essa chave foi cadastrada em outro aparelho: só ele troca');
       if (!r.ok) return toast('A chave não salvou, tenta de novo');
       // a minha chave fica lembrada no aparelho, pra oferecer no próximo evento (só a chave: o tok é de cada evento)
-      if (pid === me) {
+      if (pid === eu) {
         if (key) setDevice('pixKey', key);
         else if (device().pixKey === pixKeys[pid]) setDevice('pixKey', undefined);
       }
@@ -3099,8 +3104,8 @@
   // a lista dos meus eventos, com quem sou eu em cada um; noutro aparelho, ou com o navegador limpo, "entrar com
   // a digital" assina o desafio da API e a lista volta pro Meus eventos. A passkey é das que o celular lembra
   // sozinho (resident key): entrar não pede nome nenhum. O rpId é o domínio do site (localhost na máquina).
-  // TODO(#168): o tok do pix fica de fora, porque no servidor ele vira desvio de pagamento. Próxima fatia: cifrar
-  // o tok com a extensão PRF da passkey e a API guardar só o cifrado
+  // O tok do pix fica de fora da lista, porque no servidor ele vira desvio de pagamento: ele sai da própria digital
+  // (tokDaDigital, #257), e nada dele vai pra API
   (() => {
     const q = new URLSearchParams(location.search);
     if (q.has('digital')) setDevice('passkeyOn', q.get('digital') === '0' ? undefined : true);
@@ -3110,63 +3115,92 @@
   // a chave pix presa à digital (#257): com a digital ligada, o tok do pix sai da passkey (extensão PRF) em vez
   // do sorteio. Limpou o navegador, ou abriu noutro celular com a passkey sincronizada, a digital refaz o mesmo
   // tok e a chave volta a ser de quem cadastrou. Nada vai pra API: o banco segue conferindo o tok, como sempre
-  /** o tok do pix de `pid` neste evento, tirado da digital; null sem PRF, sem passkey ou se a pessoa desistiu.
-   *  `cria` faz a passkey quando este aparelho ainda não fez nenhuma pro pix
-   *  @param {string} pid @param {boolean} cria @returns {Promise<string|null>} */
-  async function tokDaDigital(pid, cria) {
-    if (!temDigital()) return null;
+  /** o tok do pix de `pid` no evento `sala`, tirado da digital, e o id da passkey que deu ele; null sem PRF, sem
+   *  passkey ou se a pessoa desistiu. A passkey do pix é uma só por aparelho, com nome próprio pra não se misturar
+   *  com a da lista no seletor do celular: o id fica em `pixDigital` (false: a digital daqui não tem PRF).
+   *  `cria` faz ela quando o aparelho ainda não tem, e o create já devolve o segredo, num toque só
+   *  @param {string} sala @param {string} pid @param {boolean} cria
+   *  @returns {Promise<{ tok: string, id: string } | null>} */
+  async function tokDaDigital(sala, pid, cria) {
+    const id = device().pixDigital;
+    if (!temDigital() || id === false) return null;
     const rpId = location.hostname,
       desafio = () => crypto.getRandomValues(new Uint8Array(32)),
       // o sal é do evento e da pessoa: cada chave tem o seu tok, e um não abre a outra
-      sal = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`tolisa:pix:${groupId}:${pid}`));
+      sal = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`tolisa:pix:${sala}:${pid}`)),
+      prf = /** @type {any} */ ({ prf: { eval: { first: sal } } });
+    /** @param {any} c */
+    const saida = (c) => c && c.getClientExtensionResults().prf;
     try {
-      if (cria && device().pixDigital !== true)
-        await navigator.credentials.create({
+      /** @type {any} */ let c = null;
+      if (typeof id !== 'string' && cria) {
+        c = await navigator.credentials.create({
           publicKey: {
             challenge: desafio(),
             rp: { name: 'tô lisa', id: rpId },
-            user: { id: desafio().slice(0, 16), name: 'tô lisa', displayName: 'tô lisa' },
+            user: { id: desafio().slice(0, 16), name: 'tô lisa · chave pix', displayName: 'tô lisa · chave pix' },
             pubKeyCredParams: [
               { type: 'public-key', alg: -7 },
               { type: 'public-key', alg: -257 },
             ],
             authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-            extensions: /** @type {any} */ ({ prf: {} }),
+            extensions: prf,
           },
         });
-      const r = /** @type {PublicKeyCredential | null} */ (
-        await navigator.credentials.get({
+        // a digital daqui não tem PRF: não cria outra a cada chave, fica o sorteio de sempre
+        if (!saida(c) || !saida(c).enabled) {
+          setDevice('pixDigital', false);
+          return null;
+        }
+      }
+      // o create nem sempre devolve o segredo: aí pede, na passkey que acabou de nascer ou na que o aparelho já tem
+      const qual = c ? c.rawId : typeof id === 'string' ? bytesDe(id) : null;
+      if (!saida(c)?.results)
+        c = await navigator.credentials.get({
           publicKey: {
             challenge: desafio(),
             rpId,
             userVerification: 'required',
-            extensions: /** @type {any} */ ({ prf: { eval: { first: sal } } }),
+            extensions: prf,
+            ...(qual ? { allowCredentials: [{ type: 'public-key', id: qual }] } : {}),
           },
-        })
-      );
-      const saida = /** @type {any} */ (r && r.getClientExtensionResults()).prf?.results?.first;
-      if (!saida) return null;
-      setDevice('pixDigital', true);
-      return [...new Uint8Array(saida)]
+        });
+      const s = saida(c)?.results?.first;
+      if (!s) return null;
+      const tok = [...new Uint8Array(s)]
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('')
         .slice(0, 32);
+      return { tok, id: b64De(c.rawId) };
     } catch {
       return null;
     }
   }
+  let liberando = false; // o segundo toque não abre outra digital por cima da primeira
   /** "é minha": a chave cadastrada noutro aparelho (ou antes de limpar o navegador) volta pela digital. Regrava a
    *  mesma chave com o tok da digital: o banco só aceita se foi esse tok que cadastrou */
   async function liberaPix() {
-    const tok = await tokDaDigital(me, false);
-    if (!tok) return toast('A digital não respondeu');
-    const r = await gravaPix(groupId, me, pixKeys[me], tok).catch(() => null);
-    if (!r || !r.ok) return toast('Essa digital não cadastrou essa chave');
-    mexe(roomKey(groupId), (o) => {
-      (o.pixTokens ||= {})[me] = tok;
-    });
-    showWho();
-    toast('Chave liberada pela digital');
+    const sala = groupId,
+      eu = me,
+      chave = pixKeys[eu];
+    if (liberando || !chave) return;
+    liberando = true;
+    try {
+      const d = await tokDaDigital(sala, eu, false);
+      if (!d) return toast('A digital não respondeu');
+      const r = await gravaPix(sala, eu, chave, d.tok).catch(() => null);
+      if (r && (r.status === 401 || r.status === 403)) return toast('Essa digital não cadastrou essa chave');
+      if (!r || !r.ok) return toast('A chave não respondeu, tenta de novo');
+      // só agora a passkey é a do pix: a escolhida no seletor podia ser outra
+      setDevice('pixDigital', d.id);
+      mexe(roomKey(sala), (o) => {
+        (o.pixTokens ||= {})[eu] = d.tok;
+      });
+      if (groupId === sala && me === eu) showWho();
+      toast('Chave liberada pela digital');
+    } finally {
+      liberando = false;
+    }
   }
   /** os bytes em base64url, sem o = do fim (o jeito do WebAuthn) @param {ArrayBuffer} buf */
   const b64De = (buf) =>

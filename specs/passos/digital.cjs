@@ -2,12 +2,12 @@ const { Given, When, Then, expect } = require('./_mundo.cjs');
 
 // a digital do celular: o autenticador virtual do Chromium (CDP), com passkey que o celular lembra
 // sozinho e a digital sempre aceita. `credenciais` são passkeys que ele já traz (as sincronizadas)
-async function digital(ctx, p, credenciais = []) {
+async function digital(ctx, p, credenciais = [], prf = true) {
   const cdp = await ctx.newCDPSession(p);
   await cdp.send('WebAuthn.enable');
   const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
     options: { protocol: 'ctap2', ctap2Version: 'ctap2_1', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true,
-      automaticPresenceSimulation: true, hasPrf: true },
+      automaticPresenceSimulation: true, hasPrf: prf },
   });
   for (const credential of credenciais) await cdp.send('WebAuthn.addCredential', { authenticatorId, credential });
   return { cdp, authenticatorId };
@@ -74,4 +74,14 @@ When('eu limpo o navegador e volto ao evento como {word}', async ({ mundo }, que
 });
 When('eu libero a minha chave com a digital', async ({ mundo }) => {
   await mundo.p.click('#whoBtn'); await mundo.p.click('#pixDigital');
+});
+// digital antiga: sem a extensão que tira um segredo da passkey (PRF)
+Given('que a digital do meu celular é antiga', async ({ mundo }) => {
+  mundo.naPagina = async (ctx, p) => { mundo.digital = await digital(ctx, p, [], false); };
+});
+Then('o cartão de quem é você deixa trocar e apagar a minha chave', async ({ mundo }) => {
+  await expect(mundo.p.locator('#pixTroca')).toBeVisible(); await expect(mundo.p.locator('#pixApaga')).toBeVisible();
+});
+Then('o cartão de quem é você não oferece liberar com a digital', async ({ mundo }) => {
+  await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#pixOutro'); await expect(mundo.p.locator('#pixDigital')).toHaveCount(0);
 });

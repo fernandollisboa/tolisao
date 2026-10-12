@@ -1444,26 +1444,26 @@
     $('#fab').classList.toggle('hidden', !hasMe); // anotar é de quem já disse quem é
     $('#fab').classList.add('chamando'); // o ✎ fica âmbar o tempo todo
     $('#waBtn').classList.toggle('so', !hasMe); // sozinho o zap encosta na esquerda
+    // quem chega pelo link vê só o Quem é você?: a conta aparece depois que diz quem é
+    const chegando = !hasMe && state.people.length > 0,
+      semConta = vazio || chegando;
     // o compartilhar vem desde a nota vazia: sem comanda ainda, mas com o link e o QR, que a turma da mesa usa logo
-    // a ficha só entra em nota que já tem gasto. A cor é a situação: deve (vermelho),
-    // recebe (verde), quite (rosa); sem nome, âmbar
+    // a ficha só entra em nota com conta, que tem o código de barras pra ela cair. A cor é a situação:
+    // deve (vermelho), recebe (verde), quite (rosa); sem nome, âmbar
     const f = $('.stain');
     if (f) {
-      f.classList.toggle('hidden', vazio);
+      f.classList.toggle('hidden', semConta);
       f.classList.toggle('deve', hasMe && bal < 0);
       f.classList.toggle('recebe', hasMe && bal > 0);
       f.classList.toggle('quite', hasMe && bal === 0);
     }
-    // quem chega pelo link vê só o Quem é você?: a conta aparece depois que diz quem é
-    const chegando = !hasMe && state.people.length > 0;
     // todo mundo quite já é dito em Minha conta; repetir no Falta pagar era eco
     $('#settleHead').classList.toggle('hidden', vazio || allEven || chegando);
     $('#settle').classList.toggle('hidden', allEven || chegando);
     $('#settleHr').classList.toggle('hidden', allEven || chegando);
     $('#itemsSec').classList.toggle('hidden', vazio || chegando); // quem está quite também quer ver no que gastou
-    // o subtítulo de cima e o recado do fim só vêm com a conta
-    $('#tagline').classList.toggle('hidden', vazio || chegando);
-    $('#fecho').classList.toggle('hidden', vazio || chegando);
+    // o subtítulo de cima e o rodapé (recado, código de barras e sincronizado) só vêm com a conta
+    for (const s of ['#tagline', '#fecho', '#bars', '#status']) $(s).classList.toggle('hidden', semConta);
   }
   /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
    *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a

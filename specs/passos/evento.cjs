@@ -317,10 +317,11 @@ Then('a conta ainda não aparece', async ({ mundo }) => {
 Then('a conta aparece', async ({ mundo }) => {
   await expect(mundo.p.locator('#itemsSec')).toBeVisible(); await expect(mundo.p.locator('#settleHead')).toBeVisible();
 });
-// o subtítulo embaixo do tô lisa e o recado do fim da nota, entre os * * *, antes do código de barras
-Then('a nota não tem subtítulo nem recado no fim', async ({ mundo }) => {
-  await expect(mundo.p.locator('#tagline')).toBeHidden(); await expect(mundo.p.locator('#signoff')).toBeHidden();
+// o subtítulo embaixo do tô lisa; o rodapé é o recado entre os * * *, o código de barras e o sincronizado
+const cabecaERodape = ['#tagline', '#signoff', '#bars', '#status'];
+Then('a nota não tem subtítulo nem rodapé', async ({ mundo }) => {
+  for (const s of cabecaERodape) await expect(mundo.p.locator(s)).toBeHidden();
 });
-Then('a nota tem subtítulo e recado no fim', async ({ mundo }) => {
-  await expect(mundo.p.locator('#tagline')).toBeVisible(); await expect(mundo.p.locator('#signoff')).toBeVisible();
+Then('a nota tem subtítulo e rodapé', async ({ mundo }) => {
+  for (const s of cabecaERodape) await expect(mundo.p.locator(s)).toBeVisible();
 });

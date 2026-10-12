@@ -2195,7 +2195,7 @@
     'réveillon 2027',
     'festival de verão',
   ];
-  /** o "ex:" do campo se escreve devagar com dois exemplos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
+  /** o "ex:" do campo já chega com dois exemplos escritos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
    * o primeiro desliza pra trás do "ex:" enquanto o novo se escreve no fim. O placeholder só anda de letra em
    * letra (dá pulinho), então quem anda é uma camada por cima do campo; o placeholder fica transparente,
    * acompanhando o texto pra quem lê a tela. A dupla cabe no campo do celular (até 22 letras somando as duas) e uma raiz não
@@ -2226,10 +2226,8 @@
     caixa.classList.add('anda');
     (async () => {
       let texto = `${primeiro}, ${segundo}`;
-      for (let k = 1; campo.isConnected && k <= texto.length; k++) {
-        trilho.dataset.t = texto.slice(0, k);
-        await dorme(150);
-      }
+      trilho.dataset.t = texto;
+      campo.placeholder = `ex: ${texto}`;
       while (campo.isConnected) {
         await dorme(3200);
         const novo = proximo(segundo),

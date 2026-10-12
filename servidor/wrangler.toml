@@ -15,6 +15,11 @@ DIGITAL_ORIGENS = "https://tolisa.com.br"
 [triggers]
 crons = ["0 22 * * *"]
 
+# medição de quem escolhe nome nos eventos (#262): uma linha por escolha, lida pela API SQL do Analytics Engine
+[[analytics_engine_datasets]]
+binding = "METRICAS"
+dataset = "tolisa_medidas"
+
 [[kv_namespaces]]
 binding = "KV"
 id = "__KV_ID__"

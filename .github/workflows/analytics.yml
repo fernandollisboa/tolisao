@@ -1,6 +1,7 @@
 name: Analytics
 # lê o Cloudflare Web Analytics do site e escreve os números no resumo do job (o token nunca sai na tela).
-# precisa dos secrets CLOUDFARE_API_LOGS_TOKEN (permissão "Account Analytics: Read") e CLOUDFLARE_ACCOUNT_ID.
+# precisa dos secrets CLOUDFARE_API_LOGS_TOKEN (permissão "Account Analytics: Read") e CLOUDFLARE_ACCOUNT_ID;
+# as medições da #262 também leem o Firebase com o FIREBASE_SA.
 on:
   workflow_dispatch:
     inputs:
@@ -23,3 +24,7 @@ jobs:
         with:
           node-version: 24
       - run: node .github/scripts/analytics.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+      # as medições da #262: quem/ no Firebase (conta de serviço) e a API /conta (Analytics Engine)
+      - run: node .github/scripts/medidas.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}

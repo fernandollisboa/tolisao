@@ -6,6 +6,7 @@
 //   POST /desinscreve {sala, pessoa, endpoint, tok}
 //   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado)
 //   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
+//   POST /conta      {e, k, s, n}               → uma linha de medição no Analytics Engine (#262), sem sala nem pessoa
 //   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado
 //
 // O corpo nunca é confiável além dos ids: o /avisa lê o pagamento do próprio banco.
@@ -30,7 +31,7 @@ const PARADO_MS = 7 * 86400 * 1000; // o PARADO_DIAS do app.js: evento sem mudan
 const FETCH_POR_VEZ = 45;
 
 /** @typedef {{ get(k: string): Promise<string|null>, put(k: string, v: string, o?: { expirationTtl?: number, metadata?: any }): Promise<void>, delete(k: string): Promise<void>, list(o: { prefix: string, cursor?: string }): Promise<{ keys: { name: string, metadata?: any }[], list_complete: boolean, cursor?: string }> }} KV */
-/** @typedef {{ KV: KV, FIREBASE_DB: string, VAPID_PUBLIC: string, VAPID_PRIVATE: string, VAPID_SUB?: string, DIGITAL_ORIGENS?: string }} Env */
+/** @typedef {{ KV: KV, FIREBASE_DB: string, VAPID_PUBLIC: string, VAPID_PRIVATE: string, VAPID_SUB?: string, DIGITAL_ORIGENS?: string, METRICAS?: { writeDataPoint(p: { blobs?: string[], doubles?: number[], indexes?: string[] }): void } }} Env */
 
 /** @param {string | null} origem */
 export function origemOk(origem) {
@@ -256,6 +257,19 @@ export async function lembra(env, agora = Date.now()) {
   return lembrados;
 }
 
+/** a faixa de tempo da troca: toque errado (menos de 1 min) é outra coisa que celular passado (horas depois) */
+const faixa = (s) => (s < 0 ? 'nenhuma' : s < 60 ? '<1min' : s < 3600 ? '<1h' : s < 86400 ? '<1dia' : '1dia+');
+/** POST /conta: medição de quem escolhe nome no evento (#262). Só aceita o que está na lista, e não guarda
+ *  nada da sala nem da pessoa. Sem o Analytics Engine ligado no wrangler.toml, responde e não grava
+ *  @param {any} b @param {Env} env @param {string | null} o */
+function conta(b, env, o) {
+  if (b.e !== 'sou' || (b.k !== 'primeira' && b.k !== 'troca')) return json(400, { erro: 'pedido torto' }, o);
+  const s = Number.isFinite(b.s) && b.s >= 0 ? Math.min(Math.round(b.s), 90 * 86400) : -1,
+    n = Number.isFinite(b.n) ? Math.max(0, Math.min(Math.round(b.n), 100)) : 0;
+  env.METRICAS?.writeDataPoint({ blobs: [b.e, b.k, faixa(s)], doubles: [s, n], indexes: [b.e] });
+  return json(200, { ok: true }, o);
+}
+
 export default {
   /** o cron do wrangler.toml @param {any} _ @param {Env} env @param {{ waitUntil(p: Promise<any>): void }} ctx */
   scheduled(_, env, ctx) {
@@ -276,6 +290,7 @@ export default {
       '/inscreve': inscreve,
       '/desinscreve': desinscreve,
       '/avisa': avisa,
+      '/conta': conta,
       '/digital/desafio': (b, env, o) => digital.desafio(b, env, (s, c) => json(s, c, o)),
       '/digital/guarda': (b, env, o) => digital.guarda(b, env, (s, c) => json(s, c, o)),
       '/digital/entra': (b, env, o) => digital.entra(b, env, (s, c) => json(s, c, o)),

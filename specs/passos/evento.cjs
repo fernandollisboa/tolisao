@@ -325,3 +325,23 @@ Then('a nota não tem subtítulo nem rodapé', async ({ mundo }) => {
 Then('a nota tem subtítulo e rodapé', async ({ mundo }) => {
   for (const s of cabecaERodape) await expect(mundo.p.locator(s)).toBeVisible();
 });
+// quem/<sala>/<aparelho>/<pessoa> no banco e as linhas da API /conta (#262)
+const aparelhosDe = (mundo, nome) => {
+  const pid = mundo.pessoa(nome).id, porAp = mundo.banco.pega(['quem', mundo.sala]) || {};
+  return Object.keys(porAp).filter(ap => porAp[ap][pid]);
+};
+const medidas = mundo => mundo.api.pedidos.filter(r => r.rota === '/conta').map(r => r.corpo.k);
+Then('o banco registra {int} aparelhos como {word}', async ({ mundo }, n, nome) => {
+  await expect.poll(() => aparelhosDe(mundo, nome).length).toBe(n);
+});
+Then('o banco registra o mesmo aparelho como {word} e como {word}', async ({ mundo }, a, b) => {
+  await expect.poll(() => aparelhosDe(mundo, a).filter(ap => aparelhosDe(mundo, b).includes(ap)).length).toBe(1);
+});
+Then('a medição recebe uma primeira escolha e uma troca', async ({ mundo }) => {
+  await expect.poll(() => medidas(mundo)).toEqual(['primeira', 'troca']);
+});
+// o que não vai pro banco não tem o que esperar: dá um respiro pros pedidos que iriam, e confere que nada foi
+Then('nem o banco nem a medição recebem nada', async ({ mundo }) => {
+  await mundo.p.waitForTimeout(400);
+  expect(mundo.banco.pega(['quem'])).toBeNull(); expect(medidas(mundo)).toEqual([]);
+});

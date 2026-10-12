@@ -71,6 +71,16 @@
         }
       }
     },
+    "quem": {
+      "$room": {
+        "$ap": {
+          "$person": {
+            ".write": "!data.exists()",
+            ".validate": "$room.matches(/^[0-9a-f]{64}$/) && $ap.matches(/^[a-z0-9]{1,32}$/) && $person.matches(/^[a-z0-9]{1,32}$/) && newData.isNumber() && newData.val() <= now"
+          }
+        }
+      }
+    },
     "visitas": {
       "$dia": {
         ".write": "newData.exists()",

@@ -39,6 +39,16 @@ class Banco {
       this.arvore.visitas[dia] = (this.arvore.visitas[dia] || 0) + 1;
       return { status: 204 };
     }
+    // quem/<sala>/<aparelho>/<pessoa>: grava uma vez, com a hora do servidor, e ninguém lê
+    if (partes[0] === 'quem') {
+      const [, sala, ap, pessoa] = partes, v = JSON.parse(texto || 'null');
+      const ok = m === 'PUT' && partes.length === 4 && /^[0-9a-f]{64}$/.test(sala) && /^[a-z0-9]{1,32}$/.test(ap)
+        && /^[a-z0-9]{1,32}$/.test(pessoa) && v?.['.sv'] === 'timestamp';
+      if (!ok || this.pega(partes) != null) return nega();
+      ((this.arvore.quem ||= {})[sala] ||= {})[ap] ||= {};
+      this.arvore.quem[sala][ap][pessoa] = Date.now();
+      return { status: 204 };
+    }
     // a rede engasgou no bar: o pedido do evento fica pendurado, sem resposta e sem erro
     if (this.mudo && partes[0] === 'rooms') { this.segurados = (this.segurados || 0) + 1; return new Promise(() => {}); }
     if (partes[0] !== 'rooms' || partes.length < 2) { if (m === 'GET') this.listagens++; return nega(); }

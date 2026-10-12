@@ -49,6 +49,14 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
     if (!(dia['.validate'] || '').includes('data.val() + 1')) erros.push('o .validate de visitas/$dia não exige data.val() + 1');
   }
   regra('visitas só se soma', erros.join('; '));
+  // quem/ é medição: ninguém lê (nem a sala inteira, nem um aparelho), e cada registro só se grava uma vez
+  const quem = banco.rules.quem, folha = quem?.$room?.$ap?.$person || {}, errosQuem = [];
+  if (!quem) errosQuem.push('não achei quem no database.rules.json');
+  else {
+    if (JSON.stringify(quem).includes('".read"')) errosQuem.push('quem tem .read');
+    if (!/^!data\.exists\(\)$/.test(folha['.write'] || '')) errosQuem.push('o .write de quem/$room/$ap/$person não é !data.exists()');
+  }
+  regra('quem não se lê e só se grava uma vez', errosQuem.join('; '));
 }
 
 // ---------- pix: o banco aceita o que o app no ar grava, e só isso ----------

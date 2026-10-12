@@ -332,3 +332,28 @@ test('o saldo é a conta do app: partes que fecham, centavo que sobra, item apag
   assert.equal(saldo(s, 'bia'), -333 + 1000 - 300 + 1000 - 500);
   assert.equal(saldo(s, 'caio'), -333);
 });
+
+test('/conta grava uma linha no Analytics Engine, sem sala nem pessoa', async () => {
+  const linhas = [];
+  env.METRICAS = { writeDataPoint: (p) => linhas.push(p) };
+  const r = await pede('/conta', { corpo: { e: 'sou', k: 'troca', s: 42, n: 5, sala: SALA, pessoa: 'lia' } });
+  assert.equal(r.status, 200);
+  assert.deepEqual(linhas, [{ blobs: ['sou', 'troca', '<1min'], doubles: [42, 5], indexes: ['sou'] }]);
+});
+
+test('/conta: a faixa separa toque errado de celular passado', async () => {
+  const linhas = [];
+  env.METRICAS = { writeDataPoint: (p) => linhas.push(p) };
+  for (const s of [-1, 30, 600, 7200, 200000]) await pede('/conta', { corpo: { e: 'sou', k: 'troca', s, n: 3 } });
+  assert.deepEqual(linhas.map((l) => l.blobs[2]), ['nenhuma', '<1min', '<1h', '<1dia', '1dia+']);
+});
+
+test('/conta recusa o que não está na lista, e sem o Analytics Engine não quebra', async () => {
+  const linhas = [];
+  env.METRICAS = { writeDataPoint: (p) => linhas.push(p) };
+  assert.equal((await pede('/conta', { corpo: { e: 'outra', k: 'troca' } })).status, 400);
+  assert.equal((await pede('/conta', { corpo: { e: 'sou', k: 'lixo' } })).status, 400);
+  assert.equal(linhas.length, 0);
+  delete env.METRICAS;
+  assert.equal((await pede('/conta', { corpo: { e: 'sou', k: 'primeira', s: -1, n: 2 } })).status, 200);
+});

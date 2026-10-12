@@ -97,14 +97,16 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, fixoOn, trocaZapOn,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, fixoOn, trocaZapOn, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar; fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
+  //                  naoConta: este aparelho fica fora das visitas e das medições, pelo ?naoconta;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
-  //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
+  //                  pushTok, pushOn, ap, quemFoi, meEm }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
+  //                  ap: o id deste aparelho só neste evento, pro quem/; quemFoi: as pessoas que ele já registrou lá; meEm: quando escolheu quem é)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -192,7 +194,11 @@
   setDevice('visits', visitas);
   // aparelhos por dia: um +1 no banco, que ninguém lê (só o dono, no console). O dia é o de Brasília (2026-10-06)
   const hojeBR = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  if (CONTA_VISITAS && !LOCAL && DB && device().countedDay !== hojeBR)
+  {
+    const q = new URLSearchParams(location.search);
+    if (q.has('naoconta')) setDevice('naoConta', q.get('naoconta') === '0' ? undefined : true);
+  }
+  if (CONTA_VISITAS && !LOCAL && DB && device().naoConta !== true && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
       method: 'PUT',
       body: '{".sv":{"increment":1}}',
@@ -200,6 +206,45 @@
     })
       .then((r) => r.ok && setDevice('countedDay', hojeBR))
       .catch(() => {});
+  // medir antes de travar o nome no aparelho (#262), em dois lugares. Nenhum dos dois leva nome nem dado de pessoa:
+  //   quem/<sala>/<aparelho>/<pessoa>: este aparelho foi essa pessoa neste evento. O aparelho é um id sorteado só pra
+  //     esse evento, nada que ligue um evento a outro. Grava uma vez por par. Dá colisão (dois aparelhos na mesma
+  //     pessoa) e troca (um aparelho em duas pessoas), por evento. Sem .read: a leitura é .github/scripts/medidas.mjs
+  //   API /conta: uma linha por escolha de nome (primeira ou troca, quanto tempo depois), sem sala nem pessoa
+  // o aparelho do dono sai das duas (e das visitas) com ?naoconta
+  /** @param {string} pid */
+  function registraQuem(pid) {
+    if (!DB || !groupId || !okId(pid) || device().naoConta === true) return;
+    const r = room(),
+      feitos = Array.isArray(r.quemFoi) ? r.quemFoi : [];
+    if (feitos.includes(pid)) return;
+    let ap = r.ap;
+    if (typeof ap !== 'string' || !/^[a-z0-9]{10}$/.test(ap)) setRoom('ap', (ap = sorteia(10)));
+    const sala = groupId;
+    fetch(`${DB}/quem/${sala}/${ap}/${pid}.json?print=silent`, {
+      method: 'PUT',
+      body: '{".sv":"timestamp"}',
+      keepalive: true,
+    })
+      // 401: já estava lá (só se grava uma vez)
+      .then((x) => {
+        if (x.ok || x.status === 401)
+          mexe(roomKey(sala), (o) => {
+            o.quemFoi = [...(Array.isArray(o.quemFoi) ? o.quemFoi : []), pid].slice(-50);
+          });
+      })
+      .catch(() => {});
+  }
+  /** @param {{ e: 'sou', k: 'primeira' | 'troca', s: number, n: number }} dados */
+  function mede(dados) {
+    if (!API || device().naoConta === true) return;
+    fetch(`${API}/conta`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+      keepalive: true,
+    }).catch(() => {});
+  }
   // #endregion
   // #region o estado da página
   // ---------- o estado da página ----------
@@ -2546,8 +2591,21 @@
   // trocar de pessoa é uma nota nova: o risco, as voltas do círculo e a piscada
   // do ✔ recomeçam, senão a conta do outro aparece já riscada e parada
   function souEu(v) {
+    const antes = temMe() ? me : null;
+    if (v !== antes) {
+      // troca: quanto tempo depois de escolher o nome anterior, neste evento e neste aparelho
+      const em = +room().meEm || 0;
+      mede({
+        e: 'sou',
+        k: antes ? 'troca' : 'primeira',
+        s: antes && em ? Math.round((Date.now() - em) / 1000) : -1,
+        n: state.people.length,
+      });
+      setRoom('meEm', Date.now());
+    }
     me = v;
     setRoom('me', me);
+    if (temMe()) registraQuem(me);
     if (temMe()) setDevice('myName', nameOf(me)); // o palpite de quem eu sou num evento que não tem a minha turma
     rearmaAnims();
     closeOverlay();
@@ -2778,6 +2836,7 @@
       setStatus('Offline · ' + SEM_REDE, true);
     }
     $('#app').classList.remove('loading');
+    if (temMe()) registraQuem(me); // quem já era alguém aqui antes de existir o quem/
     // o link veio com &quem=: o aparelho que ainda não é ninguém no evento já entra como essa pessoa
     const quem = quemDoLink;
     quemDoLink = null;

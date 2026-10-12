@@ -4,6 +4,12 @@ const botao = p => p.locator('#mineRows [data-aviso]');
 const pedidos = (mundo, rota) => mundo.api.rota(rota).map(x => x.corpo);
 
 Given('que meu celular aceita aviso', async ({ mundo }) => { mundo.celularComAviso = true; });
+// já disse sim ao 🔔 num outro evento: o aparelho lembra, e o navegador já deu a permissão
+Given('que neste aparelho eu já liguei o aviso no celular', async ({ mundo }) => {
+  const a = (mundo.antes ||= {});
+  a.tolisa = JSON.stringify({ ...JSON.parse(a.tolisa || '{}'), avisoSim: true });
+  mundo.aparelho.push(() => Object.defineProperty(window.Notification, 'permission', { get: () => 'granted' }));
+});
 
 Then('Minha conta oferece {string}', async ({ mundo }, txt) => { await expect(botao(mundo.p)).toHaveText(txt); });
 Then('Minha conta não oferece aviso no celular', async ({ mundo }) => {

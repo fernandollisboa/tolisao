@@ -159,6 +159,8 @@ const CENAS = {
   // não desacelera, então a cena grava em vel 1; variação vai de --js, que roda antes do app
   inicio: { nome: 'a estreia: fichas caindo, a comandinha se anotando e o título se digitando', inicio: true, vel: 1,
     acao: async p => { await p.waitForTimeout(11500); } },
+  chegada: { nome: 'quem chega pelo link toca no nome e a conta aparece', quem: '', chegada: true, atrasoPix: 600,
+    acao: async p => { await p.waitForTimeout(1800); await p.click('#chegada [data-chegou="lia"]'); await p.waitForTimeout(6500); } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },
@@ -197,7 +199,7 @@ async function video(opts = {}) {
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
     await p.goto(`http://localhost:${porta}/${c.inicio ? '' : `?evento=${dados.name}`}`);
     if (opts.css) await p.addStyleTag({ content: opts.css });
-    await p.waitForSelector(c.inicio ? '#gateCode' : '#mine:not(.hidden)', { timeout: 8000 });
+    await p.waitForSelector(c.inicio ? '#gateCode' : c.chegada ? '#chegada [data-chegou]' : '#mine:not(.hidden)', { timeout: 8000 });
     await c.acao(p);
     if (erros.length) console.error('ERROS NA PÁGINA:', erros);
     const v = p.video(); await ctx.close();

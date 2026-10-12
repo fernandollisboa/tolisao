@@ -97,14 +97,17 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, fixoOn, trocaZapOn,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, trocaZapOn,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
-  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar; fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
+  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
+  //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
+  //                  fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
-  //                  pushTok, pushOn }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso)
+  //                  pushTok, pushOn, pushTry }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
+  //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -1208,11 +1211,19 @@
     return fetch(API + rota, { method: 'POST', body: JSON.stringify(corpo), signal: c.signal });
   };
   let mexendoAviso = false;
-  /** o 🔔 de Minha conta: pede permissão e inscreve (ligado, o botão some) */
-  async function tocaAviso() {
+  /** quem já disse sim ao 🔔 neste aparelho não é perguntado de novo: os outros eventos em que recebe ligam sozinhos */
+  const jaDisseSim = () =>
+    device().avisoSim === true && 'Notification' in window && Notification.permission === 'granted';
+  /** o 🔔 de Minha conta: pede permissão e inscreve (ligado, o botão some). `calado` é o liga sozinho de quem
+   *  já disse sim: sem convite, sem pedir permissão e sem toast, e tenta uma vez por pessoa em cada evento */
+  async function tocaAviso(calado = false) {
     if (!me || !groupId || mexendoAviso) return;
     if (avisoLigado()) return;
-    if (iPhoneSemApp()) {
+    if (calado) {
+      if (!jaDisseSim() || room().pushTry === me) return;
+      setRoom('pushTry', me);
+    }
+    if (!calado && iPhoneSemApp()) {
       // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, e o link é que leva
       // até ele (digitar o nome lá criaria outro evento). Fora do Safari, o "copiar o link" já é esse link
       ensinaInstalar(
@@ -1227,13 +1238,13 @@
     mexendoAviso = true;
     try {
       // no Android dá pra receber sem instalar, mas instalado o aviso abre o app: aproveita o toque e convida, uma vez só
-      if (convite && !device().installPrompted && !jaInstalado()) {
+      if (!calado && convite && !device().installPrompted && !jaInstalado()) {
         await pedeInstalar().catch(() => false);
         // demorou no convite, o toque venceu: sem ele o navegador esconde o pedido de permissão
         if (navigator.userActivation && !navigator.userActivation.isActive)
           return toast('Agora toca no 🔔 de novo pra ligar o aviso');
       }
-      if ((await Notification.requestPermission()) !== 'granted')
+      if (!calado && (await Notification.requestPermission()) !== 'granted')
         return toast('Sem permissão: libera os avisos do site nas configurações do navegador');
       await navigator.serviceWorker.register('sw.js');
       const reg = await navigator.serviceWorker.ready;
@@ -1248,16 +1259,17 @@
         antes = room().pushOn;
       await avisosDb('readwrite', (s) => s.put({ sala, me: quem, code: roomName, db: DB }));
       const r = await postaApi('/inscreve', { sala, pessoa: quem, sub: sub.toJSON(), tok });
-      if (r.status === 403) return toast('Os avisos de ' + nameOf(quem) + ' foram ligados em outro aparelho');
+      if (r.status === 403) return calado || toast('Os avisos de ' + nameOf(quem) + ' foram ligados em outro aparelho');
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       // trocou de pessoa neste aparelho: o aviso da anterior sai, senão ela continuava chegando aqui
       if (typeof antes === 'string' && antes !== quem)
         postaApi('/desinscreve', { sala, pessoa: antes, endpoint: sub.endpoint, tok }).catch(() => {});
       setRoom('pushOn', quem);
+      setDevice('avisoSim', true);
       render();
-      toast('Pronto: quando te pagarem, chega aviso 🔔');
+      if (!calado) toast('Pronto: quando te pagarem, chega aviso 🔔');
     } catch {
-      toast('Não deu pra ligar o aviso agora');
+      if (!calado) toast('Não deu pra ligar o aviso agora');
     } finally {
       mexendoAviso = false;
     }
@@ -1631,10 +1643,14 @@
   };
   /** o 🔔 no pé de Minha conta, só pra quem recebe e ainda não ligou: ligado, some (quem quiser
    *  desligar desliga nas notificações do próprio navegador) */
-  const botaoAviso = () =>
-    avisoLigado()
-      ? ''
-      : '<div class="aviso"><button class="ico" data-aviso title="avisar no celular">🔔 me avisa quando pagarem</button></div>';
+  const botaoAviso = () => {
+    if (avisoLigado()) return '';
+    if (jaDisseSim()) {
+      setTimeout(() => tocaAviso(true)); // fora do render: o liga sozinho grava e renderiza de novo
+      return '';
+    }
+    return '<div class="aviso"><button class="ico" data-aviso title="avisar no celular">🔔 me avisa quando pagarem</button></div>';
+  };
   /** Minha conta pega a vez assim que chega na tela, sem esperar a chave do pix (senão o
    *  Falta pagar tomava a frente). A fila só segura o começo das piscadas: quem vem depois
    *  não espera elas acabarem, e sem linha nenhuma não há o que segurar */
@@ -3823,7 +3839,7 @@
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
-    ['[data-aviso]', tocaAviso],
+    ['[data-aviso]', () => tocaAviso()],
     ['#apagaTudo', apagaTudo],
     ['#proxRole', proximoRole],
     ['[data-cobra]', cobra],

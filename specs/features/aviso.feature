@@ -25,6 +25,13 @@ Funcionalidade: Aviso no celular quando me pagam
     Então o celular fica inscrito pra receber o aviso da Júlia
     E o botão do aviso sai de Minha conta
 
+  Cenário: quem já ligou o aviso uma vez não é perguntado de novo
+    O sim vale pro aparelho: nos outros eventos em que tenho a receber, o aviso já vem ligado.
+    Dado que neste aparelho eu já liguei o aviso no celular
+    Quando eu abro o evento como Júlia
+    Então o celular fica inscrito pra receber o aviso da Júlia
+    E o botão do aviso sai de Minha conta
+
   Cenário: marcar que paguei avisa o celular de quem recebeu
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta

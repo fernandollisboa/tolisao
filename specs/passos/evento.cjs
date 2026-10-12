@@ -317,6 +317,10 @@ Then('a conta ainda não aparece', async ({ mundo }) => {
 Then('a conta aparece', async ({ mundo }) => {
   await expect(mundo.p.locator('#itemsSec')).toBeVisible(); await expect(mundo.p.locator('#settleHead')).toBeVisible();
 });
-// o recado do fim da nota, entre os * * *, antes do código de barras
-Then('a nota não tem recado no fim', async ({ mundo }) => { await expect(mundo.p.locator('#signoff')).toBeHidden(); });
-Then('a nota tem recado no fim', async ({ mundo }) => { await expect(mundo.p.locator('#signoff')).toBeVisible(); });
+// o subtítulo embaixo do tô lisa e o recado do fim da nota, entre os * * *, antes do código de barras
+Then('a nota não tem subtítulo nem recado no fim', async ({ mundo }) => {
+  await expect(mundo.p.locator('#tagline')).toBeHidden(); await expect(mundo.p.locator('#signoff')).toBeHidden();
+});
+Then('a nota tem subtítulo e recado no fim', async ({ mundo }) => {
+  await expect(mundo.p.locator('#tagline')).toBeVisible(); await expect(mundo.p.locator('#signoff')).toBeVisible();
+});

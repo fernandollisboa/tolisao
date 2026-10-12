@@ -196,15 +196,15 @@ Funcionalidade: Entrar no evento
     E eu mando pro grupo todo
     Então fica copiado o link do evento
 
-  Cenário: o recado do fim da nota só vem com a conta
-    Na chegada e no caderno em branco ainda não tem o que agradecer.
+  Cenário: o subtítulo e o recado do fim da nota só vêm com a conta
+    Na chegada e no caderno em branco ainda não tem conta pra resumir nem o que agradecer.
     Dado o evento "churras" com Fernando, Júlia e Lia
     Quando eu abro o link do grupo
-    Então a nota não tem recado no fim
+    Então a nota não tem subtítulo nem recado no fim
     Quando eu toco no meu nome, Lia, no topo da nota
-    Então a nota não tem recado no fim
+    Então a nota não tem subtítulo nem recado no fim
     Quando eu anoto "Carvão" de R$ 90,00 dividido igualmente
-    Então a nota tem recado no fim
+    Então a nota tem subtítulo e recado no fim
 
   Cenário: no caderno em branco, a caixa abre o anotar
     Dado o evento "churras" com Fernando, Júlia e Lia

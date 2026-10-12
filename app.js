@@ -2185,6 +2185,7 @@
     'brunch',
     'réveillon',
     'festival',
+    'pastelzinho',
     'churras do zé',
     'praia do forte',
     'rolê de domingo',
@@ -2194,6 +2195,10 @@
     'brunch das amigas',
     'réveillon 2027',
     'festival de verão',
+    'praia de domingo',
+    'piscina em leones',
+    'x10 dos nerdolas',
+    'carnaval da bahia',
   ];
   /** o "ex:" do campo já chega com dois exemplos escritos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
    * o primeiro desliza pra trás do "ex:" enquanto o novo se escreve no fim. O placeholder só anda de letra em

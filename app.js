@@ -48,9 +48,10 @@
   // conta fixa, o "repete todo mês" do anotar: desligada pra todo mundo. Liga no aparelho abrindo o site com ?fixo
   // (fica lembrado; ?fixo=0 desliga). Desligada, o gasto que já repetia não lança mês novo
   const FIXO = false;
-  // "trocar o zap de Fulano" no pé de Minha conta: desligado pra todo mundo (ficava ali depois do pular e
-  // parecia bug). Liga no aparelho com ?trocazap (fica lembrado; ?trocazap=0 desliga)
-  const TROCA_ZAP = false;
+  // o número do zap de quem eu cobro: o "Zap de Fulano?" no primeiro cobrar e o "trocar o zap de Fulano" no pé de
+  // Minha conta. Desligado pra todo mundo: o cobrar abre o zap direto, na conversa se o número já está guardado,
+  // senão na escolha de contato. Liga no aparelho com ?numerozap (fica lembrado; ?numerozap=0 desliga)
+  const NUMERO_ZAP = false;
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -97,13 +98,13 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, trocaZapOn, naoConta,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
-  //                  fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
+  //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -414,9 +415,9 @@
   const temFixo = () => FIXO || device().fixoOn === true;
   (() => {
     const q = new URLSearchParams(location.search);
-    if (q.has('trocazap')) setDevice('trocaZapOn', q.get('trocazap') === '0' ? undefined : true);
+    if (q.has('numerozap')) setDevice('numeroZapOn', q.get('numerozap') === '0' ? undefined : true);
   })();
-  const temTrocaZap = () => TROCA_ZAP || device().trocaZapOn === true;
+  const temNumeroZap = () => NUMERO_ZAP || device().numeroZapOn === true;
   /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
    *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
    *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
@@ -1641,7 +1642,7 @@
   }
   /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */
   const botaoTrocaZap = (recebe) => {
-    if (!temTrocaZap()) return '';
+    if (!temNumeroZap()) return '';
     const gente = recebe.map((t) => t.from).filter((id) => zapDe(id) !== null);
     return gente.length
       ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}">${esc(nameOf(id))}</a>`).join(', ')}</div>`
@@ -2184,6 +2185,7 @@
     'brunch',
     'réveillon',
     'festival',
+    'pastelzinho',
     'churras do zé',
     'praia do forte',
     'rolê de domingo',
@@ -2193,8 +2195,12 @@
     'brunch das amigas',
     'réveillon 2027',
     'festival de verão',
+    'praia de domingo',
+    'piscina em leones',
+    'x10 dos nerdolas',
+    'carnaval da bahia',
   ];
-  /** o "ex:" do campo se escreve devagar com dois exemplos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
+  /** o "ex:" do campo já chega com dois exemplos escritos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
    * o primeiro desliza pra trás do "ex:" enquanto o novo se escreve no fim. O placeholder só anda de letra em
    * letra (dá pulinho), então quem anda é uma camada por cima do campo; o placeholder fica transparente,
    * acompanhando o texto pra quem lê a tela. A dupla cabe no campo do celular (até 22 letras somando as duas) e uma raiz não
@@ -2225,10 +2231,8 @@
     caixa.classList.add('anda');
     (async () => {
       let texto = `${primeiro}, ${segundo}`;
-      for (let k = 1; campo.isConnected && k <= texto.length; k++) {
-        trilho.dataset.t = texto.slice(0, k);
-        await dorme(150);
-      }
+      trilho.dataset.t = texto;
+      campo.placeholder = `ex: ${texto}`;
       while (campo.isConnected) {
         await dorme(3200);
         const novo = proximo(segundo),
@@ -3998,8 +4002,8 @@
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
     const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
-    if (tel === null) pedeZap(quem, msg);
-    else abreZap(msg, tel);
+    if (tel === null && temNumeroZap()) pedeZap(quem, msg);
+    else abreZap(msg, tel || '');
   }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
    * Sozinho no evento, fica só o grupo e o QR: é logo na criação que a turma da mesa precisa entrar.

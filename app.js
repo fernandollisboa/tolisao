@@ -1461,6 +1461,7 @@
     $('#settle').classList.toggle('hidden', allEven || chegando);
     $('#settleHr').classList.toggle('hidden', allEven || chegando);
     $('#itemsSec').classList.toggle('hidden', vazio || chegando); // quem está quite também quer ver no que gastou
+    $('#fecho').classList.toggle('hidden', vazio || chegando); // o recado do fim só vem com a conta
   }
   /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
    *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a

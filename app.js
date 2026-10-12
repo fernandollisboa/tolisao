@@ -97,13 +97,14 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, trocaZapOn,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, trocaZapOn, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  fixoOn: a conta fixa, pelo ?fixo; trocaZapOn: o trocar o zap, pelo ?trocazap;
+  //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn, pushTry }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
@@ -195,7 +196,12 @@
   setDevice('visits', visitas);
   // aparelhos por dia: um +1 no banco, que ninguém lê (só o dono, no console). O dia é o de Brasília (2026-10-06)
   const hojeBR = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  if (CONTA_VISITAS && !LOCAL && DB && device().countedDay !== hojeBR)
+  // o aparelho do dono não conta: abrir uma vez com ?naoconta tira ele (?naoconta=0 põe de volta)
+  {
+    const q = new URLSearchParams(location.search);
+    if (q.has('naoconta')) setDevice('naoConta', q.get('naoconta') === '0' ? undefined : true);
+  }
+  if (CONTA_VISITAS && !LOCAL && DB && device().naoConta !== true && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
       method: 'PUT',
       body: '{".sv":{"increment":1}}',

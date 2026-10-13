@@ -1,7 +1,8 @@
 const { Given, When, Then, expect, idDe, AGORA } = require('./_mundo.cjs');
 
 const dinheiro = v => v.toFixed(2).replace('.', ',');
-const moldura = p => p.$eval('#itemsHead', e => getComputedStyle(e, '::before').display);
+// a moldura da linha dos itens à vista: aberta, ela some esmaecendo (transparente no fim)
+const moldura = p => p.$eval('#itemsHead', e => { const s = getComputedStyle(e, '::before'); return s.display !== 'none' && s.opacity !== '0'; });
 // a marca de novo/mudou vem colada na frente do nome do item
 const item = (p, nome) => p.locator('#expenses .item[data-item]').filter({ has: p.locator('.row .l', { hasText: new RegExp(`^(?:novo|mudou)?\\s*${nome.replace(/[()]/g, '\\$&')}$`) }) });
 
@@ -138,10 +139,10 @@ When('eu apago a parte do/da {word} e toco em "o resto" nela', async ({ mundo },
 Then('a parte do/da {word} fica {string}', async ({ mundo }, n, v) => { await expect(mundo.p.locator(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`)).toHaveValue(v); });
 
 Then('a linha dos itens diz {string}, com moldura', async ({ mundo }, txt) => {
-  await expect(mundo.p.locator('#itemsCount')).toHaveText(txt); expect(await moldura(mundo.p)).not.toBe('none');
+  await expect(mundo.p.locator('#itemsCount')).toHaveText(txt); expect(await moldura(mundo.p)).toBe(true);
 });
 Then('a linha dos itens diz {string}, sem moldura', async ({ mundo }, txt) => {
-  await expect(mundo.p.locator('#itemsCount')).toHaveText(txt); expect(await moldura(mundo.p)).toBe('none');
+  await expect(mundo.p.locator('#itemsCount')).toHaveText(txt); await expect.poll(() => moldura(mundo.p)).toBe(false);
 });
 When('eu toco na linha dos itens', async ({ mundo }) => { await mundo.p.click('#itemsHead'); });
 When('eu aperto Enter na linha dos itens', async ({ mundo }) => { await mundo.p.focus('#itemsHead'); await mundo.p.keyboard.press('Enter'); });

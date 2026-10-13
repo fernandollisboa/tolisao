@@ -14,6 +14,17 @@ Funcionalidade: A conta zera quando todo mundo fica quite
     Quando eu abro o evento como Tomaz
     E eu quito a primeira linha de Minha conta
     Então o pagamento "Tomaz → Fernando" continua carimbado
+    E o Falta pagar se chama "Pagamentos"
+
+  Cenário: desfazer o pagamento que zerou a conta traz o Falta pagar de volta
+    Quando eu abro o evento como Tomaz
+    E eu quito a primeira linha de Minha conta
+    E eu desfaço o pagamento "Tomaz → Fernando"
+    Então nenhum pagamento está carimbado
+    E o Falta pagar se chama "Falta pagar"
+    E falta pagar:
+      | quem  | paga pra | valor |
+      | Tomaz | Fernando | 50,00 |
 
   Cenário: quitou tudo, a quitação sai do Falta pagar quando vem gasto novo
     Quando eu abro o evento como Tomaz

@@ -1559,6 +1559,7 @@
   /** Minha conta: o saldo de quem está vendo e, devendo, um ✔ e um copiar pix por pessoa */
   function renderMinha(bal, acerto) {
     $('#mine').classList.remove('hidden');
+    $('#mine h2').classList.toggle('hidden', bal === 0); // o "tudo quite!" se explica sozinho
     const meus = bal < 0 ? acerto.filter((t) => t.from === me) : [],
       recebe = bal > 0 ? acerto.filter((t) => t.to === me) : [];
     agendaMinha(meus, recebe.length);

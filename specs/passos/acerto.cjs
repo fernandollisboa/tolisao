@@ -10,6 +10,7 @@ const minhaLinha = (p, nome) => p.$$eval('#mineRows .row.sub', (l, nome) => {
 
 Then('falta pagar:', async ({ mundo }, tabela) => { await expect.poll(() => linhasDoAcerto(mundo.p)).toEqual(tabela.hashes()); });
 Then('a minha linha no acerto é {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#settle .row.mine .l')).toHaveText(txt); });
+Then('o Falta pagar se chama {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#settleHead')).toHaveText(`*** ${nome} ***`); });
 Then('o Falta pagar não tem botão nenhum', async ({ mundo }) => { await expect(mundo.p.locator('#settle button')).toHaveCount(0); });
 
 Then('Minha conta diz {string} R$ {num}', async ({ mundo }, titulo, valor) => {

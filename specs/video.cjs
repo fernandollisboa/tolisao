@@ -201,9 +201,9 @@ const CENAS = {
       await p.click('#okBtn'); await p.waitForTimeout(1400);
       await p.click('#quitOk');
       await p.waitForTimeout(4000); } },
-  aura: { nome: 'a aura do tudo quite: dois traços correndo pelo tracejado, lento e rápido', quem: 'Lia', atrasoPix: 0, dados: {
+  aura: { nome: 'a aura do tudo quite: dois traços correndo devagar pelo tracejado', quem: 'Lia', atrasoPix: 0, dados: {
       ...QUITA, expenses: [...QUITA.expenses, { id: 'pg2', kind: 'payment', desc: 'Pagamento', amount: 40, payer: 'lia', among: ['julia'], at: H - 60000 }] },
-    acao: async p => { await p.waitForTimeout(17000); } },
+    acao: async p => { await p.waitForTimeout(6000); } },
   // aparelho limpo, sem evento: a estreia de quem chega. o título digita por ~7,5 s com setTimeout, que o --vel
   // não desacelera, então a cena grava em vel 1; variação vai de --js, que roda antes do app
   inicio: { nome: 'a estreia: fichas caindo, a comandinha se anotando e o título se digitando', inicio: true, vel: 1,

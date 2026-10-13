@@ -1392,6 +1392,7 @@
       .reverse();
     const nMeus = acerto.filter((t) => t.from === me).length;
 
+    viraQuite(hasMe, bal);
     renderCabecalho(hasMe, bal, allEven);
     renderChegada(hasMe);
     if (hasMe && !vazio) renderMinha(bal, acerto);
@@ -1405,6 +1406,31 @@
     renderAcerto(hasMe, acerto, pays, nMeus);
     renderItens();
     atualizaBolinha();
+  }
+  // a minha conta zerou com a página aberta: a nota se arruma de cima pra baixo, a caixa do quite, a linha dos itens,
+  // o título (que se reescreve à máquina) e as linhas do Falta pagar. Quem quitou espera o cartão do Quitado! fechar.
+  // A caixa e as linhas são refeitas a cada sync: o --vq (quanto já passou) retoma a animação de onde estava
+  let virou = { nota: '', bal: 0, pendente: false, em: 0 };
+  function viraQuite(hasMe, bal) {
+    const nota = `${groupId}|${me}`,
+      app = $('#app');
+    if (virou.nota !== nota) {
+      virou = { nota, bal, pendente: false, em: 0 };
+      return app.classList.remove('virou');
+    }
+    if (hasMe && bal === 0 && virou.bal !== 0) virou.pendente = true;
+    virou.bal = bal;
+    // atrás do cartão a nota nova fica escondida: ela entra quando ele fecha
+    app.classList.toggle('vaiVirar', virou.pendente && !semMovimento());
+    if (virou.pendente && semCartao() && !seguraRisco && !semMovimento()) {
+      virou.pendente = false;
+      virou.em = Date.now();
+      app.classList.remove('vaiVirar');
+      app.classList.remove('virou');
+      void app.offsetWidth; // tirar e pôr no mesmo quadro recomeça as animações de quem não é refeito
+      app.classList.add('virou');
+    }
+    app.style.setProperty('--vq', `${virou.em - Date.now()}ms`);
   }
   /** o nome do evento, o "Sou Fulano", o subtítulo e a frase do rodapé */
   function renderCabecalho(hasMe, bal, allEven) {
@@ -1510,7 +1536,7 @@
       tituloAcerto = { nome, sala: groupId || '', t: 0 };
       return seco();
     }
-    if (!semCartao()) return;
+    if (!semCartao() || seguraRisco) return;
     tituloAcerto.nome = nome;
     // a palavra mais larga segura o lugar, pra os *** não andarem a cada letra
     let txt = el.textContent || '';
@@ -1527,7 +1553,8 @@
       // apaga de enfiada, como quem segura a tecla; escreve no ritmo de gente
       tituloAcerto.t = setTimeout(passo, apaga ? (txt ? 45 : 300) : 70 + Math.random() * 70);
     };
-    tituloAcerto.t = setTimeout(passo, 250);
+    // na passagem pro quite, espera o título chegar na cascata
+    tituloAcerto.t = setTimeout(passo, $('#app').classList.contains('virou') ? 650 : 250);
   }
   /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
    *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a

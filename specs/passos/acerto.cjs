@@ -10,8 +10,14 @@ const minhaLinha = (p, nome) => p.$$eval('#mineRows .row.sub', (l, nome) => {
 
 Then('falta pagar:', async ({ mundo }, tabela) => { await expect.poll(() => linhasDoAcerto(mundo.p)).toEqual(tabela.hashes()); });
 Then('a minha linha no acerto é {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#settle .row.mine .l')).toHaveText(txt); });
+// pelo nome que o leitor de tela lê: o que está na tela troca letra a letra
+Then('o Falta pagar se chama {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#settleHead')).toHaveAccessibleName(nome); });
 Then('o Falta pagar não tem botão nenhum', async ({ mundo }) => { await expect(mundo.p.locator('#settle button')).toHaveCount(0); });
 
+// o começo do recado: "tudo quite!" não pode passar por "Lia, tudo quite!"
+Then('Minha conta diz {string}', async ({ mundo }, txt) => {
+  await expect(mundo.p.locator('#mineRows .quite')).toHaveText(new RegExp('^\\s*' + txt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
 Then('Minha conta diz {string} R$ {num}', async ({ mundo }, titulo, valor) => {
   const topo = mundo.p.locator('#mineRows .row:not(.sub)').first();
   await expect(topo.locator('.l')).toHaveText(titulo);
@@ -57,7 +63,10 @@ Then('o pagamento {string} está carimbado {string} por {word}', async ({ mundo 
   await expect(l.locator('.stamp')).toHaveText(selo);
   await expect(l.locator('xpath=following-sibling::*[1]')).toHaveText(`por ${quem}`);
 });
-Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => { await expect(pago(mundo.p, txt).locator('.stamp')).toHaveText('PAGO'); });
+Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => {
+  const selo = pago(mundo.p, txt).locator('.stamp');
+  await expect(selo).toBeVisible(); await expect(selo).toHaveText('PAGO');
+});
 Then('nenhum pagamento está carimbado', async ({ mundo }) => { await expect(mundo.p.locator('#settle .row.paid')).toHaveCount(0); });
 Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/\u00a0/g, ' ').trim() : null))

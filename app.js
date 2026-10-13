@@ -2222,7 +2222,7 @@
         const estilo = `--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}`;
         // a que vira de lado ganha espessura (duas caras e a borda): de perfil ela não some
         if (vira)
-          return `<span class="fichinha moeda ${cor}" style="${estilo}"><img src="diva.png" alt=""><img src="diva.png" alt=""><i></i></span>`;
+          return `<span class="fichinha moeda ${cor}" style="${estilo}"><img src="diva.png" alt=""><img src="diva.png" alt=""><b></b><b></b><i></i></span>`;
         return `<img class="fichinha ${cor}" src="diva.png" alt="" style="${estilo}">`;
       });
     }).join('');

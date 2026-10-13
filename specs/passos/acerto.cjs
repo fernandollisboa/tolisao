@@ -10,10 +10,14 @@ const minhaLinha = (p, nome) => p.$$eval('#mineRows .row.sub', (l, nome) => {
 
 Then('falta pagar:', async ({ mundo }, tabela) => { await expect.poll(() => linhasDoAcerto(mundo.p)).toEqual(tabela.hashes()); });
 Then('a minha linha no acerto é {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#settle .row.mine .l')).toHaveText(txt); });
-Then('o Falta pagar se chama {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#settleHead')).toHaveText(`*** ${nome} ***`); });
+// pelo nome que o leitor de tela lê: o que está na tela troca letra a letra
+Then('o Falta pagar se chama {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#settleHead')).toHaveAccessibleName(nome); });
 Then('o Falta pagar não tem botão nenhum', async ({ mundo }) => { await expect(mundo.p.locator('#settle button')).toHaveCount(0); });
 
-Then('Minha conta diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#mineRows .quite')).toContainText(txt); });
+// o começo do recado: "tudo quite!" não pode passar por "Lia, tudo quite!"
+Then('Minha conta diz {string}', async ({ mundo }, txt) => {
+  await expect(mundo.p.locator('#mineRows .quite')).toHaveText(new RegExp('^\\s*' + txt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
 Then('Minha conta diz {string} R$ {num}', async ({ mundo }, titulo, valor) => {
   const topo = mundo.p.locator('#mineRows .row:not(.sub)').first();
   await expect(topo.locator('.l')).toHaveText(titulo);

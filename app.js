@@ -1477,15 +1477,57 @@
       f.classList.toggle('recebe', hasMe && bal > 0);
       f.classList.toggle('quite', hasMe && bal === 0);
     }
+    $('#app').classList.toggle('souQuite', hasMe && bal === 0 && !semConta); // sem as réguas em volta dos itens
     // todo mundo quite já é dito em Minha conta: o Falta pagar vira os últimos pagamentos, e some se não tem nenhum
     const semAcerto = (allEven && !temPago) || chegando;
-    $('#settleHead').textContent = allEven ? '*** Pagamentos ***' : '*** Falta pagar ***';
+    trocaTituloAcerto(allEven ? 'Pagamentos' : 'Falta pagar');
     $('#settleHead').classList.toggle('hidden', vazio || semAcerto);
     $('#settle').classList.toggle('hidden', semAcerto);
     $('#settleHr').classList.toggle('hidden', semAcerto);
     $('#itemsSec').classList.toggle('hidden', vazio || chegando); // quem está quite também quer ver no que gastou
     // o subtítulo de cima e o rodapé (recado, código de barras e sincronizado) só vêm com a conta
     for (const s of ['#tagline', '#fecho', '#bars', '#status']) $(s).classList.toggle('hidden', semConta);
+  }
+  let tituloAcerto = { nome: 'Falta pagar', sala: '', t: 0 };
+  /** o Falta pagar vira Pagamentos (e volta) à máquina de escrever: apaga a palavra e escreve a outra, com os ***
+   *  parados. Na chegada, escondido ou com movimento reduzido troca seco; com cartão aberto espera ele fechar, que
+   *  renderiza de novo
+   *  @param {string} nome */
+  function trocaTituloAcerto(nome) {
+    const h = $('#settleHead'),
+      el = /** @type {HTMLElement} */ (h.querySelector('span'));
+    h.setAttribute('aria-label', nome); // o leitor de tela lê o nome inteiro, não a palavra pela metade
+    const seco = () => {
+      el.textContent = nome;
+      el.classList.remove('digitando');
+      el.style.minWidth = '';
+    };
+    // o evento que acabou de abrir já chega com o nome certo: a troca é pra quem viu a conta virar
+    const chegou = tituloAcerto.sala !== (groupId || '');
+    if (!chegou && tituloAcerto.nome === nome) return;
+    clearTimeout(tituloAcerto.t);
+    if (chegou || h.classList.contains('hidden') || semMovimento()) {
+      tituloAcerto = { nome, sala: groupId || '', t: 0 };
+      return seco();
+    }
+    if (!semCartao()) return;
+    tituloAcerto.nome = nome;
+    // a palavra mais larga segura o lugar, pra os *** não andarem a cada letra
+    let txt = el.textContent || '';
+    el.textContent = nome;
+    const largura = el.offsetWidth;
+    el.textContent = txt;
+    el.style.minWidth = Math.max(largura, el.offsetWidth) + 'px';
+    el.classList.add('digitando');
+    const passo = () => {
+      const apaga = !nome.startsWith(txt);
+      txt = apaga ? txt.slice(0, -1) : nome.slice(0, txt.length + 1);
+      el.textContent = txt;
+      if (txt === nome) return (tituloAcerto.t = setTimeout(seco, 400));
+      // apaga de enfiada, como quem segura a tecla; escreve no ritmo de gente
+      tituloAcerto.t = setTimeout(passo, apaga ? (txt ? 45 : 300) : 70 + Math.random() * 70);
+    };
+    tituloAcerto.t = setTimeout(passo, 250);
   }
   /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
    *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a
@@ -1639,7 +1681,7 @@
     // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite">${acerto.length ? `${nomeHtml(me)}, tudo quite contigo!` : 'tudo quite!'} ${festeja()}${acerto.length ? '' : '<br><button type="button" class="ghost" id="proxRole">bora pro próximo rolê?</button>'}</div>`
+        ? `<div class="empty vazio quite">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}${acerto.length ? '' : '<br><button type="button" class="ghost" id="proxRole">bora pro próximo rolê?</button>'}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +

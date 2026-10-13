@@ -24,6 +24,12 @@ const DOIS = { name: 'bailedamada', people: DADOS.people,
     { id: 'i2', desc: 'Gasolina', amount: 120, payer: 'julia', among: ['julia','lia','klinsmann'], at: H - 2*86400000 },
   ] };
 
+// só a Mengla deve: o pagamento dela zera a conta, e desfeito volta a faltar
+const ZERA = { name: 'bailedamada', people: DADOS.people.filter(x => ['fernando', 'lia', 'mengla'].includes(x.id)),
+  expenses: [
+    { id: 'i1', desc: 'Airbnb', amount: 90, payer: 'fernando', among: ['fernando','lia','mengla'], at: H - 3*86400000 },
+    { id: 'pg1', kind: 'payment', desc: 'Pagamento', amount: 30, payer: 'lia', among: ['fernando'], at: H - 3600000 }] };
+
 const CENAS = {
   vaza: { nome: 'a nota subindo: o zap vaza quando o texto chega nele, o ✎ só depois', quem: 'Klinsmann', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1200);
@@ -155,6 +161,25 @@ const CENAS = {
       await p.route(/fake-db.*\/rooms\//, r => r.request().method() === 'GET' ? r.fulfill({ json: pago }) : r.fulfill({ json: {} }));
       await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
       await p.waitForTimeout(7000); } },
+  zera: { nome: 'a Mengla paga, o Falta pagar vira Pagamentos à máquina de escrever, e desfeito volta', quem: 'Fernando',
+    atrasoPix: 0, dados: ZERA,
+    acao: async p => { await p.waitForTimeout(3500);
+      const pago = { ...ZERA, expenses: [...ZERA.expenses, { id: 'pg2', kind: 'payment', desc: 'Pagamento', amount: 30,
+        payer: 'mengla', among: ['fernando'], at: Date.now(), by: 'Mengla' }] };
+      let agora = pago;
+      await p.route(/fake-db.*\/rooms\//, r => r.request().method() === 'GET' ? r.fulfill({ json: agora }) : r.fulfill({ json: {} }));
+      await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+      await p.waitForTimeout(5000);
+      agora = { ...ZERA, deleted: ['pg2'] }; // desfazer grava o id em deleted
+      await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+      await p.waitForTimeout(4000); } },
+  aperta: { nome: 'apertar a linha dos itens com o dedo: abre, fecha e abre de novo', quem: 'Lia', atrasoPix: 0,
+    acao: async p => { await p.waitForTimeout(3800);
+      const b = await p.locator('#itemsHead').boundingBox(), x = b.x + b.width / 2, y = b.y + b.height / 2;
+      for (const espera of [1600, 1300, 1600]) {
+        await p.mouse.move(x, y); await p.mouse.down(); await p.waitForTimeout(160); await p.mouse.up();
+        await p.waitForTimeout(espera);
+      } } },
   // aparelho limpo, sem evento: a estreia de quem chega. o título digita por ~7,5 s com setTimeout, que o --vel
   // não desacelera, então a cena grava em vel 1; variação vai de --js, que roda antes do app
   inicio: { nome: 'a estreia: fichas caindo, a comandinha se anotando e o título se digitando', inicio: true, vel: 1,

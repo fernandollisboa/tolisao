@@ -57,7 +57,10 @@ Then('o pagamento {string} está carimbado {string} por {word}', async ({ mundo 
   await expect(l.locator('.stamp')).toHaveText(selo);
   await expect(l.locator('xpath=following-sibling::*[1]')).toHaveText(`por ${quem}`);
 });
-Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => { await expect(pago(mundo.p, txt).locator('.stamp')).toHaveText('PAGO'); });
+Then('o pagamento {string} continua carimbado', async ({ mundo }, txt) => {
+  const selo = pago(mundo.p, txt).locator('.stamp');
+  await expect(selo).toBeVisible(); await expect(selo).toHaveText('PAGO');
+});
 Then('nenhum pagamento está carimbado', async ({ mundo }) => { await expect(mundo.p.locator('#settle .row.paid')).toHaveCount(0); });
 Then('o zap abre com a mensagem:', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/\u00a0/g, ' ').trim() : null))

@@ -1384,8 +1384,9 @@
       acerto = settlements(saldo),
       bal = hasMe ? saldo[me] || 0 : 0;
     const allEven = state.people.length > 0 && !vazio && Object.values(saldo).every((v) => v === 0);
+    // todo mundo quite: a rodada que acabou de zerar fica à vista; gasto novo depois disso recomeça do zero
     const pays = state.expenses
-      .slice(zerouEm())
+      .slice(allEven ? 0 : zerouEm())
       .filter((e) => e.kind === 'payment')
       .slice(-PAGOS_NA_LISTA)
       .reverse();
@@ -1395,7 +1396,7 @@
     renderChegada(hasMe);
     if (hasMe && !vazio) renderMinha(bal, acerto);
     else $('#mine').classList.add('hidden');
-    mostraSecoes(hasMe, bal, vazio, allEven);
+    mostraSecoes(hasMe, bal, vazio, allEven, pays.length > 0);
     agendaConviteItens(hasMe);
     renderLinhaPix(hasMe, bal);
     renderForm();
@@ -1459,7 +1460,7 @@
     if (quer) $('#chegouFora').onclick = showSetup;
   }
   /** o que aparece e o que some: o ✎, o zap, a ficha, o Falta pagar e os itens */
-  function mostraSecoes(hasMe, bal, vazio, allEven) {
+  function mostraSecoes(hasMe, bal, vazio, allEven, temPago) {
     $('#fab').classList.toggle('hidden', !hasMe); // anotar é de quem já disse quem é
     $('#fab').classList.add('chamando'); // o ✎ fica âmbar o tempo todo
     $('#waBtn').classList.toggle('so', !hasMe); // sozinho o zap encosta na esquerda
@@ -1476,10 +1477,12 @@
       f.classList.toggle('recebe', hasMe && bal > 0);
       f.classList.toggle('quite', hasMe && bal === 0);
     }
-    // todo mundo quite já é dito em Minha conta; repetir no Falta pagar era eco
-    $('#settleHead').classList.toggle('hidden', vazio || allEven || chegando);
-    $('#settle').classList.toggle('hidden', allEven || chegando);
-    $('#settleHr').classList.toggle('hidden', allEven || chegando);
+    // todo mundo quite já é dito em Minha conta: o Falta pagar vira os últimos pagamentos, e some se não tem nenhum
+    const semAcerto = (allEven && !temPago) || chegando;
+    $('#settleHead').textContent = allEven ? '*** Pagamentos ***' : '*** Falta pagar ***';
+    $('#settleHead').classList.toggle('hidden', vazio || semAcerto);
+    $('#settle').classList.toggle('hidden', semAcerto);
+    $('#settleHr').classList.toggle('hidden', semAcerto);
     $('#itemsSec').classList.toggle('hidden', vazio || chegando); // quem está quite também quer ver no que gastou
     // o subtítulo de cima e o rodapé (recado, código de barras e sincronizado) só vêm com a conta
     for (const s of ['#tagline', '#fecho', '#bars', '#status']) $(s).classList.toggle('hidden', semConta);
@@ -1720,8 +1723,9 @@
         );
       })
       .join('');
+    // todo mundo quite: o "tudo quite!" de Minha conta já disse, ficam só os carimbos
     const nada = state.expenses.length
-      ? '<div class="empty">tudo quitado 🎉</div>'
+      ? ''
       : `<div class="empty vazio${hasMe ? ' anota' : ''}">nada anotado ainda.<br><b>${hasMe ? `${LAPIS_SVG} toque aqui pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`;
     const pagos = pays
       .map((e) => {

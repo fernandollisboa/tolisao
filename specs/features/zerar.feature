@@ -9,6 +9,12 @@ Funcionalidade: A conta zera quando todo mundo fica quite
       | o quê | valor  | pagou    | divide entre    |
       | Pizza | 100,00 | Fernando | Fernando, Tomaz |
 
+  Cenário: quitou tudo, os pagamentos ficam à vista
+    Com todo mundo quite não falta pagar nada, mas a turma ainda quer ver quem pagou quem.
+    Quando eu abro o evento como Tomaz
+    E eu quito a primeira linha de Minha conta
+    Então o pagamento "Tomaz → Fernando" continua carimbado
+
   Cenário: quitou tudo, a quitação sai do Falta pagar quando vem gasto novo
     Quando eu abro o evento como Tomaz
     E eu quito a primeira linha de Minha conta

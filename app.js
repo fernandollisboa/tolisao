@@ -1720,7 +1720,7 @@
   }
   // a aura do quite: dois traços cheios correndo pelo tracejado, um de cada lado. O atraso negativo vem do relógio, pra
   // caixa refeita a cada sync seguir de onde estava
-  const AURA_MS = 4000;
+  const AURA_MS = 16000;
   const aura = () =>
     `<svg class="aura" aria-hidden="true"><rect width="100%" height="100%" rx="3" pathLength="100" style="animation-delay:-${Date.now() % AURA_MS}ms"/></svg>`;
   /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */

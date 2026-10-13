@@ -1635,10 +1635,11 @@
               'sub',
             ),
           );
-    // quite vira um recado só: o subtítulo lá em cima já diz que você não deve nada
+    // quite vira um recado só: o subtítulo lá em cima já diz que você não deve nada. Com a turma
+    // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite">tudo quite! ${festeja()}${acerto.length ? '' : '<br><button type="button" class="ghost" id="proxRole">bora pro próximo rolê?</button>'}</div>`
+        ? `<div class="empty vazio quite">${acerto.length ? `${nomeHtml(me)} tá quite!` : 'tudo quite!'} ${festeja()}${acerto.length ? '' : '<br><button type="button" class="ghost" id="proxRole">bora pro próximo rolê?</button>'}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +

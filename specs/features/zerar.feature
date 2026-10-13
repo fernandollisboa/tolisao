@@ -15,6 +15,12 @@ Funcionalidade: A conta zera quando todo mundo fica quite
     E eu quito a primeira linha de Minha conta
     Então o pagamento "Tomaz → Fernando" continua carimbado
     E o Falta pagar se chama "Pagamentos"
+    E Minha conta diz "tudo quite!"
+
+  Cenário: quite sozinho, com a turma ainda devendo
+    O recado diz de quem é a conta quite, pra ninguém achar que o evento acabou.
+    Quando eu abro o evento como Lia
+    Então Minha conta diz "Lia tá quite!"
 
   Cenário: desfazer o pagamento que zerou a conta traz o Falta pagar de volta
     Quando eu abro o evento como Tomaz

@@ -13,6 +13,7 @@ Then('a minha linha no acerto é {string}', async ({ mundo }, txt) => { await ex
 Then('o Falta pagar se chama {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#settleHead')).toHaveText(`*** ${nome} ***`); });
 Then('o Falta pagar não tem botão nenhum', async ({ mundo }) => { await expect(mundo.p.locator('#settle button')).toHaveCount(0); });
 
+Then('Minha conta diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#mineRows .quite')).toContainText(txt); });
 Then('Minha conta diz {string} R$ {num}', async ({ mundo }, titulo, valor) => {
   const topo = mundo.p.locator('#mineRows .row:not(.sub)').first();
   await expect(topo.locator('.l')).toHaveText(titulo);

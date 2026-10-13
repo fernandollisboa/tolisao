@@ -30,6 +30,12 @@ const ZERA = { name: 'bailedamada', people: DADOS.people.filter(x => ['fernando'
     { id: 'i1', desc: 'Airbnb', amount: 90, payer: 'fernando', among: ['fernando','lia','mengla'], at: H - 3*86400000 },
     { id: 'pg1', kind: 'payment', desc: 'Pagamento', amount: 30, payer: 'lia', among: ['fernando'], at: H - 3600000 }] };
 
+// a Lia só deve pra Júlia: quitando, ela fica quite e o resto da turma ainda deve
+const QUITA = { name: 'bailedamada', people: DADOS.people.filter(x => ['fernando', 'julia', 'lia', 'mengla'].includes(x.id)),
+  expenses: [
+    { id: 'i1', desc: 'Airbnb', amount: 200, payer: 'fernando', among: ['fernando','mengla'], at: H - 3*86400000 },
+    { id: 'i2', desc: 'Janta', amount: 80, payer: 'julia', among: ['julia','lia'], at: H - 2*86400000 }] };
+
 const CENAS = {
   vaza: { nome: 'a nota subindo: o zap vaza quando o texto chega nele, o ✎ só depois', quem: 'Klinsmann', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1200);
@@ -180,6 +186,23 @@ const CENAS = {
         await p.mouse.move(x, y); await p.mouse.down(); await p.waitForTimeout(160); await p.mouse.up();
         await p.waitForTimeout(espera);
       } } },
+  // o banco devolve o que o app gravou; #app.virou é o gancho das variações (--css) da passagem pro quite
+  quita: { nome: 'a Lia quita a última dívida e a nota vira "Lia, tudo quite!"', quem: 'Lia', atrasoPix: 0, dados: QUITA,
+    acao: async p => {
+      let sala = null;
+      await p.route(/fake-db.*\/rooms\//, r => {
+        if (r.request().method() === 'PUT') { sala = JSON.parse(r.request().postData()); return r.fulfill({ json: sala }); }
+        if (r.request().method() === 'GET' && sala) return r.fulfill({ json: sala });
+        return r.fallback();
+      });
+      await p.waitForTimeout(2500);
+      await p.click('#mineRows [data-settle]'); await p.waitForTimeout(800);
+      await p.click('#okBtn'); await p.waitForTimeout(1400);
+      await p.click('#quitOk');
+      await p.evaluate(() => document.querySelector('#app').classList.add('virou'));
+      await p.waitForTimeout(3500);
+      await p.evaluate(() => document.querySelector('#app').classList.remove('virou'));
+      await p.waitForTimeout(800); } },
   // aparelho limpo, sem evento: a estreia de quem chega. o título digita por ~7,5 s com setTimeout, que o --vel
   // não desacelera, então a cena grava em vel 1; variação vai de --js, que roda antes do app
   inicio: { nome: 'a estreia: fichas caindo, a comandinha se anotando e o título se digitando', inicio: true, vel: 1,

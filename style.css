@@ -476,6 +476,15 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 .item:hover button.edita,.item.open button.edita{display:inline-block}
 .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
 .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
+/* cada item é uma unidade: o nome e o "quem pagou" colados, e um fio pontilhado entre um item e outro.
+   Aberto, o nome comprido quebra em vez de cortar */
+#expenses .item{padding:5px 0 4px;border-top:1.5px dotted var(--rule)}
+#expenses .day+.item,#expenses>.item:first-child{border-top:0}
+#expenses .item .row{line-height:1.2}
+#expenses .item .small{margin:0;line-height:1.25;align-items:center}
+#expenses .item .small button{line-height:1;padding-top:0;padding-bottom:0}
+#expenses .item.open .row .l{white-space:normal}
+#expenses .day{margin:10px 0 0}
 #amount{font-size:30px;letter-spacing:1px}
 /* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
 .quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}

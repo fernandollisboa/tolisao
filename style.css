@@ -691,15 +691,12 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .chuva{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;contain:strict;perspective:600px}
 .chuva .fichinha{top:0;left:calc(var(--x) - var(--s) / 2);opacity:var(--op);box-shadow:2px 4px 6px rgba(0,0,0,.35);will-change:transform;animation:chove var(--t) linear var(--d) infinite}
 @keyframes chove{from{transform:translate(0,calc(-100% - 10px)) rotate(0) rotateY(0)}to{transform:translate(var(--vx),calc(100vh + 10px)) rotate(var(--r)) rotateY(var(--ry))}}
-/* a que vira de lado é uma moedinha 3D de verdade, mas barata: duas caras, três fatias da cor da ficha entre elas (a do meio é o
-   próprio span) que de meio lado fazem a lateral, e uma tira no meio que é a lateral vista de perfil, com os blocos brancos descendo que nem ficha de pôquer */
-.chuva .moeda{transform-style:preserve-3d;--e:calc(var(--s) * .09);--lado:color-mix(in srgb,var(--f1),#000 12%);padding:0;background:var(--lado);box-shadow:none}
-.moeda>*{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;border-radius:50%}
-.moeda>img{padding:calc(var(--s) * .1);background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);transform:translateZ(calc(var(--e) / 2))}
+/* a que vira de lado é uma ficha de pôquer 3D de verdade, mas barata: duas caras e a lateral em 14 facetas, cada uma
+   metade branca e metade cor, emendando com as listras da cara (são as 14 do repeating-conic) */
+.chuva .moeda{transform-style:preserve-3d;--e:calc(var(--s) * .13);padding:0;background:none;box-shadow:none}
+.moeda>img{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;border-radius:50%;padding:calc(var(--s) * .1);background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);transform:translateZ(calc(var(--e) / 2))}
 .moeda>img+img{transform:rotateY(180deg) translateZ(calc(var(--e) / 2))}
-.moeda>b{background:var(--lado);transform:translateZ(calc(var(--e) / 4))}
-.moeda>b+b{transform:translateZ(calc(var(--e) / -4))}
-.moeda>i{inset:2% auto;left:calc(50% - var(--e) / 2);width:var(--e);height:96%;border-radius:2px;background:linear-gradient(90deg,#0003,#0000 40% 60%,#0003),repeating-linear-gradient(var(--f1) 0 calc(var(--s) * .08),var(--f2) 0 calc(var(--s) * .16));transform:rotateY(90deg)}
+.moeda>i{position:absolute;left:50%;top:50%;width:calc(var(--s) * .23);height:var(--e);margin:calc(var(--e) / -2) 0 0 calc(var(--s) * -.115);background:linear-gradient(#0002,#0002),linear-gradient(90deg,var(--f2) 50%,var(--f1) 0);transform:rotate(calc(var(--k) * 25.714deg + 12.857deg)) translateY(calc(var(--s) * -.4875)) rotateX(90deg)}
 @media (prefers-reduced-motion:reduce){.chuva{display:none}}
 .fichinha.ponto{--s:18px;z-index:3;margin:var(--pt,.55em) 0 0 calc(-1ch - 6px);--dx:0px;--dy:0px;--vx:160px;--vy:-90px;--rot:-10deg;animation:jogada .85s linear both}
 /* quando o espaço do ponto sai, o título recentra: a ficha acompanha o fim do texto em vez de ficar em cima do A */

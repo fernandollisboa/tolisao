@@ -135,8 +135,12 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsHead{isolation:isolate}
 #itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;background:#fff8e6;box-shadow:3px 3px 0 var(--ink);z-index:-1;pointer-events:none}
 /* fechada a linha é botão, com moldura o tempo todo (no celular não há hover pra
-   acender); aberta vira cabeçalho da lista e perde a moldura, seca, sem animação */
-#itemsHead.aberto:before{display:none}
+   acender); aberta vira cabeçalho da lista e perde a moldura. Apertar é de tecla: a linha
+   afunda enquanto o dedo está em cima; soltou, ela volta com mola e a moldura some ainda afundada */
+#itemsHead{transition:translate .08s ease}
+#itemsHead:before{transition:box-shadow .08s ease}
+#itemsHead:not(.aberto):active{translate:3px 3px}
+#itemsHead:not(.aberto):active:before{box-shadow:0 0 0 var(--ink)}
 #itemsHead.pisca{animation:apertinho 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca:before{animation:moldura 1.6s ease-in-out var(--ad,0ms) backwards}
 #itemsHead.pisca #itemsCaret span{animation:vazado 1.6s ease-in-out var(--ad,0ms) backwards}
@@ -155,6 +159,13 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
   0%,46%,100%{transform:none}
   22%{transform:translate(2px,2px) scale(.94)}
   72%{transform:translate(1px,1px) scale(.975)}}
+#itemsHead.aberto{animation:mola .42s cubic-bezier(.3,1.8,.5,1)}
+#itemsHead.aberto:before{animation:soltaMoldura .24s ease-out forwards}
+@keyframes mola{from{translate:3px 3px}to{translate:0 0}}
+@keyframes soltaMoldura{
+  from{box-shadow:0 0 0 var(--ink);transform:translate(3px,3px)}
+  to{box-shadow:0 0 0 var(--ink);transform:translate(3px,3px);opacity:0}}
+@media (prefers-reduced-motion:reduce){#itemsHead.aberto{animation:none}#itemsHead.aberto:before{display:none}}
 @keyframes abreLista{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #itemsBody:not(.hidden){animation:abreLista .22s ease-out}
 @media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody:not(.hidden){transition:none;animation:none}}
@@ -263,13 +274,9 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   .fab:hover{box-shadow:1px 1px 0 var(--ink);translate:2px 2px}
   /* a linha dos itens fechada é botão: no hover ela afunda inteira, como uma barra de
      espaço meio apertada — a linha desce e a sombra da moldura encolhe.
-     Clicando, afunda até o fim */
-  #itemsHead:before{transition:box-shadow .12s ease}
-  #itemsHead{transition:translate .12s ease}
+     Clicando, afunda até o fim (o afundar do clique vale pro dedo também, lá em cima) */
   #itemsHead:not(.aberto):hover{translate:2px 2px}
   #itemsHead:not(.aberto):hover:before{box-shadow:1px 1px 0 var(--ink)}
-  #itemsHead:not(.aberto):active{translate:3px 3px}
-  #itemsHead:not(.aberto):active:before{box-shadow:0 0 0 var(--ink)}
   /* pulso levinho o tempo todo, sem trocar de cor; para no hover, que já é o próprio aviso.
      cancela (não só pausa) porque pausar no meio do brilho deixava a cor do hover
      variando conforme a hora exata em que o mouse chegasse */

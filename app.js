@@ -1455,7 +1455,12 @@
     if ($('#whoBtn')) $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
     if ($('#whoSugere')) $('#whoSugere').onclick = () => souEu($('#whoSugere').dataset.quem);
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
-    if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
+    const frase = $('#signoff');
+    // todo mundo quite: a frase do rodapé é o convite pro próximo rolê
+    if (frase && !chato && allEven && hasMe)
+      frase.innerHTML =
+        '<a class="link" id="proxRole" role="button" tabindex="0">Zerou. Bora abrir outra, meu bem?</a>';
+    else if (frase) frase.textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
   }
   /** um botão por pessoa, numa cápsula com contorno e pontinho na cor dela, com o id em data-<attr>
    *  @param {Person[]} gente @param {string} attr */
@@ -1503,7 +1508,6 @@
       f.classList.toggle('recebe', hasMe && bal > 0);
       f.classList.toggle('quite', hasMe && bal === 0);
     }
-    $('#app').classList.toggle('souQuite', hasMe && bal === 0 && !semConta); // sem as réguas em volta dos itens
     // todo mundo quite já é dito em Minha conta: o Falta pagar vira os últimos pagamentos, e some se não tem nenhum
     const semAcerto = (allEven && !temPago) || chegando;
     trocaTituloAcerto(allEven ? 'Pagamentos' : 'Falta pagar');
@@ -1708,7 +1712,7 @@
     // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}${acerto.length ? '' : '<br><button type="button" class="ghost" id="proxRole">bora pro próximo rolê?</button>'}</div>`
+        ? `<div class="empty vazio quite">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +

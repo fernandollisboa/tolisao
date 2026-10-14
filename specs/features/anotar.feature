@@ -16,13 +16,16 @@ Funcionalidade: Anotar um gasto
     E o "ver todos" não aparece, porque cabe tudo
     E o ✎ está chamando
 
-  Cenário: ver quem divide um item
+  Cenário: o item abre e fecha tocando em qualquer parte dele
+    O item inteiro é um botão só: onde a pessoa tocar, ele abre ou fecha, sem parte que não responde.
     Quando eu abro o evento como Lia
     E eu abro a lista de itens
-    E eu toco no ÷ do "Uber volta"
+    E eu toco no nome do "Uber volta"
     Então o "Uber volta" mostra quem divide: "÷4 (Lia, Mengla, Fernando, Júlia)"
-    Quando eu toco no ÷ do "Uber volta"
+    Quando eu toco em quem pagou o "Uber volta"
     Então o "Uber volta" esconde quem divide
+    Quando eu toco no valor do "Uber volta"
+    Então o "Uber volta" mostra quem divide: "÷4 (Lia, Mengla, Fernando, Júlia)"
 
   Cenário: anotar pelo ✎ e o outro aparelho ver
     Quando eu abro o evento como Lia

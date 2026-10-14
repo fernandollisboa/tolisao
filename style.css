@@ -136,23 +136,12 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
    setinha se enche de preto no afundar, voltando vazada. A moldura é um :before com folga, pra não mexer no layout nem encostar
    no texto */
 #itemsHead{isolation:isolate}
-#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid transparent;border-radius:5px;box-shadow:3px 3px 0 var(--ink);z-index:-1;pointer-events:none;
-  background:
-    linear-gradient(90deg,var(--ink) calc(9px - var(--vao)),#0000 0) var(--anda) 0/9px 2px repeat-x,
-    linear-gradient(90deg,var(--ink) calc(9px - var(--vao)),#0000 0) calc(-1*var(--anda)) 100%/9px 2px repeat-x,
-    linear-gradient(180deg,var(--ink) calc(9px - var(--vao)),#0000 0) 0 calc(-1*var(--anda))/2px 9px repeat-y,
-    linear-gradient(180deg,var(--ink) calc(9px - var(--vao)),#0000 0) 100% var(--anda)/2px 9px repeat-y,
-    var(--card);
-  background-origin:border-box;background-clip:border-box,border-box,border-box,border-box,padding-box}
+#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;box-shadow:3px 3px 0 var(--ink);z-index:-1;pointer-events:none;background:var(--card)}
 /* fechada a linha é botão, com moldura o tempo todo (no celular não há hover pra
-   acender); aberta vira cabeçalho da lista e a moldura se traceja. Apertar é de tecla: a linha
-   afunda enquanto o dedo está em cima; soltou, ela volta com mola sem a sombra, o traço abre
-   vãos e dá uma volta no botão. Fechou, os vãos se fecham e a sombra volta. O traço são quatro
-   gradientes na borda: --vao é o buraco de cada traço de 9px, --anda empurra eles pra rodar */
-@property --vao{syntax:'<length>';inherits:false;initial-value:0px}
-@property --anda{syntax:'<length>';inherits:false;initial-value:0px}
+   acender); aberta ela fica apertada, que nem tecla que travou embaixo: afundada no lugar
+   da sombra, com um friso de sombra por dentro no alto e na esquerda. Fechou, ela sobe e a sombra volta */
 #itemsHead{transition:translate .08s ease}
-#itemsHead:before{transition:box-shadow .08s ease,--vao .3s ease}
+#itemsHead:before{transition:box-shadow .08s ease}
 #itemsHead:not(.aberto):active{translate:3px 3px}
 #itemsHead:not(.aberto):active:before{box-shadow:0 0 0 var(--ink)}
 #itemsHead.pisca{animation:apertinho 1.6s ease-in-out var(--ad,0ms) backwards}
@@ -173,11 +162,9 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
   0%,46%,100%{transform:none}
   22%{transform:translate(2px,2px) scale(.94)}
   72%{transform:translate(1px,1px) scale(.975)}}
-#itemsHead.aberto{animation:mola .42s cubic-bezier(.3,1.8,.5,1)}
-#itemsHead.aberto:before{--vao:4px;box-shadow:0 0 0 var(--ink);transition:box-shadow .08s ease,--vao .35s ease .12s;animation:formiga 3.2s ease-in-out .4s}
-@keyframes mola{from{translate:3px 3px}to{translate:0 0}}
-@keyframes formiga{from{--anda:0px}to{--anda:18px}}
-@media (prefers-reduced-motion:reduce){#itemsHead.aberto,#itemsHead.aberto:before{animation:none}#itemsHead:before,#itemsHead.aberto:before{transition:none}}
+#itemsHead.aberto{translate:3px 3px}
+#itemsHead.aberto:before{box-shadow:inset 2px 2px 0 rgba(0,0,0,.14);background:#f6ecd2}
+@media (prefers-reduced-motion:reduce){#itemsHead,#itemsHead:before{transition:none}}
 @keyframes abreLista{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #itemsBody:not(.hidden){animation:abreLista .22s ease-out}
 @media (prefers-reduced-motion:reduce){#itemsCaret span,#itemsHead.pisca,#itemsHead.pisca:before,#itemsHead.pisca #itemsCaret span,#itemsHead.pisca #itemsCaret path,#itemsHead.suave #itemsCaret,#itemsBody:not(.hidden){transition:none;animation:none}}
@@ -497,13 +484,14 @@ button.ico,button.danger,a.link.amb,#chegouFora,#whoBtn,.digital a.link{position
 @media (prefers-reduced-motion:reduce){.row.mine.risca .v:before,.row.mine.risca .v:after{animation:none}}
 .pixi{display:inline-flex;gap:3px;align-items:center;vertical-align:-2px} .pixi svg{display:block}
 .item .by,.item .who{display:none}
-.item:hover .by,.item.open .by,.item:hover .who,.item.open .who{display:inline}
-.item{cursor:default}
+/* sem hover: no celular ele gruda depois do toque e o item parecia não fechar. Abre e fecha só no toque */
+.item.open .by,.item.open .who{display:inline}
+.item{cursor:default} .item[data-item]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .item.apagado .row .l,.item.apagado .row .v{text-decoration:line-through;color:var(--muted)}
 .item.apagado .small{color:var(--muted)}
 #gone>.c{margin-top:10px} #goneToggle{color:var(--muted)}
 button.edita{border-color:transparent;background:transparent;text-decoration:underline;padding:2px 6px;display:none}
-.item:hover button.edita,.item.open button.edita{display:inline-block}
+.item.open button.edita{display:inline-block}
 .tag{display:inline-block;border:1px solid var(--ink);padding:0 5px;font-size:13px;line-height:1.4;margin-right:6px;vertical-align:2px;text-transform:uppercase}
 .day{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:10px 0 2px}
 /* cada item é uma unidade: o nome e o "quem pagou" colados, e um fio pontilhado entre um item e outro.

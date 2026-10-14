@@ -171,9 +171,9 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
   22%{transform:translate(2px,2px) scale(.94)}
   72%{transform:translate(1px,1px) scale(.975)}}
 #itemsHead.aberto{animation:mola .42s cubic-bezier(.3,1.8,.5,1)}
-#itemsHead.aberto:before{--vao:4px;box-shadow:0 0 0 var(--ink);transition:box-shadow .08s ease,--vao .35s ease .12s;animation:formiga 1.1s ease-out .3s}
+#itemsHead.aberto:before{--vao:4px;box-shadow:0 0 0 var(--ink);transition:box-shadow .08s ease,--vao .35s ease .12s;animation:formiga 3.2s ease-in-out .4s}
 @keyframes mola{from{translate:3px 3px}to{translate:0 0}}
-@keyframes formiga{from{--anda:0px}to{--anda:27px}}
+@keyframes formiga{from{--anda:0px}to{--anda:18px}}
 @media (prefers-reduced-motion:reduce){#itemsHead.aberto,#itemsHead.aberto:before{animation:none}#itemsHead:before,#itemsHead.aberto:before{transition:none}}
 @keyframes abreLista{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #itemsBody:not(.hidden){animation:abreLista .22s ease-out}

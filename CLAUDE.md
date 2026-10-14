@@ -9,7 +9,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 ## onde fica o quê
 
 - `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. o sumário logo abaixo é o mapa das seções, cada uma num `// #region` (o `_regras.cjs` confere que o sumário bate); o estado da página fica junto em "o estado da página"; os cliques ficam na tabela `CLIQUES`. flags em maiúscula no topo ligam e desligam coisa meio pronta.
-- `style.css`: papel e madeira, fonte VT323.
+- `style.css`: papel e madeira, fonte VT323. as cores são variáveis no `:root`; os temas escuros (protótipo, `?tema=neon`, `grafite` ou `auto`, que segue o celular; #285) redefinem elas no `html[data-tema]`, no fim do arquivo.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase. mudou na main, o `regras.yml` publica sozinho (conta de serviço no secret `FIREBASE_SA`); regra nova tem que aceitar o app que já está no ar, porque as duas sobem juntas.
 - preview do link no zap: o `index.html` usa `og/inicio.jpg` (o pin 😳 é fixo nele); `semverba/`, `sextou/`, `fiado/` (cobrança, a figurinha sai do código do evento; `c/h`, `c/i`, `c/j` ficam pros links velhos), `pago/` e `quitado/` são páginas só com as `og:`, imagem em `og/`; o `vai.js` repassa pro app. quem escolhe a pasta é o `shareUrl()`.

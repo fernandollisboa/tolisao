@@ -125,9 +125,12 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsCaret{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:24px}
 #itemsCaret span{display:block;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
 #itemsCaret svg{display:block;width:16px;height:16px;overflow:visible}
-#itemsCaret path{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
+#itemsCaret path{fill:transparent;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
 #itemsCaret.aberto span{transform:rotate(90deg)}
 #itemsHead:active #itemsCaret{transform:translate(2px,2px)}
+/* no toque a setinha se enche de preto, como no convite, e esvazia devagar quando o dedo sai */
+#itemsCaret path{transition:fill .3s ease}
+#itemsHead:active #itemsCaret path{fill:currentColor;transition-duration:0s}
 /* a linha dos itens é um botão com moldura. Quando a seção chega na tela ela convida:
    a setinha cresce, a linha afunda uma vez (a sombra da moldura some e volta) e a
    setinha se enche de preto no afundar, voltando vazada. A moldura é um :before com folga, pra não mexer no layout nem encostar

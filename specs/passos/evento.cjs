@@ -227,11 +227,6 @@ Then('o segredo da chave da/do {word} no evento novo é só deste evento', async
   expect(await mundo.p.evaluate(() => location.href)).not.toContain(tok);
 });
 
-// o palpite de quem eu sou mora no cabeçalho, no lugar do "quem é você?"
-Then('o cabeçalho pergunta {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#whoLine a.amb')).toHaveText(txt); });
-When('eu respondo que sim', async ({ mundo }) => { await mundo.p.click('#whoSugere'); });
-When('eu respondo que não', async ({ mundo }) => { await mundo.p.click('#whoBtn'); });
-
 // o evento some do banco com o aparelho ainda guardando a cópia
 When('o evento some do banco', async ({ mundo }) => {
   await mundo.p.waitForSelector('#app:not(.loading)');

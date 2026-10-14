@@ -754,9 +754,6 @@
   /** o marca-texto de quem está na posição i @param {number} i */
   const forteDe = (i) => (i < MARKR.length ? MARKR[i] : `hsl(${matiz(i)} 80% ${[72, 64, 79][i % 3]}%)`);
   const colorOf = (id) => corDe(indiceDaPessoa(id));
-  // o emoji da conta fechada varia, mas não pisca a cada render: sai do evento e do dia
-  const FESTA = ['🎉', '🙌', '🙏', '❣️', '🥂', '✨'];
-  const festeja = () => FESTA[hash32((groupId || '') + new Date().toDateString()) % FESTA.length];
   const markForte = (id) => forteDe(indiceDaPessoa(id)); // o mesmo tom, firme: recibo em png e a volta da caneta
   /** o nome da pessoa, na cor dela, pronto pra innerHTML */
   const nomeHtml = (id) => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
@@ -1724,7 +1721,7 @@
     // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite" style="${neonEstilo()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}</div>`
+        ? `<div class="empty vazio quite" style="${neonEstilo()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} 💅</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +

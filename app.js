@@ -1359,8 +1359,9 @@
   const temMe = () => !!me && state.people.some((p) => p.id === me);
   /** quem eu sou nos meus outros eventos (lido ao abrir este): a turma trazida leva os mesmos ids @type {Set<string>} */
   let meusIds = new Set();
-  /** quem não disse quem é ganha um palpite de um toque: a pessoa que eu já sou em outro evento
-   *  (mesmo id) ou, sem ela, a do último nome que escolhi. Só palpite: dois ids batendo, nada */
+  /** quem eu devo ser aqui, pelo que o aparelho sabe: a pessoa que eu já sou em outro evento (mesmo id) ou,
+   *  sem ela, a do último nome que escolhi. Dois ids batendo, nada. Ao abrir, o palpite já vira escolha;
+   *  a gente que chega depois, no sync, ganha o "você é Fulano?" de um toque no cabeçalho */
   function palpite() {
     if (temMe()) return null;
     const porId = state.people.filter((p) => meusIds.has(p.id));
@@ -2953,7 +2954,13 @@
     const quem = quemDoLink;
     quemDoLink = null;
     if (!me && quem && state.people.some((p) => p.id === quem)) souEu(quem);
-    // ninguém é interrompido na chegada: a tela de estreia e o "quem é você?"
+    // sem o &quem=, o aparelho que já sabe quem eu sou (o palpite) entra como essa pessoa: perguntar o que ele
+    // já sabe era o cabeçalho e a nota fazendo a mesma pergunta. O "Sou Fulano" do topo troca num toque
+    else if (!temMe()) {
+      const sug = palpite();
+      if (sug) souEu(sug.id);
+    }
+    // ninguém é interrompido na chegada: sem palpite, a tela de estreia e o "quem é você?"
     // esperam o toque no botão do cabeçalho
     startPolling();
     sync();

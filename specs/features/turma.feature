@@ -53,26 +53,22 @@ Funcionalidade: A mesma turma em outro evento
     E eu toco em cadastrar chave pix
     Então a caixa da chave já vem com "julia@exemplo.com"
 
-  Regra: quem abre sem dizer quem é ganha um palpite, nunca uma escolha feita
-    Ninguém é interrompido na chegada: o palpite fica no cabeçalho, a um toque.
+  Regra: quem abre sem dizer quem é já entra como a pessoa que o aparelho conhece
+    Ninguém responde de novo o que o aparelho já sabe: o "sou Lia" do cabeçalho troca num toque.
 
     Exemplo: a pessoa que eu já sou na turma de outro evento
       Dado que neste aparelho eu sou Lia no "churras"
       E o evento "praia" com Lia e Mengla
       Quando eu abro o evento "praia"
-      Então o cabeçalho pergunta "você é Lia?"
-      E nenhum cartão abre
-      Quando eu respondo que sim
       Então o cabeçalho diz "sou Lia"
+      E nenhum cartão abre
 
     Exemplo: sem a turma, o nome que escolhi da última vez
       Dado que da última vez, em outro evento, eu fui "Lia"
       Quando eu abro o evento "churras"
-      Então o cabeçalho pergunta "você é Lia?"
-      Quando eu respondo que não
-      Então o site pergunta quem é você entre Fernando, Júlia e Lia
+      Então o cabeçalho diz "sou Lia"
 
-    Exemplo: sou duas pessoas da turma, então nada de palpite
+    Exemplo: sou duas pessoas da turma, então o aparelho pergunta
       Dado que neste aparelho eu sou Lia no "churras"
       E o evento "praia" com Lia e Mengla
       E que neste aparelho eu sou Mengla no "praia"

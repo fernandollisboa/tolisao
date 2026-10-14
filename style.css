@@ -178,24 +178,19 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 /* caderno em branco: a caixa tracejada diz por onde começar */
 .empty.vazio{border:2px dashed var(--rule);border-radius:4px;background:#fff8e6;box-shadow:3px 3px 0 rgba(0,0,0,.08);padding:12px 14px;margin:6px 0;font-size:18px;line-height:1.5;color:var(--ink2)}
 .empty.vazio b{font-weight:400;color:var(--ink)}
-/* conta fechada: tudo neon, tubo, letra e nome. A cor corre pelo rosa, violeta, azul, ciano e laranja (sem o
-   vermelho e o verde de deve/recebe), e o brilho respira por cima. As @property deixam a cor e o sopro animarem;
-   navegador sem elas fica no rosa parado */
-@property --neon{syntax:'<color>';inherits:true;initial-value:#ff4fa3}
-@property --sopro{syntax:'<number>';inherits:true;initial-value:1}
-.empty.vazio.quite{--neon:#ff4fa3;--sopro:1;border:2px solid var(--neon);position:relative;color:color-mix(in srgb,var(--neon) 70%,#000);
-  box-shadow:0 0 calc(2px + 4px*var(--sopro)) var(--neon),0 0 calc(6px + 12px*var(--sopro)) color-mix(in srgb,var(--neon) 55%,transparent),inset 0 0 calc(4px + 8px*var(--sopro)) color-mix(in srgb,var(--neon) 30%,transparent);
-  text-shadow:0 0 calc(2px + 6px*var(--sopro)) color-mix(in srgb,var(--neon) 70%,transparent);
-  --neonAnda:neonCor 10s linear var(--t,0ms) infinite,respira 3s ease-in-out var(--r,0ms) infinite;animation:var(--neonAnda)}
+/* conta fechada: neon rosa no papel, com um trecho do tubo queimado. A luz vem do app.js (o neon do quite), de 0 a 1 e
+   acima no estalo: --luz no tubo, --luzT no letreiro. Apagado, o vidro fica no --apagado; sem ela, aceso parado */
+.empty.vazio.quite{--neon:#ff3d8f;--apagado:#b5a69b;--luz:1;--luzT:1;position:relative;isolation:isolate;
+  --tubo:color-mix(in srgb,var(--neon) calc(var(--luz)*100%),var(--apagado));
+  --tuboT:color-mix(in srgb,var(--neon) calc(var(--luzT)*100%),var(--apagado));
+  border:2px solid color-mix(in srgb,#fff calc(var(--luz)*30%),var(--tubo));color:color-mix(in srgb,var(--tuboT) 62%,#1a0d12);
+  box-shadow:0 0 1px var(--tubo),0 1px calc(8px*var(--luz)) color-mix(in srgb,var(--tubo) 80%,transparent),0 4px calc(22px*var(--luz)) color-mix(in srgb,var(--tubo) 40%,transparent),inset 0 0 calc(9px*var(--luz)) color-mix(in srgb,var(--tubo) 30%,transparent);
+  text-shadow:0 0 calc(5px*var(--luzT)) color-mix(in srgb,var(--tuboT) 60%,transparent)}
 .empty.vazio.quite b,.empty.vazio.quite .nm{color:inherit !important}
-@keyframes neonCor{0%,100%{--neon:#ff4fa3} 20%{--neon:#a64dff} 40%{--neon:#3d7bff} 60%{--neon:#19d3e6} 80%{--neon:#ff7a1a}}
-@keyframes respira{0%,100%{--sopro:.35} 50%{--sopro:1}}
-/* a aura: o svg fica no meio da borda (inset -1px) e o traço de 3px, mais claro, corre por cima do tubo. pathLength 100: dois traços de
-   9 com 41 de vão andam a mesma velocidade em volta da caixa inteira */
-.aura{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none}
-.aura rect{fill:none;stroke:color-mix(in srgb,var(--neon) 25%,#fff);stroke-width:3;filter:drop-shadow(0 0 3px var(--neon)) drop-shadow(0 0 6px var(--neon));stroke-dasharray:9 41;animation:aura 4s linear infinite}
-@keyframes aura{to{stroke-dashoffset:-100}}
-@media (prefers-reduced-motion:reduce){.aura{display:none} .empty.vazio.quite{animation:none}}
+/* o trecho queimado: vidro apagado com as pontas pretas do eletrodo, e o brilho em volta some */
+.empty.vazio.quite::after{content:'';position:absolute;top:-10px;right:17%;width:20%;height:18px;pointer-events:none;
+  background:linear-gradient(90deg,#1d1411 0,#1d1411 3px,transparent 9px,transparent calc(100% - 9px),#1d1411 calc(100% - 3px)) center/100% 2px no-repeat,
+    linear-gradient(#a99b91,#a99b91) center/100% 2px no-repeat,radial-gradient(closest-side,#fff8e6,#fff8e6 55%,rgba(255,248,230,0))}
 button,input,select{font:inherit;color:var(--ink)}
 button{background:#fff8e6;border:2px solid var(--ink);border-radius:4px;padding:5px 12px;cursor:pointer;text-transform:uppercase;font-size:17px;letter-spacing:.5px}
 .share2{display:flex;flex-direction:column;align-items:center}
@@ -564,7 +559,6 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 #app.vaiVirar #mineRows .quite,#app.vaiVirar #itemsSec,#app.vaiVirar #settleHead,#app.vaiVirar #settle{opacity:0}
 @keyframes vira{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
 #app.virou #mineRows .quite{animation:vira .4s ease-out var(--vq,0ms) both}
-#app.virou #mineRows .empty.vazio.quite{animation:vira .4s ease-out var(--vq,0ms) both,var(--neonAnda)}
 #app.virou #itemsSec{animation:vira .4s ease-out .25s both}
 #app.virou #settleHead{animation:vira .4s ease-out .5s both}
 #app.virou #settle>.row{animation:vira .35s ease-out calc(var(--vq,0ms) + .75s) both}

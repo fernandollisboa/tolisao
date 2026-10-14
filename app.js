@@ -799,6 +799,9 @@
     tocouOk: false, // tocou num ✔ ou copiar pix: o convite da piscada já foi respondido
     natal: null, // pisca-pisca de natal dessa vez: o sorteio de atraso de cada linha, ou null
     suave: false, // quem já conhece a linha dos itens ganha só um toquinho na setinha
+    /** @type {{ pts: number[][], ms: number, t0: number } | null} */
+    falha: null, // a falha do neon do quite que está rolando
+    falhaEm: 0, // quando vem a próxima
   });
   let anim = novaNota();
   const RISCO_MS = 550,
@@ -1721,19 +1724,112 @@
     // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite" style="${neonRelogio()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}${aura()}</div>`
+        ? `<div class="empty vazio quite" style="${neonEstilo()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +
       (bal > 0 && temAviso() ? botaoAviso() : '');
+    neonAnda();
   }
-  // a aura do quite: dois traços cheios correndo pelo tracejado, um de cada lado. O atraso negativo vem do relógio, pra
-  // caixa refeita a cada sync seguir de onde estava
-  const AURA_MS = 4000;
-  // o neon do quite: a cor e o sopro também seguem o relógio, senão a caixa refeita voltava pro rosa a cada sync
-  const neonRelogio = () => `--t:-${Date.now() % 10000}ms;--r:-${Date.now() % 3000}ms`;
-  const aura = () =>
-    `<svg class="aura" aria-hidden="true"><rect width="100%" height="100%" rx="3" pathLength="100" style="animation-delay:-${Date.now() % AURA_MS}ms"/></svg>`;
+  // o neon do quite: o tubo acende engasgando quando Minha conta pega a vez (ou quando a caixa cai, na passagem pro
+  // quite) e, aceso, falha de tempos em tempos, sorteando o jeito e a hora. A luz é um relógio só, fora da caixa: o
+  // sync refaz a caixa e ela segue de onde estava. Cada ponto é [quando, de 0 a 1; luz do tubo; luz do letreiro, que
+  // sem ela é a do tubo]. Acima de 1 é o estalo, que clareia e espalha o brilho
+  const ACENDE_MS = 1900,
+    CAI_MS = 400, // a caixa caindo na passagem pro quite (o vira do style.css): acende depois que pousa
+    FALHA_MIN = 4000,
+    FALHA_MAX = 16000;
+  /** a curva em texto, "quando tubo [letreiro]" separados por vírgula @param {string} txt @returns {number[][]} */
+  const curva = (txt) => txt.split(',').map((p) => p.trim().split(' ').map(Number));
+  const ACENDE = curva('0 0, .08 0, .09 .7, .11 0, .3 0, .31 .45, .33 .9, .35 .1, .48 .1, .5 1, .54 .6, .56 1, 1 1');
+  const sorte = (/** @type {number} */ a, /** @type {number} */ b) => a + Math.random() * (b - a);
+  /** @type {(() => { pts: number[][], ms: number })[]} */
+  const FALHAS = [
+    // apagão: some de vez por um tempo e volta aos trancos
+    () => {
+      const z = sorte(0.35, 0.55),
+        d = (/** @type {number} */ x) => (z + x).toFixed(3);
+      return {
+        ms: sorte(2200, 3400),
+        pts: curva(
+          `0 1, .03 .1, .05 .6, .07 0, ${d(0)} 0, ${d(0.04)} .5, ${d(0.06)} 0, ${d(0.16)} 0, ${d(0.18)} .8, ${d(0.21)} .2, ${d(0.27)} 1, 1 1`,
+        ),
+      };
+    },
+    // estalo: sobrecarga, cai pra meia-luz e volta zumbindo
+    () => ({
+      ms: sorte(1800, 2600),
+      pts: curva('0 1, .03 2.4, .06 1.7, .09 2.2, .13 .12, .4 .35, .55 .25, .7 .6, .8 .5, 1 1'),
+    }),
+    // só o letreiro apaga, o tubo segura
+    () => ({
+      ms: sorte(900, 1800),
+      pts: curva('0 1 1, .05 1 0, .1 1 .7, .14 1 0, .75 1 0, .8 1 .6, .84 1 .1, .9 1 1, 1 1 1'),
+    }),
+    // só o tubo apaga, o letreiro segura
+    () => ({
+      ms: sorte(900, 1800),
+      pts: curva('0 1 1, .05 0 1, .1 .7 1, .14 0 1, .7 0 1, .76 .8 1, .8 .15 1, .9 1 1, 1 1 1'),
+    }),
+    // engasgo: duas a quatro piscadas, cada uma num fundo e numa volta diferente (vale dois no sorteio)
+    ...Array(2).fill(() => {
+      const pts = [[0, 1]];
+      let o = 0;
+      for (let i = 2 + Math.floor(sorte(0, 3)); i > 0; i--) {
+        o += sorte(0.08, 0.25);
+        pts.push([Math.min(o, 0.9), sorte(0, 0.45)]);
+        o += sorte(0.04, 0.12);
+        pts.push([Math.min(o, 0.95), sorte(0.6, 1)]);
+      }
+      pts.push([1, 1]);
+      return { ms: sorte(450, 900), pts };
+    }),
+  ];
+  /** a luz no ponto f da curva: [tubo, letreiro] @param {number[][]} pts @param {number} f @returns {[number, number]} */
+  const luzEm = (pts, f) => {
+    const k = pts.findIndex((p) => p[0] >= f) || 1, // f fica abaixo de 1: sempre acha
+      [o0, a0, b0 = a0] = pts[k - 1],
+      [o1, a1, b1 = a1] = pts[k],
+      x = o1 > o0 ? (f - o0) / (o1 - o0) : 1;
+    return [a0 + (a1 - a0) * x, b0 + (b1 - b0) * x];
+  };
+  const neon = { quadro: 0, espera: 0 };
+  /** a luz agora e quando olhar de novo (Infinity: só no próximo render) @param {number} t */
+  function luzNeon(t) {
+    if (semMovimento()) return { l: [1, 1], prox: Infinity };
+    // Minha conta ainda não chegou na tela: o tubo espera apagado
+    if (anim.mine <= 0) return { l: [0, 0], prox: Infinity };
+    const a = Math.max(anim.mine, virou.em + CAI_MS);
+    if (t < a) return { l: [0, 0], prox: a };
+    if (t < a + ACENDE_MS) return { l: luzEm(ACENDE, (t - a) / ACENDE_MS), prox: t };
+    const f = anim.falha;
+    if (f && t < f.t0 + f.ms) return { l: luzEm(f.pts, (t - f.t0) / f.ms), prox: t };
+    if (!anim.falhaEm || f) {
+      anim.falha = null;
+      anim.falhaEm = Math.max(t, a + ACENDE_MS) + sorte(FALHA_MIN, FALHA_MAX);
+    }
+    if (t < anim.falhaEm) return { l: [1, 1], prox: anim.falhaEm };
+    anim.falha = { ...FALHAS[Math.floor(Math.random() * FALHAS.length)](), t0: t };
+    return luzNeon(t);
+  }
+  const neonEstilo = () => {
+    const [l, lt] = luzNeon(Date.now()).l;
+    return `--luz:${l};--luzT:${lt}`;
+  };
+  /** um quadro do neon: pinta a caixa de agora e marca o próximo. Sem caixa (a conta não está quite), para */
+  function neonAnda() {
+    cancelAnimationFrame(neon.quadro);
+    clearTimeout(neon.espera);
+    const el = /** @type {HTMLElement | null} */ (document.querySelector('#mineRows .vazio.quite'));
+    if (!el) return;
+    const t = Date.now(),
+      { l, prox } = luzNeon(t);
+    el.style.setProperty('--luz', String(l[0]));
+    el.style.setProperty('--luzT', String(l[1]));
+    if (prox === Infinity) return;
+    if (prox <= t) neon.quadro = requestAnimationFrame(neonAnda);
+    else neon.espera = setTimeout(neonAnda, prox - t);
+  }
   /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */
   const botaoTrocaZap = (recebe) => {
     if (!temNumeroZap()) return '';
@@ -1772,7 +1868,7 @@
       });
     const n = meus.length || recebe;
     const fim = !n
-      ? 0
+      ? ACENDE_MS // quite: o neon acendendo
       : (n - 1) * PISCA_GAP +
         (!meus.length ? COBRA_MS + BROTA_MS : anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
     anim.mine = agenda(n ? (n - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);

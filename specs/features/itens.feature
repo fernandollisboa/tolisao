@@ -1,7 +1,7 @@
 # language: pt
 Funcionalidade: A linha dos itens
   Fechada, ela é um botão com moldura que convida: "ver os 3 itens".
-  Aberta, a moldura fica tracejada: é o cabeçalho da lista, e dá pra fechar no mesmo lugar.
+  Aberta, ela fica afundada, como botão apertado: é o cabeçalho da lista, e dá pra fechar no mesmo lugar.
   Depois que a pessoa abre uma vez, vira só a contagem.
 
   Contexto:
@@ -14,13 +14,13 @@ Funcionalidade: A linha dos itens
 
   Cenário: convida até abrir uma vez
     Quando eu abro o evento como Lia
-    Então a linha dos itens diz "ver os 3 itens", com moldura cheia
+    Então a linha dos itens diz "ver os 3 itens", de pé
     Quando eu toco na linha dos itens
-    Então a linha dos itens diz "3 itens", com moldura tracejada
+    Então a linha dos itens diz "3 itens", afundada
     Quando eu toco na linha dos itens
-    Então a linha dos itens diz "3 itens", com moldura cheia
+    Então a linha dos itens diz "3 itens", de pé
     Quando eu troco pra Mengla
-    Então a linha dos itens diz "ver os 3 itens", com moldura cheia
+    Então a linha dos itens diz "ver os 3 itens", de pé
 
   Cenário: pelo teclado
     Quando eu abro o evento como Lia

@@ -16,7 +16,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 - `mesa/`: plaquinha de mesa pra imprimir (quatro A6 numa A4), HTML parado sem script. o QR de `https://tolisa.com.br/` saiu uma vez do `qrMatriz()` e mora colado no HTML.
 - `specs/`: cucumber em português (`playwright-bdd`). `features/*.feature` é a especificação, `passos/*.cjs` os passos, `_banco.cjs` imita o Firebase com as regras, `_api.cjs` imita a API do aviso (os dois são uma função `responde()`, que serve o playwright e o `npm run dev`; o `dev.cjs` sobe o site com eles), `_cobertura.cjs` mede o que os cenários executam, `_regras.cjs` confere as regras abaixo que dá pra ler em arquivo (fontes da CSP, `.read` do banco e do pix, o formato que o pix aceita, `clean()`, imagens do link). `preview.cjs` e `video.cjs` geram imagem e vídeo, não são testes.
 - `servidor/`: a API (Worker da Cloudflare, KV `tolisa`) do aviso de pagamento por push, e o cron diário que cobra evento parado (`[triggers]` no `wrangler.toml`). JS puro, testes em `node --test` (`cd servidor && npm test`). dependência só ali (o `wrangler`, pra subir). quem sobe é o `servidor.yml`, que gera as chaves VAPID na primeira vez; o `pages.yml` não publica a pasta.
-- `docs/qa.md`: roteiro e achados das sessões de QA.
+- `docs/qa.md`: roteiro e achados das sessões de QA. `docs/neon-escuro.md`: as versões do neon do quite em fundo escuro (QT e PT), referência pro modo escuro.
 - `CONTRIBUTING.md`: as mesmas regras pra gente. mudou regra aqui, mude lá.
 
 ## comandos

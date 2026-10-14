@@ -190,26 +190,25 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 /* caderno em branco: a caixa tracejada diz por onde começar */
 .empty.vazio{border:2px dashed var(--rule);border-radius:4px;background:#fff8e6;box-shadow:3px 3px 0 rgba(0,0,0,.08);padding:12px 14px;margin:6px 0;font-size:18px;line-height:1.5;color:var(--ink2)}
 .empty.vazio b{font-weight:400;color:var(--ink)}
-/* conta fechada: a caixa vira um miolo escuro e encardido, e a borda é o tubo de neon rosa. A luz vem do app.js (o neon
-   do quite), de 0 a 1 e acima no estalo: --luz no tubo, --luzT no letreiro. Apagado, o vidro fica no --apagado; sem ela,
-   aceso parado */
-.empty.vazio.quite{--neon:#ff3d8f;--apagado:#4a3e44;--luz:1;--luzT:1;position:relative;isolation:isolate;
+/* conta fechada: neon rosa quente no papel, o tubo é a borda. A luz vem do app.js (o neon do quite), de 0 a 1 e acima
+   no estalo: --luz no tubo, --luzT no letreiro. Apagado, o vidro fica no --apagado; sem ela, aceso parado. As versões
+   em fundo escuro (pro modo escuro) estão em docs/neon-escuro.md */
+.empty.vazio.quite{--neon:#d6006a;--apagado:#b5a69b;--luz:1;--luzT:1;position:relative;isolation:isolate;
   --tubo:color-mix(in srgb,var(--neon) calc(var(--luz)*100%),var(--apagado));
   --tuboT:color-mix(in srgb,var(--neon) calc(var(--luzT)*100%),var(--apagado));
-  border:2px solid color-mix(in srgb,#fff calc(var(--luz)*30%),var(--tubo));
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .35 0 0 0 -.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 40%,#221a21,#120d12 80%);
+  border:2px solid color-mix(in srgb,#fff calc(var(--luz)*12%),var(--tubo));
   box-shadow:0 0 1px var(--tubo),0 1px calc(8px*var(--luz)) color-mix(in srgb,var(--tubo) 80%,transparent),0 4px calc(22px*var(--luz)) color-mix(in srgb,var(--tubo) 40%,transparent),inset 0 0 calc(9px*var(--luz)) color-mix(in srgb,var(--tubo) 30%,transparent);
-  color:color-mix(in srgb,#fff calc(var(--luzT)*62%),var(--tuboT));
-  text-shadow:0 0 1px rgba(255,255,255,calc(var(--luzT)*.5)),0 0 4px var(--tuboT),0 0 calc(12px*var(--luzT)) var(--tuboT),0 0 calc(24px*var(--luzT)) color-mix(in srgb,var(--tuboT) 55%,transparent)}
+  color:color-mix(in srgb,var(--tuboT) 72%,#1a0d12);
+  text-shadow:0 0 calc(5px*var(--luzT)) color-mix(in srgb,var(--tuboT) 55%,transparent)}
 .empty.vazio.quite b,.empty.vazio.quite .nm{color:inherit !important}
-/* o trecho queimado: um pedaço do tubo apagado, com as pontas pretas do eletrodo e o brilho de dentro engolido, que
-   escorrega pelo topo, desce um pouco o canto e volta. O svg fica no meio da borda (inset -1px) e o clip guarda a sombra
-   do lado de dentro, senão ela sujava o papel; pathLength 100 */
+/* o trecho queimado: um pedaço do tubo apagado, com as pontas pretas do eletrodo e o brilho de dentro engolido (a sombra
+   tem a cor do papel), que escorrega pelo topo, desce um pouco o canto e volta. O svg fica no meio da borda (inset -1px)
+   e o clip guarda a sombra do lado de dentro; pathLength 100 */
 .queima{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible;pointer-events:none;z-index:-1;clip-path:inset(-1.4px round 5px)}
 .queima rect{fill:none;stroke-dasharray:9 91;stroke-dashoffset:-18;animation:vaivem 16s ease-in-out infinite alternate}
-.queima .q-sombra{stroke:#120d12;stroke-width:12;filter:blur(3px);stroke-dasharray:8 92}
-.queima .q-vidro{stroke:#3a3236;stroke-width:2.4}
-.queima .q-ponta{stroke:#000;stroke-width:2.6;stroke-dasharray:.7 7.6 .7 91}
+.queima .q-sombra{stroke:#fff8e6;stroke-width:12;filter:blur(3px);stroke-dasharray:8 92}
+.queima .q-vidro{stroke:#a99b91;stroke-width:2.4}
+.queima .q-ponta{stroke:#1d1411;stroke-width:2.6;stroke-dasharray:.7 7.6 .7 91}
 @keyframes vaivem{from{stroke-dashoffset:-2}to{stroke-dashoffset:-34}}
 @media (prefers-reduced-motion:reduce){.queima rect{animation:none}}
 button,input,select{font:inherit;color:var(--ink)}

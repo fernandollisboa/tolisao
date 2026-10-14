@@ -55,6 +55,11 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
+  // os temas escuros (#285), protótipo: pra todo mundo fica o papel (TEMA vazio). O aparelho escolhe com ?tema=neon,
+  // ?tema=grafite ou ?tema=auto (segue o claro/escuro do celular: escuro vira o neon), e fica lembrado; ?tema=0 volta
+  // pro de todo mundo. Com tema, o html ganha data-tema e o style.css redefine as cores
+  const TEMA = '';
+  const TEMAS = ['neon', 'grafite'];
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -101,14 +106,14 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, naoConta,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, tema, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
-  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; tema: neon, grafite ou auto, pelo ?tema;
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -427,6 +432,32 @@
     if (q.has('galera')) setDevice('galeraOn', q.get('galera') === '0' ? undefined : true);
   })();
   const temGalera = () => GALERA || device().galeraOn === true;
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('tema')) setDevice('tema', q.get('tema') === '0' ? undefined : q.get('tema'));
+  })();
+  const celularEscuro = matchMedia('(prefers-color-scheme: dark)');
+  /** o tema de agora: '' é o papel; o auto segue o celular */
+  const tema = () => {
+    const t = device().tema || TEMA;
+    if (t === 'auto') return celularEscuro.matches ? 'neon' : '';
+    return TEMAS.includes(t) ? t : '';
+  };
+  const temEscuro = () => tema() !== '';
+  const BARRA = { '': '#6b4a2b', neon: '#0c0912', grafite: '#160f0b' };
+  /** liga o tema no html e na barra do navegador; vale já, antes do primeiro render */
+  const aplicaTema = () => {
+    const t = tema();
+    if (t) document.documentElement.dataset.tema = t;
+    else delete document.documentElement.dataset.tema;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BARRA[t]);
+  };
+  aplicaTema();
+  // o celular trocou de claro pra escuro (ou o contrário): no auto, a nota se repinta, as cores de gente junto
+  celularEscuro.addEventListener('change', () => {
+    aplicaTema();
+    render();
+  });
   /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
    *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
    *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
@@ -724,6 +755,19 @@
     '#751742',
     '#0050b2',
   ]; // matizes afastados entre si e longe do vermelho/verde (deve/recebe) e do âmbar dos botões
+  // no modo escuro: os mesmos matizes com mais luz (em oklab), pra ler no papel escuro
+  const PALETTE_ESCURO = [
+    '#e6a594',
+    '#82c4cc',
+    '#cb99ff',
+    '#f591d0',
+    '#67acff',
+    '#6ebeff',
+    '#ff73ff',
+    '#bcabf1',
+    '#fe90b7',
+    '#6bb7ff',
+  ];
   // marca-texto: os mesmos matizes da PALETTE, bem mais firmes. No recibo em png o papel é
   // mais escuro e o zap ainda comprime: tom claro sumia no fundo (o de Fernando ficava a 10 dele).
   const MARKR = [
@@ -750,7 +794,10 @@
   /** @param {number} i */
   const matiz = (i) => (182 + (((i - PALETTE.length) * 0.618033988749895) % 1) * 153).toFixed(2);
   /** a cor de quem está na posição i @param {number} i */
-  const corDe = (i) => (i < PALETTE.length ? PALETTE[i] : `hsl(${matiz(i)} 55% ${[40, 31, 48][i % 3]}%)`);
+  const corDe = (i) => {
+    const [cores, sat, luz] = temEscuro() ? [PALETTE_ESCURO, 70, [72, 64, 79]] : [PALETTE, 55, [40, 31, 48]];
+    return i < cores.length ? cores[i] : `hsl(${matiz(i)} ${sat}% ${luz[i % 3]}%)`;
+  };
   /** o marca-texto de quem está na posição i @param {number} i */
   const forteDe = (i) => (i < MARKR.length ? MARKR[i] : `hsl(${matiz(i)} 80% ${[72, 64, 79][i % 3]}%)`);
   const colorOf = (id) => corDe(indiceDaPessoa(id));

@@ -52,6 +52,9 @@
   // Minha conta. Desligado pra todo mundo: o cobrar abre o zap direto, na conversa se o número já está guardado,
   // senão na escolha de contato. Liga no aparelho com ?numerozap (fica lembrado; ?numerozap=0 desliga)
   const NUMERO_ZAP = false;
+  // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
+  // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
+  const GALERA = false;
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -98,13 +101,14 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, naoConta,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera;
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -418,6 +422,11 @@
     if (q.has('numerozap')) setDevice('numeroZapOn', q.get('numerozap') === '0' ? undefined : true);
   })();
   const temNumeroZap = () => NUMERO_ZAP || device().numeroZapOn === true;
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('galera')) setDevice('galeraOn', q.get('galera') === '0' ? undefined : true);
+  })();
+  const temGalera = () => GALERA || device().galeraOn === true;
   /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
    *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
    *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
@@ -2470,6 +2479,32 @@
       }
     };
   }
+  /** o nome do jeito que a busca compara: minúsculo e sem acento */
+  const buscaNome = (t) =>
+    t
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  /** a galera de sempre: quem aparece nos meus eventos (a cópia do aparelho), uma vez por nome, quem
+   *  vem em mais eventos primeiro. Quem já está neste evento fica de fora @returns {Person[]} */
+  function galeraDeSempre() {
+    /** @type {Map<string, { p: Person, n: number, at: number }>} */ const vistos = new Map();
+    for (const e of meusEventos()) {
+      if (e.id === groupId || !e.snap) continue;
+      for (const p of e.snap.people) {
+        const k = buscaNome(p.name),
+          v = vistos.get(k);
+        if (!v) vistos.set(k, { p, n: 1, at: e.at });
+        else v.n++; // a lista vem do mais novo: o id que fica é o do evento mais recente
+      }
+    }
+    return [...vistos.values()]
+      .filter(({ p }) => !nomeExiste(p.name) && !state.people.some((x) => x.id === p.id))
+      .sort((a, b) => b.n - a.n || b.at - a.at)
+      .slice(0, 12)
+      .map(({ p }) => p);
+  }
   /** a bolinha da pessoa: só a cor dela, sem letra */
   const bolinha = (p) => `<span class="bola" style="background:${colorOf(p.id)}"></span>`;
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
@@ -2491,6 +2526,15 @@
       : meusEventos()
           .filter((e) => e.id !== groupId && e.snap && e.snap.people.length)
           .slice(0, 3);
+    const galera = temGalera() ? galeraDeSempre() : [];
+    const chipsGalera = galera.length
+      ? `<div class="c muted recado" style="text-transform:none">a galera de sempre</div><div class="chips galera">${galera
+          .map(
+            (p) =>
+              `<button class="chip" data-galera="${p.id}" data-busca="${esc(buscaNome(p.name))}" style="--cor:${corDe(n)}"><span class="bola">+</span>${esc(p.name)}</button>`,
+          )
+          .join('')}</div>`
+      : '';
     const trazer = turmas.length
       ? `<div class="hr"></div><div class="c muted recado" style="text-transform:none">ou traga a turma de</div><div class="evs turmas">${turmas
           .map(
@@ -2504,7 +2548,7 @@
       ${list}
       <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${corDe(n)}">
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
-      <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${trazer}
+      <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${chipsGalera}${trazer}
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
       <div class="c voltar"><button id="setupLeave" class="ghost">fechar</button></div>`,
     );
@@ -2523,6 +2567,10 @@
       const tem = !!$('#setupName').value.trim();
       $('#setupForm').classList.toggle('digitando', tem);
       $('#setupGo').disabled = !state.people.length && !tem;
+      // digitando, a galera fica só com quem bate com o começo do nome
+      const busca = buscaNome($('#setupName').value);
+      for (const b of inputs('#overlayBox [data-galera]'))
+        b.hidden = !!busca && !(b.dataset.busca || '').split(' ').some((w) => w.startsWith(busca));
     };
     // tocar no nome deixa editar ali mesmo: enter ou sair da caixa grava; vazio ou repetido volta ao que era
     for (const el of inputs('#overlayBox [data-renome]')) {
@@ -2561,6 +2609,17 @@
       b.onclick = () => {
         state.people = state.people.filter((p) => p.id !== b.dataset.drop);
         state.deleted.push(b.dataset.drop);
+        commit();
+        showSetup();
+      };
+    // quem vem da galera é a mesma pessoa dos outros eventos; tirada deste aqui antes, volta com id novo
+    // (o deleted não deixa o id voltar)
+    for (const b of inputs('#overlayBox [data-galera]'))
+      b.onclick = () => {
+        const p = galera.find((x) => x.id === b.dataset.galera);
+        if (!p || nomeExiste(p.name)) return showSetup();
+        $('#setupName').value = '';
+        state.people.push({ id: state.deleted.includes(p.id) ? uid() : p.id, name: p.name, at: Date.now() });
         commit();
         showSetup();
       };

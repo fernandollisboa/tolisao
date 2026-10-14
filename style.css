@@ -706,6 +706,12 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 #overlayBox .turmaPix .chip{text-transform:none}
 #overlayBox .turmaPix .muted{text-transform:none;margin-top:4px;word-break:break-all}
 @media (hover:hover){#overlayBox .turma .chip:hover:not(:disabled){background:#fff8e6;color:var(--ink)}}
+/* a galera de sempre: cápsula tracejada esperando o toque; o + já tem a cor que a pessoa vai ganhar */
+#overlayBox .chips.galera{justify-content:center;margin:6px 0 4px}
+#overlayBox .galera .chip{text-transform:none;border-radius:999px;border-style:dashed;padding:3px 12px 3px 6px}
+#overlayBox .galera .chip[hidden]{display:none}
+#overlayBox .galera .chip .bola{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--cor);color:#fff8e6;font-size:16px;line-height:1}
+@media (hover:hover){#overlayBox .galera .chip:hover{border-style:solid;border-color:var(--cor);background:#fff8e6}}
 /* a estreia: quem chega sem evento vê fichas caindo atrás do cartão e uma comandinha que se anota
    sozinha. A ficha é a mesma da diva (.stain), em miniatura. Tudo some com o cartão (mora no #overlayBox) */
 .fichinha{position:absolute;width:var(--s);height:var(--s);box-sizing:border-box;padding:calc(var(--s) * .1);border-radius:50%;--f1:#9a5b00;--f2:#fff8e6;background:repeating-conic-gradient(var(--f2) 0 12.86deg,transparent 0 25.71deg),var(--f1);pointer-events:none}

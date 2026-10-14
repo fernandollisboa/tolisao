@@ -655,7 +655,7 @@
     if (!ehIgual(e)) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
     if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length === 1 ? '' : 'm'} tudo`;
     if (!html) return `÷${e.among.length}`;
-    return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`;
+    return `÷${e.among.length}<span class="who"> (${e.among.map(name).join(', ')})</span>`;
   };
   /** @returns {Record<string, number>} saldo em centavos por pessoa (positivo = a receber) */
   /** @param {Room} s */
@@ -4100,7 +4100,6 @@
     ['#restoIgual', divideResto],
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
     ['#settle .empty.anota', () => $('#fab').click()],
-    ['[data-among]', (el) => abreItem(el.closest('.item'))],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
@@ -4121,7 +4120,8 @@
   ];
   document.addEventListener('click', (ev) => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
-    // tocar na linha de um item, fora dos botões dela, abre os detalhes (item apagado não abre)
+    // o item inteiro é um gatilho só: tocar em qualquer parte dele, fora dos botões, abre ou fecha os detalhes
+    // (item apagado não abre)
     if (!tgt.closest('a,button,input,label')) {
       const it = /** @type {HTMLElement|null} */ (tgt.closest('.item[data-item]'));
       if (it) abreItem(it);

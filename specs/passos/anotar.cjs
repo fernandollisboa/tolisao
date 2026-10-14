@@ -15,7 +15,10 @@ Then('o "ver todos" não aparece, porque cabe tudo', async ({ mundo }) => { awai
 Then('o ✎ está/continua chamando', async ({ mundo }) => { await expect(mundo.p.locator('#fab')).toHaveClass(/\bchamando\b/); });
 
 When('eu abro a lista de itens', async ({ mundo }) => { await mundo.p.click('#itemsHead'); await expect(mundo.p.locator('#expenses .item').first()).toBeVisible(); });
-When('eu toco no ÷ do {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('[data-among]').click(); await mundo.p.mouse.move(0, 0); });
+// o ponteiro fica onde tocou, como o dedo no celular: o item tem que fechar mesmo com ele em cima
+When('eu toco no nome do {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('.row .l').click(); });
+When('eu toco no valor do {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('.row .v').click(); });
+When('eu toco em quem pagou o {string}', async ({ mundo }, nome) => { await item(mundo.p, nome).locator('.small > span').click(); });
 Then('o {string} mostra quem divide: {string}', async ({ mundo }, nome, txt) => {
   const it = item(mundo.p, nome); await expect(it).toHaveClass(/\bopen\b/);
   await expect(it.locator('.who')).toBeVisible(); await expect(it.locator('.small')).toContainText(txt);

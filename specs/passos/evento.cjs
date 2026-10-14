@@ -192,6 +192,21 @@ Then('{gente} são as mesmas pessoas do {string}', async ({ mundo }, gente, nome
   const sala = await salaAberta(mundo), antigo = Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome);
   for (const n of gente) expect(pessoaNoBanco(mundo, sala, n).id).toBe(antigo.people.find(p => p.name === n).id);
 });
+Then('{gente} é a mesma pessoa do {string}', async ({ mundo }, [n], nome) => {
+  const sala = await salaAberta(mundo), antigo = Object.values(mundo.banco.arvore.rooms).find(r => r.name === nome);
+  await expect.poll(() => pessoaNoBanco(mundo, sala, n)?.id).toBe(antigo.people.find(p => p.name === n).id);
+});
+// a galera de sempre: quem já rachou comigo em outros eventos, em cápsulas no Quem vai?
+const galera = mundo => mundo.p.locator('#overlayBox [data-galera]:visible');
+When('eu ponho {gente} da galera de sempre', async ({ mundo }, gente) => {
+  for (const n of gente) { await galera(mundo).filter({ hasText: new RegExp(`^\\+${n}$`) }).click();
+    await expect(mundo.p.locator('#overlayBox [data-renome]', { hasText: new RegExp(`^${n}$`) })).toHaveCount(1); }
+});
+When('eu começo a escrever {string} no Quem vai?', async ({ mundo }, txt) => { await mundo.p.fill('#setupName', txt); });
+Then('a galera de sempre é {gente}', async ({ mundo }, gente) => { await expect(galera(mundo)).toHaveText(gente.map(n => '+' + n)); });
+Then('o Quem vai? não mostra a galera de sempre', async ({ mundo }) => {
+  await expect(mundo.p.locator('#setupName')).toBeVisible(); await expect(mundo.p.locator('#overlayBox [data-galera]')).toHaveCount(0);
+});
 Then('o evento novo não tem nenhum gasto', async ({ mundo }) => {
   expect(mundo.banco.pega(['rooms', await salaAberta(mundo), 'expenses']) || []).toEqual([]);
 });

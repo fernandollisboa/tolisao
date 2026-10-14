@@ -1722,7 +1722,7 @@
     // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite" style="${neonEstilo()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} 💅</div>`
+        ? `<div class="empty vazio quite" style="${neonEstilo()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} 💅${queima()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +
@@ -1733,6 +1733,16 @@
   // quite) e, aceso, falha de tempos em tempos, sorteando o jeito e a hora. A luz é um relógio só, fora da caixa: o
   // sync refaz a caixa e ela segue de onde estava. Cada ponto é [quando, de 0 a 1; luz do tubo; luz do letreiro, que
   // sem ela é a do tubo]. Acima de 1 é o estalo, que clareia e espalha o brilho
+  // o trecho queimado vai e volta pelo tubo (o vaivem do style.css, 16 s cada ida): o atraso negativo vem do relógio,
+  // pra caixa refeita a cada sync seguir de onde estava
+  const VAIVEM_MS = 32000;
+  const queima = () =>
+    `<svg class="queima" aria-hidden="true">${['sombra', 'vidro', 'ponta']
+      .map(
+        (c) =>
+          `<rect class="q-${c}" width="100%" height="100%" rx="3" pathLength="100" style="animation-delay:-${Date.now() % VAIVEM_MS}ms"/>`,
+      )
+      .join('')}</svg>`;
   const ACENDE_MS = 1900,
     CAI_MS = 400, // a caixa caindo na passagem pro quite (o vira do style.css): acende depois que pousa
     FALHA_MIN = 4000,

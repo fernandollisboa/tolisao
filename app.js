@@ -1712,7 +1712,7 @@
     // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}${aura()}</div>`
+        ? `<div class="empty vazio quite" style="${neonRelogio()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}${aura()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +
@@ -1721,6 +1721,8 @@
   // a aura do quite: dois traços cheios correndo pelo tracejado, um de cada lado. O atraso negativo vem do relógio, pra
   // caixa refeita a cada sync seguir de onde estava
   const AURA_MS = 4000;
+  // o neon do quite: a cor e o sopro também seguem o relógio, senão a caixa refeita voltava pro rosa a cada sync
+  const neonRelogio = () => `--t:-${Date.now() % 10000}ms;--r:-${Date.now() % 3000}ms`;
   const aura = () =>
     `<svg class="aura" aria-hidden="true"><rect width="100%" height="100%" rx="3" pathLength="100" style="animation-delay:-${Date.now() % AURA_MS}ms"/></svg>`;
   /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */

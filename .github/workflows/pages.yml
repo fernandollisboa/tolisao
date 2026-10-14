@@ -39,11 +39,16 @@ jobs:
       - name: Tira a API do site
         # o servidor/ sobe pela Cloudflare (servidor.yml): no Pages ia só ocupar a rota
         run: rm -rf servidor
+      # um artefato por tentativa: no re-run (o Pages às vezes dá 500) o da tentativa anterior
+      # continua no mesmo run, e com dois de mesmo nome o deploy-pages se recusa
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: .
+          name: github-pages-${{ github.run_attempt }}
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
       - name: Confere o que ficou no ar
         env:
           URL: ${{ steps.deployment.outputs.page_url }}

@@ -7,6 +7,7 @@ muda o CSS.
 
 nos temas escuros (neon e grafite, o `html[data-tema]` do `style.css`) o quite voltou pra QT, com a placa mais preta e
 um fio claro em volta pra destacar do papel escuro, e o tubo na cor do tema (`--acento`).
+no papel ela também é a QT, do mesmo tamanho: placa de papel mais claro com um fio de tinta e o tubo rosa por dentro.
 
 ## QT · placa escura, tubo por dentro
 

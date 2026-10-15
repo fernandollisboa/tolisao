@@ -129,6 +129,8 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 #itemsCaret svg{display:block;width:16px;height:16px;overflow:visible}
 #itemsCaret path{fill:transparent;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
 #itemsCaret.aberto span{transform:rotate(90deg)}
+/* aberta, a setinha fica cheia de preto, virada pra baixo; fechou, ela esvazia */
+#itemsCaret.aberto path{fill:currentColor}
 #itemsHead:active #itemsCaret{transform:translate(2px,2px)}
 /* no toque a setinha se enche de preto, como no convite, e esvazia devagar quando o dedo sai */
 #itemsCaret path{transition:fill .3s ease}

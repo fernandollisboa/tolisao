@@ -773,6 +773,11 @@ html[data-tema] .empty.vazio{box-shadow:3px 3px 0 rgba(0,0,0,.35)}
 html[data-tema] #overlay,html[data-tema] #sheet{background:rgba(8,5,10,.78)}
 html[data-tema] .comandinha{box-shadow:0 2px 10px rgba(0,0,0,.5)}
 html[data-tema] .bars svg{fill:var(--ink)}
+/* as cores fixas de quem recebe escureciam no fundo escuro: lá vão os tons claros da mesma família, e no neon com brilho */
+html[data-tema] #mineRows .dupla>button.ico.cobra{--tc:#5cc4b3}
+html[data-tema] #mineRows .dupla>button.ico[data-recebi]{--tc:#80aee6}
+html[data-tema] #mineRows .dupla>button.ico[data-perdoa]{--tc:#e8936c}
+html[data-tema=neon] #mineRows .dupla>button.ico:is(.cobra,[data-recebi],[data-perdoa]){box-shadow:2px 2px 0 var(--tc),0 0 8px color-mix(in srgb,var(--tc) 55%,transparent);text-shadow:0 0 6px color-mix(in srgb,var(--tc) 60%,transparent)}
 /* o fundo apertado dos itens é um bege fixo no claro: no escuro ele sumia com a letra clara */
 html[data-tema] #itemsHead.aberto:before{background:color-mix(in srgb,var(--card),#000 18%);box-shadow:inset 2px 2px 0 rgba(0,0,0,.3)}
 html[data-tema] .empty.vazio.quite{--neon:#ff2d8a;--apagado:#4a3e44;border-color:color-mix(in srgb,#fff calc(var(--luz)*30%),var(--tubo));

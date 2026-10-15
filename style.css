@@ -80,7 +80,7 @@ body.pegavel .stain.pousou{cursor:grab}
 button.mira,a.link.mira{background:var(--ink) !important;color:var(--paper) !important}
 button.ico.ok.mira{background:var(--green) !important}
 #fab.mira{background:#7a4700 !important;color:#fff !important}
-#itemsHead.mira{outline-offset:8px;translate:2px 2px}
+#itemsHead.mira{outline-offset:13px;translate:2px 2px}
 #itemsHead.mira:before{box-shadow:1px 1px 0 var(--sombra)}
 .engoliu{animation:engoliu .3s ease-out}
 @keyframes engoliu{40%{scale:1.12}}
@@ -122,11 +122,15 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
    cada aparelho desenhava com a fonte que tinha, baixo e torto. Sem caixinha: a linha
    inteira já é o botão */
 #itemsHead .l{display:flex;align-items:center;gap:9px}
+/* dentro da moldura o pontilhado da nota fazia o botão parecer uma linha de item: fica só o espaço */
+#itemsHead .d{visibility:hidden}
 #itemsCaret{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:24px}
 #itemsCaret span{display:block;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
 #itemsCaret svg{display:block;width:16px;height:16px;overflow:visible}
 #itemsCaret path{fill:transparent;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round}
 #itemsCaret.aberto span{transform:rotate(90deg)}
+/* aberta, a setinha fica cheia de preto, virada pra baixo; fechou, ela esvazia */
+#itemsCaret.aberto path{fill:currentColor}
 #itemsHead:active #itemsCaret{transform:translate(2px,2px)}
 /* no toque a setinha se enche de preto, como no convite, e esvazia devagar quando o dedo sai */
 #itemsCaret path{transition:fill .3s ease}
@@ -136,12 +140,12 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
    setinha se enche de preto no afundar, voltando vazada. A moldura é um :before com folga, pra não mexer no layout nem encostar
    no texto */
 #itemsHead{isolation:isolate}
-#itemsHead:before{content:"";position:absolute;inset:-3px -7px;border:2px solid var(--ink);border-radius:5px;box-shadow:3px 3px 0 var(--sombra);z-index:-1;pointer-events:none;background:var(--card)}
+#itemsHead:before{content:"";position:absolute;inset:-6px -10px;border:2px solid var(--ink);border-radius:5px;box-shadow:3px 3px 0 var(--sombra);z-index:-1;pointer-events:none;background:var(--card)}
 /* fechada a linha é botão, com moldura o tempo todo (no celular não há hover pra
    acender); aberta ela fica apertada, que nem tecla que travou embaixo: afundada no lugar
    da sombra, com um friso de sombra por dentro no alto e na esquerda. Fechou, ela sobe e a sombra volta */
 #itemsHead{transition:translate .08s ease}
-#itemsHead:before{transition:box-shadow .08s ease}
+#itemsHead:before{transition:box-shadow .08s ease,border-color .08s ease}
 #itemsHead:not(.aberto):active{translate:3px 3px}
 #itemsHead:not(.aberto):active:before{box-shadow:0 0 0 var(--ink)}
 #itemsHead.pisca{animation:apertinho 1.6s ease-in-out var(--ad,0ms) backwards}
@@ -163,7 +167,8 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
   22%{transform:translate(2px,2px) scale(.94)}
   72%{transform:translate(1px,1px) scale(.975)}}
 #itemsHead.aberto{translate:3px 3px}
-#itemsHead.aberto:before{box-shadow:inset 2px 2px 0 rgba(0,0,0,.14);background:var(--afundado)}
+/* apertada, a moldura vira a cor das réguas: o contorno preto pesava no meio da lista */
+#itemsHead.aberto:before{box-shadow:inset 2px 2px 0 rgba(0,0,0,.14);background:var(--afundado);border-color:var(--rule)}
 @media (prefers-reduced-motion:reduce){#itemsHead,#itemsHead:before{transition:none}}
 @keyframes abreLista{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #itemsBody:not(.hidden){animation:abreLista .22s ease-out}
@@ -771,6 +776,11 @@ html[data-tema] .empty.vazio{box-shadow:3px 3px 0 rgba(0,0,0,.35)}
 html[data-tema] #overlay,html[data-tema] #sheet{background:rgba(8,5,10,.78)}
 html[data-tema] .comandinha{box-shadow:0 2px 10px rgba(0,0,0,.5)}
 html[data-tema] .bars svg{fill:var(--ink)}
+/* as cores fixas de quem recebe escureciam no fundo escuro: lá vão os tons claros da mesma família, e no neon com brilho */
+html[data-tema] #mineRows .dupla>button.ico.cobra{--tc:#5cc4b3}
+html[data-tema] #mineRows .dupla>button.ico[data-recebi]{--tc:#80aee6}
+html[data-tema] #mineRows .dupla>button.ico[data-perdoa]{--tc:#e8936c}
+html[data-tema=neon] #mineRows .dupla>button.ico:is(.cobra,[data-recebi],[data-perdoa]){box-shadow:2px 2px 0 var(--tc),0 0 8px color-mix(in srgb,var(--tc) 55%,transparent);text-shadow:0 0 6px color-mix(in srgb,var(--tc) 60%,transparent)}
 html[data-tema] .empty.vazio.quite{--neon:var(--acento);--apagado:#4a3e44;border-color:color-mix(in srgb,#fff calc(var(--luz)*30%),var(--tubo));
   color:color-mix(in srgb,#fff calc(var(--luzT)*62%),var(--tuboT));
   text-shadow:0 0 1px rgba(255,255,255,calc(var(--luzT)*.5)),0 0 4px var(--tuboT),0 0 calc(12px*var(--luzT)) var(--tuboT),0 0 calc(24px*var(--luzT)) color-mix(in srgb,var(--tuboT) 55%,transparent)}

@@ -101,11 +101,13 @@ Funcionalidade: Acertar as contas
 
   Cenário: cobrar no zap quem me deve
     O link da cobrança já entra como quem deve: a pessoa abre e cai na própria conta.
+    A mensagem diz há quantos dias ela deve, desde o último gasto em que entrou: ali a conta dela fechou.
+    Dado que o último gasto foi anotado há 12 dias
     Quando eu abro o evento como Fernando
     E eu cobro a Mengla no zap
     Então o zap abre com a mensagem:
       """
-      💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
+      💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*, já faz 12 dias
 
       {site}/fiado/?evento=bailedamada&quem=mengla
       """

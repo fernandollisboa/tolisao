@@ -4296,13 +4296,23 @@
         );
     caixa.focus();
   }
+  /** há quanto tempo a pessoa deve, contado do último gasto em que ela entrou (antes dele a conta
+   *  não tinha fechado): ", já faz 12 dias". Do mesmo dia não diz nada */
+  function haQuanto(quem) {
+    const at = Math.max(
+      0,
+      ...state.expenses.filter((e) => e.kind !== 'payment' && e.among.includes(quem)).map((e) => e.at),
+    );
+    const dias = at ? diasDesde(at) : 0;
+    return dias <= 0 ? '' : dias === 1 ? ', desde ontem' : `, já faz ${dias} dias`;
+  }
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
     const [quem, cents] = el.dataset.cobra.split('|');
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`;
+    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${haQuanto(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);
     else abreZap(msg, tel || '');

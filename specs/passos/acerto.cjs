@@ -208,6 +208,11 @@ When('eu começo a desfazer o perdão {string}', async ({ mundo }, txt) => {
   await pago(mundo.p, txt).locator('[data-undo]', { hasText: 'PERDOADO' }).click({ clickCount: 3 }); await mundo.p.waitForSelector('#okBtn');
 });
 Then('o cartão pergunta {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#overlayBox h2')).toHaveText(txt); });
+// a festa inteira anda no tempo junto: o último gasto fica com a idade pedida
+Given('que o último gasto foi anotado há {int} dias', async ({ mundo }, dias) => {
+  const desloca = AGORA - dias * 86400000 - Math.max(...mundo.evento.expenses.map(e => e.at));
+  for (const e of mundo.evento.expenses) e.at += desloca;
+});
 Given('que o/a {word} já pagou R$ {num} pro/pra {word}', async ({ mundo }, quem, valor, pra) => {
   mundo.evento.expenses.push({ id: 'pg' + mundo.evento.expenses.length, kind: 'payment', desc: 'Pagamento', amount: valor,
     payer: mundo.pessoa(quem).id, among: [mundo.pessoa(pra).id], at: AGORA - 86400000, by: quem });

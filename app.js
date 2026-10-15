@@ -55,11 +55,16 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
-  // os temas escuros (#285), protótipo: pra todo mundo fica o papel (TEMA vazio). O aparelho escolhe com ?tema=neon,
-  // ?tema=grafite ou ?tema=auto (segue o claro/escuro do celular: escuro vira o neon), e fica lembrado; ?tema=0 volta
-  // pro de todo mundo. Com tema, o html ganha data-tema e o style.css redefine as cores
+  // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
+  // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema
+  // escuro, o html ganha data-tema e o style.css redefine as cores. Tema novo: entra aqui, no BARRA e no style.css
   const TEMA = '';
-  const TEMAS = ['neon', 'grafite'];
+  const TEMAS = [
+    ['', 'papel'],
+    ['neon', 'neon'],
+    ['grafite', 'grafite'],
+    ['auto', 'celular'],
+  ];
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -113,7 +118,7 @@
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
-  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; tema: neon, grafite ou auto, pelo ?tema;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; tema: o tema escolhido no pé da nota;
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -432,25 +437,35 @@
     if (q.has('galera')) setDevice('galeraOn', q.get('galera') === '0' ? undefined : true);
   })();
   const temGalera = () => GALERA || device().galeraOn === true;
-  (() => {
-    const q = new URLSearchParams(location.search);
-    if (q.has('tema')) setDevice('tema', q.get('tema') === '0' ? undefined : q.get('tema'));
-  })();
   const celularEscuro = matchMedia('(prefers-color-scheme: dark)');
-  /** o tema de agora: '' é o papel; o auto segue o celular */
-  const tema = () => {
+  /** o tema que a pessoa escolheu, um dos de TEMAS */
+  const temaEscolhido = () => {
     const t = device().tema || TEMA;
-    if (t === 'auto') return celularEscuro.matches ? 'neon' : '';
-    return TEMAS.includes(t) ? t : '';
+    return TEMAS.some(([id]) => id === t) ? t : '';
+  };
+  /** o tema de agora: '' é o papel; o celular vira o neon ou o papel */
+  const tema = () => {
+    const t = temaEscolhido();
+    return t === 'auto' ? (celularEscuro.matches ? 'neon' : '') : t;
   };
   const temEscuro = () => tema() !== '';
   const BARRA = { '': '#6b4a2b', neon: '#0c0912', grafite: '#160f0b' };
-  /** liga o tema no html e na barra do navegador; vale já, antes do primeiro render */
+  /** liga o tema no html, na barra do navegador e no botão do pé da nota; vale já, antes do primeiro render */
   const aplicaTema = () => {
-    const t = tema();
+    const t = tema(),
+      nome = TEMAS.find(([id]) => id === temaEscolhido())?.[1];
     if (t) document.documentElement.dataset.tema = t;
     else delete document.documentElement.dataset.tema;
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BARRA[t]);
+    const rotulo = document.querySelector('#temaBtn span');
+    if (rotulo) rotulo.textContent = `tema: ${nome}`;
+  };
+  /** o toque no tema: vai pro próximo da lista, e a nota se repinta com as cores de gente do tema novo */
+  const trocaTema = () => {
+    const i = TEMAS.findIndex(([id]) => id === temaEscolhido());
+    setDevice('tema', TEMAS[(i + 1) % TEMAS.length][0] || undefined);
+    aplicaTema();
+    render();
   };
   aplicaTema();
   // o celular trocou de claro pra escuro (ou o contrário): no auto, a nota se repinta, as cores de gente junto
@@ -4142,6 +4157,7 @@
   }
   /** @type {[string, (el: HTMLElement) => unknown][]} vale o primeiro seletor que o clique acertar */
   const CLIQUES = [
+    ['#temaBtn', trocaTema],
     ['#splitSeg button', escolheAba],
     ['[data-resto]', poeResto],
     ['#restoIgual', divideResto],
@@ -4296,13 +4312,45 @@
         );
     caixa.focus();
   }
+  /** o aniversário da dívida, contado do último gasto em que a pessoa entrou (antes dele a conta dela não tinha
+   *  fechado): "🎂 hoje a dívida completa 12 dias", e ela cresce como bebê (mêsversário, aninho, escolinha).
+   *  Do mesmo dia não diz nada; o modo chato só diz há quanto tempo @param {string} quem */
+  function aniversario(quem) {
+    const at = Math.max(
+      0,
+      ...state.expenses.filter((e) => e.kind !== 'payment' && e.among.includes(quem)).map((e) => e.at),
+    );
+    const dias = at ? diasDesde(at) : 0;
+    if (dias <= 0) return '';
+    if (chato) return dias === 1 ? ', desde ontem' : `, há ${dias} dias`;
+    const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+    if (dias === 7) return '\n🎂 hoje a dívida completa 1 semana. já saiu da maternidade 🏥';
+    // meses de calendário: de 3/9 a 3/10 é um mês certinho
+    const a = new Date(at),
+      h = new Date();
+    const meses =
+      (h.getFullYear() - a.getFullYear()) * 12 + h.getMonth() - a.getMonth() - (h.getDate() < a.getDate() ? 1 : 0);
+    if (meses < 1) return `\n🎂 hoje a dívida completa ${plural(dias, 'dia', 'dias')}`;
+    // o dia 31 num mês de 30 vira o último dia dele
+    const fim = new Date(a.getFullYear(), a.getMonth() + meses + 1, 0).getDate(),
+      resto = diasDesde(new Date(a.getFullYear(), a.getMonth() + meses, Math.min(a.getDate(), fim)).getTime()),
+      anos = Math.floor(meses / 12);
+    if (meses === 12 && !resto) return '\n🎂🎉 hoje a dívida faz 1 aninho! já anda, já fala, só não se paga';
+    if (meses < 12 && !resto)
+      return `\n🎂 hoje é mêsversário da dívida: ${plural(meses, 'mês', 'meses')}${meses === 6 ? '. já tá comendo papinha 🥣' : ' 🎈'}`;
+    const tempo = anos
+      ? plural(anos, 'ano', 'anos') +
+        (meses % 12 ? ` e ${plural(meses % 12, 'mês', 'meses')}` : resto ? ` e ${plural(resto, 'dia', 'dias')}` : '')
+      : `${plural(meses, 'mês', 'meses')} e ${plural(resto, 'dia', 'dias')}`;
+    return `\n🎂 hoje a dívida completa ${tempo}${anos >= 2 ? '. já tá na escolinha 🎒' : ''}`;
+  }
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
     const [quem, cents] = el.dataset.cobra.split('|');
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`;
+    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);
     else abreZap(msg, tel || '');

@@ -5,6 +5,9 @@ antes de ele voltar pro papel. O comportamento (acende engasgando, falhas sortea
 é o mesmo do que está no ar hoje e mora no `app.js` (o neon do quite: `luzNeon`, `neonAnda`, `queima()`). Aqui só
 muda o CSS.
 
+nos temas escuros (neon e grafite, o `html[data-tema]` do `style.css`) o quite voltou pra QT, com a placa mais preta e
+um fio claro em volta pra destacar do papel escuro, e o tubo na cor do tema (`--acento`).
+
 ## QT · placa escura, tubo por dentro
 
 uma plaquinha escura e encardida colada no papel, com o tubo afastado da borda (`::before` com inset 7px) e o brilho

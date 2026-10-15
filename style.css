@@ -777,8 +777,10 @@ html[data-tema] .empty.vazio.quite{--neon:var(--acento);--apagado:#4a3e44;border
 /* o ✎ cheio na cor do tema e o compartilhar aceso nela (no escuro o amarelo claro sumia com o ícone claro) */
 html[data-tema] #fab.chamando{background:var(--acento);color:var(--paper);border-color:var(--paper);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
 html[data-tema] #waBtn.wafab{background:var(--card);color:var(--acento);border-color:var(--acento);box-shadow:0 0 8px color-mix(in srgb,var(--acento) 50%,transparent)}
-html[data-tema] #fab.chamando.vaza:not(:hover):not(:active){background:color-mix(in srgb,var(--acento) 50%,transparent);border-color:color-mix(in srgb,var(--paper) 70%,transparent)}
-html[data-tema] #waBtn.wafab.vaza:not(:hover):not(:active){background:color-mix(in srgb,var(--card) 40%,transparent)}
+html[data-tema] #fab.chamando.vaza:not(:hover):not(:active){background:color-mix(in srgb,var(--acento) 50%,transparent);border-color:color-mix(in srgb,var(--paper) 70%,transparent);box-shadow:none}
+/* o fundo escuro do compartilhar já é quase o papel: tirar o fundo não basta pra vazar como o ✎, então o ícone e a
+   borda apagam pela metade, sem o brilho */
+html[data-tema] #waBtn.wafab.vaza:not(:hover):not(:active){background:transparent;color:color-mix(in srgb,var(--acento) 55%,transparent);border-color:color-mix(in srgb,var(--acento) 55%,transparent);box-shadow:none}
 @media (hover:hover){html[data-tema] #fab:hover{background:color-mix(in srgb,var(--acento) 75%,#fff);color:var(--paper)}}
 html[data-tema] .queima .q-sombra{stroke:var(--card)} html[data-tema] .queima .q-vidro{stroke:#3a3236} html[data-tema] .queima .q-ponta{stroke:#000}
 /* neon: papel roxo-preto, títulos e valores acesos, réguas com um fio de luz */

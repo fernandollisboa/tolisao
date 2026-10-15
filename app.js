@@ -2412,6 +2412,8 @@
     [20, [30, 46], [14.3, 18.5], 1],
     [6, [78, 120], [7.2, 10], 1],
   ];
+  // a lateral da ficha que vira, em facetas (o style.css monta o anel)
+  const FACETAS = Array.from({ length: 14 }, (_, k) => `<i style="--k:${k}"></i>`).join('');
   const CORES_CHUVA = ['', 'quite', 'ouro', 'deve']; // âmbar, rosa, dourada e vermelha
   /** as fichas da chuva, sempre as mesmas (sorteio de semente fixa): o preview não muda à toa */
   function fichasDaChuva() {
@@ -2432,7 +2434,11 @@
           // as do fundo não viram de lado: de perfil, miúdas, viram um risquinho
           vira = k && r() < 0.4 ? 360 : 0,
           cor = CORES_CHUVA[Math.floor(r() * CORES_CHUVA.length)];
-        return `<img class="fichinha ${cor}" src="diva.png" alt="" style="--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}">`;
+        const estilo = `--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}`;
+        // a que vira de lado ganha espessura (duas caras e a lateral em facetas): de perfil ela não some
+        if (vira)
+          return `<span class="fichinha moeda ${cor}" style="${estilo}"><img src="diva.png" alt=""><img src="diva.png" alt="">${FACETAS}</span>`;
+        return `<img class="fichinha ${cor}" src="diva.png" alt="" style="${estilo}">`;
       });
     }).join('');
   }

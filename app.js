@@ -52,6 +52,19 @@
   // Minha conta. Desligado pra todo mundo: o cobrar abre o zap direto, na conversa se o número já está guardado,
   // senão na escolha de contato. Liga no aparelho com ?numerozap (fica lembrado; ?numerozap=0 desliga)
   const NUMERO_ZAP = false;
+  // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
+  // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
+  const GALERA = false;
+  // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
+  // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema
+  // escuro, o html ganha data-tema e o style.css redefine as cores. Tema novo: entra aqui, no BARRA e no style.css
+  const TEMA = '';
+  const TEMAS = [
+    ['', 'papel'],
+    ['neon', 'neon'],
+    ['grafite', 'grafite'],
+    ['auto', 'celular'],
+  ];
   const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
@@ -98,13 +111,14 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, naoConta,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, tema, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; tema: o tema escolhido no pé da nota;
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -418,6 +432,47 @@
     if (q.has('numerozap')) setDevice('numeroZapOn', q.get('numerozap') === '0' ? undefined : true);
   })();
   const temNumeroZap = () => NUMERO_ZAP || device().numeroZapOn === true;
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('galera')) setDevice('galeraOn', q.get('galera') === '0' ? undefined : true);
+  })();
+  const temGalera = () => GALERA || device().galeraOn === true;
+  const celularEscuro = matchMedia('(prefers-color-scheme: dark)');
+  /** o tema que a pessoa escolheu, um dos de TEMAS */
+  const temaEscolhido = () => {
+    const t = device().tema || TEMA;
+    return TEMAS.some(([id]) => id === t) ? t : '';
+  };
+  /** o tema de agora: '' é o papel; o celular vira o neon ou o papel */
+  const tema = () => {
+    const t = temaEscolhido();
+    return t === 'auto' ? (celularEscuro.matches ? 'neon' : '') : t;
+  };
+  const temEscuro = () => tema() !== '';
+  const BARRA = { '': '#6b4a2b', neon: '#0c0912', grafite: '#160f0b' };
+  /** liga o tema no html, na barra do navegador e no botão do pé da nota; vale já, antes do primeiro render */
+  const aplicaTema = () => {
+    const t = tema(),
+      nome = TEMAS.find(([id]) => id === temaEscolhido())?.[1];
+    if (t) document.documentElement.dataset.tema = t;
+    else delete document.documentElement.dataset.tema;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BARRA[t]);
+    const rotulo = document.querySelector('#temaBtn span');
+    if (rotulo) rotulo.textContent = `tema: ${nome}`;
+  };
+  /** o toque no tema: vai pro próximo da lista, e a nota se repinta com as cores de gente do tema novo */
+  const trocaTema = () => {
+    const i = TEMAS.findIndex(([id]) => id === temaEscolhido());
+    setDevice('tema', TEMAS[(i + 1) % TEMAS.length][0] || undefined);
+    aplicaTema();
+    render();
+  };
+  aplicaTema();
+  // o celular trocou de claro pra escuro (ou o contrário): no auto, a nota se repinta, as cores de gente junto
+  celularEscuro.addEventListener('change', () => {
+    aplicaTema();
+    render();
+  });
   /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
    *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
    *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
@@ -646,7 +701,7 @@
     if (!ehIgual(e)) return e.among.map((id) => `${name(id)} ${reais(e.shares[id] || 0)}`).join(', ');
     if (loan) return `${e.among.map(name).join(', ')} deve${e.among.length === 1 ? '' : 'm'} tudo`;
     if (!html) return `÷${e.among.length}`;
-    return `<a class="link" data-among="${e.id}" title="ver quem">÷${e.among.length}</a><span class="who"> (${e.among.map(name).join(', ')})</span>`;
+    return `÷${e.among.length}<span class="who"> (${e.among.map(name).join(', ')})</span>`;
   };
   /** @returns {Record<string, number>} saldo em centavos por pessoa (positivo = a receber) */
   /** @param {Room} s */
@@ -715,6 +770,19 @@
     '#751742',
     '#0050b2',
   ]; // matizes afastados entre si e longe do vermelho/verde (deve/recebe) e do âmbar dos botões
+  // no modo escuro: os mesmos matizes com mais luz (em oklab), pra ler no papel escuro
+  const PALETTE_ESCURO = [
+    '#e6a594',
+    '#82c4cc',
+    '#cb99ff',
+    '#f591d0',
+    '#67acff',
+    '#6ebeff',
+    '#ff73ff',
+    '#bcabf1',
+    '#fe90b7',
+    '#6bb7ff',
+  ];
   // marca-texto: os mesmos matizes da PALETTE, bem mais firmes. No recibo em png o papel é
   // mais escuro e o zap ainda comprime: tom claro sumia no fundo (o de Fernando ficava a 10 dele).
   const MARKR = [
@@ -741,13 +809,13 @@
   /** @param {number} i */
   const matiz = (i) => (182 + (((i - PALETTE.length) * 0.618033988749895) % 1) * 153).toFixed(2);
   /** a cor de quem está na posição i @param {number} i */
-  const corDe = (i) => (i < PALETTE.length ? PALETTE[i] : `hsl(${matiz(i)} 55% ${[40, 31, 48][i % 3]}%)`);
+  const corDe = (i) => {
+    const [cores, sat, luz] = temEscuro() ? [PALETTE_ESCURO, 70, [72, 64, 79]] : [PALETTE, 55, [40, 31, 48]];
+    return i < cores.length ? cores[i] : `hsl(${matiz(i)} ${sat}% ${luz[i % 3]}%)`;
+  };
   /** o marca-texto de quem está na posição i @param {number} i */
   const forteDe = (i) => (i < MARKR.length ? MARKR[i] : `hsl(${matiz(i)} 80% ${[72, 64, 79][i % 3]}%)`);
   const colorOf = (id) => corDe(indiceDaPessoa(id));
-  // o emoji da conta fechada varia, mas não pisca a cada render: sai do evento e do dia
-  const FESTA = ['🎉', '🙌', '🙏', '❣️', '🥂', '✨'];
-  const festeja = () => FESTA[hash32((groupId || '') + new Date().toDateString()) % FESTA.length];
   const markForte = (id) => forteDe(indiceDaPessoa(id)); // o mesmo tom, firme: recibo em png e a volta da caneta
   /** o nome da pessoa, na cor dela, pronto pra innerHTML */
   const nomeHtml = (id) => `<span class="nm" style="color:${colorOf(id)}">${esc(nameOf(id))}</span>`;
@@ -790,6 +858,9 @@
     tocouOk: false, // tocou num ✔ ou copiar pix: o convite da piscada já foi respondido
     natal: null, // pisca-pisca de natal dessa vez: o sorteio de atraso de cada linha, ou null
     suave: false, // quem já conhece a linha dos itens ganha só um toquinho na setinha
+    /** @type {{ pts: number[][], ms: number, t0: number } | null} */
+    falha: null, // a falha do neon do quite que está rolando
+    falhaEm: 0, // quando vem a próxima
   });
   let anim = novaNota();
   const RISCO_MS = 550,
@@ -1350,8 +1421,9 @@
   const temMe = () => !!me && state.people.some((p) => p.id === me);
   /** quem eu sou nos meus outros eventos (lido ao abrir este): a turma trazida leva os mesmos ids @type {Set<string>} */
   let meusIds = new Set();
-  /** quem não disse quem é ganha um palpite de um toque: a pessoa que eu já sou em outro evento
-   *  (mesmo id) ou, sem ela, a do último nome que escolhi. Só palpite: dois ids batendo, nada */
+  /** quem eu devo ser aqui, pelo que o aparelho sabe: a pessoa que eu já sou em outro evento (mesmo id) ou,
+   *  sem ela, a do último nome que escolhi. Dois ids batendo, nada. Ao abrir, o palpite já vira escolha;
+   *  a gente que chega depois, no sync, ganha o "você é Fulano?" de um toque no cabeçalho */
   function palpite() {
     if (temMe()) return null;
     const porId = state.people.filter((p) => meusIds.has(p.id));
@@ -1392,6 +1464,7 @@
       .reverse();
     const nMeus = acerto.filter((t) => t.from === me).length;
 
+    viraQuite(hasMe, bal);
     renderCabecalho(hasMe, bal, allEven);
     renderChegada(hasMe);
     if (hasMe && !vazio) renderMinha(bal, acerto);
@@ -1405,6 +1478,31 @@
     renderAcerto(hasMe, acerto, pays, nMeus);
     renderItens();
     atualizaBolinha();
+  }
+  // a minha conta zerou com a página aberta: a nota se arruma de cima pra baixo, a caixa do quite, a linha dos itens,
+  // o título (que se reescreve à máquina) e as linhas do Falta pagar. Quem quitou espera o cartão do Quitado! fechar.
+  // A caixa e as linhas são refeitas a cada sync: o --vq (quanto já passou) retoma a animação de onde estava
+  let virou = { nota: '', bal: 0, pendente: false, em: 0 };
+  function viraQuite(hasMe, bal) {
+    const nota = `${groupId}|${me}`,
+      app = $('#app');
+    if (virou.nota !== nota) {
+      virou = { nota, bal, pendente: false, em: 0 };
+      return app.classList.remove('virou');
+    }
+    if (hasMe && bal === 0 && virou.bal !== 0) virou.pendente = true;
+    virou.bal = bal;
+    // atrás do cartão a nota nova fica escondida: ela entra quando ele fecha
+    app.classList.toggle('vaiVirar', virou.pendente && !semMovimento());
+    if (virou.pendente && semCartao() && !seguraRisco && !semMovimento()) {
+      virou.pendente = false;
+      virou.em = Date.now();
+      app.classList.remove('vaiVirar');
+      app.classList.remove('virou');
+      void app.offsetWidth; // tirar e pôr no mesmo quadro recomeça as animações de quem não é refeito
+      app.classList.add('virou');
+    }
+    app.style.setProperty('--vq', `${virou.em - Date.now()}ms`);
   }
   /** o nome do evento, o "Sou Fulano", o subtítulo e a frase do rodapé */
   function renderCabecalho(hasMe, bal, allEven) {
@@ -1429,7 +1527,12 @@
     if ($('#whoBtn')) $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
     if ($('#whoSugere')) $('#whoSugere').onclick = () => souEu($('#whoSugere').dataset.quem);
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
-    if ($('#signoff')) $('#signoff').textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
+    const frase = $('#signoff');
+    // todo mundo quite: a frase do rodapé é o convite pro próximo rolê
+    if (frase && !chato && allEven && hasMe)
+      frase.innerHTML =
+        '<a class="link" id="proxRole" role="button" tabindex="0">Zerou. Bora abrir outra, meu bem?</a>';
+    else if (frase) frase.textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
   }
   /** um botão por pessoa, numa cápsula com contorno e pontinho na cor dela, com o id em data-<attr>
    *  @param {Person[]} gente @param {string} attr */
@@ -1477,7 +1580,6 @@
       f.classList.toggle('recebe', hasMe && bal > 0);
       f.classList.toggle('quite', hasMe && bal === 0);
     }
-    $('#app').classList.toggle('souQuite', hasMe && bal === 0 && !semConta); // sem as réguas em volta dos itens
     // todo mundo quite já é dito em Minha conta: o Falta pagar vira os últimos pagamentos, e some se não tem nenhum
     const semAcerto = (allEven && !temPago) || chegando;
     trocaTituloAcerto(allEven ? 'Pagamentos' : 'Falta pagar');
@@ -1510,7 +1612,7 @@
       tituloAcerto = { nome, sala: groupId || '', t: 0 };
       return seco();
     }
-    if (!semCartao()) return;
+    if (!semCartao() || seguraRisco) return;
     tituloAcerto.nome = nome;
     // a palavra mais larga segura o lugar, pra os *** não andarem a cada letra
     let txt = el.textContent || '';
@@ -1527,7 +1629,8 @@
       // apaga de enfiada, como quem segura a tecla; escreve no ritmo de gente
       tituloAcerto.t = setTimeout(passo, apaga ? (txt ? 45 : 300) : 70 + Math.random() * 70);
     };
-    tituloAcerto.t = setTimeout(passo, 250);
+    // na passagem pro quite, espera o título chegar na cascata
+    tituloAcerto.t = setTimeout(passo, $('#app').classList.contains('virou') ? 650 : 250);
   }
   /** o convite da linha dos itens pega a vez entre Minha conta e o Falta pagar, como na
    *  página. Com cartão aberto ele espera: os itens aparecem por trás e o convite furava a
@@ -1681,11 +1784,121 @@
     // ainda devendo, o recado leva o nome: quite é a pessoa, não o evento
     $('#mineRows').innerHTML =
       (bal === 0
-        ? `<div class="empty vazio quite">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} ${festeja()}${acerto.length ? '' : '<br><button type="button" class="ghost" id="proxRole">bora pro próximo rolê?</button>'}</div>`
+        ? `<div class="empty vazio quite" style="${neonEstilo()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} 💅${queima()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +
       (bal > 0 && temAviso() ? botaoAviso() : '');
+    neonAnda();
+  }
+  // o neon do quite: o tubo acende engasgando quando Minha conta pega a vez (ou quando a caixa cai, na passagem pro
+  // quite) e, aceso, falha de tempos em tempos, sorteando o jeito e a hora. A luz é um relógio só, fora da caixa: o
+  // sync refaz a caixa e ela segue de onde estava. Cada ponto é [quando, de 0 a 1; luz do tubo; luz do letreiro, que
+  // sem ela é a do tubo]. Acima de 1 é o estalo, que clareia e espalha o brilho
+  // o trecho queimado vai e volta pelo tubo (o vaivem do style.css, 16 s cada ida): o atraso negativo vem do relógio,
+  // pra caixa refeita a cada sync seguir de onde estava
+  const VAIVEM_MS = 32000;
+  const queima = () =>
+    `<svg class="queima" aria-hidden="true">${['sombra', 'vidro', 'ponta']
+      .map(
+        (c) =>
+          `<rect class="q-${c}" width="100%" height="100%" rx="3" pathLength="100" style="animation-delay:-${Date.now() % VAIVEM_MS}ms"/>`,
+      )
+      .join('')}</svg>`;
+  const ACENDE_MS = 1900,
+    CAI_MS = 400, // a caixa caindo na passagem pro quite (o vira do style.css): acende depois que pousa
+    FALHA_MIN = 4000,
+    FALHA_MAX = 16000;
+  /** a curva em texto, "quando tubo [letreiro]" separados por vírgula @param {string} txt @returns {number[][]} */
+  const curva = (txt) => txt.split(',').map((p) => p.trim().split(' ').map(Number));
+  const ACENDE = curva('0 0, .08 0, .09 .7, .11 0, .3 0, .31 .45, .33 .9, .35 .1, .48 .1, .5 1, .54 .6, .56 1, 1 1');
+  const sorte = (/** @type {number} */ a, /** @type {number} */ b) => a + Math.random() * (b - a);
+  /** @type {(() => { pts: number[][], ms: number })[]} */
+  const FALHAS = [
+    // apagão: some de vez por um tempo e volta aos trancos
+    () => {
+      const z = sorte(0.35, 0.55),
+        d = (/** @type {number} */ x) => (z + x).toFixed(3);
+      return {
+        ms: sorte(2200, 3400),
+        pts: curva(
+          `0 1, .03 .1, .05 .6, .07 0, ${d(0)} 0, ${d(0.04)} .5, ${d(0.06)} 0, ${d(0.16)} 0, ${d(0.18)} .8, ${d(0.21)} .2, ${d(0.27)} 1, 1 1`,
+        ),
+      };
+    },
+    // estalo: sobrecarga, cai pra meia-luz e volta zumbindo
+    () => ({
+      ms: sorte(1800, 2600),
+      pts: curva('0 1, .03 2.4, .06 1.7, .09 2.2, .13 .12, .4 .35, .55 .25, .7 .6, .8 .5, 1 1'),
+    }),
+    // só o letreiro apaga, o tubo segura
+    () => ({
+      ms: sorte(900, 1800),
+      pts: curva('0 1 1, .05 1 0, .1 1 .7, .14 1 0, .75 1 0, .8 1 .6, .84 1 .1, .9 1 1, 1 1 1'),
+    }),
+    // só o tubo apaga, o letreiro segura
+    () => ({
+      ms: sorte(900, 1800),
+      pts: curva('0 1 1, .05 0 1, .1 .7 1, .14 0 1, .7 0 1, .76 .8 1, .8 .15 1, .9 1 1, 1 1 1'),
+    }),
+    // engasgo: duas a quatro piscadas, cada uma num fundo e numa volta diferente (vale dois no sorteio)
+    ...Array(2).fill(() => {
+      const pts = [[0, 1]];
+      let o = 0;
+      for (let i = 2 + Math.floor(sorte(0, 3)); i > 0; i--) {
+        o += sorte(0.08, 0.25);
+        pts.push([Math.min(o, 0.9), sorte(0, 0.45)]);
+        o += sorte(0.04, 0.12);
+        pts.push([Math.min(o, 0.95), sorte(0.6, 1)]);
+      }
+      pts.push([1, 1]);
+      return { ms: sorte(450, 900), pts };
+    }),
+  ];
+  /** a luz no ponto f da curva: [tubo, letreiro] @param {number[][]} pts @param {number} f @returns {[number, number]} */
+  const luzEm = (pts, f) => {
+    const k = pts.findIndex((p) => p[0] >= f) || 1, // f fica abaixo de 1: sempre acha
+      [o0, a0, b0 = a0] = pts[k - 1],
+      [o1, a1, b1 = a1] = pts[k],
+      x = o1 > o0 ? (f - o0) / (o1 - o0) : 1;
+    return [a0 + (a1 - a0) * x, b0 + (b1 - b0) * x];
+  };
+  const neon = { quadro: 0, espera: 0 };
+  /** a luz agora e quando olhar de novo (Infinity: só no próximo render) @param {number} t */
+  function luzNeon(t) {
+    if (semMovimento()) return { l: [1, 1], prox: Infinity };
+    // Minha conta ainda não chegou na tela: o tubo espera apagado
+    if (anim.mine <= 0) return { l: [0, 0], prox: Infinity };
+    const a = Math.max(anim.mine, virou.em + CAI_MS);
+    if (t < a) return { l: [0, 0], prox: a };
+    if (t < a + ACENDE_MS) return { l: luzEm(ACENDE, (t - a) / ACENDE_MS), prox: t };
+    const f = anim.falha;
+    if (f && t < f.t0 + f.ms) return { l: luzEm(f.pts, (t - f.t0) / f.ms), prox: t };
+    if (!anim.falhaEm || f) {
+      anim.falha = null;
+      anim.falhaEm = Math.max(t, a + ACENDE_MS) + sorte(FALHA_MIN, FALHA_MAX);
+    }
+    if (t < anim.falhaEm) return { l: [1, 1], prox: anim.falhaEm };
+    anim.falha = { ...FALHAS[Math.floor(Math.random() * FALHAS.length)](), t0: t };
+    return luzNeon(t);
+  }
+  const neonEstilo = () => {
+    const [l, lt] = luzNeon(Date.now()).l;
+    return `--luz:${l};--luzT:${lt}`;
+  };
+  /** um quadro do neon: pinta a caixa de agora e marca o próximo. Sem caixa (a conta não está quite), para */
+  function neonAnda() {
+    cancelAnimationFrame(neon.quadro);
+    clearTimeout(neon.espera);
+    const el = /** @type {HTMLElement | null} */ (document.querySelector('#mineRows .vazio.quite'));
+    if (!el) return;
+    const t = Date.now(),
+      { l, prox } = luzNeon(t);
+    el.style.setProperty('--luz', String(l[0]));
+    el.style.setProperty('--luzT', String(l[1]));
+    if (prox === Infinity) return;
+    if (prox <= t) neon.quadro = requestAnimationFrame(neonAnda);
+    else neon.espera = setTimeout(neonAnda, prox - t);
   }
   /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */
   const botaoTrocaZap = (recebe) => {
@@ -1725,7 +1938,7 @@
       });
     const n = meus.length || recebe;
     const fim = !n
-      ? 0
+      ? ACENDE_MS // quite: o neon acendendo
       : (n - 1) * PISCA_GAP +
         (!meus.length ? COBRA_MS + BROTA_MS : anim.natal ? FECHO_EM + FECHO_JIT + FECHO_MS : PISCA_MS);
     anim.mine = agenda(n ? (n - 1) * PISCA_GAP + PISCA_LEAD : 0, fim);
@@ -2438,6 +2651,32 @@
       }
     };
   }
+  /** o nome do jeito que a busca compara: minúsculo e sem acento */
+  const buscaNome = (t) =>
+    t
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  /** a galera de sempre: quem aparece nos meus eventos (a cópia do aparelho), uma vez por nome, quem
+   *  vem em mais eventos primeiro. Quem já está neste evento fica de fora @returns {Person[]} */
+  function galeraDeSempre() {
+    /** @type {Map<string, { p: Person, n: number, at: number }>} */ const vistos = new Map();
+    for (const e of meusEventos()) {
+      if (e.id === groupId || !e.snap) continue;
+      for (const p of e.snap.people) {
+        const k = buscaNome(p.name),
+          v = vistos.get(k);
+        if (!v) vistos.set(k, { p, n: 1, at: e.at });
+        else v.n++; // a lista vem do mais novo: o id que fica é o do evento mais recente
+      }
+    }
+    return [...vistos.values()]
+      .filter(({ p }) => !nomeExiste(p.name) && !state.people.some((x) => x.id === p.id))
+      .sort((a, b) => b.n - a.n || b.at - a.at)
+      .slice(0, 12)
+      .map(({ p }) => p);
+  }
   /** a bolinha da pessoa: só a cor dela, sem letra */
   const bolinha = (p) => `<span class="bola" style="background:${colorOf(p.id)}"></span>`;
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
@@ -2459,6 +2698,15 @@
       : meusEventos()
           .filter((e) => e.id !== groupId && e.snap && e.snap.people.length)
           .slice(0, 3);
+    const galera = temGalera() ? galeraDeSempre() : [];
+    const chipsGalera = galera.length
+      ? `<div class="c muted recado" style="text-transform:none">a galera de sempre</div><div class="chips galera">${galera
+          .map(
+            (p) =>
+              `<button class="chip" data-galera="${p.id}" data-busca="${esc(buscaNome(p.name))}" style="--cor:${corDe(n)}"><span class="bola">+</span>${esc(p.name)}</button>`,
+          )
+          .join('')}</div>`
+      : '';
     const trazer = turmas.length
       ? `<div class="hr"></div><div class="c muted recado" style="text-transform:none">ou traga a turma de</div><div class="evs turmas">${turmas
           .map(
@@ -2472,7 +2720,7 @@
       ${list}
       <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${corDe(n)}">
         <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
-      <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${trazer}
+      <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${chipsGalera}${trazer}
       <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
       <div class="c voltar"><button id="setupLeave" class="ghost">fechar</button></div>`,
     );
@@ -2491,6 +2739,10 @@
       const tem = !!$('#setupName').value.trim();
       $('#setupForm').classList.toggle('digitando', tem);
       $('#setupGo').disabled = !state.people.length && !tem;
+      // digitando, a galera fica só com quem bate com o começo do nome
+      const busca = buscaNome($('#setupName').value);
+      for (const b of inputs('#overlayBox [data-galera]'))
+        b.hidden = !!busca && !(b.dataset.busca || '').split(' ').some((w) => w.startsWith(busca));
     };
     // tocar no nome deixa editar ali mesmo: enter ou sair da caixa grava; vazio ou repetido volta ao que era
     for (const el of inputs('#overlayBox [data-renome]')) {
@@ -2529,6 +2781,17 @@
       b.onclick = () => {
         state.people = state.people.filter((p) => p.id !== b.dataset.drop);
         state.deleted.push(b.dataset.drop);
+        commit();
+        showSetup();
+      };
+    // quem vem da galera é a mesma pessoa dos outros eventos; tirada deste aqui antes, volta com id novo
+    // (o deleted não deixa o id voltar)
+    for (const b of inputs('#overlayBox [data-galera]'))
+      b.onclick = () => {
+        const p = galera.find((x) => x.id === b.dataset.galera);
+        if (!p || nomeExiste(p.name)) return showSetup();
+        $('#setupName').value = '';
+        state.people.push({ id: state.deleted.includes(p.id) ? uid() : p.id, name: p.name, at: Date.now() });
         commit();
         showSetup();
       };
@@ -2862,7 +3125,13 @@
     const quem = quemDoLink;
     quemDoLink = null;
     if (!me && quem && state.people.some((p) => p.id === quem)) souEu(quem);
-    // ninguém é interrompido na chegada: a tela de estreia e o "quem é você?"
+    // sem o &quem=, o aparelho que já sabe quem eu sou (o palpite) entra como essa pessoa: perguntar o que ele
+    // já sabe era o cabeçalho e a nota fazendo a mesma pergunta. O "Sou Fulano" do topo troca num toque
+    else if (!temMe()) {
+      const sug = palpite();
+      if (sug) souEu(sug.id);
+    }
+    // ninguém é interrompido na chegada: sem palpite, a tela de estreia e o "quem é você?"
     // esperam o toque no botão do cabeçalho
     startPolling();
     sync();
@@ -3894,12 +4163,12 @@
   }
   /** @type {[string, (el: HTMLElement) => unknown][]} vale o primeiro seletor que o clique acertar */
   const CLIQUES = [
+    ['#temaBtn', trocaTema],
     ['#splitSeg button', escolheAba],
     ['[data-resto]', poeResto],
     ['#restoIgual', divideResto],
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
     ['#settle .empty.anota', () => $('#fab').click()],
-    ['[data-among]', (el) => abreItem(el.closest('.item'))],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
@@ -3920,7 +4189,8 @@
   ];
   document.addEventListener('click', (ev) => {
     const tgt = /** @type {HTMLElement} */ (ev.target);
-    // tocar na linha de um item, fora dos botões dela, abre os detalhes (item apagado não abre)
+    // o item inteiro é um gatilho só: tocar em qualquer parte dele, fora dos botões, abre ou fecha os detalhes
+    // (item apagado não abre)
     if (!tgt.closest('a,button,input,label')) {
       const it = /** @type {HTMLElement|null} */ (tgt.closest('.item[data-item]'));
       if (it) abreItem(it);
@@ -4048,13 +4318,45 @@
         );
     caixa.focus();
   }
+  /** o aniversário da dívida, contado do último gasto em que a pessoa entrou (antes dele a conta dela não tinha
+   *  fechado): "🎂 hoje a dívida completa 12 dias", e ela cresce como bebê (mêsversário, aninho, escolinha).
+   *  Do mesmo dia não diz nada; o modo chato só diz há quanto tempo @param {string} quem */
+  function aniversario(quem) {
+    const at = Math.max(
+      0,
+      ...state.expenses.filter((e) => e.kind !== 'payment' && e.among.includes(quem)).map((e) => e.at),
+    );
+    const dias = at ? diasDesde(at) : 0;
+    if (dias <= 0) return '';
+    if (chato) return dias === 1 ? ', desde ontem' : `, há ${dias} dias`;
+    const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+    if (dias === 7) return '\n🎂 hoje a dívida completa 1 semana. já saiu da maternidade 🏥';
+    // meses de calendário: de 3/9 a 3/10 é um mês certinho
+    const a = new Date(at),
+      h = new Date();
+    const meses =
+      (h.getFullYear() - a.getFullYear()) * 12 + h.getMonth() - a.getMonth() - (h.getDate() < a.getDate() ? 1 : 0);
+    if (meses < 1) return `\n🎂 hoje a dívida completa ${plural(dias, 'dia', 'dias')}`;
+    // o dia 31 num mês de 30 vira o último dia dele
+    const fim = new Date(a.getFullYear(), a.getMonth() + meses + 1, 0).getDate(),
+      resto = diasDesde(new Date(a.getFullYear(), a.getMonth() + meses, Math.min(a.getDate(), fim)).getTime()),
+      anos = Math.floor(meses / 12);
+    if (meses === 12 && !resto) return '\n🎂🎉 hoje a dívida faz 1 aninho! já anda, já fala, só não se paga';
+    if (meses < 12 && !resto)
+      return `\n🎂 hoje é mêsversário da dívida: ${plural(meses, 'mês', 'meses')}${meses === 6 ? '. já tá comendo papinha 🥣' : ' 🎈'}`;
+    const tempo = anos
+      ? plural(anos, 'ano', 'anos') +
+        (meses % 12 ? ` e ${plural(meses % 12, 'mês', 'meses')}` : resto ? ` e ${plural(resto, 'dia', 'dias')}` : '')
+      : `${plural(meses, 'mês', 'meses')} e ${plural(resto, 'dia', 'dias')}`;
+    return `\n🎂 hoje a dívida completa ${tempo}${anos >= 2 ? '. já tá na escolinha 🎒' : ''}`;
+  }
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
     const [quem, cents] = el.dataset.cobra.split('|');
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`;
+    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);
     else abreZap(msg, tel || '');

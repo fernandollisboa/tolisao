@@ -122,6 +122,8 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
    cada aparelho desenhava com a fonte que tinha, baixo e torto. Sem caixinha: a linha
    inteira já é o botão */
 #itemsHead .l{display:flex;align-items:center;gap:9px}
+/* dentro da moldura o pontilhado da nota fazia o botão parecer uma linha de item: fica só o espaço */
+#itemsHead .d{visibility:hidden}
 #itemsCaret{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:24px}
 #itemsCaret span{display:block;transition:transform .22s cubic-bezier(.3,1.4,.5,1)}
 #itemsCaret svg{display:block;width:16px;height:16px;overflow:visible}

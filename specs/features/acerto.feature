@@ -101,11 +101,14 @@ Funcionalidade: Acertar as contas
 
   Cenário: cobrar no zap quem me deve
     O link da cobrança já entra como quem deve: a pessoa abre e cai na própria conta.
+    A dívida faz aniversário: conta do último gasto em que a pessoa entrou, que é quando a conta dela fechou.
+    Dado que o último gasto foi anotado há 12 dias
     Quando eu abro o evento como Fernando
     E eu cobro a Mengla no zap
     Então o zap abre com a mensagem:
       """
       💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
+      🎂 hoje a dívida completa 12 dias
 
       {site}/fiado/?evento=bailedamada&quem=mengla
       """

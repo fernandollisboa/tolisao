@@ -4312,13 +4312,45 @@
         );
     caixa.focus();
   }
+  /** o aniversário da dívida, contado do último gasto em que a pessoa entrou (antes dele a conta dela não tinha
+   *  fechado): "🎂 hoje a dívida completa 12 dias", e ela cresce como bebê (mêsversário, aninho, escolinha).
+   *  Do mesmo dia não diz nada; o modo chato só diz há quanto tempo @param {string} quem */
+  function aniversario(quem) {
+    const at = Math.max(
+      0,
+      ...state.expenses.filter((e) => e.kind !== 'payment' && e.among.includes(quem)).map((e) => e.at),
+    );
+    const dias = at ? diasDesde(at) : 0;
+    if (dias <= 0) return '';
+    if (chato) return dias === 1 ? ', desde ontem' : `, há ${dias} dias`;
+    const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+    if (dias === 7) return '\n🎂 hoje a dívida completa 1 semana. já saiu da maternidade 🏥';
+    // meses de calendário: de 3/9 a 3/10 é um mês certinho
+    const a = new Date(at),
+      h = new Date();
+    const meses =
+      (h.getFullYear() - a.getFullYear()) * 12 + h.getMonth() - a.getMonth() - (h.getDate() < a.getDate() ? 1 : 0);
+    if (meses < 1) return `\n🎂 hoje a dívida completa ${plural(dias, 'dia', 'dias')}`;
+    // o dia 31 num mês de 30 vira o último dia dele
+    const fim = new Date(a.getFullYear(), a.getMonth() + meses + 1, 0).getDate(),
+      resto = diasDesde(new Date(a.getFullYear(), a.getMonth() + meses, Math.min(a.getDate(), fim)).getTime()),
+      anos = Math.floor(meses / 12);
+    if (meses === 12 && !resto) return '\n🎂🎉 hoje a dívida faz 1 aninho! já anda, já fala, só não se paga';
+    if (meses < 12 && !resto)
+      return `\n🎂 hoje é mêsversário da dívida: ${plural(meses, 'mês', 'meses')}${meses === 6 ? '. já tá comendo papinha 🥣' : ' 🎈'}`;
+    const tempo = anos
+      ? plural(anos, 'ano', 'anos') +
+        (meses % 12 ? ` e ${plural(meses % 12, 'mês', 'meses')}` : resto ? ` e ${plural(resto, 'dia', 'dias')}` : '')
+      : `${plural(meses, 'mês', 'meses')} e ${plural(resto, 'dia', 'dias')}`;
+    return `\n🎂 hoje a dívida completa ${tempo}${anos >= 2 ? '. já tá na escolinha 🎒' : ''}`;
+  }
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
     const [quem, cents] = el.dataset.cobra.split('|');
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${pix}\n\n${shareUrl(quem)}`;
+    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);
     else abreZap(msg, tel || '');

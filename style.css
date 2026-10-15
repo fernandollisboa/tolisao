@@ -326,6 +326,8 @@ form{display:grid;gap:10px}
 #expenseForm .fixo{justify-self:start;text-transform:none} /* o gasto que volta todo mês */
 .muted{color:var(--muted);font-size:17px}
 .status{font-size:15px;color:var(--muted);text-transform:uppercase;text-align:center;margin-top:6px}
+/* o tema, no pé da nota: cada toque troca pro próximo */
+.tema{margin-top:8px;font-size:15px;text-transform:uppercase} #temaBtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer}
 .status:empty{display:none}
 .status.err{color:var(--red)}
 .hidden{display:none !important}
@@ -761,7 +763,7 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 #instalar{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:var(--amber);color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--sombra)}
 /* sem o quem é você no cabeçalho, o ponto do lado do evento sai junto */
 #eventLine .sep:has(+ #whoLine:empty){display:none}
-/* os temas escuros (#285, protótipo atrás do ?tema): o html ganha data-tema e as cores viram noite. Os dois dividem o
+/* os temas escuros (#285, o "tema:" do pé da nota): o html ganha data-tema e as cores viram noite. Os dois dividem o
    que é de escuro (o neon do quite com o letreiro claro da PT, docs/neon-escuro.md); cada um tem a sua paleta */
 html[data-tema] .paper{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
 html[data-tema] .empty.vazio{box-shadow:3px 3px 0 rgba(0,0,0,.35)}

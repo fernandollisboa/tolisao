@@ -83,3 +83,17 @@ Then('o {string} no banco não tem mais a chave pix da/do {word}', async ({ mund
   const sala = salaDe(mundo, nome);
   expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe('');
 });
+
+// o tema: o botão do pé da nota, e o claro/escuro do celular
+When('eu toco no tema', async ({ mundo }) => { await mundo.p.click('#temaBtn'); });
+When('eu toco no tema {int} vezes', async ({ mundo }, n) => { for (let i = 0; i < n; i++) await mundo.p.click('#temaBtn'); });
+When('o celular passa pro escuro', async ({ mundo }) => { await mundo.p.emulateMedia({ colorScheme: 'dark' }); });
+When('o celular volta pro claro', async ({ mundo }) => { await mundo.p.emulateMedia({ colorScheme: 'light' }); });
+Then('o pé da nota diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#temaBtn')).toHaveText(txt); });
+// claro ou escuro pela luz do papel do recibo, do jeito que a pessoa vê
+const luzDoPapel = (p) => p.locator('#app').evaluate(el => {
+  const [r, g, b] = getComputedStyle(el).backgroundColor.match(/\d+/g).map(Number);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+});
+Then('o recibo é claro', async ({ mundo }) => { await expect.poll(() => luzDoPapel(mundo.p)).toBeGreaterThan(0.6); });
+Then('o recibo é escuro', async ({ mundo }) => { await expect.poll(() => luzDoPapel(mundo.p)).toBeLessThan(0.2); });

@@ -36,7 +36,7 @@
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
-  const QUITADO_DIAS = 15; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
+  const QUITADO_DIAS = 7; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
   const AVISO_PUSH = true; // quem recebe liga o aviso no celular, e todo pagamento marcado cutuca a API
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no

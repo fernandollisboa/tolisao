@@ -3,7 +3,7 @@
 Divisor de gastos entre amigos: racha a conta e anota quem deve, sem aplicativo e sem cadastro. É um site estático (HTML, CSS e JavaScript, sem build) publicado em [tolisa.com.br](https://tolisa.com.br/), com os dados no Firebase Realtime Database.
 
 <p align="center">
-  <img src="docs/readme/passeio.gif" width="300" alt="A Lia chega pelo link, escolhe o nome, abre os itens, quita a dívida com a Júlia e a nota vira tudo quite; no fim, o tema troca entre papel, neon e grafite">
+  <img src="docs/readme/passeio.gif" width="300" alt="A Zuza chega pelo link, escolhe o nome, abre os itens, quita a dívida com a Clotilde e a nota vira tudo quite; no fim, o tema troca entre papel, neon e grafite">
 </p>
 
 | criar o evento | anotar um gasto | a imagem que vai pro zap |
@@ -16,7 +16,7 @@ O "tema:" no pé da nota troca entre papel, neon, grafite e o do celular (que se
 
 | papel | neon | grafite |
 | :---: | :---: | :---: |
-| <img src="docs/readme/tema-papel.png" width="240" alt="A nota da Lia no tema papel"> | <img src="docs/readme/tema-neon.png" width="240" alt="A nota da Lia no tema neon"> | <img src="docs/readme/tema-grafite.png" width="240" alt="A nota da Lia no tema grafite"> |
+| <img src="docs/readme/tema-papel.png" width="240" alt="A nota da Zuza no tema papel"> | <img src="docs/readme/tema-neon.png" width="240" alt="A nota da Zuza no tema neon"> | <img src="docs/readme/tema-grafite.png" width="240" alt="A nota da Zuza no tema grafite"> |
 
 ## Como usar
 

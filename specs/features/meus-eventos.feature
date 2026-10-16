@@ -145,10 +145,10 @@ Funcionalidade: Meus eventos
       | praia   | há 12 dias  |
 
   Cenário: evento quite e antigo desce pros quitados antigos
-    Duas semanas sem mudança e ninguém devendo nada: sai do caminho, recolhido no fim da lista.
+    Uma semana sem mudança e ninguém devendo nada: sai do caminho, recolhido no fim da lista.
     O evento aberto fica sempre à vista.
     Dado que a Mengla já pagou R$ 100,00 pra Lia
-    E que o "praia" mudou pela última vez há 20 dias
+    E que o "praia" mudou pela última vez há 10 dias
     Quando eu abro o evento "churras" como Lia
     E eu entro no evento "praia" como Lia
     E eu entro no evento "churras" como Lia

@@ -48,9 +48,11 @@ class Mundo {
       // animação CSS termina na hora: o playwright não clica em nada que ainda se mexe, e cada
       // entrada (a nota subindo, o pix descendo, o aperto dos itens) custava de 0,4 a 1,5s de
       // espera por clique. As classes entram nas mesmas horas e o animationend dispara igual, só
-      // que já no quadro final. Animação se confere no vídeo, não aqui
+      // que já no quadro final. A transição também: o max-height do pix, o translate dos itens, e
+      // o playwright esperava cada uma parar (rodada 11% mais curta). O transitionend aí não dispara:
+      // quem depende dele (a ficha) tem relógio de reserva. Animação se confere no vídeo, não aqui
       addEventListener('DOMContentLoaded', () => document.head.append(Object.assign(document.createElement('style'),
-        { textContent: '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important}' })));
+        { textContent: '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;transition-delay:0s!important}' })));
     });
     // o que o aparelho já tinha guardado antes desta visita (só na primeira carga da aba)
     if (this.antes) await ctx.addInitScript(antes => { if (sessionStorage.getItem('__antes')) return; sessionStorage.setItem('__antes', '1');
@@ -93,12 +95,15 @@ const test = base.extend({
   mundo: async ({ browser, servidor }, use) => { const m = new Mundo(browser, servidor); await use(m); await m.fecha(); },
 });
 
-// lê um QR como a câmera leria: a imagem (data: URL) vira pixels na página e o jsQR decifra aqui fora
+// lê um QR como a câmera leria: a imagem (data: URL) vira pixels na página e o jsQR decifra aqui fora.
+// Imagem grande (a comanda tem 1440 de largura) desce por um inteiro até uns 400px: o módulo do QR continua
+// com pixel inteiro, e o que atravessa do navegador pra cá cai de 15 MB pra 1 MB
 const jsQR = require('jsqr');
 const leQr = async (p, src) => {
   const { w, h, b64 } = await p.evaluate(async src => {
     const img = new Image(); img.src = src; await img.decode();
-    const c = document.createElement('canvas'), w = (c.width = img.naturalWidth || 400), h = (c.height = img.naturalHeight || 400), x = c.getContext('2d');
+    const nw = img.naturalWidth || 400, nh = img.naturalHeight || 400, k = Math.max(1, Math.floor(nw / 360));
+    const c = document.createElement('canvas'), w = (c.width = Math.round(nw / k)), h = (c.height = Math.round(nh / k)), x = c.getContext('2d');
     x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
     const d = x.getImageData(0, 0, w, h).data; let s = '';
     for (let i = 0; i < d.length; i += 8192) s += String.fromCharCode(...d.subarray(i, i + 8192));

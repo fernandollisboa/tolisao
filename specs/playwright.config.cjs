@@ -7,6 +7,8 @@ module.exports = defineConfig({
   testDir,
   outputDir: '.resultados',
   fullyParallel: true,
+  // um worker por núcleo: o padrão do playwright é a metade, e sem o trace a máquina aguenta (4 núcleos: 78s → 53s)
+  workers: '100%',
   forbidOnly: !!process.env.CI,
   retries: 0,
   timeout: 60_000,
@@ -18,7 +20,9 @@ module.exports = defineConfig({
   ],
   use: {
     viewport: { width: 390, height: 844 },
-    trace: 'retain-on-failure',
+    // sem trace: gravar tela e DOM de todo cenário pra guardar só o que falha custava 1/4 da rodada, e o CI
+    // nem guarda a pasta. Pra depurar uma falha: npm test -- pix --trace on (abre com npx playwright show-trace)
+    trace: 'off',
     launchOptions: { executablePath: process.env.PW_CHROMIUM || undefined },
   },
 });

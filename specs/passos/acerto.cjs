@@ -1,4 +1,4 @@
-const os = require('os'), path = require('path'), fs = require('fs');
+const fs = require('fs');
 const { Given, When, Then, expect, AGORA } = require('./_mundo.cjs');
 
 const num = t => Number(t.replace(/[^\d,]/g, '').replace(',', '.'));
@@ -148,7 +148,8 @@ Then('a comanda fecha com o total de R$ {word} e o {string}', async ({ mundo }, 
 });
 Then('baixa a imagem {string}', async ({ mundo }, nome) => {
   const d = mundo.nota.download; expect(d.suggestedFilename()).toBe(nome);
-  const arq = path.join(os.tmpdir(), 'receipt.png'); await d.saveAs(arq); mundo.nota.comanda = arq;
+  // o arquivo do próprio download, que some quando a aba fecha: um receipt.png fixo no /tmp era disputado entre os workers
+  const arq = await d.path(); mundo.nota.comanda = arq;
   expect(fs.readFileSync(arq).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
 });
 

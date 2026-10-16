@@ -3015,9 +3015,8 @@
       if (!e.notFound) throw new Error(ENGASGOU);
     }
     let criou = false;
-    const seed = location.hash.match(/#seed=([A-Za-z0-9+/=_-]+)/);
     // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link
-    if (!existing && !seed && (pareceLink(code) || !digitou)) {
+    if (!existing && (pareceLink(code) || !digitou)) {
       // código com cara de final sorteado é link velho ou cortado, não nome novo:
       // "esse nome tá livre" ali faria a pessoa criar um evento fantasma
       const [titulo, desc, ok] = pareceLink(code)
@@ -3033,7 +3032,7 @@
           ];
       if (!(await ask(titulo, desc, ok))) throw new Error('nada foi criado.');
     }
-    if (!existing && !seed) {
+    if (!existing) {
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
       // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
       const nome = code;
@@ -3043,21 +3042,6 @@
       await apiPut(id, fresh(nome)).catch(() => {
         throw new Error(ENGASGOU);
       });
-    } else if (!existing) {
-      // #seed=: restaura uma cópia com o mesmo código, sem sortear nada
-      let data = fresh(code);
-      try {
-        data = {
-          ...fresh(code),
-          ...JSON.parse(decodeURIComponent(escape(atob(seed[1].replace(/-/g, '+').replace(/_/g, '/'))))),
-          name: code,
-          updatedAt: Date.now(),
-        };
-      } catch {}
-      await apiPut(id, data).catch(() => {
-        throw new Error(ENGASGOU);
-      });
-      history.replaceState(null, '', location.pathname);
     }
     await openGroup(code, id);
     // evento recém-criado já abre na lista de gente; fechou, cai na nota pedindo o "quem é você?"

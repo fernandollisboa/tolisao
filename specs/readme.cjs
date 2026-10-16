@@ -9,7 +9,7 @@ const em = nome => path.join(PASTA, nome);
 // o README é vitrine: gente e evento de mentira, no lugar dos nomes dos dados de exemplo (os ids ficam).
 // São quatro: quem não tem nome aqui sai do evento e das divisões
 const NOMES = { fernando: 'Zé Lento', julia: 'Clotildes', lia: 'Basílico', mengla: 'Chico' };
-const falsa = d => ({ ...d, name: 'farofadaboa',
+const falsa = d => ({ ...d, name: 'Farofa na praia',
   people: d.people.filter(x => NOMES[x.id]).map(x => ({ ...x, name: NOMES[x.id] })),
   expenses: d.expenses.map(e => ({ ...e, among: e.among.filter(id => NOMES[id]) })) });
 const tema = t => `try { localStorage.setItem('tolisa', JSON.stringify({ tema: '${t}' })) } catch {}`;

@@ -112,9 +112,10 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 .small{font-size:16px;color:var(--ink2);margin:-4px 0 4px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .small>span{flex:1}
 .stamp{--cy:0px;display:inline-block;margin-left:9px;vertical-align:middle;font-family:'Permanent Marker',cursive;color:var(--red);border:1.5px solid currentColor;border-radius:44% 56% 47% 53%/58% 46% 54% 42%;padding:2px 11px;font-size:11px;line-height:1.5;transform:translateY(calc(var(--cy) + var(--dy,0px))) rotate(var(--rot,-8deg));opacity:.9;letter-spacing:.5px;pointer-events:none}
-@keyframes risca{from{width:0}to{width:100%}}
+/* risca encolhida e esticando (scaleX, não width): só transform anima, fora da thread principal */
+@keyframes risca{from{transform:scaleX(0)}}
 @media (prefers-reduced-motion:reduce){.row.paid.novo:after{animation:none}}
-.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;top:50%;border-top:2px solid var(--ri,#8a7a5a);pointer-events:none;z-index:2}
+.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;transform-origin:left;top:50%;border-top:2px solid var(--ri,#8a7a5a);pointer-events:none;z-index:2}
 .row.paid.novo:after{animation:risca .55s ease-out both;animation-delay:var(--rd,0ms)}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}
@@ -758,15 +759,31 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .comandinha .f3 .v{color:var(--red)}
 /* o "deve" de quem pagou fica na tinta, que nem nas outras linhas: só o nome leva cor */
 .comandinha .f2 .n{color:var(--ink)}
-.comandinha.roda .f2 .n,.comandinha.roda .f2 .v{animation:desbota .3s 2.3s backwards}
-@keyframes desbota{from{color:var(--red)}}
+.comandinha .f2 [data-t]{display:inline-block;position:relative;-webkit-text-fill-color:transparent}
+/* o vermelho do "deve 30,00" desbota em duas cópias que trocam de opacity (o texto fica só pro lugar): color anima
+   na thread principal, e cada quadro dela recalculava a chuva inteira */
+.comandinha .f2 [data-t]:before,.comandinha .f2 [data-t]:after{content:attr(data-t);position:absolute;inset:0;-webkit-text-fill-color:currentColor;pointer-events:none}
+.comandinha .f2 [data-t]:after{color:var(--red);opacity:0}
+.comandinha.roda .f2 [data-t]:before{animation:desbota .3s 2.3s reverse both}
+.comandinha.roda .f2 [data-t]:after{animation:desbota .3s 2.3s both}
+@keyframes desbota{from{opacity:1}to{opacity:0}}
 .comandinha .f2.paid.novo:after{--rd:2.3s}
 .comandinha.roda .f2 .stamp{animation:carimba .25s 2.6s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes carimba{from{opacity:0;scale:2}to{opacity:.9;scale:1}}
 /* a ficha cai na dívida da Bia e vai pro Afonso, que pagou */
 .comandinha .fichinha.cai{display:none;right:64px;top:24px;z-index:5;--dx:0px;--dy:0px;--vx:-140px;--vy:-110px;--rot:-14deg;filter:drop-shadow(1px 3px 3px rgba(0,0,0,.3))}
-.comandinha.roda .fichinha.cai{display:block;animation:jogada .85s 1.5s linear both,passa .6s 2.9s ease-in-out forwards}
-@keyframes passa{to{translate:40px -28px;opacity:0}}
+.comandinha.roda .fichinha.cai{display:block;animation:cai 2s 1.5s linear both}
+/* a jogada (.85 s) e o passa pro Afonso (.6 s, aos 2,9 s) numa animação só: duas no transform do mesmo
+   elemento tiram as duas do compositor. Os % são os da jogada vezes .425 (.85 de 2 s) */
+@keyframes cai{
+  0%{opacity:0;transform:translate(calc(var(--dx) + var(--vx)),calc(var(--dy) + var(--vy))) rotate(calc(var(--rot) + 160deg));animation-timing-function:cubic-bezier(.25,.35,.7,1)}
+  10.6%{opacity:1}
+  19.1%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 7deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  25.5%{transform:translate(var(--dx),calc(var(--dy) - 12px)) rotate(calc(var(--rot) - 4deg));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  31.9%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) - 2deg));animation-timing-function:cubic-bezier(.15,.7,.4,1)}
+  36.6%{transform:translate(var(--dx),calc(var(--dy) - 4px)) rotate(var(--rot));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
+  42.5%,70%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot));animation-timing-function:ease-in-out}
+  100%{opacity:0;transform:translate(calc(var(--dx) + 40px),calc(var(--dy) - 28px)) rotate(var(--rot))}}
 .comandinha.parada *,.comandinha.parada .row:after{animation:none !important}
 .comandinha.parada .fichinha.cai{display:none}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}

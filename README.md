@@ -2,6 +2,22 @@
 
 Divisor de gastos entre amigos: racha a conta e anota quem deve, sem aplicativo e sem cadastro. É um site estático (HTML, CSS e JavaScript, sem build) publicado em [tolisa.com.br](https://tolisa.com.br/), com os dados no Firebase Realtime Database.
 
+<p align="center">
+  <img src="docs/readme/passeio.gif" width="300" alt="A Lia chega pelo link, escolhe o nome, abre os itens, quita a dívida com a Júlia e a nota vira tudo quite; no fim, o tema troca entre papel, neon e grafite">
+</p>
+
+| criar o evento | anotar um gasto | a imagem que vai pro zap |
+| :---: | :---: | :---: |
+| <img src="docs/readme/inicio.png" width="240" alt="Tela inicial: racha a conta do rolê, sem app, sem cadastro, e o campo pra criar o evento"> | <img src="docs/readme/anotar.png" width="240" alt="Anotar: valor, descrição, quem pagou e entre quem divide"> | <img src="docs/readme/comanda.png" width="240" alt="A comanda com quem paga quem, os itens e o QR do evento"> |
+
+### Temas
+
+O "tema:" no pé da nota troca entre papel, neon, grafite e o do celular (que segue o claro/escuro do aparelho).
+
+| papel | neon | grafite |
+| :---: | :---: | :---: |
+| <img src="docs/readme/tema-papel.png" width="240" alt="A nota da Lia no tema papel"> | <img src="docs/readme/tema-neon.png" width="240" alt="A nota da Lia no tema neon"> | <img src="docs/readme/tema-grafite.png" width="240" alt="A nota da Lia no tema grafite"> |
+
 ## Como usar
 
 1. Abra o site e digite um nome para o evento. O evento novo recebe um final sorteado no código (`churras-k7f3q9`), então compartilhe o link, não só o nome.
@@ -48,7 +64,7 @@ Cenário: quitar e avisar no zap
     """
 ```
 
-Os cenários ficam em `specs/features/` e os passos em `specs/passos/`. Para ver uma mudança visual, `node specs/preview.cjs '#settle'` gera um recorte com dados de exemplo, e `node specs/video.cjs <cena>` grava uma animação em vídeo.
+Os cenários ficam em `specs/features/` e os passos em `specs/passos/`. Para ver uma mudança visual, `node specs/preview.cjs '#settle'` gera um recorte com dados de exemplo, e `node specs/video.cjs <cena>` grava uma animação em vídeo. As imagens e o gif deste README saem de `npm run readme`.
 
 A `main` é publicada no GitHub Pages pelo workflow `pages.yml`. Antes de contribuir, leia o [CONTRIBUTING.md](CONTRIBUTING.md).
 

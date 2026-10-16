@@ -12,7 +12,8 @@
     "formata": "prettier --write app.js",
     "qualidade": "node --check app.js && prettier --check app.js && npm run types && npm run regras && npm test",
     "preview": "node specs/preview.cjs",
-    "video": "node specs/video.cjs"
+    "video": "node specs/video.cjs",
+    "readme": "node specs/readme.cjs"
   },
   "devDependencies": {
     "@cucumber/pretty-formatter": "^4.0.2",

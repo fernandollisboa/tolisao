@@ -290,6 +290,19 @@ Then('o QR na tela abre o evento direto', async ({ mundo }) => {
   const svg = await mundo.p.locator('#overlayBox .qr svg').evaluate(s => s.outerHTML.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" '));
   expect(await leQr(mundo.p, 'data:image/svg+xml,' + encodeURIComponent(svg))).toMatch(doGrupo(mundo));
 });
+// a plaquinha abre noutra aba: a página dela troca o QR do site pelo do evento
+When('eu abro a plaquinha de mesa', async ({ mundo }) => {
+  const [aba] = await Promise.all([mundo.p.context().waitForEvent('page'), mundo.p.click('#mesaLink')]);
+  await aba.waitForLoadState();
+  mundo.plaquinha = aba;
+});
+Then('a plaquinha leva o nome do evento', async ({ mundo }) => {
+  await expect(mundo.plaquinha.locator('.placa .sub').first()).toHaveText(mundo.evento.name);
+});
+Then('o QR da plaquinha abre o evento direto', async ({ mundo }) => {
+  const svg = await mundo.plaquinha.locator('.placa .qr').first().evaluate(s => s.outerHTML.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" '));
+  expect(await leQr(mundo.p, 'data:image/svg+xml,' + encodeURIComponent(svg))).toMatch(doGrupo(mundo));
+});
 // a comanda é a que o "baixa a imagem" guardou
 Then('o QR da comanda abre o evento direto', async ({ mundo }) => {
   expect(mundo.nota.comanda, 'a comanda não foi baixada antes').toBeTruthy();

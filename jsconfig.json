@@ -7,5 +7,5 @@
     "module": "es2022",
     "lib": ["es2022", "dom", "dom.iterable"]
   },
-  "include": ["app.js"]
+  "include": ["app.js", "qr.js", "mesa/mesa.js"]
 }

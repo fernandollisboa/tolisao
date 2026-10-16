@@ -115,6 +115,15 @@ Funcionalidade: Entrar no evento
     E eu peço o QR do evento
     Então o QR na tela abre o evento direto
 
+  Cenário: a plaquinha de mesa impressa leva pro evento
+    Na república ou na festa, o evento fica na mesa: quem chega aponta a câmera pra plaquinha e já cai nele.
+    Dado o evento de exemplo "bailedamada"
+    Quando eu abro o evento como Fernando
+    E eu peço o QR do evento
+    E eu abro a plaquinha de mesa
+    Então a plaquinha leva o nome do evento
+    E o QR da plaquinha abre o evento direto
+
   Cenário: o evento que acabou de nascer, só comigo, já mostra o QR
     É logo na criação que a turma da mesa precisa entrar, antes de qualquer gasto.
     Enquanto o QR tá aberto, a tela não apaga na cara de quem aponta a câmera.

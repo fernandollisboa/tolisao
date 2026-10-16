@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
       # só olha ferramenta (o site não tem dependência): avisa, mas não trava o deploy
       - run: npm audit --audit-level=high || echo "::warning::npm audit achou falha grave numa ferramenta de teste"
-      - run: npx prettier --check app.js
+      - run: npx prettier --check app.js qr.js mesa/mesa.js
       - run: npm run types
       - run: npm run regras
       # a API (servidor/) se testa com o node puro: o npm ci de lá só traz o wrangler, que é pra subir

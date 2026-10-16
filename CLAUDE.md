@@ -61,6 +61,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 ## convenções
 
 - **resposta ao usuário: em português e curta.** sem rodeio, só o que importa pra decidir.
+- **issues proativas.** viu bug, código frágil ou ideia de melhoria fora do que foi pedido, abra uma issue curta sem perguntar (label `rascunho`, mais `bug` ou `enhancement`), depois de procurar se já existe uma. o dono avalia depois. no fim da tarefa, diga numa linha quais abriu.
 
 - cores de gente saem de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe; nada de amarelo.
 - animação entra na fila do `agenda()`, na ordem da página, e só roda com a seção na tela.

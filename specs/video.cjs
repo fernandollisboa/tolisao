@@ -210,6 +210,22 @@ const CENAS = {
     acao: async p => { await p.waitForTimeout(11500); } },
   chegada: { nome: 'quem chega pelo link toca no nome e a conta aparece', quem: '', chegada: true, atrasoPix: 600,
     acao: async p => { await p.waitForTimeout(1800); await p.click('#chegada [data-chegou="lia"]'); await p.waitForTimeout(6500); } },
+  // o vídeo do README (npm run readme): chega pelo link, abre os itens, quita e troca o tema no pé da nota
+  passeio: { nome: 'a Lia chega pelo link, olha os itens, quita a última dívida e passeia pelos temas', quem: '', chegada: true,
+    atrasoPix: 300, dados: QUITA,
+    acao: async p => {
+      let sala = null;
+      await p.route(/fake-db.*\/rooms\//, r => {
+        if (r.request().method() === 'PUT') { sala = JSON.parse(r.request().postData()); return r.fulfill({ json: sala }); }
+        if (r.request().method() === 'GET' && sala) return r.fulfill({ json: sala });
+        return r.fallback();
+      });
+      await p.waitForTimeout(1500); await p.click('#chegada [data-chegou="lia"]'); await p.waitForTimeout(4500);
+      await p.click('#itemsHead'); await p.waitForTimeout(2200); await p.click('#itemsHead'); await p.waitForTimeout(900);
+      await p.click('#mineRows [data-settle]'); await p.waitForTimeout(1200);
+      await p.click('#okBtn'); await p.waitForTimeout(1400);
+      await p.click('#quitOk'); await p.waitForTimeout(4500);
+      for (const espera of [1800, 1800, 300, 1500]) { await p.click('#temaBtn'); await p.waitForTimeout(espera); } } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

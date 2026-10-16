@@ -67,6 +67,9 @@ async function preview(opts = {}) {
       return saida;
     }
 
+    // acao: o que fazer antes da foto (abrir o anotar, rolar), como nas cenas do video.cjs
+    if (opts.acao) await opts.acao(p);
+
     const tirar = async destino => recorte ? p.screenshot({ path: destino, clip: recorte })
       : alvo ? p.locator(alvo).screenshot({ path: destino }) : p.screenshot({ path: destino, fullPage: true });
 

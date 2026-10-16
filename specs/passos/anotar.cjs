@@ -82,6 +82,8 @@ When('eu anoto {string} e depois {string}, os dois de R$ {num} divididos igualme
     if (desc === b) await p.click('#okBtn');
     await p.waitForSelector('#sheet', { state: 'hidden' });
   }
+  // banco lerdo (o "demora pra gravar"): a primeira gravação só volta agora, com os dois já anotados
+  if (mundo.banco.solta) expect(mundo.banco.solta(), 'o primeiro gasto nem chegou a ir pro banco').toBeGreaterThan(0);
 });
 const quemLeva = (mundo, desc) => {
   const e = (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).find(x => x.desc === desc);
@@ -205,7 +207,7 @@ When('outro aparelho anota {string} de R$ {num} bem na hora que eu gravo o {stri
   };
 });
 // rede lenta no bar: cada gravação no banco demora quase 2 s pra voltar
-Given('que o banco demora pra gravar', async ({ mundo }) => { mundo.banco.atrasoGrava = 1800; });
+Given('que o banco demora pra gravar', async ({ mundo }) => { mundo.banco.segura(); });
 Then('o banco tem os itens {string} e {string}', async ({ mundo }, a, b) => {
   await expect.poll(() => (mundo.banco.arvore.rooms[mundo.sala]?.expenses || []).map(e => e.desc)).toEqual(expect.arrayContaining([a, b]));
 });

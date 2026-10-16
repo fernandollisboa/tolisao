@@ -19,7 +19,7 @@ npm run formata                             # prettier no app.js
 npm run qualidade                           # sintaxe, formato, tipos, regras e testes: verde
 ```
 
-os testes são cucumber em português: a especificação fica em `specs/features/*.feature` e os passos em `specs/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo, e o fim da saída diz como abrir o trace.
+os testes são cucumber em português: a especificação fica em `specs/features/*.feature` e os passos em `specs/passos/`. `npm test -- pix` roda só um arquivo. falhou? o erro sai embaixo do passo. pra ver o passo a passo no navegador, rode de novo com trace (`npm test -- pix --trace on`): o fim da saída diz como abrir. ele fica desligado no dia a dia porque deixava a rodada 1/4 mais lenta.
 
 `npm run regras` confere, sem navegador, o que nenhum cenário pega: a CSP só roda script do site e do Cloudflare Web Analytics e só fala com o firebase, a API do aviso (`servidor/`) e o Cloudflare, o banco não deixa listar salas nem ler o `tok` do pix, o pix aceita o que o app grava (tok velho e chave apagada inclusive) e recusa o resto, o `clean()` corta no tamanho que o banco valida e as imagens do link (`og/`) cabem no WhatsApp. falhou, ele diz o que trocar.
 

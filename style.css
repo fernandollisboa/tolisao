@@ -816,6 +816,8 @@ html[data-tema] .empty.vazio.quite{--neon:var(--acento);--apagado:#4a3e44;border
   color:color-mix(in srgb,#fff calc(var(--luzT)*62%),var(--tuboT));
   text-shadow:0 0 1px rgba(255,255,255,calc(var(--luzT)*.5)),0 0 4px var(--tuboT),0 0 calc(12px*var(--luzT)) var(--tuboT),0 0 calc(24px*var(--luzT)) color-mix(in srgb,var(--tuboT) 55%,transparent)}
 /* o ✎ cheio na cor do tema e o compartilhar aceso nela (no escuro o amarelo claro sumia com o ícone claro) */
+/* o "você é Fulano?" amarelo ficava com a letra clara do tema em cima: no escuro ele é cheio na cor do tema */
+html[data-tema] a.link.amb{color:var(--paper);background:var(--acento);border-color:var(--acento);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
 html[data-tema] #fab.chamando{background:var(--acento);color:var(--paper);border-color:var(--paper);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
 html[data-tema] #waBtn.wafab{background:var(--card);color:var(--acento);border-color:var(--acento);box-shadow:0 0 8px color-mix(in srgb,var(--acento) 50%,transparent)}
 html[data-tema] #fab.chamando.vaza:not(:hover):not(:active){background:color-mix(in srgb,var(--acento) 50%,transparent);border-color:color-mix(in srgb,var(--paper) 70%,transparent);box-shadow:none}

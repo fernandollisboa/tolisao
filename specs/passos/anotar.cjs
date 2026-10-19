@@ -178,6 +178,10 @@ When('eu edito o {string}', async ({ mundo }, nome) => {
   const it = item(mundo.p, nome); await it.locator('.row .l').click(); await it.locator('[data-edit-expense]').click();
   await mundo.p.waitForSelector('#sheet:not(.hidden)');
 });
+When('eu mudo a descrição pra {string} e salvo', async ({ mundo }, desc) => {
+  mundo.descEditada = desc;
+  await mundo.p.fill('#desc', desc); await mundo.p.click('#expenseForm button.big'); await mundo.p.waitForSelector('#sheet', { state: 'hidden' });
+});
 Then('o formulário vem com R$ {num} de {string}', async ({ mundo }, v, desc) => {
   await expect(mundo.p.locator('#amount')).toHaveValue(dinheiro(v)); await expect(mundo.p.locator('#desc')).toHaveValue(desc);
   await expect(mundo.p.locator('#sheet h2')).toHaveText('Editar');

@@ -1,7 +1,7 @@
 # language: pt
-Funcionalidade: Aviso no celular quando me pagam
-  Quem tem a receber liga o aviso em Minha conta, e daí cada pagamento marcado
-  pra essa pessoa chega no celular dela, mesmo com o tô lisa fechado.
+Funcionalidade: Aviso no celular quando me pagam ou anotam gasto comigo
+  Quem liga o aviso em Minha conta fica sabendo no celular, mesmo com o tô lisa fechado,
+  de cada pagamento marcado pra ela e de cada gasto novo que alguém anota com ela.
   Ninguém é perguntado sobre aviso ao abrir a página: só quem toca no 🔔.
 
   # o aviso chegando no celular (serviço de push → sw.js) não dá pra testar aqui:
@@ -14,9 +14,9 @@ Funcionalidade: Aviso no celular quando me pagam
     Quando eu abro o evento como Júlia
     Então Minha conta oferece "🔔 me avisa quando pagarem"
 
-  Cenário: quem deve não tem aviso pra ligar
+  Cenário: quem deve pode ligar o aviso dos gastos com ela
     Quando eu abro o evento como Lia
-    Então Minha conta não oferece aviso no celular
+    Então Minha conta oferece "🔔 me avisa dos gastos comigo"
 
   Cenário: ligar o aviso no celular
     Ligado, o botão sai da frente: quem quiser desligar desliga nas notificações do navegador.
@@ -36,6 +36,19 @@ Funcionalidade: Aviso no celular quando me pagam
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta
     Então o Fernando é avisado no celular do pagamento da Lia
+
+  Cenário: anotar um gasto avisa o celular de quem divide
+    Quando eu abro o evento como Lia
+    E eu anoto "Pizza" de R$ 60,00 dividido igualmente
+    Então quem divide a "Pizza" é avisado no celular
+
+  Cenário: editar um gasto não avisa de novo
+    Avisa o gasto novo: corrigir a descrição não é motivo pra tocar o celular de ninguém.
+    Quando eu abro o evento como Lia
+    E eu abro a lista de itens
+    E eu edito o "Uber volta"
+    E eu mudo a descrição pra "Uber da volta" e salvo
+    Então ninguém é avisado no celular
 
   Cenário: no iPhone sem o app instalado, o 🔔 ensina a instalar e a levar o link do evento
     No iPhone o aviso só chega com o tô lisa na Tela de Início, e quase ninguém sabe instalar pelo Safari.

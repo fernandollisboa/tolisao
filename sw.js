@@ -76,24 +76,45 @@ async function novidade(a, contas) {
         texto: `🧾 ${juntos(quem)} te deve${quem.length > 1 ? 'm' : ''} ${reais(meus.reduce((s, t) => s + t.c, 0))}${evento}. bora cobrar?` };
   } catch {}
   const vistos = new Set(Array.isArray(a.vistos) ? a.vistos : []);
-  const novos = lista(sala && sala.expenses).filter(e => e.kind === 'payment' && typeof e.id === 'string' && !vistos.has(e.id)
-    && typeof e.at === 'number' && agora - e.at < JANELA_MS && e.by !== eu && typeof e.amount === 'number');
+  // o que é novo e não fui eu que fiz: pagamento marcado ou gasto anotado (byId é o id de quem anotou; aparelho antigo só tem o nome)
+  const novos = lista(sala && sala.expenses).filter(e => (e.kind === 'payment' || e.kind === undefined) && typeof e.id === 'string'
+    && !vistos.has(e.id) && typeof e.at === 'number' && agora - e.at < JANELA_MS && e.by !== eu && e.byId !== a.me && typeof e.amount === 'number');
   if (!novos.length) return null;
   await avisos('readwrite', s => s.put({ ...a, vistos: [...vistos, ...novos.map(e => e.id)].slice(-50) }));
   const recebe = e => (Array.isArray(e.among) ? e.among : Object.values(e.among || {}))[0];
   const soma = es => reais(es.reduce((s, e) => s + Math.round(e.amount * 100), 0));
-  const pra = novos.filter(e => !e.forgiven && recebe(e) === a.me && e.payer !== a.me);
+  const pra = novos.filter(e => e.kind === 'payment' && !e.forgiven && recebe(e) === a.me && e.payer !== a.me);
   if (pra.length) {
     const quem = [...new Set(pra.map(e => nome(e.payer)))];
     return { code: a.code, texto: `💸 ${juntos(quem)} ${quem.length > 1 ? 'te pagaram' : 'te pagou'} ${soma(pra)}${evento}` };
   }
   // o perdão avisa quem devia
-  const perdoes = novos.filter(e => e.forgiven === true && e.payer === a.me);
+  const perdoes = novos.filter(e => e.kind === 'payment' && e.forgiven === true && e.payer === a.me);
   if (perdoes.length) {
     const quem = [...new Set(perdoes.map(e => nome(recebe(e))))];
     return { code: a.code, texto: `🙏 ${juntos(quem)} ${quem.length > 1 ? 'perdoaram' : 'perdoou'} teus ${soma(perdoes)}${evento}` };
   }
+  // o gasto novo avisa quem divide (com a parte dele) e quem pagou
+  const fora = new Set(Array.isArray(sala.deleted) ? sala.deleted : []), ids = new Set(gente.map(p => p.id));
+  const gastos = novos.filter(e => e.kind === undefined && !fora.has(e.id) && (membros(e).includes(a.me) || e.payer === a.me));
+  if (gastos.length) {
+    const quem = [...new Set(gastos.map(e => String(e.by || 'alguém').slice(0, 30)))], anotou = quem.length > 1 ? 'anotaram' : 'anotou';
+    if (gastos.length > 1) return { code: a.code, texto: `🧾 ${juntos(quem)} ${anotou} ${gastos.length} gastos com você${evento}` };
+    const e = gastos[0], oque = e.desc ? String(e.desc).slice(0, 40) : 'um gasto';
+    if (e.payer === a.me) return { code: a.code, texto: `🧾 ${quem[0]} anotou ${oque} (${soma([e])}), que você pagou${evento}` };
+    return { code: a.code, texto: `🧾 ${quem[0]} anotou ${oque}: tua parte é ${reais(parte(e, a.me, ids))}${evento}` };
+  }
   return null;
+}
+/** a parte de `id` num gasto, em centavos: a mesma conta do app.js (as partes valem se fecham o valor; senão divide
+ *  igual, e o centavo que sobra vai pros primeiros) */
+function parte(e, id, ids) {
+  const among = membros(e), quem = among.filter(x => ids.has(x)), c = Math.round(+e.amount * 100), i = quem.indexOf(id);
+  if (i < 0 || !Number.isFinite(c)) return 0;
+  const partes = e.shares && typeof e.shares === 'object' ? among.map(x => Math.max(0, Math.round(+e.shares[x] || 0))) : null;
+  if (partes && partes.reduce((s, x) => s + x, 0) === c) return partes[among.indexOf(id)];
+  const base = Math.floor(c / quem.length);
+  return base + (i < c - base * quem.length ? 1 : 0);
 }
 // a bolinha no ícone: a página guarda quantas linhas do acerto são minhas em cada evento ({ sala: 'bolinha', n });
 // o push refaz a conta do evento que ele releu e soma tudo de novo. Só o número, nunca valor

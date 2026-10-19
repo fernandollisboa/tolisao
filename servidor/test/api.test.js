@@ -213,9 +213,45 @@ test('quem marcou que recebeu não é avisado do próprio clique', async () => {
   assert.equal(enviados.length, 0);
 });
 
-test('não avisa gasto comum, pagamento velho nem id que não existe', async () => {
+test('gasto novo avisa quem divide e quem pagou, menos quem anotou, uma vez só', async () => {
+  sala.people.push({ id: 'caio', name: 'Caio' });
+  sala.expenses.push({
+    id: 'g1',
+    amount: 90,
+    payer: 'caio',
+    among: ['ana', 'bia'],
+    at: Date.now() - 1000,
+    by: 'Ana',
+    byId: 'ana',
+  });
   await inscreve('ana');
-  for (const id of ['gasto', 'velho', 'naoexiste'])
+  await inscreve('bia', sub(9), 'tokdabia12345678');
+  await inscreve('caio', sub(7), 'tokdocaio1234567');
+  const r = await pede('/avisa', { corpo: { sala: SALA, id: 'g1' } });
+  assert.deepEqual(await r.json(), { avisados: 2 });
+  assert.deepEqual(enviados.map((e) => e.url).sort(), [`${PUSH}7`, `${PUSH}9`]);
+  assert.equal((await (await pede('/avisa', { corpo: { sala: SALA, id: 'g1' } })).json()).avisados, 0);
+  assert.equal(enviados.length, 2);
+});
+
+test('gasto anotado por quem é só o nome (aparelho antigo) também não avisa quem anotou', async () => {
+  sala.expenses.push({ id: 'g2', amount: 20, payer: 'bia', among: ['ana', 'bia'], at: Date.now() - 1000, by: 'Bia' });
+  await inscreve('ana');
+  await inscreve('bia', sub(9), 'tokdabia12345678');
+  await pede('/avisa', { corpo: { sala: SALA, id: 'g2' } });
+  assert.deepEqual(
+    enviados.map((e) => e.url),
+    [`${PUSH}1`],
+  );
+});
+
+test('não avisa gasto velho, gasto apagado, pagamento velho nem id que não existe', async () => {
+  const velho = Date.now() - 11 * 60 * 1000;
+  sala.expenses.push({ id: 'gvelho', amount: 20, payer: 'bia', among: ['ana'], at: velho, by: 'Bia' });
+  sala.expenses.push({ id: 'gapagado', amount: 20, payer: 'bia', among: ['ana'], at: Date.now() - 1000, by: 'Bia' });
+  sala.deleted = ['gapagado'];
+  await inscreve('ana');
+  for (const id of ['gvelho', 'gapagado', 'velho', 'naoexiste'])
     assert.equal((await pede('/avisa', { corpo: { sala: SALA, id } })).status, 404, id);
   assert.equal(enviados.length, 0);
 });

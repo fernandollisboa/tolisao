@@ -1,10 +1,11 @@
-// a API do tô lisa: aviso no celular quando alguém marca que te pagou (#89).
+// a API do tô lisa: aviso no celular quando alguém marca que te pagou (#89) ou anota um gasto com você.
 // Worker da Cloudflare, só API web padrão, nenhuma dependência em produção.
 //
 //   GET  /chave                                → a chave pública VAPID (base64url), pro pushManager.subscribe
 //   POST /inscreve   {sala, pessoa, sub, tok}  → guarda a inscrição de push desse aparelho
 //   POST /desinscreve {sala, pessoa, endpoint, tok}
-//   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado)
+//   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado),
+//                                                ou, no gasto novo, quem divide e quem pagou
 //   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
 //   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado
 //
@@ -12,7 +13,7 @@
 // O banco (KV) é contado: o plano grátis dá 1000 gravações por dia, então só se grava o necessário.
 //   sub:<sala>:<pessoa>:<hash do endpoint>  a inscrição (JSON); o endpoint vai também no metadata, pro list bastar
 //   tok:<sala>:<pessoa>                     sha-256 do tok: quem inscreveu primeiro manda (igual ao tok do pix)
-//   avisado:<sala>:<id>                     esse pagamento já avisou (some sozinho em 1 dia)
+//   avisado:<sala>:<id>                     esse pagamento (ou gasto) já avisou (some sozinho em 1 dia)
 //   lembrou:<sala>:<pessoa>                 o lembrete do evento parado já foi (some sozinho em 7 dias)
 
 import { empurra } from './vapid.js';
@@ -161,15 +162,23 @@ async function avisa(b, env, o) {
   const sala = await r.json().catch(() => null);
   const e = valores(sala?.expenses).find((x) => x.id === b.id);
   const agora = Date.now();
-  if (!e || e.kind !== 'payment' || typeof e.at !== 'number' || agora - e.at > JANELA_MS || e.at - agora > 60000)
-    return json(404, { erro: 'pagamento não achado' }, o);
-  // o perdão avisa quem devia; o pagamento avisa quem recebe
-  const alvo = e.forgiven === true ? e.payer : valores(e.among)[0];
-  if (typeof alvo !== 'string' || !ID.test(alvo)) return json(404, { erro: 'pagamento não achado' }, o);
-  // quem marcou não precisa ser avisado do que ele mesmo marcou
-  const nome = valores(sala.people).find((p) => p.id === alvo)?.name;
-  if (nome && e.by === nome) return json(200, { avisados: 0 }, o);
-  const subs = await lista(env.KV, `sub:${b.sala}:${alvo}:`);
+  const pago = e?.kind === 'payment',
+    gasto = !!e && e.kind === undefined && !valores(sala?.deleted).includes(e.id);
+  if (!(pago || gasto) || typeof e.at !== 'number' || agora - e.at > JANELA_MS || e.at - agora > 60000)
+    return json(404, { erro: 'não achado' }, o);
+  // o perdão avisa quem devia; o pagamento avisa quem recebe; o gasto novo avisa quem divide e quem pagou
+  const alvos = pago ? [e.forgiven === true ? e.payer : valores(e.among)[0]] : [...valores(e.among), e.payer];
+  if (pago && (typeof alvos[0] !== 'string' || !ID.test(alvos[0]))) return json(404, { erro: 'não achado' }, o);
+  // quem marcou ou anotou não precisa ser avisado do que ele mesmo fez
+  const nome = (id) => valores(sala.people).find((p) => p.id === id)?.name;
+  const avisar = new Set(
+    alvos.filter((id) => typeof id === 'string' && ID.test(id) && id !== e.byId && !(e.by && nome(id) === e.by)),
+  );
+  if (!avisar.size) return json(200, { avisados: 0 }, o);
+  // uma listagem só pra sala (o plano grátis conta as listagens), e o teto de fetch por execução
+  const subs = (await lista(env.KV, `sub:${b.sala}:`))
+    .filter((k) => avisar.has(k.name.split(':')[2]))
+    .slice(0, FETCH_POR_VEZ);
   if (!subs.length) return json(200, { avisados: 0 }, o);
   const marca = `avisado:${b.sala}:${b.id}`;
   if (await env.KV.get(marca)) return json(200, { avisados: 0, repetido: true }, o);

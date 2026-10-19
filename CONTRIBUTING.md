@@ -1,6 +1,6 @@
 # como mexer no tô lisa
 
-html, css e js. sem build, sem framework. o único backend é a API do aviso de pagamento em `servidor/`. a `main` é o que tá no ar em [tolisa.com.br](https://tolisa.com.br/). tudo em português, código e tela.
+html, css e js. sem build, sem framework. o único backend é a API do aviso no celular (pagamento e gasto novo) em `servidor/`. a `main` é o que tá no ar em [tolisa.com.br](https://tolisa.com.br/). tudo em português, código e tela.
 
 ## rodar
 

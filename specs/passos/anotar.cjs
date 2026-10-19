@@ -36,7 +36,7 @@ When('eu anoto {string} de R$ {num} dividido igualmente', async ({ mundo }, desc
   await p.waitForSelector('#sheet', { state: 'hidden' });
 });
 Then('o formulário pede primeiro o valor e depois o quê', async ({ mundo }) => {
-  expect(await mundo.p.$eval('.two', e => [...e.children].map(c => c.id))).toEqual(['amount', 'desc']);
+  expect(await mundo.p.$$eval('.two input', es => es.map(c => c.id))).toEqual(['amount', 'desc']);
 });
 When('eu preencho R$ {num} de {string}', async ({ mundo }, valor, desc) => { await mundo.p.fill('#amount', dinheiro(valor)); await mundo.p.fill('#desc', desc); });
 // deixa marcados nos chips só os nomes da lista

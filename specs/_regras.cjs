@@ -15,7 +15,7 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
 {
   const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/)?.[1] || '';
   const dir = Object.fromEntries(csp.split(';').map(d => d.trim().split(/\s+/)).filter(d => d[0]).map(([k, ...v]) => [k, v]));
-  const pode = { 'default-src': ["'self'"], 'script-src': ["'self'", /^'sha256-/, 'https://static.cloudflareinsights.com'], 'connect-src': ["'self'", 'https://*.firebaseio.com', 'https://tolisa-api.fernando-costa-fd0.workers.dev', 'https://cloudflareinsights.com'] };
+  const pode = { 'default-src': ["'self'"], 'script-src': ["'self'", /^'sha256-/, "'wasm-unsafe-eval'", 'https://static.cloudflareinsights.com'], 'connect-src': ["'self'", 'https://*.firebaseio.com', 'https://tolisa-api.fernando-costa-fd0.workers.dev', 'https://cloudflareinsights.com'] };
   const errados = Object.entries(pode).flatMap(([k, ok]) => !dir[k] ? [`falta ${k}`]
     : dir[k].filter(v => !ok.some(o => typeof o === 'string' ? o === v : o.test(v))).map(v => `${k} ${v}`));
   regra('a CSP só roda script do site e do Cloudflare e só fala com o firebase, a API e o Cloudflare', !csp ? 'não achei o <meta> da CSP no index.html' : errados.join('; '));

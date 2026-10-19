@@ -11,7 +11,7 @@
   //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
   //   → fila das animações → desenhos (ícones) → pix → aviso no celular → a nota (render) → o anotar
-  //   → cartões (overlays) → entrar num evento → meus eventos → a digital → botões → cliques
+  //   → cartões (overlays) → a foto da conta → entrar num evento → meus eventos → a digital → botões → cliques
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
   // o QR (qrMatriz, qrSvg) mora no qr.js, que o index.html carrega antes: a plaquinha de mesa (mesa/) usa o mesmo.
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
@@ -56,6 +56,9 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
+  // a foto da conta: o 📷 do anotar lê os preços da foto (o tesseract, em ocr/) e cada preço tocado soma no valor.
+  // Desligada pra todo mundo. Liga no aparelho com ?foto (fica lembrado; ?foto=0 desliga)
+  const FOTO = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
   // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema
   // escuro, o html ganha data-tema e o style.css redefine as cores. Tema novo: entra aqui, no BARRA e no style.css
@@ -112,14 +115,15 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, tema, naoConta,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, fotoOn, tema, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
-  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; tema: o tema escolhido no pé da nota;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; fotoOn: o 📷 da foto da conta, pelo ?foto;
+  //                  tema: o tema escolhido no pé da nota;
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
@@ -438,6 +442,11 @@
     if (q.has('galera')) setDevice('galeraOn', q.get('galera') === '0' ? undefined : true);
   })();
   const temGalera = () => GALERA || device().galeraOn === true;
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('foto')) setDevice('fotoOn', q.get('foto') === '0' ? undefined : true);
+  })();
+  const temFoto = () => FOTO || device().fotoOn === true;
   const celularEscuro = matchMedia('(prefers-color-scheme: dark)');
   /** o tema que a pessoa escolheu, um dos de TEMAS */
   const temaEscolhido = () => {
@@ -1951,6 +1960,7 @@
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
     $('#expenseForm .fixo').classList.toggle('hidden', !temFixo());
+    $('#fotoBtn').classList.toggle('hidden', !temFoto());
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
@@ -2973,6 +2983,291 @@
     };
   }
 
+  // #endregion
+  // #region a foto da conta
+  // ---------- a foto da conta ----------
+  // o 📷 do anotar (FOTO, ou ?foto no aparelho). A foto vem da câmera do celular pelo input de arquivo, sem biblioteca;
+  // o leitor (tesseract.js, em ocr/) só baixa no toque da 📷, enquanto a pessoa enquadra a conta. Cada preço que ele
+  // acha vira uma caixa em cima da foto, e tocar soma no valor do anotar. De dia ele acha quase tudo; à noite, metade,
+  // e às vezes lê um número errado (628,70 vira 625,70): a soma fica escrita embaixo pra pessoa conferir (ocr/README.md)
+
+  /** o worker do tesseract: baixa uma vez por visita, e quem toca de novo na 📷 já acha ele pronto
+   *  @type {Promise<any> | null} */
+  let leitor = null;
+  const tempoLeitor = { ini: 0, fim: 0 };
+  const carregaLeitor = () =>
+    (leitor ??= new Promise((ok, erro) => {
+      tempoLeitor.ini = performance.now();
+      const s = document.createElement('script');
+      s.src = 'ocr/tesseract.min.js';
+      s.onload = ok;
+      s.onerror = () => erro(new Error('o leitor não baixou'));
+      document.head.append(s);
+    })
+      .then(() =>
+        /** @type {any} */ (window).Tesseract.createWorker('por', 1, {
+          workerPath: 'ocr/worker.min.js',
+          corePath: 'ocr/',
+          langPath: 'ocr',
+          // o worker sai do arquivo, não de um blob: a CSP só deixa script do próprio site
+          workerBlobURL: false,
+        }),
+      )
+      .then((w) => {
+        tempoLeitor.fim = performance.now();
+        return w;
+      })
+      .catch((e) => {
+        leitor = null;
+        throw e;
+      }));
+
+  /** limiar adaptativo de Bradley, pela imagem integral: preto onde o ponto é 13% mais escuro que a média em volta.
+   *  À noite a luz muda de um canto pro outro da conta, e um limiar só pra foto toda apagava metade dela
+   *  @param {Uint8ClampedArray} g a foto em cinza @param {number} w @param {number} h */
+  function bradley(g, w, h) {
+    const W = w + 1,
+      I = new Float64Array(W * (h + 1)),
+      r = Math.round(w / 24),
+      out = new Uint8ClampedArray(w * h);
+    for (let y = 1; y <= h; y++)
+      for (let x = 1, lin = 0; x <= w; x++) {
+        lin += g[(y - 1) * w + x - 1];
+        I[y * W + x] = I[(y - 1) * W + x] + lin;
+      }
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const x0 = Math.max(0, x - r),
+          x1 = Math.min(w, x + r + 1),
+          y0 = Math.max(0, y - r),
+          y1 = Math.min(h, y + r + 1);
+        const soma = I[y1 * W + x1] - I[y0 * W + x1] - I[y1 * W + x0] + I[y0 * W + x0];
+        out[y * w + x] = g[y * w + x] * (x1 - x0) * (y1 - y0) < soma * 0.87 ? 0 : 255;
+      }
+    return out;
+  }
+  /** a foto que o leitor lê: até 1600 de largura, em cinza, com o contraste esticado (o 1% mais escuro vira preto,
+   *  o 1% mais claro vira branco). `pb` passa ainda o limiar de Bradley: lê mais à noite, e inventa mais número
+   *  @param {ImageBitmap} foto @param {boolean} pb */
+  function preparaFoto(foto, pb) {
+    const k = Math.min(1, 1600 / foto.width),
+      w = Math.round(foto.width * k),
+      h = Math.round(foto.height * k);
+    const cv = Object.assign(document.createElement('canvas'), { width: w, height: h }),
+      ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(foto, 0, 0, w, h);
+    const img = ctx.getImageData(0, 0, w, h),
+      px = img.data,
+      g = new Uint8ClampedArray(w * h),
+      hist = new Array(256).fill(0);
+    for (let i = 0; i < g.length; i++) {
+      g[i] = (px[i * 4] * 299 + px[i * 4 + 1] * 587 + px[i * 4 + 2] * 114) / 1000;
+      hist[g[i]]++;
+    }
+    let lo = 0,
+      hi = 255,
+      conta = 0;
+    while ((conta += hist[lo]) < g.length / 100 && lo < 254) lo++;
+    conta = 0;
+    while ((conta += hist[hi]) < g.length / 100 && hi > lo + 1) hi--;
+    for (let i = 0; i < g.length; i++) g[i] = ((g[i] - lo) * 255) / (hi - lo);
+    const sai = pb ? bradley(g, w, h) : g;
+    for (let i = 0; i < g.length; i++) px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = sai[i];
+    ctx.putImageData(img, 0, 0);
+    return cv;
+  }
+
+  // um preço como o leitor escreve: "12,90", "1.234,50", "12.90", "-2,00", "0,25-". Num número, o O é 0,
+  // o l, o I e o | são 1, e o S é 5
+  const PRECO = /^-?([0-9OolI|S]{1,3}(?:\.[0-9]{3})?)[,.]([0-9OolI|S]{2})-?$/;
+  const soDigito = (s) => s.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1').replace(/S/g, '5').replace(/\./g, '');
+  /** @typedef {{ c: number, x0: number, y0: number, x1: number, y1: number, un?: boolean }} PrecoLido */
+  /** os preços que o leitor achou, com a caixa de cada um em pontos da foto que ele leu. O que tem outro preço
+   *  à direita na mesma linha é o unitário (`un`): fica apagado, porque quem soma a conta quer o total da linha
+   *  @param {any[]} palavras @returns {PrecoLido[]} */
+  function achaPrecos(palavras) {
+    /** @type {PrecoLido[]} */
+    const precos = [];
+    for (const w of palavras) {
+      const t = String(w.text)
+          .replace(/^[:;'"`]+/, '')
+          .replace(/[.:;|'"`]+$/, ''),
+        m = t.match(PRECO);
+      if (!m || !/\d/.test(m[1])) continue;
+      const c = +soDigito(m[1]) * 100 + +soDigito(m[2]);
+      if (c) precos.push({ c: t.includes('-') ? -c : c, ...w.bbox });
+    }
+    for (const p of precos) {
+      const meio = (p.y0 + p.y1) / 2,
+        alt = p.y1 - p.y0;
+      p.un = precos.some((q) => q !== p && q.x0 > p.x1 && Math.abs((q.y0 + q.y1) / 2 - meio) < alt * 0.6);
+    }
+    return precos;
+  }
+
+  /** a foto aberta no cartão: o que o leitor achou nela e o que a pessoa tocou, na ordem do toque
+   *  `vista` é a foto em cinza com o contraste esticado: é ela que aparece, porque à noite a colorida é um breu
+   *  @type {{ foto: ImageBitmap, vista: HTMLCanvasElement, url: string, precos: PrecoLido[], tocados: number[], pb: boolean, corte: number[] } | null} */
+  let fotoConta = null;
+  const tiraFoto = () => {
+    carregaLeitor().catch(() => {}); // baixa enquanto a pessoa enquadra; o erro aparece quando for ler
+    $('#fotoArq').click();
+  };
+  $('#fotoArq').addEventListener('change', () => {
+    const arq = $('#fotoArq').files[0];
+    $('#fotoArq').value = ''; // a mesma foto de novo também dispara
+    if (arq) abreFoto(arq);
+  });
+  async function abreFoto(arq) {
+    if (fotoConta) {
+      fotoConta.foto.close();
+      URL.revokeObjectURL(fotoConta.url);
+    }
+    fotoConta = null;
+    const url = URL.createObjectURL(arq);
+    overlay(
+      `<h2>Foto da conta</h2><p class="muted recado" id="fotoRecado">lendo a conta…</p>` +
+        `<div class="fotoConta lendo" id="fotoConta"><div class="tela"><img id="fotoImg" alt="a foto da conta" src="${url}"></div></div>` +
+        `<div class="somaFoto"><span class="fita" id="fotoFita"></span><b id="fotoSoma"></b></div>` +
+        `<button class="big" id="fotoUsar" disabled>usar</button>` +
+        `<div class="c fotoMais"><a class="link" id="fotoPerto">aumentar</a> · <a class="link" id="fotoContraste">ler com mais contraste</a> · <a class="link" id="fotoOutra">outra foto</a></div>` +
+        `<p class="status" id="fotoTempo"></p><div class="c voltar"><button id="fotoVoltar" class="ghost">voltar</button></div>`,
+    );
+    try {
+      const foto = await createImageBitmap(arq);
+      const vista = preparaFoto(foto, false);
+      fotoConta = { foto, vista, url, precos: [], tocados: [], pb: false, corte: [0, 0, foto.width, foto.height] };
+    } catch {
+      $('#fotoRecado').textContent = 'essa foto não abriu. tenta outra.';
+      return;
+    }
+    leFoto(false);
+  }
+  /** lê a foto aberta; `pb` em preto e branco (o "mais contraste"). Lida de novo, perde o que estava tocado */
+  async function leFoto(pb) {
+    const f = fotoConta;
+    if (!f) return;
+    $('#fotoConta').classList.add('lendo');
+    $('#fotoRecado').textContent = 'lendo a conta…';
+    $('#fotoTempo').textContent = '';
+    const t0 = performance.now();
+    let data;
+    try {
+      const w = await carregaLeitor(),
+        t1 = performance.now(),
+        cv = preparaFoto(f.foto, pb),
+        img = await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+      ({ data } = await w.recognize(img, {}, { blocks: true }));
+      if (fotoConta !== f) return; // fechou ou trocou de foto no meio
+      // o que o teste no bar quer saber: quanto o leitor levou pra baixar, quanto disso a pessoa esperou com a foto
+      // já tirada, e quanto a leitura levou
+      const s = (ms) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
+      $('#fotoTempo').textContent =
+        `leitor baixou em ${s(tempoLeitor.fim - tempoLeitor.ini)} (esperei ${s(t1 - t0)}) · leu em ` +
+        `${s(performance.now() - t1)} · ${pb ? 'mais contraste' : 'cinza'}`;
+      // as caixas vêm em pontos da foto que o leitor leu: voltam pra escala da original
+      const k = f.foto.width / cv.width;
+      const palavras = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines.flatMap((l) => l.words)));
+      f.precos = achaPrecos(palavras).map((p) => ({ ...p, x0: p.x0 * k, y0: p.y0 * k, x1: p.x1 * k, y1: p.y1 * k }));
+      f.tocados = [];
+      f.pb = pb;
+      // o recorte: em volta dos preços e do que ele leu com certeza, com folga. À noite o grão da mesa vira
+      // "palavra" de uma letra ou duas: só entra palavra com três letras ou números seguidos. Sem nada, a foto inteira
+      const caixas = [
+        ...f.precos,
+        ...palavras
+          .filter((p) => p.confidence > 60 && /[a-z0-9]{3}/i.test(p.text))
+          .map((p) => ({ x0: p.bbox.x0 * k, y0: p.bbox.y0 * k, x1: p.bbox.x1 * k, y1: p.bbox.y1 * k })),
+      ];
+      if (caixas.length) {
+        const xs0 = Math.min(...caixas.map((p) => p.x0)),
+          ys0 = Math.min(...caixas.map((p) => p.y0)),
+          xs1 = Math.max(...caixas.map((p) => p.x1)),
+          ys1 = Math.max(...caixas.map((p) => p.y1));
+        const fx = (xs1 - xs0) * 0.06,
+          fy = (ys1 - ys0) * 0.03;
+        f.corte = [
+          Math.max(0, xs0 - fx),
+          Math.max(0, ys0 - fy),
+          Math.min(f.foto.width, xs1 + fx),
+          Math.min(f.foto.height, ys1 + fy),
+        ];
+      }
+    } catch (e) {
+      if (fotoConta !== f) return;
+      $('#fotoConta').classList.remove('lendo');
+      $('#fotoRecado').textContent = `não deu pra ler: ${e && e.message ? e.message : e}. tenta de novo com rede.`;
+      return;
+    }
+    await mostraFoto();
+    if (fotoConta !== f) return;
+    const n = f.precos.filter((p) => !p.un).length;
+    $('#fotoRecado').textContent = n
+      ? `achei ${n} preço${n > 1 ? 's' : ''}. toque nos que entram nesse gasto.`
+      : 'não achei preço nessa foto. tenta com mais luz, ou ler com mais contraste.';
+    $('#fotoContraste').textContent = pb ? 'ler sem contraste' : 'ler com mais contraste';
+  }
+  /** a foto recortada no cartão, com uma caixa em cada preço achado */
+  async function mostraFoto() {
+    const f = fotoConta;
+    const [x0, y0, x1, y1] = f.corte,
+      w = x1 - x0,
+      h = y1 - y0,
+      k = Math.min(1, 1000 / w);
+    const cv = Object.assign(document.createElement('canvas'), { width: Math.round(w * k), height: Math.round(h * k) }),
+      kv = f.vista.width / f.foto.width;
+    cv.getContext('2d').drawImage(f.vista, x0 * kv, y0 * kv, w * kv, h * kv, 0, 0, cv.width, cv.height);
+    const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.85));
+    if (fotoConta !== f) return;
+    URL.revokeObjectURL(f.url);
+    f.url = URL.createObjectURL(blob);
+    const pc = (v, de, tam) => (((v - de) / tam) * 100).toFixed(2) + '%';
+    $('#fotoConta .tela').innerHTML =
+      `<img id="fotoImg" alt="a foto da conta" src="${f.url}">` +
+      f.precos
+        .map(
+          (p, i) =>
+            `<button type="button" class="preco${p.un ? ' un' : ''}" data-preco="${i}" aria-label="${comSifrao(Math.abs(p.c))}" aria-pressed="false" ` +
+            `style="left:${pc(p.x0, x0, w)};top:${pc(p.y0, y0, h)};width:${pc(p.x1, p.x0, w)};height:${pc(p.y1, p.y0, h)}"></button>`,
+        )
+        .join('');
+    $('#fotoConta').classList.remove('lendo');
+    somaFoto();
+  }
+  /** a fita do que foi tocado, a soma e o botão de usar */
+  function somaFoto() {
+    const f = fotoConta,
+      soma = f.tocados.reduce((s, i) => s + f.precos[i].c, 0);
+    $('#fotoFita').textContent = f.tocados.map((i) => reais(f.precos[i].c)).join(' + ');
+    $('#fotoSoma').textContent = f.tocados.length ? comSifrao(soma) : '';
+    $('#fotoUsar').textContent = soma > 0 ? `usar ${comSifrao(soma)}` : 'usar';
+    $('#fotoUsar').disabled = !(soma > 0);
+  }
+  const marcaPreco = (el) => {
+    const f = fotoConta,
+      i = +el.dataset.preco;
+    if (!f || !f.precos[i]) return;
+    const j = f.tocados.indexOf(i);
+    if (j >= 0) f.tocados.splice(j, 1);
+    else f.tocados.push(i);
+    el.classList.toggle('sim', j < 0);
+    el.setAttribute('aria-pressed', String(j < 0));
+    somaFoto();
+  };
+  /** a soma vai pro valor do anotar, como se a pessoa tivesse digitado */
+  const usaFoto = () => {
+    const f = fotoConta,
+      soma = f ? f.tocados.reduce((s, i) => s + f.precos[i].c, 0) : 0;
+    if (!(soma > 0)) return;
+    $('#amount').value = reais(soma);
+    updateHint();
+    closeOverlay();
+    if (!$('#desc').value) $('#desc').focus();
+  };
+  const fotoPerto = () => {
+    const perto = $('#fotoConta').classList.toggle('perto');
+    $('#fotoPerto').textContent = perto ? 'diminuir' : 'aumentar';
+  };
   // #endregion
   // #region entrar num evento
   // ---------- entrar num evento (código → id no banco) ----------
@@ -4149,6 +4444,13 @@
   /** @type {[string, (el: HTMLElement) => unknown][]} vale o primeiro seletor que o clique acertar */
   const CLIQUES = [
     ['#temaBtn', trocaTema],
+    ['#fotoBtn', tiraFoto],
+    ['[data-preco]', marcaPreco],
+    ['#fotoUsar', usaFoto],
+    ['#fotoPerto', fotoPerto],
+    ['#fotoContraste', () => fotoConta && leFoto(!fotoConta.pb)],
+    ['#fotoOutra', () => $('#fotoArq').click()],
+    ['#fotoVoltar', closeOverlay],
     ['#splitSeg button', escolheAba],
     ['[data-resto]', poeResto],
     ['#restoIgual', divideResto],

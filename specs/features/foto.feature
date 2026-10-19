@@ -1,0 +1,42 @@
+# language: pt
+Funcionalidade: Foto da conta
+  No bar, a conta chega impressa. Em vez de somar de cabeça o que entra no gasto, a pessoa
+  fotografa a conta e toca nos preços: a soma vai pro valor do anotar.
+  Ainda é protótipo: só aparece pra quem pediu pra testar.
+
+  Contexto:
+    Dado o evento "bar" com Ana, Beto e Caio
+
+  Cenário: sem pedir pra testar, o anotar não tem a câmera
+    Quando eu abro o evento como Ana
+    E eu toco no ✎
+    Então o anotar não tem a câmera
+
+  Regra: pra quem pediu pra testar, os preços tocados na foto somam no valor do anotar
+
+    Contexto:
+      Dado que eu pedi pra testar a foto da conta
+
+    Exemplo: a soma do que eu toquei vai pro valor
+      Dado uma conta em que se lê 12,90, 39,90 e 22,00
+      Quando eu abro o evento como Ana
+      E eu toco no ✎
+      E eu fotografo a conta
+      E eu toco em 12,90 e 39,90 na foto
+      E eu uso a soma da foto
+      Então o valor do anotar é 52,80
+
+    Exemplo: tocar de novo num preço tira ele da soma
+      Dado uma conta em que se lê 12,90, 39,90 e 22,00
+      Quando eu abro o evento como Ana
+      E eu toco no ✎
+      E eu fotografo a conta
+      E eu toco em 12,90, 39,90 e 12,90 na foto
+      Então a foto soma R$ 39,90
+
+    Exemplo: a foto em que não se lê preço avisa
+      Dado uma conta em que não se lê preço nenhum
+      Quando eu abro o evento como Ana
+      E eu toco no ✎
+      E eu fotografo a conta
+      Então a foto diz "não achei preço nessa foto"

@@ -12,10 +12,6 @@ Given('que neste aparelho eu já liguei o aviso no celular', async ({ mundo }) =
 });
 
 Then('Minha conta oferece {string}', async ({ mundo }, txt) => { await expect(botao(mundo.p)).toHaveText(txt); });
-Then('Minha conta não oferece aviso no celular', async ({ mundo }) => {
-  await expect(mundo.p.locator('#mineRows [data-settle]').first()).toBeVisible();
-  await expect(botao(mundo.p)).toHaveCount(0);
-});
 
 When('eu ligo o aviso no celular', async ({ mundo }) => { await botao(mundo.p).click(); });
 Then('o botão do aviso sai de Minha conta', async ({ mundo }) => { await expect(botao(mundo.p)).toHaveCount(0); });
@@ -33,6 +29,17 @@ Then('o/a {word} é avisado/avisada no celular do pagamento da/do {word}', async
   expect(sala).toBe(mundo.sala);
   const pago = mundo.banco.arvore.rooms[mundo.sala].expenses.find(e => e.id === id);
   expect(pago).toMatchObject({ kind: 'payment', payer: mundo.pessoa(pagou).id, among: [mundo.pessoa(quem).id] });
+});
+
+Then('quem divide a/o {string} é avisado no celular', async ({ mundo }, desc) => {
+  const gasto = () => mundo.banco.arvore.rooms[mundo.sala].expenses.find(e => e.desc === desc);
+  await expect.poll(() => pedidos(mundo, '/avisa').some(x => x.sala === mundo.sala && x.id === gasto()?.id)).toBe(true);
+});
+// o pedido sai logo depois do sync que gravou: com a edição já no banco, um respiro basta pra ele ter chegado
+Then('ninguém é avisado no celular', async ({ mundo }) => {
+  await expect.poll(() => mundo.banco.arvore.rooms[mundo.sala].expenses.some(e => e.desc === mundo.descEditada)).toBe(true);
+  await mundo.p.waitForTimeout(300);
+  expect(pedidos(mundo, '/avisa')).toEqual([]);
 });
 
 // o Safari do iPhone fora da tela de início: sem Notification nem PushManager, que só existem no app instalado

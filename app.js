@@ -39,7 +39,7 @@
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
   const QUITADO_DIAS = 7; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
-  const AVISO_PUSH = true; // quem recebe liga o aviso no celular, e todo pagamento marcado cutuca a API
+  const AVISO_PUSH = true; // o aviso no celular: todo pagamento marcado e todo gasto anotado cutuca a API
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
@@ -1226,11 +1226,12 @@
   // #endregion
   // #region aviso no celular
   // ---------- aviso no celular (push) ----------
-  // quem recebe liga o aviso, e daí todo pagamento marcado cutuca a API (servidor/), que relê
-  // o evento no banco e manda um push vazio pro celular de quem recebeu. O sw.js acorda, lê
-  // no próprio banco o que mudou e escreve o aviso. A página nunca espera a API: falhou, falhou
-  /** pagamentos marcados aqui que a API ainda não soube @type {Set<string>} */ const aAvisar = new Set();
-  /** chamado depois que o sync gravou: o banco já tem o pagamento, a API acha ele lá */
+  // quem liga o aviso fica sabendo no celular do pagamento pra ele e do gasto novo com ele. Todo pagamento
+  // marcado e todo gasto anotado cutuca a API (servidor/), que relê o evento no banco e manda um push vazio pro
+  // celular de quem recebeu (ou de quem divide e de quem pagou o gasto). O sw.js acorda, lê no próprio banco o
+  // que mudou e escreve o aviso. A página nunca espera a API: falhou, falhou
+  /** pagamentos e gastos anotados aqui que a API ainda não soube @type {Set<string>} */ const aAvisar = new Set();
+  /** chamado depois que o sync gravou: o banco já tem o pagamento (ou o gasto), a API acha ele lá */
   function cutucaApi() {
     for (const id of aAvisar) {
       aAvisar.delete(id);
@@ -1355,7 +1356,7 @@
       setRoom('pushOn', quem);
       setDevice('avisoSim', true);
       render();
-      if (!calado) toast('Pronto: quando te pagarem, chega aviso 🔔');
+      if (!calado) toast('Pronto: gasto novo contigo e pagamento pra ti chegam no celular 🔔');
     } catch {
       if (!calado) toast('Não deu pra ligar o aviso agora');
     } finally {
@@ -1798,7 +1799,7 @@
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
       (bal > 0 ? botaoTrocaZap(recebe) : '') +
-      (bal > 0 && temAviso() ? botaoAviso() : '');
+      (temAviso() ? botaoAviso(bal > 0) : '');
     neonAnda();
   }
   // o neon do quite: o tubo acende engasgando quando Minha conta pega a vez (ou quando a caixa cai, na passagem pro
@@ -1918,15 +1919,17 @@
       ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}">${esc(nameOf(id))}</a>`).join(', ')}</div>`
       : '';
   };
-  /** o 🔔 no pé de Minha conta, só pra quem recebe e ainda não ligou: ligado, some (quem quiser
-   *  desligar desliga nas notificações do próprio navegador) */
-  const botaoAviso = () => {
+  /** o 🔔 no pé de Minha conta, pra quem ainda não ligou: ligado, some (quem quiser desligar desliga nas
+   *  notificações do próprio navegador). Avisa o gasto novo com a pessoa e o pagamento pra ela; o convite fala
+   *  do que mais importa pra ela agora: quem recebe quer saber quando pagarem
+   *  @param {boolean} recebe */
+  const botaoAviso = (recebe) => {
     if (avisoLigado()) return '';
     if (jaDisseSim()) {
       setTimeout(() => tocaAviso(true)); // fora do render: o liga sozinho grava e renderiza de novo
       return '';
     }
-    return '<div class="aviso"><button class="ico" data-aviso title="avisar no celular">🔔 me avisa quando pagarem</button></div>';
+    return `<div class="aviso"><button class="ico" data-aviso title="avisar no celular">🔔 me avisa ${recebe ? 'quando pagarem' : 'dos gastos comigo'}</button></div>`;
   };
   /** Minha conta pega a vez assim que chega na tela, sem esperar a chave do pix (senão o
    *  Falta pagar tomava a frente). A fila só segura o começo das piscadas: quem vem depois
@@ -4222,7 +4225,7 @@
     if (velho) {
       exp.at = velho.at;
       apagaItem(velho, exp.id);
-    }
+    } else if (AVISO_PUSH) aAvisar.add(exp.id); // gasto novo: quem divide fica sabendo no celular (editar não avisa)
     state.expenses.push(exp);
     state.expenses.sort((x, y) => x.at - y.at);
     limpaForm();

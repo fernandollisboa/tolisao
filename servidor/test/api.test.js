@@ -1,7 +1,7 @@
 // a API com KV de mentira e fetch de mentira (Firebase e serviço de push). roda com `node --test`.
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import api, { saldo } from '../src/index.js';
+import api, { saldo, ultimoNiver, mesversarios } from '../src/index.js';
 import { jwt, b64url, deB64url } from '../src/vapid.js';
 
 const SALA = 'a'.repeat(64);
@@ -367,4 +367,75 @@ test('o saldo é a conta do app: partes que fecham, centavo que sobra, item apag
   assert.equal(saldo(s, 'ana'), 1000 - 334 - 700 - 500);
   assert.equal(saldo(s, 'bia'), -333 + 1000 - 300 + 1000 - 500);
   assert.equal(saldo(s, 'caio'), -333);
+});
+
+// ---------- o mêsversário da dívida ----------
+/** meio-dia de Brasília de uma data (aaaa-mm-dd) */
+const br = (d) => Date.parse(`${d}T12:00:00-03:00`);
+const dia = (d) => Date.parse(`${d}T00:00:00Z`);
+
+test('a dívida faz aniversário aos 15 dias e depois todo mês, no dia de Brasília', () => {
+  assert.equal(ultimoNiver(br('2026-03-01'), br('2026-03-15')), null);
+  assert.deepEqual(ultimoNiver(br('2026-03-01'), br('2026-03-16')), { dia: dia('2026-03-16'), meses: 0 });
+  assert.deepEqual(ultimoNiver(br('2026-03-01'), br('2026-03-31')), { dia: dia('2026-03-16'), meses: 0 });
+  assert.deepEqual(ultimoNiver(br('2026-03-01'), br('2026-04-01')), { dia: dia('2026-04-01'), meses: 1 });
+  assert.deepEqual(ultimoNiver(br('2026-03-01'), br('2026-06-03')), { dia: dia('2026-06-01'), meses: 3 });
+  // o 31 num mês mais curto vira o último dia dele
+  assert.deepEqual(ultimoNiver(br('2026-01-31'), br('2026-02-28')), { dia: dia('2026-02-28'), meses: 1 });
+  assert.deepEqual(ultimoNiver(br('2026-01-31'), br('2026-03-31')), { dia: dia('2026-03-31'), meses: 2 });
+  // 22h em Brasília já é amanhã em UTC: o dia que vale é o de lá
+  assert.equal(ultimoNiver(Date.parse('2026-03-01T22:00:00-03:00'), Date.parse('2026-03-15T22:00:00-03:00')), null);
+});
+
+/** a Ana pagou 30 dividido com a Bia em `gasto`; o evento mexeu ontem (a Bia pagou um pouco) */
+const devendo = (gasto) => ({
+  name: 'churras',
+  updatedAt: br('2026-04-01') - DIA,
+  people: [
+    { id: 'ana', name: 'Ana' },
+    { id: 'bia', name: 'Bia' },
+  ],
+  deleted: ['apagado'],
+  expenses: [
+    { id: 'g1', amount: 30, payer: 'ana', among: ['ana', 'bia'], at: br(gasto) },
+    { id: 'pg', kind: 'payment', amount: 5, payer: 'bia', among: ['ana'], at: br('2026-03-31') },
+    { id: 'apagado', amount: 8, payer: 'bia', among: ['ana', 'bia'], at: br('2026-03-30') },
+  ],
+});
+
+test('o mêsversário é de quem recebe, conta do último gasto da dívida e vale por uma semana', () => {
+  const s = devendo('2026-03-01');
+  // pagamento e item apagado não mexem na idade da dívida
+  assert.deepEqual(mesversarios(s, 'ana', br('2026-04-01')), [{ devedor: 'bia', dia: dia('2026-04-01'), meses: 1 }]);
+  assert.deepEqual(mesversarios(s, 'ana', br('2026-04-07')), [{ devedor: 'bia', dia: dia('2026-04-01'), meses: 1 }]);
+  assert.deepEqual(mesversarios(s, 'ana', br('2026-04-08')), []);
+  assert.deepEqual(mesversarios(s, 'bia', br('2026-04-01')), []);
+  // quitou, acabou o aniversário
+  s.expenses.push({ id: 'pg2', kind: 'payment', amount: 10, payer: 'bia', among: ['ana'], at: br('2026-03-31') });
+  assert.deepEqual(mesversarios(s, 'ana', br('2026-04-01')), []);
+});
+
+test('no mêsversário da dívida, a diva avisa quem recebe, uma vez só, mesmo com o evento mexido', async () => {
+  sala = devendo('2026-03-01');
+  sala.updatedAt = Date.now() - DIA;
+  for (const e of sala.expenses) e.at += Date.now() - br('2026-04-01');
+  await inscreve('ana');
+  await inscreve('bia', sub(9), 'tokdabia12345678');
+  assert.equal(await cron(), 1);
+  assert.deepEqual(
+    enviados.map((e) => e.url),
+    [`${PUSH}1`],
+  );
+  const marca = [...env.KV.m.keys()].find((k) => k.startsWith(`niver:${SALA}:ana:bia:`));
+  assert.equal(env.KV.m.get(marca).ttl, 8 * 86400);
+  const antes = env.KV.gravacoes;
+  assert.equal(await cron(), 0);
+  assert.equal(env.KV.gravacoes, antes);
+});
+
+test('no mêsversário de um evento parado vai um push só, o do aniversário', async () => {
+  sala = parada(15);
+  await inscreve('ana');
+  assert.equal(await cron(), 1);
+  assert.equal(env.KV.m.has(`lembrou:${SALA}:ana`), false);
 });

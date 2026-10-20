@@ -78,3 +78,25 @@ Funcionalidade: Aviso no celular quando me pagam ou anotam gasto comigo
     E eu ligo o aviso no celular
     Então o navegador me convida a instalar o tô lisa
     E o celular fica inscrito pra receber o aviso da Júlia
+
+  Cenário: o aviso do mêsversário da dívida abre já no cobrar
+    Quem tem a receber é avisado quando a dívida de alguém faz 15 dias, e depois todo mês no mesmo dia.
+    Tocar no aviso leva direto pra cobrança no zap, com o aniversário na mensagem.
+    Dado que o último gasto foi anotado há 15 dias
+    E que neste aparelho eu sou Fernando no "bailedamada"
+    Quando eu toco no aviso de mêsversário da dívida da Mengla
+    Então o cartão pergunta "Cobrar Mengla?"
+    Quando eu cobro pelo cartão
+    Então o zap abre com a mensagem:
+      """
+      💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
+      🎂 hoje a dívida completa 15 dias
+
+      {site}/fiado/?evento=bailedamada&quem=mengla
+      """
+
+  Cenário: o aviso do mêsversário de uma dívida já paga só abre o evento
+    Dado que a Mengla já pagou R$ 174,43 pro Fernando
+    E que neste aparelho eu sou Fernando no "bailedamada"
+    Quando eu toco no aviso de mêsversário da dívida da Mengla
+    Então nenhum cartão abre

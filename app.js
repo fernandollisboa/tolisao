@@ -238,6 +238,8 @@
   /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
   /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
   /** o &quem= do link compartilhado: quem abre já entra como essa pessoa @type {string|null} */ let quemDoLink = null;
+  /** o &cobra= do aviso de mêsversário da dívida: abre já cobrando essa pessoa @type {string|null} */ let cobraDoAviso =
+    null;
   /** quando esta pessoa viu o evento pela última vez: o que chegou depois ganha "novo" */ let lastSeen = 0;
   /** pessoa → chave pix, lida do banco @type {Record<string, string>} */ let pixKeys = {};
   /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
@@ -3416,6 +3418,11 @@
     }
     // ninguém é interrompido na chegada: sem palpite, a tela de estreia e o "quem é você?"
     // esperam o toque no botão do cabeçalho
+    // o aviso do mêsversário da dívida abre já no cobrar de quem deve (se ainda deve)
+    const cobrar = cobraDoAviso;
+    cobraDoAviso = null;
+    const divida = cobrar && temMe() && settlements(balances()).find((t) => t.from === cobrar && t.to === me);
+    if (divida) cartaoDeCobrar(divida.from, divida.cents);
     startPolling();
     sync();
     loadPixKeys();
@@ -4644,12 +4651,32 @@
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
     const [quem, cents] = el.dataset.cobra.split('|');
+    cobraNoZap(quem, +cents);
+  }
+  /** @param {string} quem @param {number} cents */
+  function cobraNoZap(quem, cents) {
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(+cents)} pra ${nameOf(me)} no *${evento()}*${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
+    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(cents)} pra ${nameOf(me)} no *${evento()}*${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);
     else abreZap(msg, tel || '');
+  }
+  /** o toque no aviso do mêsversário da dívida: o cartão já diz quanto e há quanto tempo, e o cobrar abre o zap
+   *  do próprio toque, como o da linha @param {string} quem @param {number} cents */
+  function cartaoDeCobrar(quem, cents) {
+    const idade = aniversario(quem).replace(/^[\n, ]+/, '');
+    overlay(
+      `<h2 class="pergunta">Cobrar ${nomeHtml(quem)}?</h2>
+      <p class="muted recado">faltam ${comSifrao(cents)} pra você${idade ? `<br>${esc(idade)}` : ''}</p>
+      <button id="cobraBtn" class="big">${WA_SVG} cobrar no zap</button>
+      <div class="c voltar"><button id="cancelBtn" class="ghost">agora não</button></div>`,
+    );
+    $('#cobraBtn').onclick = () => {
+      closeOverlay();
+      cobraNoZap(quem, cents);
+    };
+    $('#cancelBtn').onclick = closeOverlay;
   }
   /** o link pode já dizer quem vai abrir: o grupo todo em destaque com o QR do lado, e cada pessoa numa cápsula com contorno e pontinho na cor dela, em duas colunas.
    * Sozinho no evento, fica só o grupo e o QR: é logo na criação que a turma da mesa precisa entrar.
@@ -5682,8 +5709,10 @@
     // ?senha= é o nome antigo do parâmetro: link velho no zap continua abrindo
     const q = new URLSearchParams(location.search);
     const c = q.get('evento') || q.get('senha');
-    const quem = q.get('quem');
+    const quem = q.get('quem'),
+      cobra = q.get('cobra');
     if (quem && /^[a-z0-9]{1,32}$/.test(quem)) quemDoLink = quem;
+    if (cobra && /^[a-z0-9]{1,32}$/.test(cobra)) cobraDoAviso = cobra;
     // o nome digitado no cartão de um evento aberto: o endereço já sai do ?novo=, e recarregar não cria mais um
     const novo = (q.get('novo') || '').trim().toLowerCase();
     if (novo) {

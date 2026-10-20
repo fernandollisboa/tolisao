@@ -45,6 +45,21 @@ self.addEventListener('fetch', e => {
 // O texto é o mesmo do toast do avisaPagos, no app.js
 const JANELA_MS = 10 * 60 * 1000; // a mesma da API: pagamento mais velho que isso já não avisa
 const PARADO_MS = 7 * 86400 * 1000; // a mesma da API (o PARADO_DIAS do app.js): evento parado há tanto ganha cobrança
+// o mêsversário da dívida, a mesma conta da API: 15 dias, depois todo mês no mesmo dia de Brasília, e ainda vale
+// por uma semana (o cron não lê toda sala todo dia)
+const DIA = 86400000, BR = 3 * 3600000, NIVER_DIAS = 15, NIVER_PRAZO = 7;
+const diaBR = t => { const d = new Date(t - BR); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+/** o último aniversário, até `agora`, da dívida que começou em `at` ({ dia, meses }; meses 0 é o dos 15 dias), ou null */
+function ultimoNiver(at, agora) {
+  const a = new Date(diaBR(at)), hoje = diaBR(agora), h = new Date(hoje);
+  const marco = m => Date.UTC(a.getUTCFullYear(), a.getUTCMonth() + m,
+    Math.min(a.getUTCDate(), new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth() + m + 1, 0)).getUTCDate()));
+  let meses = (h.getUTCFullYear() - a.getUTCFullYear()) * 12 + h.getUTCMonth() - a.getUTCMonth();
+  while (meses >= 1 && marco(meses) > hoje) meses--;
+  if (meses >= 1) return { dia: marco(meses), meses };
+  const quinze = a.getTime() + NIVER_DIAS * DIA;
+  return quinze <= hoje ? { dia: quinze, meses: 0 } : null;
+}
 const avisos = (modo, f) => new Promise((ok, erro) => {
   const pedido = indexedDB.open('tolisa', 1);
   pedido.onupgradeneeded = () => pedido.result.createObjectStore('avisos', { keyPath: 'sala' });
@@ -56,7 +71,8 @@ const lista = x => (Array.isArray(x) ? x : x && typeof x === 'object' ? Object.v
 const reais = c => { const [i, d] = (Math.abs(c) / 100).toFixed(2).split('.'); return 'R$ ' + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; };
 const juntos = ns => ns.length > 1 ? ns.slice(0, -1).join(', ') + ' e ' + ns[ns.length - 1] : ns[0];
 /** o que caiu pra mim num evento desde o último aviso: { texto, code } ou null.
- *  de passagem, refaz a bolinha (contas.n) e guarda a cobrança de evento parado (contas.cobra) */
+ *  de passagem, refaz a bolinha (contas.n), guarda o mêsversário de uma dívida comigo (contas.niver)
+ *  e a cobrança de evento parado (contas.cobra) */
 async function novidade(a, contas) {
   if (!/^[0-9a-f]{64}$/.test(a.sala) || !/^[a-z0-9]{1,32}$/.test(a.me) || !/^https:\/\/[a-z0-9-]+\.firebaseio\.com$/.test(a.db)) return null;
   const r = await fetch(`${a.db}/rooms/${a.sala}.json`, { cache: 'no-store' });
@@ -74,6 +90,19 @@ async function novidade(a, contas) {
     if (!contas.cobra && meus.length && agora - (+sala.updatedAt || agora) >= PARADO_MS)
       contas.cobra = { code: a.code, tag: 'cobra:' + a.code,
         texto: `🧾 ${juntos(quem)} te deve${quem.length > 1 ? 'm' : ''} ${reais(meus.reduce((s, t) => s + t.c, 0))}${evento}. bora cobrar?` };
+    // a API manda push no mêsversário de uma dívida comigo: a dívida conta do último gasto em que o devedor entrou
+    // (o aniversario() do app.js). O toque abre a cobrança dele; o que já avisou não avisa de novo (a.nivers)
+    const fora = new Set(Array.isArray(sala.deleted) ? sala.deleted : []), hoje = diaBR(agora),
+      gastos = lista(sala.expenses).filter(e => e.kind !== 'payment' && !fora.has(e.id) && typeof e.at === 'number'),
+      ja = Array.isArray(a.nivers) ? a.nivers : [];
+    for (const t of contas.niver ? [] : meus) {
+      const at = Math.max(0, ...gastos.filter(e => membros(e).includes(t.from)).map(e => e.at)), n = at && ultimoNiver(at, agora);
+      if (!n || hoje - n.dia >= NIVER_PRAZO * DIA || ja.includes(`${t.from}:${n.dia}`)) continue;
+      const idade = n.meses ? `${n.meses} ${n.meses > 1 ? 'meses' : 'mês'}` : `${NIVER_DIAS} dias`, ehHoje = n.dia === hoje;
+      contas.niver = { a, chave: `${t.from}:${n.dia}`, code: a.code, cobra: t.from, tag: `niver:${a.code}:${t.from}`,
+        texto: `🎂 ${ehHoje ? 'hoje ' : ''}a dívida de ${nome(t.from)} ${ehHoje ? 'faz' : 'fez'} ${idade}: ${reais(t.c)}${evento}. toca pra cobrar 💅` };
+      break;
+    }
   } catch {}
   const vistos = new Set(Array.isArray(a.vistos) ? a.vistos : []);
   // o que é novo e não fui eu que fiz: pagamento marcado ou gasto anotado (byId é o id de quem anotou; aparelho antigo só tem o nome)
@@ -153,7 +182,13 @@ self.addEventListener('push', e => e.waitUntil((async () => {
     const todos = await avisos('readonly', s => s.getAll()), bol = todos.find(a => a.sala === 'bolinha'),
       contas = { eu: { ...(bol && bol.eu) }, n: {} };
     for (const a of todos) if ((aviso = await novidade(a, contas).catch(() => null))) break;
-    aviso = aviso || contas.cobra || null;
+    aviso = aviso || contas.niver || contas.cobra || null;
+    // o mêsversário avisado fica anotado no evento: o próximo push conta o da próxima dívida
+    if (aviso && aviso === contas.niver) {
+      const { a, chave } = aviso;
+      await avisos('readwrite', s => { const g = s.get(a.sala);
+        g.onsuccess = () => { if (g.result) s.put({ ...g.result, nivers: [...(g.result.nivers || []), chave].slice(-30) }); }; return g; });
+    }
     if (bol && 'setAppBadge' in self.navigator) {
       // relê e grava na mesma transação: a página pode ter regravado a bolinha enquanto o banco respondia
       // só os eventos que a página ainda conta: o esquecido lá não volta pela porta do push
@@ -167,13 +202,15 @@ self.addEventListener('push', e => e.waitUntil((async () => {
     }
   } catch {}
   // o navegador exige uma notificação por push: sem achar o pagamento nem a cobrança, vai a genérica
-  const { texto = 'alguém marcou que te pagou no tô lisa', code = '', tag = 'pago:' + code } = aviso || {};
-  await self.registration.showNotification('tô lisa', { body: texto, icon: 'ficha-192.png', tag, data: { code } });
+  const { texto = 'alguém marcou que te pagou no tô lisa', code = '', tag = 'pago:' + code, cobra = '' } = aviso || {};
+  await self.registration.showNotification('tô lisa', { body: texto, icon: 'ficha-192.png', tag, data: { code, cobra } });
 })()));
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const code = (e.notification.data && e.notification.data.code) || '';
-  const url = new URL(code ? '?evento=' + encodeURIComponent(code) : './', self.registration.scope).href;
+  const { code = '', cobra = '' } = e.notification.data || {};
+  // o mêsversário abre já na cobrança de quem deve (&cobra=)
+  const url = new URL(code ? '?evento=' + encodeURIComponent(code) + (cobra ? '&cobra=' + encodeURIComponent(cobra) : '') : './',
+    self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
     const aberta = cs.find(c => c.url === url);
     return aberta ? aberta.focus() : self.clients.openWindow(url);

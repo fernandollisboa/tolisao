@@ -5300,20 +5300,42 @@
       new MutationObserver(confere).observe($(q), { attributes: true, attributeFilter: ['class'] });
     // uma jogada só: chegar no fim de novo não traz outra, até o ficha.rejoga() (trocou de
     // nome, a ficha entrou num botão, a diva voltou a falar).
-    // pousou: a ficha passa a ser pegável. Dois toques ela treme; o terceiro já agarra,
-    // no mesmo gesto. Agarrada, sai do papel pro body (fixed dentro de algo com
-    // transform não fica fixo) e segue o dedo; solta devagar, assenta no papel; solta num
-    // botão, aperta ele; solta com força, voa na direção do arremesso e some.
+    // pousou: a ficha passa a ser pegável, já no primeiro toque. Agarrada, sai do papel pro
+    // body (fixed dentro de algo com transform não fica fixo) e vai presa no dedo; largada,
+    // desliza no embalo da mão e assenta no papel; solta num botão, aperta ele; jogada com
+    // força, passa da tela e some.
     const casa = el.parentElement,
       depois = el.nextSibling;
     // no aparelho de toque o dedo vai junto com a ficha; com mouse o gesto não fecha
     const pegavel = PEGA_FICHA || navigator.maxTouchPoints > 0;
     if (pegavel) document.body.classList.add('pegavel');
-    // graus por px: uma volta a cada perímetro da ficha (70px de diâmetro)
-    const ROLA = 360 / (Math.PI * 70);
-    let toques = 0,
-      zera = 0,
-      pega = null,
+    // a física é a de ficha na mesa, vista de cima: pega pela borda e arrastada, o centro vem
+    // atrás do dedo e ela gira até ficar a reboque; pega pelo meio, quase só anda. Largada,
+    // desliza e gira no embalo até o atrito parar
+    const MEIO = 18, // px: perto do centro o giro amansa, senão um tremor do dedo dava meia volta
+      EMBALO = 40, // ms: o giro vai atrás do dedo com esse atraso, e o que sobra dele é o giro da largada
+      GIRO_MAX = 0.75, // graus por ms: mais rápido que isso as listras parecem girar pra trás
+      ATRITO = 0.0035, // px/ms²: a freada do deslize
+      ATRITO_GIRO = 0.0006, // graus/ms²: a do giro é mais mansa, ela ainda roda um tico depois de parar
+      POUSO = 150; // ms: a ficha descendo na mesa (o --esc e a sombra, no style.css)
+    /** o vetor (x, y) girado em g graus, no sentido do rotate() do CSS */
+    const gira = (x, y, g) => {
+      const a = (g * Math.PI) / 180,
+        c = Math.cos(a),
+        s = Math.sin(a);
+      return { x: x * c - y * s, y: x * s + y * c };
+    };
+    const rotAgora = () => {
+      const g = parseFloat(el.style.getPropertyValue('--rot'));
+      return Number.isFinite(g) ? g : -16;
+    };
+    /** a ficha solta com o centro em (x, y) da tela */
+    const poe = (x, y, rot) => {
+      el.style.left = x - D / 2 + 'px';
+      el.style.top = y - D / 2 + 'px';
+      el.style.setProperty('--rot', rot.toFixed(1) + 'deg');
+    };
+    let pega = null,
       voo = 0;
     // soltar a ficha em cima de um botão aperta ele, que nem ficha em fenda de máquina: no
     // ▸ dos itens abre a lista, no ✔ quita (que já pergunta antes), no copiar pix copia.
@@ -5348,19 +5370,32 @@
     const BORDA = 80,
       RAPIDO = 16; // px da borda onde começa a rolar; px por quadro, no talo
     let rola = 0;
-    const rolaBorda = () => {
+    // a cada quadro com a ficha na mão: ela vai pro dedo, gira o que o arrasto pede e, perto da
+    // borda, rola a página
+    const segue = (agora) => {
       if (!pega) return;
+      const d = Math.min(40, Math.max(1, agora - pega.t));
+      pega.t = agora;
+      // gira o bastante pro centro vir atrás do dedo sem escorregar de lado: r é o centro visto
+      // do dedo, m o quanto o dedo andou desde o último quadro
+      const r = gira(pega.gx, pega.gy, pega.rot),
+        mx = pega.x - pega.px,
+        my = pega.y - pega.py;
+      pega.px = pega.x;
+      pega.py = pega.y;
+      const quer = (((r.y * mx - r.x * my) / (r.x * r.x + r.y * r.y + MEIO * MEIO)) * 180) / Math.PI / d;
+      pega.giro += (quer - pega.giro) * (1 - Math.exp(-d / EMBALO));
+      pega.giro = Math.max(-GIRO_MAX, Math.min(GIRO_MAX, pega.giro));
+      pega.rot += pega.giro * d;
+      const c = gira(pega.gx, pega.gy, pega.rot);
+      poe(pega.x + c.x, pega.y + c.y, pega.rot);
       // quanto rolar: de -1 (no talo pra cima) a 1 (no talo pra baixo), 0 longe das bordas
-      const y = pega.y;
       let v = 0;
-      if (pega.andou && y < BORDA) v = -(BORDA - y) / BORDA;
-      else if (pega.andou && y > innerHeight - BORDA) v = (y - innerHeight + BORDA) / BORDA;
-      if (v) {
-        const antes = scrollY;
-        scrollBy(0, Math.round(Math.max(-1, Math.min(1, v)) * RAPIDO));
-        if (scrollY !== antes) aponta(mirado());
-      }
-      rola = requestAnimationFrame(rolaBorda);
+      if (pega.andou && pega.y < BORDA) v = -(BORDA - pega.y) / BORDA;
+      else if (pega.andou && pega.y > innerHeight - BORDA) v = (pega.y - innerHeight + BORDA) / BORDA;
+      if (v) scrollBy(0, Math.round(Math.max(-1, Math.min(1, v)) * RAPIDO));
+      if (pega.andou) aponta(mirado());
+      rola = requestAnimationFrame(segue);
     };
     // nada de ler layout entre tirar o segura e pôr o engole: a leitura fixaria a ficha
     // opaca no meio do caminho e ela piscava inteira antes de sumir
@@ -5371,7 +5406,7 @@
       aponta(null);
       el.style.left = r.left + r.width / 2 - D / 2 + 'px';
       el.style.top = r.top + r.height / 2 - D / 2 + 'px';
-      el.style.setProperty('--rot', ((parseFloat(el.style.getPropertyValue('--rot')) || 0) + 160).toFixed(1) + 'deg');
+      el.style.setProperty('--rot', (rotAgora() + 160).toFixed(1) + 'deg');
       el.classList.add('engole');
       // o clique vem já, ainda dentro do gesto: copiar pro clipboard e abrir o zap só valem com o dedo acabando de sair
       alvo.click();
@@ -5394,10 +5429,9 @@
       el.addEventListener('transitionend', apagou);
       const reserva = setTimeout(some, 900);
     };
-    el.addEventListener('animationend', (e) => {
-      if (e.animationName === 'treme') el.classList.remove('treme');
+    el.addEventListener('animationend', () => {
       // pousada, larga as classes do voo: a cambalhota vence o pousou no CSS e rejogava a cada toque
-      else if (el.classList.contains('voou')) {
+      if (el.classList.contains('voou')) {
         el.classList.remove('voou', 'cambalhota', 'requica');
         el.classList.add('pousou');
       }
@@ -5415,67 +5449,59 @@
     el.addEventListener('pointerdown', (e) => {
       if (!pegavel || !el.classList.contains('pousou')) return;
       e.preventDefault();
-      clearTimeout(zera);
-      if (!el.classList.contains('solta') && !el.classList.contains('largada') && ++toques < 3) {
-        el.classList.remove('treme');
-        void el.offsetWidth;
-        el.classList.add('treme');
-        zera = setTimeout(() => {
-          toques = 0;
-        }, 1500);
-        return;
-      }
-      toques = 0;
+      // pega até deslizando: a mão para ela
       cancelAnimationFrame(voo);
-      const b = el.getBoundingClientRect();
+      const b = el.getBoundingClientRect(),
+        cx = b.left + b.width / 2,
+        cy = b.top + b.height / 2,
+        rot = rotAgora();
       if (!el.classList.contains('solta')) {
         document.body.appendChild(el);
-        el.classList.remove('treme', 'largada');
+        el.classList.remove('largada');
         el.classList.add('solta');
       }
-      const cx = b.left + (b.width - el.offsetWidth) / 2,
-        cy = b.top + (b.height - el.offsetHeight) / 2;
-      el.style.left = cx + 'px';
-      el.style.top = cy + 'px';
-      el.classList.remove('voando');
+      poe(cx, cy, rot);
+      // a leitura firma a ficha no body antes do segura: sem ela, mudar de pai pula a transição e ela sobe de estalo
+      void el.offsetWidth;
       el.classList.add('segura');
+      // o ponto em que o dedo pegou fica guardado no jeito da ficha: girando, o centro roda em volta dele
+      const g = gira(cx - e.clientX, cy - e.clientY, -rot);
       pega = {
-        dx: e.clientX - cx,
-        dy: e.clientY - cy,
         x: e.clientX,
+        y: e.clientY,
+        px: e.clientX,
+        py: e.clientY,
         x0: e.clientX,
         y0: e.clientY,
-        y: e.clientY,
+        gx: g.x,
+        gy: g.y,
+        rot,
+        giro: 0, // graus por ms
+        t: performance.now(),
         andou: false,
-        rot: parseFloat(el.style.getPropertyValue('--rot')) || -16,
         rastro: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }],
       };
       el.setPointerCapture(e.pointerId);
       cancelAnimationFrame(rola);
-      rola = requestAnimationFrame(rolaBorda);
+      rola = requestAnimationFrame(segue);
     });
+    // o dedo só se anota aqui; quem move a ficha é o segue, uma vez por quadro
     el.addEventListener('pointermove', (e) => {
       if (!pega) return;
-      el.style.left = e.clientX - pega.dx + 'px';
-      el.style.top = e.clientY - pega.dy + 'px';
-      // rola com o dedo, que nem moeda na mesa: cada px pro lado gira o que a borda andou
-      pega.rot += (e.clientX - pega.x) * ROLA;
       pega.x = e.clientX;
       pega.y = e.clientY;
-      el.style.setProperty('--rot', pega.rot.toFixed(1) + 'deg');
       pega.rastro.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
       while (pega.rastro.length > 2 && e.timeStamp - pega.rastro[0].t > 90) pega.rastro.shift();
       if (!pega.andou) pega.andou = Math.hypot(e.clientX - pega.x0, e.clientY - pega.y0) > ARRASTO;
-      if (pega.andou) aponta(mirado());
     });
-    // largada devagar, a ficha volta pro papel no ponto em que parou: presa na tela ela
-    // ficava boiando por cima de tudo, andando junto com a rolagem
+    // parada, a ficha volta pro papel no ponto em que ficou: presa na tela ela ficava
+    // boiando por cima de tudo, andando junto com a rolagem
     const assenta = () => {
       const vx = parseFloat(el.style.left),
         vy = parseFloat(el.style.top);
       if (!Number.isFinite(vx) || !Number.isFinite(vy)) return;
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('solta', 'voando');
+      el.classList.remove('solta');
       el.classList.add('largada');
       const c = casa.getBoundingClientRect();
       el.style.setProperty('--dx', '0px');
@@ -5485,45 +5511,54 @@
     };
     const solta = (e) => {
       if (!pega) return;
-      const p0 = pega.rastro[0],
-        dt = Math.max(16, e.timeStamp - p0.t);
-      let vx = (e.clientX - p0.x) / dt,
-        vy = (e.clientY - p0.y) / dt; // px por ms
+      // o embalo é o da mão nos últimos 90 ms: parada antes de largar, ela só desce. Vale o
+      // último ponto do dedo, não o do evento: o pointercancel pode chegar sem coordenada
+      const ps = pega.rastro.filter((p) => e.timeStamp - p.t <= 90),
+        p0 = ps[0],
+        dt = p0 ? Math.max(16, e.timeStamp - p0.t) : 1;
+      let vx = p0 ? (pega.x - p0.x) / dt : 0,
+        vy = p0 ? (pega.y - p0.y) / dt : 0, // px por ms
+        giro = pega.giro,
+        rot = pega.rot;
       // pointercancel é o sistema tomando o gesto, não a pessoa soltando: não aperta nada
       const alvo = e.type === 'pointerup' && pega.andou ? mirado() : null;
       pega = null;
+      cancelAnimationFrame(rola);
       // em cima de um botão, a mão que desacelera mirando ainda conta como largar
       if (alvo && Math.hypot(vx, vy) < 1.2) return engole(alvo);
       el.classList.remove('segura');
       aponta(null);
-      if (Math.hypot(vx, vy) < 0.7) return assenta(); // devagar: assenta onde parou
-      // arremesso: sai mais rápido que a mão e segue reto com gravidade, girando no
-      // mesmo sentido em que rolava, até sair da tela
-      vx *= 1.8;
-      vy *= 1.8;
-      el.classList.add('voando');
-      let x = parseFloat(el.style.left),
-        y = parseFloat(el.style.top),
-        rot = parseFloat(el.style.getPropertyValue('--rot')) || 0,
+      // desce na mesa e desliza, girando, até o atrito parar. O atrito de mesa freia por igual
+      // em qualquer velocidade: largada mansa para logo, jogada com força vai longe
+      let x = parseFloat(el.style.left) + D / 2,
+        y = parseFloat(el.style.top) + D / 2,
         t = performance.now();
-      const giro = vx * ROLA;
-      const passo = (agora) => {
-        const d = Math.min(40, agora - t);
+      const largou = t;
+      const desliza = (agora) => {
+        const d = Math.min(40, Math.max(0, agora - t));
         t = agora;
-        vy += 0.0025 * d;
+        const v = Math.hypot(vx, vy),
+          f = v > ATRITO * d ? 1 - (ATRITO * d) / v : 0;
+        vx *= f;
+        vy *= f;
+        giro = Math.sign(giro) * Math.max(0, Math.abs(giro) - ATRITO_GIRO * d);
         x += vx * d;
         y += vy * d;
         rot += giro * d;
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-        el.style.setProperty('--rot', rot.toFixed(1) + 'deg');
-        if (x < -D * 2 || x > innerWidth + D || y > innerHeight + D || y < -innerHeight) {
-          el.classList.add('fora');
-          return;
-        }
-        voo = requestAnimationFrame(passo);
+        poe(x, y, rot);
+        // inteira fora da tela, foi-se; parou com o centro pra fora, também
+        const parou = !vx && !vy && !giro && agora - largou >= POUSO;
+        const saiu =
+          x < -D / 2 ||
+          y < -D / 2 ||
+          x > innerWidth + D / 2 ||
+          y > innerHeight + D / 2 ||
+          (parou && (x < 0 || y < 0 || x > innerWidth || y > innerHeight));
+        if (saiu) el.classList.add('fora');
+        else if (parou) assenta();
+        else voo = requestAnimationFrame(desliza);
       };
-      voo = requestAnimationFrame(passo);
+      voo = requestAnimationFrame(desliza);
     };
     el.addEventListener('pointerup', solta);
     el.addEventListener('pointercancel', solta);
@@ -5532,10 +5567,9 @@
       cancelAnimationFrame(voo);
       jogada = marcada = false;
       pega = null;
-      toques = 0;
       aponta(null);
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('voou', 'pousou', 'treme', 'solta', 'largada', 'segura', 'voando', 'fora', 'apaga', 'engole');
+      el.classList.remove('voou', 'pousou', 'solta', 'largada', 'segura', 'fora', 'apaga', 'engole');
       confere();
     };
     // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
@@ -5545,7 +5579,7 @@
       pega = null;
       cancelAnimationFrame(voo);
       aponta(null);
-      el.classList.remove('segura', 'treme');
+      el.classList.remove('segura');
       el.classList.add('apaga');
       setTimeout(() => {
         document.body.classList.add('chato');

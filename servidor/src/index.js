@@ -7,7 +7,8 @@
 //   POST /avisa      {sala, id}                → relê a sala no Firebase e avisa quem recebeu (ou quem foi perdoado),
 //                                                ou, no gasto novo, quem divide e quem pagou
 //   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
-//   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado
+//   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado,
+//                                                e no mêsversário da dívida (15 dias, depois todo mês) avisa quem recebe
 //
 // O corpo nunca é confiável além dos ids: o /avisa lê o pagamento do próprio banco.
 // O banco (KV) é contado: o plano grátis dá 1000 gravações por dia, então só se grava o necessário.
@@ -15,6 +16,7 @@
 //   tok:<sala>:<pessoa>                     sha-256 do tok: quem inscreveu primeiro manda (igual ao tok do pix)
 //   avisado:<sala>:<id>                     esse pagamento (ou gasto) já avisou (some sozinho em 1 dia)
 //   lembrou:<sala>:<pessoa>                 o lembrete do evento parado já foi (some sozinho em 7 dias)
+//   niver:<sala>:<pessoa>:<devedor>:<dia>    o mêsversário dessa dívida já foi avisado (some sozinho em 8 dias)
 
 import { empurra } from './vapid.js';
 import * as digital from './digital.js';
@@ -27,6 +29,10 @@ const MAX_CORPO_DIGITAL = 16384; // a lista de eventos (até 100) e o que a pass
 const MAX_POR_PESSOA = 5;
 const JANELA_MS = 10 * 60 * 1000;
 const PARADO_MS = 7 * 86400 * 1000; // o PARADO_DIAS do app.js: evento sem mudança há uma semana
+const DIA = 86400 * 1000;
+const BR = 3 * 3600 * 1000; // Brasília, sem horário de verão desde 2019: o dia da dívida é o de lá
+const NIVER_DIAS = 15; // o primeiro aniversário da dívida; depois dele, todo mês no mesmo dia
+const NIVER_PRAZO = 7; // dias: o cron não lê toda sala todo dia, então o aniversário ainda avisa até uma semana depois
 // plano grátis: 50 fetch por execução (o KV tem teto à parte). cada sala gasta 1 leitura do banco e 1 por push
 const FETCH_POR_VEZ = 45;
 
@@ -198,31 +204,101 @@ async function manda(k, env) {
   return st >= 200 && st < 300;
 }
 
-/** o saldo de `pessoa` em centavos, a mesma conta do balances() do app.js (positivo = tem a receber)
- * @param {any} sala @param {string} pessoa */
-export function saldo(sala, pessoa) {
-  const gente = new Set(valores(sala?.people).map((p) => p.id));
+/** o saldo de cada um em centavos, na ordem da gente: a mesma conta do balances() do app.js (positivo = tem a
+ * receber). Mexeu na conta do app.js, mexa aqui e no sw.js também @param {any} sala @returns {Map<string, number>} */
+function saldos(sala) {
+  const b = new Map(
+    valores(sala?.people)
+      .filter((p) => typeof p.id === 'string')
+      .map((p) => [p.id, 0]),
+  );
   const fora = new Set(valores(sala?.deleted));
-  let s = 0;
   for (const e of valores(sala?.expenses)) {
     const among = valores(e.among),
-      ids = among.filter((id) => gente.has(id)),
+      ids = among.filter((id) => b.has(id)),
       c = Math.round(+e.amount * 100);
-    if (fora.has(e.id) || !Number.isFinite(c) || !ids.length || !gente.has(e.payer)) continue;
-    if (e.payer === pessoa) s += c;
-    const i = ids.indexOf(pessoa);
-    if (i < 0) continue;
+    if (fora.has(e.id) || !Number.isFinite(c) || !ids.length || !b.has(e.payer)) continue;
+    b.set(e.payer, b.get(e.payer) + c);
     // as partes valem se fecham o valor; senão divide igual, o centavo que sobra vai pros primeiros
     const partes =
       e.shares && typeof e.shares === 'object' ? among.map((id) => Math.max(0, Math.round(+e.shares[id] || 0))) : null;
     const certas = partes && partes.reduce((a, x) => a + x, 0) === c;
     const base = Math.floor(c / ids.length);
-    s -= certas ? partes[among.indexOf(pessoa)] : base + (i < c - base * ids.length ? 1 : 0);
+    ids.forEach((id, i) =>
+      b.set(id, b.get(id) - (certas ? partes[among.indexOf(id)] : base + (i < c - base * ids.length ? 1 : 0))),
+    );
   }
-  return s;
+  return b;
 }
 
-/** a diva cobra sozinha: quem tem a receber num evento parado ganha um push, no máximo um por semana.
+/** o saldo de `pessoa` em centavos (positivo = tem a receber) @param {any} sala @param {string} pessoa */
+export const saldo = (sala, pessoa) => saldos(sala).get(pessoa) || 0;
+
+/** quem paga quanto pra quem, a mesma conta do settlements() do app.js: o maior devedor paga o maior credor
+ * @param {any} sala @returns {{ de: string, pra: string, c: number }[]} */
+export function acerto(sala) {
+  const d = [],
+    cr = [];
+  for (const [id, v] of saldos(sala)) if (v < 0) d.push({ id, c: -v });
+  else if (v > 0) cr.push({ id, c: v });
+  d.sort((x, y) => y.c - x.c);
+  cr.sort((x, y) => y.c - x.c);
+  const st = [];
+  let i = 0,
+    j = 0;
+  while (i < d.length && j < cr.length) {
+    const v = Math.min(d[i].c, cr[j].c);
+    st.push({ de: d[i].id, pra: cr[j].id, c: v });
+    d[i].c -= v;
+    cr[j].c -= v;
+    if (!d[i].c) i++;
+    if (!cr[j].c) j++;
+  }
+  return st;
+}
+
+/** o dia de Brasília de um instante, como a meia-noite UTC desse dia @param {number} t */
+const diaBR = (t) => {
+  const d = new Date(t - BR);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+};
+
+/** o último aniversário, até `agora`, da dívida que começou em `at`: os 15 dias, depois cada mês no mesmo dia (o
+ * 31 num mês de 30 vira o último dia dele). `meses` 0 é o dos 15 dias; null se ainda não fez nenhum
+ * @param {number} at @param {number} agora @returns {{ dia: number, meses: number } | null} */
+export function ultimoNiver(at, agora) {
+  const a = new Date(diaBR(at)),
+    hoje = diaBR(agora),
+    h = new Date(hoje);
+  const marco = (m) => {
+    const fim = new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth() + m + 1, 0)).getUTCDate();
+    return Date.UTC(a.getUTCFullYear(), a.getUTCMonth() + m, Math.min(a.getUTCDate(), fim));
+  };
+  let meses = (h.getUTCFullYear() - a.getUTCFullYear()) * 12 + h.getUTCMonth() - a.getUTCMonth();
+  while (meses >= 1 && marco(meses) > hoje) meses--;
+  if (meses >= 1) return { dia: marco(meses), meses };
+  const quinze = a.getTime() + NIVER_DIAS * DIA;
+  return quinze <= hoje ? { dia: quinze, meses: 0 } : null;
+}
+
+/** as dívidas com `pessoa` que fizeram aniversário na última semana. A dívida conta do último gasto em que o
+ * devedor entrou (antes dele a conta dele não tinha fechado), igual ao aniversario() do app.js
+ * @param {any} sala @param {string} pessoa @param {number} agora
+ * @returns {{ devedor: string, dia: number, meses: number }[]} */
+export function mesversarios(sala, pessoa, agora) {
+  const fora = new Set(valores(sala?.deleted)),
+    gastos = valores(sala?.expenses).filter((e) => e.kind !== 'payment' && !fora.has(e.id) && typeof e.at === 'number');
+  return acerto(sala)
+    .filter((t) => t.pra === pessoa)
+    .flatMap((t) => {
+      const at = Math.max(0, ...gastos.filter((e) => valores(e.among).includes(t.de)).map((e) => e.at)),
+        n = at ? ultimoNiver(at, agora) : null;
+      return n && diaBR(agora) - n.dia < NIVER_PRAZO * DIA ? [{ devedor: t.de, dia: n.dia, meses: n.meses }] : [];
+    });
+}
+
+/** a diva cobra sozinha: quem tem a receber ganha um push no mêsversário de cada dívida (15 dias, depois todo
+ * mês), e, sem aniversário, num evento parado, no máximo um por semana.
  * o texto quem escreve é o sw.js, que relê o evento. Devolve quantos pushes chegaram
  * @param {Env} env @param {number} [agora] */
 export async function lembra(env, agora = Date.now()) {
@@ -248,13 +324,25 @@ export async function lembra(env, agora = Date.now()) {
     try {
       const r = await fetch(`${env.FIREBASE_DB}/rooms/${id}.json`, { cache: 'no-store' });
       const sala = r.ok ? await r.json() : null;
-      const em = +sala?.updatedAt || 0;
-      if (!em || agora - em < PARADO_MS) continue;
+      if (!sala) continue;
+      const em = +sala.updatedAt || 0,
+        parado = !!em && agora - em >= PARADO_MS;
       for (const [pessoa, subs] of gente) {
-        if (subs.length > resta || saldo(sala, pessoa) <= 0) continue;
-        const marca = `lembrou:${id}:${pessoa}`;
-        if (await env.KV.get(marca)) continue;
-        await env.KV.put(marca, '1', { expirationTtl: PARADO_MS / 1000 });
+        if (subs.length > resta) continue;
+        // o mêsversário vale um push por dívida e aniversário; dois no mesmo dia vão num push só
+        const marcas = [];
+        for (const n of mesversarios(sala, pessoa, agora)) {
+          const marca = `niver:${id}:${pessoa}:${n.devedor}:${n.dia}`;
+          if (!(await env.KV.get(marca))) marcas.push(marca);
+        }
+        if (marcas.length)
+          for (const marca of marcas) await env.KV.put(marca, '1', { expirationTtl: (NIVER_PRAZO + 1) * 86400 });
+        else {
+          if (!parado || saldo(sala, pessoa) <= 0) continue;
+          const marca = `lembrou:${id}:${pessoa}`;
+          if (await env.KV.get(marca)) continue;
+          await env.KV.put(marca, '1', { expirationTtl: PARADO_MS / 1000 });
+        }
         resta -= subs.length;
         for (const k of subs) if (await manda(k, env)) lembrados++;
       }

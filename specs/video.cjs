@@ -70,7 +70,7 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1500);
       await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
       await p.waitForTimeout(5000); } },
-  pega: { nome: 'dois toques a ficha treme, no terceiro ela descola, boia e é jogada fora', quem: 'Lia', atrasoPix: 0,
+  pega: { nome: 'no primeiro toque a ficha descola; pega pela borda, gira até vir a reboque; largada de lado, desliza girando; jogada com força, sai da tela', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await ficha.desce(p);
       await p.evaluate(() => { const d = document.createElement('div');
         d.style.cssText = 'position:fixed;z-index:99;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(255,255,255,.55);border:2px solid rgba(0,0,0,.5);pointer-events:none;left:-50px;top:-50px;transition:transform .1s';
@@ -78,8 +78,11 @@ const CENAS = {
         addEventListener('pointermove', e => { d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px'; }, true);
         addEventListener('pointerdown', () => d.style.transform = 'scale(.7)', true);
         addEventListener('pointerup', () => d.style.transform = '', true); });
-      await ficha.pousa(p); await ficha.cutuca(p, 2); await ficha.agarra(p); await ficha.arrasta(p, 120, 260);
-      await ficha.solta(p); await ficha.rolaPraCima(p); await ficha.joga(p); } },
+      await ficha.pousa(p); await ficha.agarra(p, 22, -16);
+      await ficha.passa(p, { x: 110, y: 560 }, 700); await ficha.passa(p, { x: 150, y: 330 }, 600);
+      await ficha.passa(p, { x: 290, y: 300 }, 500); await p.waitForTimeout(300);
+      await ficha.passa(p, { x: 320, y: 330 }, 120); await ficha.passa(p, { x: 200, y: 400 }, 90); await p.mouse.up();
+      await p.waitForTimeout(2000); await ficha.rolaPraCima(p); await ficha.joga(p); } },
   dobra: { nome: 'o Falta pagar abaixo da dobra: descendo no meio do pisca-pisca, os riscos vêm na hora (use --altura=400)', quem: 'Lia', atrasoPix: 300, dados: FILA,
     acao: async p => { await p.evaluate(() => document.querySelector('#mine').scrollIntoView({ block: 'start' }));
       await p.waitForTimeout(2500);
@@ -99,9 +102,9 @@ const CENAS = {
         for (let i = 0; i < 60 && await p.evaluate(s => document.querySelector(s).getBoundingClientRect().top < 160, sel); i++) await p.waitForTimeout(50);
         await p.mouse.move(200, 380, { steps: 18 }); const o = await meio(sel);
         await p.mouse.move(o.x + 30, o.y + 20, { steps: 22 }); await p.mouse.move(o.x, o.y, { steps: 10 }); await p.waitForTimeout(900); };
-      await ficha.pousa(p); await ficha.cutuca(p, 2); await ficha.agarra(p);
+      await ficha.pousa(p); await ficha.agarra(p);
       await leva('#itemsHead'); await ficha.solta(p); await p.waitForTimeout(1200);
-      await ficha.desce(p, true); await ficha.pousa(p, 8000); await ficha.cutuca(p, 2); await ficha.agarra(p);
+      await ficha.desce(p, true); await ficha.pousa(p, 8000); await ficha.agarra(p);
       await leva('#mineRows [data-settle]'); await ficha.solta(p); await p.waitForTimeout(1600);
       await p.click('#cancelBtn'); await p.waitForTimeout(800); } },
   chato: { nome: 'segura, toca, segura na ficha: a diva desliga; o mesmo no rodapé liga de novo', quem: 'Lia', atrasoPix: 0,

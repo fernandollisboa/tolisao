@@ -107,3 +107,13 @@ Given('que meu celular é um iPhone com o tô lisa instalado', async ({ mundo })
     Object.defineProperty(navigator, 'standalone', { get: () => true });
   });
 });
+
+// o toque no aviso abre o evento com quem deve no endereço (o sw.js monta ele)
+When('eu toco no aviso de mêsversário da dívida da/do {word}', async ({ mundo }, nome) => {
+  await mundo.abre({ link: `${mundo.link}&cobra=${mundo.pessoa(nome).id}` });
+  await mundo.p.waitForSelector('#app:not(.loading)');
+});
+When('eu cobro pelo cartão', async ({ mundo }) => {
+  await mundo.p.evaluate(() => { window.__aberto = null; });
+  await mundo.p.click('#cobraBtn');
+});

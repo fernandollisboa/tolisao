@@ -57,24 +57,24 @@ body{margin:0;min-height:100vh;overflow-x:hidden;overflow-x:clip;max-width:100vw
   92%{transform:translate(var(--dx),calc(var(--dy) - 3px)) rotate(var(--rot));animation-timing-function:cubic-bezier(.6,.1,.85,.5)}
   100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 @media (prefers-reduced-motion:reduce){.stain{opacity:1}.stain.voou{animation:none}}
-/* a ficha pousada é pegável: dois toques ela treme, no terceiro descola do papel e
-   segue o dedo por cima da tela; solta com força, voa pra fora */
+/* a ficha pousada é pegável já no primeiro toque: descola do papel e vai presa no dedo pelo
+   ponto em que foi pega; largada, desliza no embalo e, jogada com força, sai da tela */
 .stain.pousou{animation:none;opacity:1;pointer-events:auto;cursor:default;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-drag:none}
-.stain.pousou.treme{animation:treme .32s ease-out}
-@keyframes treme{0%,100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}
-  30%{transform:translate(var(--dx),calc(var(--dy) - 5px)) rotate(calc(var(--rot) - 9deg))}
-  65%{transform:translate(var(--dx),var(--dy)) rotate(calc(var(--rot) + 5deg))}}
 body.pegavel .stain.pousou{cursor:grab}
-/* largada devagar: volta pro papel e fica no lugar em que parou, rolando junto com a nota */
-.stain.largada{z-index:5;transition:transform .15s}
-.stain.solta{position:fixed;z-index:60;touch-action:none;transform:rotate(var(--rot)) scale(var(--esc,1));transition:transform .15s,filter .15s}
-/* segura, ela rola com o dedo: a sombra gira ao contrário pra ficar sempre embaixo e à direita */
-.stain.solta.segura{--esc:1.18;cursor:grabbing;transition:transform .08s,filter .15s;
-  filter:drop-shadow(calc(6px * cos(var(--rot)) + 14px * sin(var(--rot))) calc(14px * cos(var(--rot)) - 6px * sin(var(--rot))) 10px rgba(0,0,0,.4))}
-.stain.solta.voando{transition:none}
+/* depois de girar na mão, a sombra gira ao contrário pra ficar sempre embaixo e à direita.
+   Registradas, as medidas dela crescem e encolhem junto com a ficha subindo e descendo */
+@property --sx{syntax:'<length>';inherits:false;initial-value:2px}
+@property --sy{syntax:'<length>';inherits:false;initial-value:4px}
+@property --sb{syntax:'<length>';inherits:false;initial-value:4px}
+.stain.solta,.stain.largada{filter:drop-shadow(calc(var(--sx) * cos(var(--rot)) + var(--sy) * sin(var(--rot))) calc(var(--sy) * cos(var(--rot)) - var(--sx) * sin(var(--rot))) var(--sb) rgba(0,0,0,.35))}
+/* largada: volta pro papel e fica no lugar em que parou, rolando junto com a nota */
+.stain.largada{z-index:5}
+/* o giro vem do JS a cada quadro, sem transição atrasando; só o tamanho e a sombra sobem e descem */
+.stain.solta{position:fixed;z-index:60;touch-action:none;transform:rotate(var(--rot));scale:var(--esc,1);transition:scale .15s,--sx .15s,--sy .15s,--sb .15s}
+.stain.solta.segura{--esc:1.18;--sx:6px;--sy:14px;--sb:10px;cursor:grabbing}
 /* mirando um botão ela desbota pra ele aparecer por baixo; solta, entra nele que nem ficha em fenda */
 .stain.solta.segura.mirando{--esc:.92;opacity:.45}
-.stain.solta.engole{--esc:.15;opacity:0;pointer-events:none;transition:left .24s ease-in,top .24s ease-in,transform .24s ease-in,opacity .24s ease-in}
+.stain.solta.engole{--esc:.15;opacity:0;pointer-events:none;transition:left .24s ease-in,top .24s ease-in,transform .24s ease-in,scale .24s ease-in,opacity .24s ease-in}
 /* o botão debaixo da ficha acende como no toque, e quem arrasta sabe que soltar ali aperta */
 .mira{outline:3px dashed var(--ink);outline-offset:4px;border-radius:6px}
 button.mira,a.link.mira{background:var(--ink) !important;color:var(--paper) !important}

@@ -12,6 +12,7 @@
     "formata": "prettier --write app.js qr.js mesa/mesa.js",
     "qualidade": "node --check app.js && node --check qr.js && prettier --check app.js qr.js mesa/mesa.js && npm run types && npm run regras && npm test",
     "preview": "node specs/preview.cjs",
+    "contraste": "node specs/contraste.cjs",
     "video": "node specs/video.cjs",
     "readme": "node specs/readme.cjs"
   },

@@ -7,6 +7,7 @@
     "test":"bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
     "relatorio": "HTML=1 npm test",
     "cobertura": "node specs/_cobertura.cjs",
+    "contas": "node specs/contas.cjs",
     "types": "tsc -p jsconfig.json",
     "regras": "node specs/_regras.cjs",
     "formata": "prettier --write app.js qr.js mesa/mesa.js",

@@ -1,0 +1,12 @@
+{
+  "fonte": "cupom fiscal (ECF) de 25/04/2015, Frango Assado (Cajamar), mesa 3055. Escaneado, do nfscan/ocr-process-service (MIT)",
+  "itens": [
+    { "nome": "Pingado", "qtd": 1, "valor": "4,30" },
+    { "nome": "Pao Semolina Gde", "qtd": 2, "valor": "21,80" },
+    { "nome": "Fatia Pao CManteiga", "qtd": 1, "valor": "3,90" },
+    { "nome": "Cafe Expresso", "qtd": 1, "valor": "3,90" },
+    { "nome": "Biju Crocante", "qtd": 2, "valor": "13,00" }
+  ],
+  "servico": null,
+  "total": "46,90"
+}

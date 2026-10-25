@@ -131,8 +131,9 @@
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
-  //                  pushTok, pushOn, pushTry }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
-  //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render)
+  //                  pushTok, pushOn, pushTry, charged }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
+  //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render;
+  //                  charged: {pessoa: quantas vezes cobrei no zap}, pra cada cobrança lembrar de um jeito)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -4412,8 +4413,14 @@
   function copiaPix(el) {
     const [to, cents] = el.dataset.pix.split('|');
     const texto = pixCode(pixKeys[to], nameOf(to), +cents);
+    // o da linha copia e já abre o Quitar? dela: quem volta do app do banco acha o quitei esperando, sem caçar o ✔
+    const paguei = el.id === 'quitaPix' ? null : el.closest('.dupla')?.querySelector('[data-settle]');
+    if (paguei) quita(/** @type {HTMLElement} */ (paguei));
     // no Quitar? o cartão fica aberto: sem clipboard, o código aparece ali embaixo do botão
-    const noQuitar = el.id === 'quitaPix' ? () => el.insertAdjacentHTML('afterend', pixNaMao(texto)) : undefined;
+    const noQuitar =
+      el.id === 'quitaPix' || paguei
+        ? () => $('#quitaPix')?.insertAdjacentHTML('afterend', pixNaMao(texto))
+        : undefined;
     copia(texto, 'Pix copia e cola copiado. Cola no app do banco.', 'Pix copia e cola', noQuitar);
   }
   const pixNaMao = (texto) => {
@@ -4774,6 +4781,17 @@
       : `${plural(meses, 'mês', 'meses')} e ${plural(resto, 'dia', 'dias')}`;
     return `\n🎂 hoje a dívida completa ${tempo}${anos >= 2 ? '. já tá na escolinha 🎒' : ''}`;
   }
+  // o jeito de lembrar muda a cada cobrança da mesma pessoa: a primeira é sempre a de sempre, a segunda é a do nome
+  // do app, e daí a lista roda. Ninguém recebe a mesma frase duas vezes seguidas
+  const COBRANCAS = [
+    (n, v, eu, ev) => `💅 ${n}, não tô cobrando, só lembrando: faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `🥲 ${n}, tô lisa, socorro: faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `🧾 ${n}, o caderninho do *${ev}* diz que faltam ${v} pra ${eu}`,
+    (n, v, eu, ev) => `🙈 ${n}, odeio ser essa pessoa, mas faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `😇 ${n}, eu sei que você não esqueceu, mas faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `🫶 ${n}, amizade não tem preço, mas o *${ev}* tem: faltam ${v} pra ${eu}`,
+    (n, v, eu, ev) => `📌 ${n}, lembrete amigo: faltam ${v} pra ${eu} no *${ev}*`,
+  ];
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
@@ -4784,7 +4802,13 @@
   function cobraNoZap(quem, cents) {
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(cents)} pra ${nameOf(me)} no *${evento()}*${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
+    const vezes = room().charged,
+      vez = vezes && typeof vezes === 'object' && Number.isInteger(vezes[quem]) ? vezes[quem] : 0;
+    mexe(roomKey(groupId), (o) => {
+      o.charged = { ...(o.charged && typeof o.charged === 'object' ? o.charged : {}), [quem]: vez + 1 };
+    });
+    const lembra = COBRANCAS[vez % COBRANCAS.length](nameOf(quem), comSifrao(cents), nameOf(me), evento());
+    const msg = `${lembra}${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);
     else abreZap(msg, tel || '');

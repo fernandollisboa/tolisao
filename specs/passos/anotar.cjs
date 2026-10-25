@@ -196,6 +196,10 @@ Then('o formulário vem vazio, pra anotar', async ({ mundo }) => {
   await expect(mundo.p.locator('#sheet h2')).toHaveText('Anotar'); await expect(mundo.p.locator('#expenseForm button.big')).toHaveText('Anotar');
 });
 
+Then('quem pagou é a/o {word}', async ({ mundo }, nome) => {
+  await expect(mundo.p.locator('#payer option:checked')).toHaveText(`${nome} pagou`);
+});
+
 const excluir = async (p, nome) => { const it = item(p, nome); await it.locator('.row .l').click(); await it.getByRole('button', { name: `excluir o gasto ${nome}` }).click(); await p.waitForSelector('#okBtn'); };
 When('eu começo a excluir o {string} e volto atrás', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#cancelBtn'); await mundo.p.waitForSelector('#overlay', { state: 'hidden' }); });
 When('eu excluo o {string}', async ({ mundo }, nome) => { await excluir(mundo.p, nome); await mundo.p.click('#okBtn'); });
@@ -260,10 +264,16 @@ Then('eu não posso editar nem excluir o {string}', async ({ mundo }, nome) => {
 });
 
 // o outro aparelho grava direto no banco, uns minutos antes: a minha nota ainda não sabe dele
-When('a/o {word} anota em outro aparelho um {string} de R$ {num} que a/o {word} pagou, há {int} minutos', async ({ mundo }, quem, desc, valor, pagou, min) => {
+const anotaPorOutro = (mundo, quem, desc, valor, pagou, min) => {
   const sala = salaNoBanco(mundo), p = mundo.pessoa(quem);
   sala.expenses = [...(sala.expenses || []), { id: 'dooutro', desc, amount: valor, payer: mundo.pessoa(pagou).id,
     among: sala.people.map(x => x.id), at: AGORA - min * 60000, by: p.name, byId: p.id }];
+};
+When('a/o {word} anota em outro aparelho um {string} de R$ {num} que a/o {word} pagou, há {int} minutos', async ({ mundo }, quem, desc, valor, pagou, min) => {
+  anotaPorOutro(mundo, quem, desc, valor, pagou, min);
+});
+Given('que a/o {word} anotou um {string} de R$ {num} que a/o {word} pagou', async ({ mundo }, quem, desc, valor, pagou) => {
+  anotaPorOutro(mundo, quem, desc, valor, pagou, 1);
 });
 When('eu tento anotar {string} de R$ {num} que eu paguei', async ({ mundo }, desc, valor) => {
   const p = mundo.p; await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');

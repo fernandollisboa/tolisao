@@ -113,6 +113,19 @@ Funcionalidade: Acertar as contas
       {site}/fiado/?evento=bailedamada&quem=mengla
       """
 
+  Cenário: cobrar de novo a mesma pessoa lembra de outro jeito
+    Lembrar sempre com a mesma frase cansa: a segunda cobrança já vem com o nome do app.
+    Quando eu abro o evento como Fernando
+    E eu cobro a Mengla no zap
+    E eu cobro a Mengla no zap
+    Então o zap abre com a mensagem:
+      """
+      🥲 Mengla, tô lisa, socorro: faltam R$ 174,43 pra Fernando no *bailedamada*
+      🎂 hoje a dívida completa 1 semana. já saiu da maternidade 🏥
+
+      {site}/fiado/?evento=bailedamada&quem=mengla
+      """
+
   Cenário: cobrar abre o zap direto, sem perguntar o número
     No zap a pessoa escolhe o contato, ou o grupo, sem passar por cartão nenhum.
     Quando eu abro o evento como Fernando
@@ -127,7 +140,8 @@ Funcionalidade: Acertar as contas
     Então o zap abre sem perguntar o número
     E o zap abre na conversa do 5581998765432
 
-  Cenário: copiar o pix já com o valor
+  Cenário: copiar o pix já com o valor, e o quitei fica esperando
+    Quem volta do app do banco acha o quitei na tela, sem procurar o ✔ da linha.
     Dado que o Fernando tem a chave pix "7d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d"
     Quando eu abro o evento como Lia
     E eu toco em copiar pix
@@ -135,6 +149,7 @@ Funcionalidade: Acertar as contas
       """
       00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d5204000053039865406117.845802BR5908FERNANDO6006BRASIL62070503***630476B9
       """
+    E o cartão pergunta "Quitar?"
 
   Cenário: pagar uma parte e copiar o pix dessa parte
     Quem só manda um pedaço agora copia o pix já com esse pedaço, sem fechar o cartão.

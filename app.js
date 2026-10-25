@@ -3464,7 +3464,7 @@
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
       abreZap(
-        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`,
+        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl(to, 'pago')}`,
         zapDe(to) || '',
       );
       fecha();

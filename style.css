@@ -441,7 +441,7 @@ button.ico,button.danger,a.link.amb,#chegouFora,#whoBtn,.digital a.link{position
 /* celular estreito: evento numa linha, quem é você na outra, sem o ponto no meio */
 @media (max-width:389px){#eventLine>span{display:block} #eventLine>.sep{display:none}}
 /* a caixa do caderno em branco também abre o anotar */
-#settle .empty.anota{cursor:pointer}
+#settle .empty.anota,#settle .sozinho b{cursor:pointer}
 /* no celular não existe hover: o toque preenche o botão com a cor dele e volta, o
    mesmo vocabulário da piscada, só que curto. A classe vem do JS e não do :active
    porque no iOS o :active só acorda com um ouvinte de toque, e porque a animação

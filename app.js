@@ -1035,6 +1035,9 @@
   // o instalar: a seta descendo pra bandeja
   const BAIXAR_SVG =
     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>';
+  // o compartilhar do ✎ de baixo: três bolinhas ligadas
+  const CHAMA_SVG =
+    '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.6 13.4 15.4 17.4M15.4 6.6 8.6 10.6"/></svg>';
   const LAPIS_SVG =
     '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg>';
   const WA_SVG =
@@ -2083,9 +2086,13 @@
       })
       .join('');
     // todo mundo quite: o "tudo quite!" de Minha conta já disse, ficam só os carimbos
+    // sozinho no evento, a caixa oferece as duas saídas: evento só meu serve pra controlar os meus gastos, e quem quer
+    // rachar chama a turma dali mesmo (o gasto anotado antes de a turma entrar só dividiria comigo)
     const nada = state.expenses.length
       ? ''
-      : `<div class="empty vazio${hasMe ? ' anota' : ''}">nada anotado ainda.<br><b>${hasMe ? `${LAPIS_SVG} toque aqui pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`;
+      : hasMe && state.people.length === 1
+        ? `<div class="empty vazio sozinho">nada anotado ainda.<br><b data-anota role="button" tabindex="0">${LAPIS_SVG} anota o primeiro gasto</b><br><b data-chama role="button" tabindex="0">${CHAMA_SVG} ou chama a turma pelo link</b></div>`
+        : `<div class="empty vazio${hasMe ? ' anota' : ''}">nada anotado ainda.<br><b>${hasMe ? `${LAPIS_SVG} toque aqui pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`;
     const pagos = pays
       .map((e) => {
         const st = stampStyle(e.id),
@@ -4660,7 +4667,8 @@
     ['[data-resto]', poeResto],
     ['#restoIgual', divideResto],
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
-    ['#settle .empty.anota', () => $('#fab').click()],
+    ['#settle .empty.anota, #settle [data-anota]', () => $('#fab').click()],
+    ['#settle [data-chama]', () => $('#waBtn').click()],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],

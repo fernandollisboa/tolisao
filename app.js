@@ -131,8 +131,9 @@
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
-  //                  pushTok, pushOn, pushTry }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
-  //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render)
+  //                  pushTok, pushOn, pushTry, charged }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
+  //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render;
+  //                  charged: {pessoa: quantas vezes cobrei no zap}, pra cada cobrança lembrar de um jeito)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
   const DEVICE = 'tolisa',
     roomKey = (id) => `${DEVICE}:${id}`;
@@ -1034,6 +1035,9 @@
   // o instalar: a seta descendo pra bandeja
   const BAIXAR_SVG =
     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>';
+  // o compartilhar do ✎ de baixo: três bolinhas ligadas
+  const CHAMA_SVG =
+    '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.6 13.4 15.4 17.4M15.4 6.6 8.6 10.6"/></svg>';
   const LAPIS_SVG =
     '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg>';
   const WA_SVG =
@@ -2083,9 +2087,13 @@
       })
       .join('');
     // todo mundo quite: o "tudo quite!" de Minha conta já disse, ficam só os carimbos
+    // sozinho no evento, a caixa oferece as duas saídas: evento só meu serve pra controlar os meus gastos, e quem quer
+    // rachar chama a turma dali mesmo (o gasto anotado antes de a turma entrar só dividiria comigo)
     const nada = state.expenses.length
       ? ''
-      : `<div class="empty vazio${hasMe ? ' anota' : ''}">nada anotado ainda.<br><b>${hasMe ? `${LAPIS_SVG} toque aqui pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`;
+      : hasMe && state.people.length === 1
+        ? `<div class="empty vazio sozinho">nada anotado ainda.<br><b data-anota role="button" tabindex="0">${LAPIS_SVG} anota o primeiro gasto</b><br><b data-chama role="button" tabindex="0">${CHAMA_SVG} ou chama a turma pelo link</b></div>`
+        : `<div class="empty vazio${hasMe ? ' anota' : ''}">nada anotado ainda.<br><b>${hasMe ? `${LAPIS_SVG} toque aqui pra anotar o primeiro gasto.` : 'diga quem você é aí em cima pra começar.'}</b></div>`;
     const pagos = pays
       .map((e) => {
         const st = stampStyle(e.id),
@@ -3466,6 +3474,9 @@
         t1 = performance.now(),
         cv = pb ? preparaFoto(f.foto, true, f.angulo).cv : f.vista,
         img = await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+      // a conta lida como um bloco só, linha a linha: no modo automático, a coluna dos totais virava um bloco à parte
+      // e se perdia (medido em ocr/README.md)
+      await w.setParameters({ tessedit_pageseg_mode: '6' });
       const { data } = await w.recognize(img, {}, { blocks: true });
       if (fotoConta !== f) return; // fechou ou trocou de foto no meio
       // o que o teste no bar quer saber: quanto o leitor levou pra baixar, quanto disso a pessoa esperou com a foto
@@ -4761,8 +4772,14 @@
   function copiaPix(el) {
     const [to, cents] = el.dataset.pix.split('|');
     const texto = pixCode(pixKeys[to], nameOf(to), +cents);
+    // o da linha copia e já abre o Quitar? dela: quem volta do app do banco acha o quitei esperando, sem caçar o ✔
+    const paguei = el.id === 'quitaPix' ? null : el.closest('.dupla')?.querySelector('[data-settle]');
+    if (paguei) quita(/** @type {HTMLElement} */ (paguei));
     // no Quitar? o cartão fica aberto: sem clipboard, o código aparece ali embaixo do botão
-    const noQuitar = el.id === 'quitaPix' ? () => el.insertAdjacentHTML('afterend', pixNaMao(texto)) : undefined;
+    const noQuitar =
+      el.id === 'quitaPix' || paguei
+        ? () => $('#quitaPix')?.insertAdjacentHTML('afterend', pixNaMao(texto))
+        : undefined;
     copia(texto, 'Pix copia e cola copiado. Cola no app do banco.', 'Pix copia e cola', noQuitar);
   }
   const pixNaMao = (texto) => {
@@ -4944,7 +4961,8 @@
     ['[data-resto]', poeResto],
     ['#restoIgual', divideResto],
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
-    ['#settle .empty.anota', () => $('#fab').click()],
+    ['#settle .empty.anota, #settle [data-anota]', () => $('#fab').click()],
+    ['#settle [data-chama]', () => $('#waBtn').click()],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
@@ -5126,6 +5144,17 @@
       : `${plural(meses, 'mês', 'meses')} e ${plural(resto, 'dia', 'dias')}`;
     return `\n🎂 hoje a dívida completa ${tempo}${anos >= 2 ? '. já tá na escolinha 🎒' : ''}`;
   }
+  // o jeito de lembrar muda a cada cobrança da mesma pessoa: a primeira é sempre a de sempre, a segunda é a do nome
+  // do app, e daí a lista roda. Ninguém recebe a mesma frase duas vezes seguidas
+  const COBRANCAS = [
+    (n, v, eu, ev) => `💅 ${n}, não tô cobrando, só lembrando: faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `🥲 ${n}, tô lisa, socorro: faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `🧾 ${n}, o caderninho do *${ev}* diz que faltam ${v} pra ${eu}`,
+    (n, v, eu, ev) => `🙈 ${n}, odeio ser essa pessoa, mas faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `😇 ${n}, eu sei que você não esqueceu, mas faltam ${v} pra ${eu} no *${ev}*`,
+    (n, v, eu, ev) => `🫶 ${n}, amizade não tem preço, mas o *${ev}* tem: faltam ${v} pra ${eu}`,
+    (n, v, eu, ev) => `📌 ${n}, lembrete amigo: faltam ${v} pra ${eu} no *${ev}*`,
+  ];
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
@@ -5136,7 +5165,13 @@
   function cobraNoZap(quem, cents) {
     if (!state.people.some((p) => p.id === quem)) return;
     const pix = pixKeys[me] ? `\n(pix: ${pixKeys[me]})` : '';
-    const msg = `💅 ${nameOf(quem)}, não tô cobrando, só lembrando: faltam ${comSifrao(cents)} pra ${nameOf(me)} no *${evento()}*${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
+    const vezes = room().charged,
+      vez = vezes && typeof vezes === 'object' && Number.isInteger(vezes[quem]) ? vezes[quem] : 0;
+    mexe(roomKey(groupId), (o) => {
+      o.charged = { ...(o.charged && typeof o.charged === 'object' ? o.charged : {}), [quem]: vez + 1 };
+    });
+    const lembra = COBRANCAS[vez % COBRANCAS.length](nameOf(quem), comSifrao(cents), nameOf(me), evento());
+    const msg = `${lembra}${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);
     else abreZap(msg, tel || '');

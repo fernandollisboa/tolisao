@@ -29,7 +29,7 @@ Ampliar a foto não ajudou. À noite ele às vezes lê um número errado sem avi
 
 ## Os itens da conta
 
-O leitor não procura mais só o preço solto: o app lê a conta linha a linha e monta cada item com nome, quantidade e valor (`achaItens()` no `app.js`). Conta de bar costuma vir com o nome numa linha e `6 UND x 18,90  113,40` na de baixo, e a impressora come o último dígito da coluna da direita (`113,4`). Por isso o valor do item é quantidade × unitário, e o número cortado só confirma a quantidade: o leitor lê o 1 como 7, e 7 × 32,90 não começa com 32,9. Antes de ler, a foto é endireitada (até 12° pra cada lado).
+O leitor não procura mais só o preço solto: o app lê a conta linha a linha e monta cada item com nome, quantidade e valor (`achaItens()` no `app.js`). Conta de bar costuma vir com o nome numa linha e `6 UND x 18,90  113,40` na de baixo, e a impressora come o último dígito da coluna da direita (`113,4`). Por isso o valor do item é quantidade × unitário, e o número cortado só confirma a quantidade: o leitor lê o 1 como 7, e 7 × 32,90 não começa com 32,9. Antes de ler, a foto é endireitada (até 12° pra cada lado), e o leitor lê a conta como um bloco só, linha a linha (`tessedit_pageseg_mode` 6): no automático, a coluna dos totais virava um bloco à parte, e nas versões abaixo ele acertava de 1 a 4 itens em vez de 4.
 
 Medido numa conta térmica de verdade (Bar do Caranguejo, 4 itens, coluna da direita cortada), com versões feitas dela:
 

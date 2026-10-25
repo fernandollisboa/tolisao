@@ -3,7 +3,7 @@ const { Given, When, Then, expect } = require('./_mundo.cjs');
 
 // o leitor de verdade (ocr/) baixa 5 MB e leva segundos por foto: aqui ele é trocado por um que "lê" o que o
 // cenário disse, linha por linha, com as palavras separadas por espaço e uma caixa pra cada uma
-const leitorFalso = (linhas) => `window.Tesseract = { createWorker: async () => ({ recognize: async () => ({ data: { blocks: [{ paragraphs: [{ lines: ${JSON.stringify(
+const leitorFalso = (linhas) => `window.Tesseract = { createWorker: async () => ({ setParameters: async () => {}, recognize: async () => ({ data: { blocks: [{ paragraphs: [{ lines: ${JSON.stringify(
   linhas.map((t, i) => {
     const y = 120 + i * 50;
     let x = 100;

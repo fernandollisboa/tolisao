@@ -129,6 +129,8 @@ Then('o celular compartilha o convite pro evento', async ({ mundo }) => {
 });
 Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toHaveClass(/\bhidden\b/); });
 When('eu toco na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle .empty.anota'); });
+When('eu toco em chamar a turma, na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle [data-chama]'); });
+When('eu toco em anotar, na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle [data-anota]'); });
 Then('o formulário de anotar abre', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).not.toHaveClass(/\bhidden\b/); });
 When('eu toco no meu nome', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#whoSel'); });
 Then('o cartão de quem é você já vem com {word} escolhida/escolhido', async ({ mundo }, quem) => {

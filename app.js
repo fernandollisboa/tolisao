@@ -56,9 +56,10 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
-  // a foto da conta: o 📷 do anotar lê os preços da foto (o tesseract, em ocr/) e cada preço tocado soma no valor.
-  // Desligada pra todo mundo. Liga no aparelho com ?foto (fica lembrado; ?foto=0 desliga)
-  const FOTO = false;
+  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta, o 📷 do anotar que lê os preços da foto (o
+  // tesseract, em ocr/) e cada preço tocado soma no valor. Desligado pra todo mundo. Liga no aparelho com ?mesa (fica
+  // lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
+  const MESA = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
   // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema
   // escuro, o html ganha data-tema e o style.css redefine as cores. Tema novo: entra aqui, no BARRA e no style.css
@@ -115,14 +116,14 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, fotoOn, tema, naoConta,
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, mesaOn, tema, naoConta,
   //                  phones: {nome: '55…' ou '' de pulado} }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
-  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; fotoOn: o 📷 da foto da conta, pelo ?foto;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (a foto da conta), pelo ?mesa;
   //                  tema: o tema escolhido no pé da nota;
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
   //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
@@ -445,10 +446,16 @@
   })();
   const temGalera = () => GALERA || device().galeraOn === true;
   (() => {
+    // o ?foto virou o ?mesa: quem já tinha ligado a foto continua com ela (o fotoOn sai na mesma gravação)
+    if (device().fotoOn !== undefined)
+      mexe(DEVICE, (o) => {
+        o.mesaOn ??= o.fotoOn;
+        delete o.fotoOn;
+      });
     const q = new URLSearchParams(location.search);
-    if (q.has('foto')) setDevice('fotoOn', q.get('foto') === '0' ? undefined : true);
+    if (q.has('mesa')) setDevice('mesaOn', q.get('mesa') === '0' ? undefined : true);
   })();
-  const temFoto = () => FOTO || device().fotoOn === true;
+  const temMesa = () => MESA || device().mesaOn === true;
   const celularEscuro = matchMedia('(prefers-color-scheme: dark)');
   /** o tema que a pessoa escolheu, um dos de TEMAS */
   const temaEscolhido = () => {
@@ -1971,7 +1978,7 @@
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
     $('#expenseForm .fixo').classList.toggle('hidden', !temFixo());
-    $('#fotoBtn').classList.toggle('hidden', !temFoto());
+    $('#fotoBtn').classList.toggle('hidden', !temMesa());
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
@@ -2999,7 +3006,7 @@
   // #endregion
   // #region a foto da conta
   // ---------- a foto da conta ----------
-  // o 📷 do anotar (FOTO, ou ?foto no aparelho). A foto vem da câmera do celular pelo input de arquivo, sem biblioteca;
+  // o 📷 do anotar (MESA, ou ?mesa no aparelho). A foto vem da câmera do celular pelo input de arquivo, sem biblioteca;
   // o leitor (tesseract.js, em ocr/) só baixa no toque da 📷, enquanto a pessoa enquadra a conta. Cada preço que ele
   // acha vira uma caixa em cima da foto, e tocar soma no valor do anotar. De dia ele acha quase tudo; à noite, metade,
   // e às vezes lê um número errado (628,70 vira 625,70): a soma fica escrita embaixo pra pessoa conferir (ocr/README.md)

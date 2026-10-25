@@ -70,7 +70,9 @@ Then('o {string} no banco ainda tem a chave pix {string} da/do {word}', async ({
 Given('que eu pedi pra testar o número do zap', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { numeroZapOn: true }); });
 Given('que eu pedi pra testar a conta fixa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { fixoOn: true }); });
 Given('que eu pedi pra testar a galera de sempre', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { galeraOn: true }); });
-Given('que eu pedi pra testar a foto da conta', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { fotoOn: true }); });
+Given('que eu pedi pra testar o modo mesa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { mesaOn: true }); });
+// o ?foto de antes do ?mesa: o aparelho que ligou por ele guardou o fotoOn
+Given('que eu tinha ligado a foto da conta pelo link antigo', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { fotoOn: true }); });
 Given('que eu pedi pra testar o apagar meus dados', async ({ mundo }) => {
   naGaveta(mundo, 'tolisa', { apagarOn: true });
 });

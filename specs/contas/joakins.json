@@ -1,0 +1,10 @@
+{
+  "fonte": "cupom fiscal (ECF) de 09/05/2015, Joakins Hamburger (São Paulo), pré-conta da Colibri. Escaneado, do nfscan/ocr-process-service (MIT)",
+  "itens": [
+    { "nome": "SURF", "qtd": 1, "valor": "23,00" },
+    { "nome": "SKATE", "qtd": 1, "valor": "43,00" },
+    { "nome": "COCA ZERO", "qtd": 2, "valor": "11,00" }
+  ],
+  "servico": "7,70",
+  "total": "84,70"
+}

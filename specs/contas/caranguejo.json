@@ -1,0 +1,11 @@
+{
+  "fonte": "foto do dono, Bar do Caranguejo (Aracaju), 23/10/2026, à noite, na mão. Pré-conta da Linx Menew, com a coluna da direita cortada pela impressora",
+  "itens": [
+    { "nome": "COUVER FINAL DE SEMANA", "qtd": 4, "valor": "60,00" },
+    { "nome": "MOSCOW MULE", "qtd": 1, "valor": "32,90" },
+    { "nome": "BUDWEISER 600ML", "qtd": 6, "valor": "113,40" },
+    { "nome": "CAIPIROSCA IMPORTADA C/ ABSOLUT", "qtd": 1, "valor": "32,90" }
+  ],
+  "servico": "17,92",
+  "total": "257,12"
+}

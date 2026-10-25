@@ -25,6 +25,8 @@ os testes são cucumber em português: a especificação fica em `specs/features
 
 `npm run cobertura` roda os mesmos testes e diz quanto do `app.js` eles executam, com os trechos que nenhum cenário alcança. serve pra achar fluxo sem cenário, não é meta: animação e gesto se conferem no vídeo.
 
+`npm run contas` lê as contas de verdade de `specs/contas/` com o leitor da foto da conta e diz o que ele acerta em cada uma. conta nova (foto de conta de bar ou restaurante) é bem-vinda: o `specs/contas/README.md` diz como.
+
 ## não rola
 
 - **dependência nova no site.** o navegador não tem? a gente escreve (por isso existem `crc16`, `code128Widths` e o recibo em canvas). ferramenta de desenvolvimento pode. a exceção é o leitor da foto da conta (`ocr/`, o tesseract.js): ler texto em foto não se escreve na mão, então ele mora no site e só baixa no toque da 📷.

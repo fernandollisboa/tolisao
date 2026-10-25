@@ -29,19 +29,15 @@ Ampliar a foto não ajudou. À noite ele às vezes lê um número errado sem avi
 
 ## Os itens da conta
 
-O leitor não procura mais só o preço solto: o app lê a conta linha a linha e monta cada item com nome, quantidade e valor (`achaItens()` no `app.js`). Conta de bar costuma vir com o nome numa linha e `6 UND x 18,90  113,40` na de baixo, e a impressora come o último dígito da coluna da direita (`113,4`). Por isso o valor do item é quantidade × unitário, e o número cortado só confirma a quantidade: o leitor lê o 1 como 7, e 7 × 32,90 não começa com 32,9. Antes de ler, a foto é endireitada (até 12° pra cada lado), e o leitor lê a conta como um bloco só, linha a linha (`tessedit_pageseg_mode` 6): no automático, a coluna dos totais virava um bloco à parte, e nas versões abaixo ele acertava de 1 a 4 itens em vez de 4.
+O leitor não procura mais só o preço solto: o app lê a conta linha a linha e monta cada item com nome, quantidade e valor (`achaItens()` no `app.js`). Conta de bar vem de dois jeitos:
 
-Medido numa conta térmica de verdade (Bar do Caranguejo, 4 itens, coluna da direita cortada), com versões feitas dela:
+- o nome numa linha e `6 UND x 18,90  113,40` na de baixo (a pré-conta);
+- tudo numa linha só, com o número do item e o código do produto na frente e o código do imposto colado no valor (`2 41015 Pao Semolina Gde 2 x 10,90 06T 21,80G`, o cupom fiscal).
 
-| foto | itens certos (cinza) | itens certos (mais contraste) |
-|---|---|---|
-| original, à noite com luz da mesa | 4 de 4 | 3 de 4 |
-| mais escura e âmbar | 4 de 4 | 3 de 4 |
-| tremida | 4 de 4 | 1 de 4 |
-| comprimida pelo zap (900 px) | 4 de 4 | 2 de 4 |
-| torta 7° | 4 de 4 | 4 de 4 |
-| escura e tremida | 4 de 4 | 3 de 4 |
+A impressora às vezes come o último dígito da coluna da direita (`113,4`). Por isso o valor do item é quantidade × unitário, e o número da direita só confirma a quantidade: o leitor lê o 1 como 7, e 7 × 32,90 não começa com 32,9. Item a quilo (`0,374 kg X 9,90`) também sai assim. O serviço vem do `(10%)` impresso ou, no cupom fiscal, do `acréscimo`.
 
-Nenhum valor errado em nenhuma; o que erra é o nome (HOSCOW MULE, BUDWE SER 600ML). Lendo só o preço solto, como era antes, o 60,00 e o 113,40 dessa conta nunca saíam. O TOTAL impresso, quando o leitor pega, confere a soma no cartão.
+Antes de ler, a foto é endireitada (até 12° pra cada lado). O leitor lê a conta como um bloco só, linha a linha (`tessedit_pageseg_mode` 6): no automático, a coluna dos totais virava um bloco à parte e ele acertava de 1 a 4 itens em vez de 4. Foto com menos de 1000 de largura (cupom escaneado, foto que o zap encolheu) é lida duas vezes, no tamanho dela e aumentada, e fica a leitura que bate com o TOTAL. Aumentar a foto grande só piora.
+
+As contas de verdade que medem isso estão em `specs/contas/`, e `npm run contas` mede de novo. Hoje 4 das 5 fecham no total impresso, e o CI confere essas 4. Com as fotos estragadas de propósito (`--variacoes`: escura, tremida, torta e encolhida), 14 das 25 fecham. O que mais erra é o nome do item (HOSCOW MULE), e não o valor. Lendo só o preço solto, como era antes, o 60,00 e o 113,40 da conta do Bar do Caranguejo nunca saíam.
 
 Trocar de versão: `npm i tesseract.js@<versão>` numa pasta qualquer e copiar os quatro de novo, dos mesmos lugares.

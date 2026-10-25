@@ -1,0 +1,8 @@
+{
+  "fonte": "cupom fiscal (ECF) de 02/05/2015, padaria de supermercado (São Paulo), item a quilo. Escaneado, do nfscan/ocr-process-service (MIT)",
+  "itens": [
+    { "nome": "PAO FRANCES kg", "qtd": 0.374, "valor": "3,70" }
+  ],
+  "servico": null,
+  "total": "3,70"
+}

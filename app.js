@@ -2659,14 +2659,9 @@
         if (!code) return;
         if (code === roomName) return closeOverlay();
         btn.disabled = true;
-        // nome digitado que não existe cria direto, pelo ?novo=; link que não abre nada vai pelo ?evento=, que pergunta
-        let novo = false;
-        if (!link && !meu && !pareceLink(code) && DB)
-          try {
-            await apiGet(await sha(code));
-          } catch (e) {
-            novo = !!e.notFound;
-          }
+        // nome digitado vai pelo ?novo=, que cria direto ou pergunta se o nome já é de outra turma;
+        // link (ou código com final) vai pelo ?evento=, que abre ou pergunta se não achar
+        const novo = !link && !meu && !pareceLink(code);
         location.href =
           location.pathname + (novo ? '?novo=' : '?evento=') + encodeURIComponent(code) + (quem ? '&quem=' + quem : '');
         return;
@@ -3327,6 +3322,26 @@
     return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
   }
   const ENGASGOU = 'a internet engasgou. tenta de novo?';
+  /** o nome digitado já é de um evento fora da lista: o padrão é criar o meu (com final sorteado);
+   *  "abrir esse mesmo" fica pro evento antigo da própria turma, de antes do final
+   *  @returns {Promise<'meu'|'esse'|null>} */
+  function escolheNomeOcupado(code) {
+    return new Promise((res) => {
+      overlay(
+        `<h2>Já existe um "${esc(code)}"</h2><p class="muted recado">é de outra turma. o seu ganha um final sorteado, à prova de enxerido.</p><button id="okBtn" class="big">criar o meu</button><div class="c voltar"><button id="abreEsse" class="ghost">abrir esse mesmo</button><button id="cancelBtn" class="ghost">voltar</button></div>`,
+      );
+      overlayCancel = () => res(null);
+      const fecha = (/** @type {'meu'|'esse'|null} */ r) => () => {
+        overlayCancel = null;
+        closeOverlay();
+        res(r);
+      };
+      $('#okBtn').onclick = fecha('meu');
+      $('#abreEsse').onclick = fecha('esse');
+      $('#cancelBtn').onclick = fecha(null);
+      $('#okBtn').focus();
+    });
+  }
   /** `digitou` é o nome escrito no campo, que cria sem perguntar; `turma` é o evento (meu) de onde vem a turma */
   async function enterRoom(code, digitou = false, turma = '') {
     if (!code) throw new Error('digita um nome.');
@@ -3339,6 +3354,13 @@
       if (!e.notFound) throw new Error(ENGASGOU);
     }
     let criou = false;
+    // nome digitado sem final sorteado que já existe é de outra turma (evento de antes do final, ou gravado
+    // direto no banco): abrir sem perguntar punha a pessoa no "churras" de estranho, pix dele e tudo
+    if (existing && digitou && !pareceLink(code)) {
+      const r = await escolheNomeOcupado(code);
+      if (!r) throw new Error('nada foi criado.');
+      if (r === 'meu') existing = null;
+    }
     // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link
     if (!existing && (pareceLink(code) || !digitou)) {
       // código com cara de final sorteado é link velho ou cortado, não nome novo:

@@ -21,6 +21,15 @@ When('eu digito o código {string} no cartão do evento', async ({ mundo }, codi
   usa(mundo, codigo); await mundo.p.fill('#gateCode', codigo);
   await recarrega(mundo, () => mundo.p.click('#gateForm button')); await mundo.p.waitForSelector('#app:not(.loading)');
 });
+// o "praia" do Contexto é de antes do final sorteado: digitado, ele perguntaria se é de outra turma
+When('eu colo o link do {string} no campo do código', async ({ mundo }, nome) => {
+  usa(mundo, nome); await mundo.p.fill('#gateCode', `${mundo.base}/?evento=${nome}`); await mundo.p.click('#gateForm button');
+  await mundo.p.waitForSelector('#app:not(.loading)');
+});
+When('eu colo o link do {string} no cartão do evento', async ({ mundo }, nome) => {
+  usa(mundo, nome); await mundo.p.fill('#gateCode', `${mundo.base}/?evento=${nome}`);
+  await recarrega(mundo, () => mundo.p.click('#gateForm button')); await mundo.p.waitForSelector('#app:not(.loading)');
+});
 When('eu toco no {string} da lista', async ({ mundo }, nome) => {
   usa(mundo, nome); await recarrega(mundo, () => ev(mundo, nome).click()); await mundo.p.waitForSelector('#app:not(.loading)');
 });

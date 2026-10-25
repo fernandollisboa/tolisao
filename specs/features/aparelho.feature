@@ -10,6 +10,14 @@ Funcionalidade: O que fica guardado no aparelho
       | o quê  | valor  | pagou | divide entre          |
       | Airbnb | 300,00 | Júlia | Fernando, Júlia, Lia  |
 
+  Cenário: pedir pra testar tudo liga de uma vez o que está em teste
+    Quem testa não decora um link por função: um só liga todas, e fica lembrado no aparelho.
+    Dado que eu pedi pra testar tudo
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    Então o anotar tem a câmera
+    E o anotar oferece repetir todo mês
+
   Cenário: quem já usava o site não perde quem é nem o segredo da chave
     Dado que este aparelho guardou, do jeito antigo, que eu sou Fernando e o segredo "tok-antigo" da chave dele
     Quando eu abro o evento

@@ -8,7 +8,7 @@ este arquivo é o mapa e as regras que não se quebram. como cada feature se com
 
 ## onde fica o quê
 
-- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. o sumário logo abaixo é o mapa das seções, cada uma num `// #region` (o `_regras.cjs` confere que o sumário bate); o estado da página fica junto em "o estado da página"; os cliques ficam na tabela `CLIQUES`. flags em maiúscula no topo ligam e desligam coisa meio pronta.
+- `app.js`: tudo num IIFE com `// @ts-check` e tipos em JSDoc no topo. o sumário logo abaixo é o mapa das seções, cada uma num `// #region` (o `_regras.cjs` confere que o sumário bate); o estado da página fica junto em "o estado da página"; os cliques ficam na tabela `CLIQUES`. flags em maiúscula no topo ligam e desligam coisa meio pronta; as que estão em teste ligam num aparelho pelo link de cada uma (`?mesa`, `?galera`…) ou todas de uma vez pelo `?testes`.
 - `style.css`: papel e madeira, fonte VT323. as cores são variáveis no `:root`; os temas escuros (o "tema:" do pé da nota troca entre papel, neon, grafite e o do celular; #285) redefinem elas no `html[data-tema]`, no fim do arquivo.
 - `manifest.json` + `sw.js`: PWA mínima, rede primeiro com cache de reserva.
 - `database.rules.json`: regras do Firebase. mudou na main, o `regras.yml` publica sozinho (conta de serviço no secret `FIREBASE_SA`); regra nova tem que aceitar o app que já está no ar, porque as duas sobem juntas.

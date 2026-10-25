@@ -417,8 +417,6 @@ button.ico,button.danger,a.link.amb,#chegouFora,#whoBtn,.digital a.link{position
   button.ico:after,button.danger:after,a.link.amb:after,#chegouFora:after,#whoBtn:after,.digital a.link:after{content:"";position:absolute;inset:-8px}
   /* o ✕ do Quem vai? fica colado no nome que se edita: cresce só pra direita e na vertical */
   #overlayBox .row.pessoa button.ico:after{inset:-8px -8px -8px 0}
-  /* o "não" vem colado no "você é fulano?": não rouba a borda dele */
-  #whoSugere~#whoBtn:after{inset:-8px -8px -8px -2px}
   /* o ✕ do gasto tem o editar do lado */
   .item button.danger:after{inset:-8px -8px -8px -2px}
   /* os botões do acerto crescem até a borda da linha (26 + 2×9 = 44px, o que a Apple pede) e param
@@ -809,7 +807,10 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .comandinha.parada .fichinha.cai{display:none}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
 /* o instalar mora no topo, embaixo do subtítulo: âmbar cheio, como o botão do form.lado */
-#instalar{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:var(--amber);color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--sombra)}
+/* na tela de início ele é o mesmo botão, embaixo do criar evento, mas vazado: só o contorno âmbar e a sombra,
+   pra não brigar com o Bora do lado (no hover enche, como os outros âmbar) */
+#instalar,#instalarGate{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:var(--amber);color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--sombra)}
+#instalarGate{margin:14px 0 0;background:var(--card);color:var(--amber);border-color:var(--amber)}
 /* sem o quem é você no cabeçalho, o ponto do lado do evento sai junto */
 #eventLine .sep:has(+ #whoLine:empty){display:none}
 /* os temas escuros (#285, o "tema:" do pé da nota): o html ganha data-tema e as cores viram noite. Os dois dividem o
@@ -833,7 +834,7 @@ html[data-tema] .empty.vazio.quite{--neon:var(--acento);--apagado:#4a3e44;border
   color:color-mix(in srgb,#fff calc(var(--luzT)*62%),var(--tuboT));
   text-shadow:0 0 1px rgba(255,255,255,calc(var(--luzT)*.5)),0 0 4px var(--tuboT),0 0 calc(12px*var(--luzT)) var(--tuboT),0 0 calc(24px*var(--luzT)) color-mix(in srgb,var(--tuboT) 55%,transparent)}
 /* o ✎ cheio na cor do tema e o compartilhar aceso nela (no escuro o amarelo claro sumia com o ícone claro) */
-/* o "você é Fulano?" amarelo ficava com a letra clara do tema em cima: no escuro ele é cheio na cor do tema */
+/* o "Quem é você?" amarelo ficava com a letra clara do tema em cima: no escuro ele é cheio na cor do tema */
 html[data-tema] a.link.amb{color:var(--paper);background:var(--acento);border-color:var(--acento);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
 html[data-tema] #fab.chamando{background:var(--acento);color:var(--paper);border-color:var(--paper);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
 html[data-tema] #waBtn.wafab{background:var(--card);color:var(--acento);border-color:var(--acento);box-shadow:0 0 8px color-mix(in srgb,var(--acento) 50%,transparent)}

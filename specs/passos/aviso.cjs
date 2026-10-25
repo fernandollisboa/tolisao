@@ -91,6 +91,7 @@ Then('o navegador me convida a instalar o tô lisa', async ({ mundo }) => {
 // o instalar mora logo embaixo do subtítulo
 const instalar = p => p.locator('#tagline + div #instalar');
 When('eu toco em instalar, no topo da nota', async ({ mundo }) => { await instalar(mundo.p).click(); });
+When('eu toco em instalar, na tela de início', async ({ mundo }) => { await mundo.p.click('#overlayBox #instalarGate'); });
 Then('a nota não oferece instalar', async ({ mundo }) => {
   await expect(mundo.p.locator('#app')).not.toHaveClass(/loading/);
   await expect(instalar(mundo.p)).toBeHidden();

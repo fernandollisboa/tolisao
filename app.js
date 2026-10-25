@@ -2718,9 +2718,16 @@
   }
   /** a bolinha da pessoa: só a cor dela, sem letra */
   const bolinha = (p) => `<span class="bola" style="background:${colorOf(p.id)}"></span>`;
+  /** o Quem vai? aberto agora: quantas pessoas o evento tinha ao abrir e quem eu escrevi na casinha
+   *  (o primeiro é o do "seu nome") @type {{ antes: number, escritos: string[] }} */
+  let quemVai = { antes: 0, escritos: [] };
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
-   * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela */
+   * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela.
+   * Quem ainda não é ninguém vê "seu nome" na casinha (já escrito, se o aparelho sabe), e esse nome vira
+   * ele no Pronto: ninguém diz quem é duas vezes */
   function showSetup() {
+    // redesenho (pôs, tirou, voltou da turma) segue a mesma conta; abrir de novo começa outra
+    if (!$('#setupForm') && !$('#turmaGo')) quemVai = { antes: state.people.length, escritos: [] };
     // quem já tem conta no evento (ou é você) não sai pelo ✕: o Quem vai? reabre pelo "+ outra pessoa"
     const temConta = (id) =>
       id === me || state.expenses.some((e) => e.payer === id || e.among.includes(id) || (e.shares && id in e.shares));
@@ -2731,6 +2738,10 @@
       )
       .join('');
     const n = state.people.length;
+    // a casinha é o "seu nome" até eu escrever o primeiro; o nome que o aparelho sabe já vem nela
+    const seuNome = !temMe() && !quemVai.escritos.length,
+      nomeSabido = seuNome && typeof device().myName === 'string' ? device().myName : '',
+      jaVem = nomeSabido && !nomeExiste(nomeSabido) ? nomeSabido : '';
     // lista vazia: a turma de um dos meus eventos vem num toque, da cópia do aparelho (abre sem internet)
     const turmas = n
       ? []
@@ -2758,9 +2769,9 @@
       `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">um nome por vez, enter pro próximo</div>
       ${list}
       <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${corDe(n)}">
-        <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
+        <span class="bola">+</span><input id="setupName" placeholder="${seuNome ? 'seu nome' : 'mais alguém?'}" value="${esc(jaVem)}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${chipsGalera}${trazer}
-      <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
+      <button id="setupGo" class="big" style="margin-top:14px" ${n || jaVem ? '' : 'disabled'}>Pronto</button>
       <div class="c voltar"><button id="setupLeave" class="ghost">fechar</button></div>`,
     );
     // o nome que ficou na caixa também entra: no Pronto e no +, ninguém perde o que digitou
@@ -2769,7 +2780,9 @@
       const name = $('#setupName').value.trim();
       if (!name) return true;
       if (nomeExiste(name)) return pronto || (toast('Já existe alguém com esse nome'), false);
-      state.people.push({ id: uid(), name, at: Date.now() });
+      const id = uid();
+      state.people.push({ id, name, at: Date.now() });
+      quemVai.escritos.push(id);
       commit();
       return true;
     };
@@ -2820,6 +2833,7 @@
       b.onclick = () => {
         state.people = state.people.filter((p) => p.id !== b.dataset.drop);
         state.deleted.push(b.dataset.drop);
+        quemVai.escritos = quemVai.escritos.filter((id) => id !== b.dataset.drop); // tirei o meu nome: a casinha volta a ser o "seu nome"
         commit();
         showSetup();
       };
@@ -2846,17 +2860,27 @@
       };
     }
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela. Quem veio com a turma já é alguém
-    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era. Com duas ou mais
-    // e ninguém escolhido, também só fecha: o "Quem é você?" do topo da nota já pergunta, com os nomes
+    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era. Quem não era ninguém
+    // é o nome que escreveu no "seu nome". No evento que já tinha gente (o "não tô aqui"), só se escreveu
+    // um nome: com vários, pode estar pondo a turma, e o "Quem é você?" do topo da nota pergunta
     $('#setupGo').onclick = () => {
       if (!poe(true) || !state.people.length) return;
-      if (!temMe() && state.people.length === 1) return souEu(state.people[0].id);
+      if (!temMe()) {
+        const { antes, escritos } = quemVai;
+        const eu = state.people.length === 1 ? state.people[0].id : antes && escritos.length > 1 ? '' : escritos[0];
+        if (eu) return souEu(eu);
+      }
       closeOverlay();
       render();
     };
     // sair (ou tocar fora) só fecha: a nota fica esperando o toque no "quem é você?"
     $('#setupLeave').onclick = closeOverlay;
     $('#setupName').focus();
+    // o nome que já veio fica marcado: quem está pondo a turma de outro digita por cima
+    if (jaVem) {
+      $('#setupForm').classList.add('digitando');
+      $('#setupName').select();
+    }
   }
   /** a turma de outro evento: as mesmas pessoas, com os mesmos ids e na mesma ordem (a cor de
    *  cada uma vem junto), e eu continuo sendo quem eu era lá. Gasto nenhum vem. Chave pix, só

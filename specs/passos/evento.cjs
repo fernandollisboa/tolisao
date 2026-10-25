@@ -164,6 +164,7 @@ When('eu abro o Quem vai?', async ({ mundo }) => {
   await mundo.p.click('#whoBtn'); await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName');
 });
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
+Then('a casinha do Quem vai? já vem com {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#setupName')).toHaveValue(nome); });
 Then('o site pergunta quem é você entre {gente}', async ({ mundo }, gente) => {
   await expect(mundo.p.locator('#overlayBox [data-sou]')).toHaveText(gente);
 });

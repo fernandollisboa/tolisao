@@ -5047,9 +5047,19 @@
     const btn = $('#waBtn');
     const quem = await linkPraQuem();
     if (quem === null) return;
-    // sem gasto não tem comanda: vai só o link
-    if (!state.expenses.length)
-      return copia(shareUrl(quem), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
+    // sem gasto não tem comanda: vai o convite, pela folha de compartilhar do celular ou pelo zap.
+    // Copiar o link fica de reserva, pra folha que não abre
+    if (!state.expenses.length) {
+      const link = shareUrl(quem);
+      const convite = `🍻 bora rachar o *${evento() || 'rolê'}*? anota aí o que gastar que a conta se faz sozinha 👉 ${link}`;
+      if (!navigator.share) return abreZap(convite);
+      try {
+        await navigator.share({ text: convite });
+      } catch (e) {
+        if (e.name !== 'AbortError') copia(link, 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
+      }
+      return;
+    }
     const waText = () => abreZap(summaryText(quem));
     btn.disabled = true;
     toast('Gerando a imagem…');

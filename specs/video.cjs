@@ -2,7 +2,7 @@ const { chromium } = require('./_pw.cjs');
 const path = require('path'), fs = require('fs'), os = require('os');
 const servir = require('./_serve.cjs');
 const ficha = require('./_ficha.cjs');
-const { DADOS } = require('./preview.cjs');
+const { DADOS, poeTema, esquema } = require('./preview.cjs');
 const { createHash } = require('crypto');
 const sha256 = t => createHash('sha256').update(t).digest('hex');
 
@@ -245,7 +245,7 @@ async function video(opts = {}) {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
   try {
     const ctx = await b.newContext({ viewport: { width: largura, height: altura }, hasTouch: true,
-      reducedMotion: opts.quieto ? 'reduce' : 'no-preference',
+      reducedMotion: opts.quieto ? 'reduce' : 'no-preference', colorScheme: esquema(opts.tema),
       recordVideo: { dir: pasta, size: { width: largura, height: altura } } });
     await ctx.route(/fake-db/, async r => {
       const u = r.request().url();
@@ -262,6 +262,7 @@ async function video(opts = {}) {
         const eu = gente.find(x => x.name === quem);
         if (eu) localStorage.setItem(`tolisa:${sala}`, JSON.stringify({ me: eu.id })); } catch {}
     }, [sala, dados.name, c.quem, dados.people]);
+    await poeTema(p, opts.tema);
     if (opts.js) await p.addInitScript(opts.js);
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Animation.enable'); await cdp.send('Animation.setPlaybackRate', { playbackRate: vel });
@@ -285,7 +286,7 @@ if (require.main === module) {
   const arqCss = op('css'), arqJs = op('js');
   video({ cena, saida: op('saida'), vel: op('vel') ? Number(op('vel')) : undefined,
           css: arqCss ? fs.readFileSync(arqCss, 'utf8') : undefined,
-          js: arqJs ? fs.readFileSync(arqJs, 'utf8') : undefined, quieto: args.includes('--quieto'),
+          js: arqJs ? fs.readFileSync(arqJs, 'utf8') : undefined, quieto: args.includes('--quieto'), tema: op('tema'),
           largura: op('largura') ? Number(op('largura')) : undefined, altura: op('altura') ? Number(op('altura')) : undefined })
     .then(f => console.log(f)).catch(e => { console.error('FAIL', e); process.exit(1); });
 }

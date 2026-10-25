@@ -252,6 +252,7 @@
   /** quando esta pessoa viu o evento pela última vez: o que chegou depois ganha "novo" */ let lastSeen = 0;
   /** pessoa → chave pix, lida do banco @type {Record<string, string>} */ let pixKeys = {};
   /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
+  /** o "usar minha chave pix" está gravando: o segundo toque sortearia outro tok e travava a chave */ let pondoPix = false;
   /** a lista de itens aberta, e com todos (não só os 10 últimos) */ let itemsOpen = false,
     showAll = false;
   /** os itens apagados, recolhidos no fim da lista, estão abertos */ let showGone = false;
@@ -1127,6 +1128,22 @@
   }
   /** a última chave que cadastrei neste aparelho, se ainda serve: vem escrita no cadastro de um evento novo */
   const minhaChave = () => (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '';
+  /** a chave que o aparelho já conhece entra num toque, sem o cartão: o botão mostra ela antes */
+  async function usaMinhaChave() {
+    const k = minhaChave();
+    if (!me) return showWho();
+    if (!k) return savePix();
+    if (pondoPix) return;
+    pondoPix = true;
+    try {
+      await putPix(me, k);
+    } finally {
+      pondoPix = false;
+    }
+  }
+  /** o botão de um toque, com a chave à vista (cortada no fim, se não cabe), pra ninguém publicar a errada sem ver */
+  const botaoMinhaChave = (id, k) =>
+    `<button class="ico amb minha" id="${id}">${PIX_SVG}${KEY_SVG} usar minha chave pix ·&nbsp;<span class="chave">${esc(k)}</span></button>`;
   async function putPix(pid, key) {
     const sala = groupId, // a digital demora: o evento e a pessoa são os de quando tocou
       eu = me;
@@ -1223,25 +1240,61 @@
       'Não aceito cheque, viu?',
       'A conta não se paga sozinha, meu anjo.',
       'Bebeu, pagou, minha flor.',
+      'Pendura não, meu bem.',
+      'Fiado só pra maior de 90 com os pais.',
+      'Hoje não fio, amanhã sim.',
+      'O pix tá aberto, minha flor.',
+      'Pagou, a cerveja gela mais rápido.',
+      'Tá lisa? Paga assim mesmo, meu bem.',
+      'Devendo e pedindo outra? Ousada.',
+      'Diva que é diva paga em dia.',
+      'Conta paga, amizade longa.',
     ],
     owed: [
       'Cobra sem dó, meu bem.',
       'Quem deve, deve, meu anjo.',
       'Juros só na amizade, viu?',
       'Fiado é confiança, meu amor.',
+      'Amigos, amigos, pix à parte.',
+      'Anota que eu cobro, meu bem.',
+      'O caderninho não esquece, minha flor.',
+      'Espero o pix sentada, meu amor.',
+      'Cobra com carinho, mas cobra.',
+      'Tô lisa, mas tô com crédito.',
+      'Pendura tem limite, viu?',
+      'Quem me deve que me pague, meu bem.',
     ],
     even: [
       'Tudo certo, volte sempre, meu bem!',
       'Casa limpa, meu amor.',
       'Valeu, meu bem!',
       'Deus te pague, minha flor.',
+      'Nada no caderninho, meu bem.',
+      'Lisa, mas sem dívida. Chique!',
+      'Pode pedir mais uma, minha flor.',
+      'Nome limpo no balcão, meu anjo.',
+      'Conta zerada, coração leve.',
+      'Nem deve, nem cobra. Diva!',
     ],
     all: [
       'Casa fechada, todo mundo quite. Benção!',
       'Ninguém deve nada. Milagre!',
       'Zerou. Bora abrir outra, meu bem?',
+      'Caderninho zerado. Benção!',
+      'Todo mundo pagou. Quem diria, meu bem.',
+      'Balcão em paz, minha flor.',
+      'Pode baixar a porta, tá tudo pago.',
     ],
-    none: ['Valeu, meu bem!', 'Volte sempre, minha flor!', 'Um beijo, benção.', 'Aberto até o último pagar, viu?'],
+    none: [
+      'Valeu, meu bem!',
+      'Volte sempre, minha flor!',
+      'Um beijo, benção.',
+      'Aberto até o último pagar, viu?',
+      'Senta que a casa é sua, meu bem.',
+      'Diz quem tu é que eu mostro a conta.',
+      'Aqui fiado só com nome, meu amor.',
+      'Entra, minha flor, a cerveja tá gelada.',
+    ],
   };
   // #endregion
   // #region aviso no celular
@@ -1336,7 +1389,7 @@
       // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, e o link é que leva
       // até ele (digitar o nome lá criaria outro evento). Fora do Safari, o "copiar o link" já é esse link
       ensinaInstalar(
-        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo e toca no 🔔.${foraDoSafari() ? '' : ' <a class="link" id="instEvLink">copiar link do evento</a>'}`,
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo e toca no 🔔.${foraDoSafari() ? '' : ' <a class="link" id="instEvLink" role="button" tabindex="0">copiar link do evento</a>'}`,
       );
       const link = $('#instEvLink');
       if (link) link.onclick = () => copia(shareUrl(me), 'Link copiado. Cola no tô lisa instalado.', 'Link do evento');
@@ -1550,9 +1603,9 @@
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
     const wl = $('#whoLine');
     const html = hasMe
-      ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
+      ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}" role="button" tabindex="0">${esc(nameOf(me))}</a>`
       : QUEM_NO_TOPO || !state.people.length
-        ? `<a class="link amb" id="whoBtn">Quem é você?</a>`
+        ? `<a class="link amb" id="whoBtn" role="button" tabindex="0">Quem é você?</a>`
         : '';
     if (wl.dataset.k !== html) {
       wl.innerHTML = html;
@@ -1582,7 +1635,7 @@
     const html = quer
       ? `<h2>*** Quem é você? ***</h2>
       ${linkpras(state.people, 'chegou')}
-      <div class="c"><a class="link" id="chegouFora">não tô aqui</a></div><div class="hr"></div>`
+      <div class="c"><a class="link" id="chegouFora" role="button" tabindex="0">não tô aqui</a></div><div class="hr"></div>`
       : '';
     el.classList.toggle('hidden', !quer);
     if (el.dataset.k === html) return;
@@ -1677,11 +1730,17 @@
       anim.itens = agenda(APERTO_LEAD, APERTO_MS);
     }
   }
-  /** o "cadastrar chave pix", pra quem recebe e ainda não tem chave. Ele desce de debaixo
+  /** o "cadastrar chave pix", pra quem recebe e ainda não tem chave; com a chave de outro evento no
+   *  aparelho, vira o "usar minha chave pix", de um toque. Ele desce de debaixo
    *  do título; a altura vem um quadro depois do conteúdo, senão a transição não tem de onde sair */
   function renderLinhaPix(hasMe, bal) {
-    const quer = hasMe && bal > 0 && !pixKeys[me] && pixReady;
-    const html = quer ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>` : '';
+    const quer = hasMe && bal > 0 && !pixKeys[me] && pixReady,
+      k = minhaChave();
+    const html = !quer
+      ? ''
+      : k
+        ? botaoMinhaChave('pixBtn', k)
+        : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
     const pl = $('#pixLine');
     if (!html) {
       if (pl.dataset.k && !pl.classList.contains('gone')) {
@@ -1702,7 +1761,7 @@
         requestAnimationFrame(() => pl.classList.add('cheio'));
       }
     }
-    if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
+    if ($('#pixBtn')) $('#pixBtn').onclick = usaMinhaChave;
   }
   /** o Falta pagar entra na fila atrás de Minha conta: primeiro as voltas do círculo (em
    *  cima), depois os riscos das quitações (embaixo), de cima pra baixo */
@@ -1773,7 +1832,7 @@
       return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`;
     };
     const valor = (t) =>
-      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
+      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}" role="button" tabindex="0">${reais(t.cents)}</a>`;
     // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi" (se RECEBI)
     // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
     // o cobrar pisca como o ✔ paguei, linha atrás da linha; depois da piscada o recebi (ou o
@@ -1939,7 +1998,7 @@
     if (!temNumeroZap()) return '';
     const gente = recebe.map((t) => t.from).filter((id) => zapDe(id) !== null);
     return gente.length
-      ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}">${esc(nameOf(id))}</a>`).join(', ')}</div>`
+      ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}" role="button" tabindex="0">${esc(nameOf(id))}</a>`).join(', ')}</div>`
       : '';
   };
   /** o 🔔 no pé de Minha conta, pra quem ainda não ligou: ligado, some (quem quiser desligar desliga nas
@@ -2105,7 +2164,7 @@
       .filter(Boolean)
       .join(' · ');
     $('#gone').innerHTML = gone.length
-      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${resumo}</a></div>` +
+      ? `<div class="c small"><a class="link" id="goneToggle" role="button" tabindex="0">${showGone ? '▾' : '▸'} ${resumo}</a></div>` +
         (showGone
           ? gone
               .map(
@@ -2251,7 +2310,8 @@
     const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
     const f = $('#falta');
     f.className = 'falta ' + (!total ? 'neutro' : resta === 0 ? 'ok' : 'erro');
-    const dividirResto = vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : '';
+    const dividirResto =
+      vazios.length > 1 ? '<a class="link" id="restoIgual" role="button" tabindex="0">dividir o resto igual</a>' : '';
     if (!total) f.innerHTML = 'digite o valor do gasto lá em cima.';
     else if (resta === 0) f.innerHTML = `✔ fechou ${comSifrao(total)}.`;
     else if (resta > 0)
@@ -2713,9 +2773,16 @@
   }
   /** a bolinha da pessoa: só a cor dela, sem letra */
   const bolinha = (p) => `<span class="bola" style="background:${colorOf(p.id)}"></span>`;
+  /** o Quem vai? aberto agora: quantas pessoas o evento tinha ao abrir e quem eu escrevi na casinha
+   *  (o primeiro é o do "seu nome") @type {{ antes: number, escritos: string[] }} */
+  let quemVai = { antes: 0, escritos: [] };
   /** primeira vez no evento: monta a lista de gente antes de perguntar quem é você. Cada pessoa é
-   * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela */
+   * uma bolinha na cor dela, e a casinha vazia do fim já espera a próxima: enter põe e volta pra ela.
+   * Quem ainda não é ninguém vê "seu nome" na casinha (já escrito, se o aparelho sabe), e esse nome vira
+   * ele no Pronto: ninguém diz quem é duas vezes */
   function showSetup() {
+    // redesenho (pôs, tirou, voltou da turma) segue a mesma conta; abrir de novo começa outra
+    if (!$('#setupForm') && !$('#turmaGo')) quemVai = { antes: state.people.length, escritos: [] };
     // quem já tem conta no evento (ou é você) não sai pelo ✕: o Quem vai? reabre pelo "+ outra pessoa"
     const temConta = (id) =>
       id === me || state.expenses.some((e) => e.payer === id || e.among.includes(id) || (e.shares && id in e.shares));
@@ -2726,6 +2793,10 @@
       )
       .join('');
     const n = state.people.length;
+    // a casinha é o "seu nome" até eu escrever o primeiro; o nome que o aparelho sabe já vem nela
+    const seuNome = !temMe() && !quemVai.escritos.length,
+      nomeSabido = seuNome && typeof device().myName === 'string' ? device().myName : '',
+      jaVem = nomeSabido && !nomeExiste(nomeSabido) ? nomeSabido : '';
     // lista vazia: a turma de um dos meus eventos vem num toque, da cópia do aparelho (abre sem internet)
     const turmas = n
       ? []
@@ -2753,9 +2824,9 @@
       `<h2 class="pergunta">Quem vai?</h2><div class="c muted recado" style="text-transform:none">um nome por vez, enter pro próximo</div>
       ${list}
       <form id="setupForm" autocomplete="off" class="pessoa nova" style="--cor:${corDe(n)}">
-        <span class="bola">+</span><input id="setupName" placeholder="${n ? 'mais alguém?' : 'seu nome'}" maxlength="30" enterkeyhint="next"></form>
+        <span class="bola">+</span><input id="setupName" placeholder="${seuNome ? 'seu nome' : 'mais alguém?'}" value="${esc(jaVem)}" maxlength="30" enterkeyhint="next"></form>
       <button id="setupMais" class="ghost casinha">+ outra pessoa</button>${chipsGalera}${trazer}
-      <button id="setupGo" class="big" style="margin-top:14px" ${n ? '' : 'disabled'}>Pronto</button>
+      <button id="setupGo" class="big" style="margin-top:14px" ${n || jaVem ? '' : 'disabled'}>Pronto</button>
       <div class="c voltar"><button id="setupLeave" class="ghost">fechar</button></div>`,
     );
     // o nome que ficou na caixa também entra: no Pronto e no +, ninguém perde o que digitou
@@ -2764,7 +2835,9 @@
       const name = $('#setupName').value.trim();
       if (!name) return true;
       if (nomeExiste(name)) return pronto || (toast('Já existe alguém com esse nome'), false);
-      state.people.push({ id: uid(), name, at: Date.now() });
+      const id = uid();
+      state.people.push({ id, name, at: Date.now() });
+      quemVai.escritos.push(id);
       commit();
       return true;
     };
@@ -2815,6 +2888,7 @@
       b.onclick = () => {
         state.people = state.people.filter((p) => p.id !== b.dataset.drop);
         state.deleted.push(b.dataset.drop);
+        quemVai.escritos = quemVai.escritos.filter((id) => id !== b.dataset.drop); // tirei o meu nome: a casinha volta a ser o "seu nome"
         commit();
         showSetup();
       };
@@ -2833,25 +2907,29 @@
       const e = turmas.find((x) => x.id === el.dataset.turma);
       if (!e) continue;
       el.onclick = () => showTurma(e);
-      el.onkeydown = (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          showTurma(e);
-        }
-      };
     }
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela. Quem veio com a turma já é alguém
-    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era. Com duas ou mais
-    // e ninguém escolhido, também só fecha: o "Quem é você?" do topo da nota já pergunta, com os nomes
+    // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era. Quem não era ninguém
+    // é o nome que escreveu no "seu nome". No evento que já tinha gente (o "não tô aqui"), só se escreveu
+    // um nome: com vários, pode estar pondo a turma, e o "Quem é você?" do topo da nota pergunta
     $('#setupGo').onclick = () => {
       if (!poe(true) || !state.people.length) return;
-      if (!temMe() && state.people.length === 1) return souEu(state.people[0].id);
+      if (!temMe()) {
+        const { antes, escritos } = quemVai;
+        const eu = state.people.length === 1 ? state.people[0].id : antes && escritos.length > 1 ? '' : escritos[0];
+        if (eu) return souEu(eu);
+      }
       closeOverlay();
       render();
     };
     // sair (ou tocar fora) só fecha: a nota fica esperando o toque no "quem é você?"
     $('#setupLeave').onclick = closeOverlay;
     $('#setupName').focus();
+    // o nome que já veio fica marcado: quem está pondo a turma de outro digita por cima
+    if (jaVem) {
+      $('#setupForm').classList.add('digitando');
+      $('#setupName').select();
+    }
   }
   /** a turma de outro evento: as mesmas pessoas, com os mesmos ids e na mesma ordem (a cor de
    *  cada uma vem junto), e eu continuo sendo quem eu era lá. Gasto nenhum vem. Chave pix, só
@@ -2938,7 +3016,7 @@
   function showWho() {
     if (!temMe()) {
       overlay(`<h2>Quem é você?</h2>${linkpras(state.people, 'sou')}
-      <div class="c voltar"><a class="link" id="whoNova">+ outra pessoa</a></div>`);
+      <div class="c voltar"><a class="link" id="whoNova" role="button" tabindex="0">+ outra pessoa</a></div>`);
       for (const b of inputs('#overlayBox [data-sou]')) b.onclick = () => souEu(b.dataset.sou);
       // "+ outra pessoa" leva pro Quem vai?, onde dá pra pôr uma ou várias de uma vez
       $('#whoNova').onclick = showSetup;
@@ -2959,6 +3037,7 @@
     $('#whoForm').onsubmit = (ev) => ev.preventDefault();
     if ($('#pixTroca')) $('#pixTroca').onclick = savePix;
     if ($('#pixNova')) $('#pixNova').onclick = savePix;
+    if ($('#pixMinha')) $('#pixMinha').onclick = usaMinhaChave;
     if ($('#pixDigital')) $('#pixDigital').onclick = liberaPix;
     if ($('#pixApaga'))
       $('#pixApaga').onclick = async () => {
@@ -2966,12 +3045,16 @@
       };
   }
   // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
-  // o cartão nunca fica mudo sobre o pix: sem chave, cadastra; com chave de outro aparelho, diz por que não troca
+  // o cartão nunca fica mudo sobre o pix: sem chave, cadastra (a de outro evento num toque, ou outra
+  // pelo cartão); com chave de outro aparelho, diz por que não troca
   function whoPix() {
     if (!me || !pixReady) return '';
-    const k = pixKeys[me];
+    const k = pixKeys[me],
+      minha = minhaChave();
     const corpo = !k
-      ? `<div class="c"><button class="ico amb" id="pixNova">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button></div>`
+      ? minha
+        ? `<div class="c">${botaoMinhaChave('pixMinha', minha)}</div><div class="c" style="margin-top:8px"><button class="small ghost" id="pixNova">outra chave</button></div>`
+        : `<div class="c"><button class="ico amb" id="pixNova">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button></div>`
       : linha('meu pix', esc(k), '', '', '', ' style="text-transform:none"') +
         ((room().pixTokens || {})[me]
           ? `<div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div>`
@@ -3153,7 +3236,7 @@
         `<div class="fotoConta lendo" id="fotoConta"><div class="tela"><img id="fotoImg" alt="a foto da conta" src="${url}"></div></div>` +
         `<div class="somaFoto"><span class="fita" id="fotoFita"></span><b id="fotoSoma"></b></div>` +
         `<button class="big" id="fotoUsar" disabled>usar</button>` +
-        `<div class="c fotoMais"><a class="link" id="fotoPerto">aumentar</a> · <a class="link" id="fotoContraste">ler com mais contraste</a> · <a class="link" id="fotoOutra">outra foto</a></div>` +
+        `<div class="c fotoMais"><a class="link" id="fotoPerto" role="button" tabindex="0">aumentar</a> · <a class="link" id="fotoContraste" role="button" tabindex="0">ler com mais contraste</a> · <a class="link" id="fotoOutra" role="button" tabindex="0">outra foto</a></div>` +
         `<p class="status" id="fotoTempo"></p><div class="c voltar"><button id="fotoVoltar" class="ghost">voltar</button></div>`,
     );
     try {
@@ -3486,7 +3569,7 @@
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
       abreZap(
-        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`,
+        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl(to, 'pago')}`,
         zapDe(to) || '',
       );
       fecha();
@@ -3767,12 +3850,6 @@
         }
         abre(e);
       };
-      el.onkeydown = (ev) => {
-        if (ev.target === el && (ev.key === 'Enter' || ev.key === ' ')) {
-          ev.preventDefault();
-          abre(e);
-        }
-      };
     }
   }
 
@@ -3921,14 +3998,6 @@
       e = $('#digEntra');
     if (g) g.onclick = guardaDigital;
     if (e) e.onclick = entraDigital;
-    // são botões pra quem usa teclado também: Enter e Espaço fazem o mesmo que o toque
-    for (const b of [g, e])
-      b?.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          b.click();
-        }
-      });
   }
   /** o desafio vale uma vez e por pouco tempo: um pra cada toque */
   async function desafioDigital() {
@@ -4081,13 +4150,6 @@
     if (itemsOpen) setDevice('itemsOpened', true);
     render();
   };
-  // é um botão pra quem usa teclado também: Enter e Espaço abrem como o clique
-  $('#itemsHead').addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter' || ev.key === ' ') {
-      ev.preventDefault();
-      $('#itemsHead').click();
-    }
-  });
   /** @type {HTMLElement | null} */
   let sheetDeQuem = null;
   const openSheet = () => {
@@ -4097,6 +4159,8 @@
     $('#amount').focus();
   };
   const limpaForm = () => {
+    // quem pagou fica de um anotar pro outro, mas o da edição não: volta pra mim
+    if (editando) /** @type {HTMLSelectElement} */ ($('#payer')).value = me;
     editando = null;
     $('#desc').value = '';
     $('#amount').value = '';
@@ -4184,6 +4248,15 @@
     convidaInstalar();
   };
   $('#sheetClose').onclick = closeSheet;
+  // o que não é <button> mas faz papel de um (role="button": os a.link, as linhas da lista) é botão
+  // pra quem usa teclado também: Enter e Espaço fazem o mesmo que o toque
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const el = /** @type {HTMLElement} */ (ev.target);
+    if (!el.matches?.('[role="button"]')) return;
+    ev.preventDefault();
+    el.click();
+  });
   // Esc fecha o que tá por cima: o cartão primeiro, depois o anotar
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape' || ev.defaultPrevented) return;
@@ -5069,9 +5142,19 @@
     const btn = $('#waBtn');
     const quem = await linkPraQuem();
     if (quem === null) return;
-    // sem gasto não tem comanda: vai só o link
-    if (!state.expenses.length)
-      return copia(shareUrl(quem), 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
+    // sem gasto não tem comanda: vai o convite, pela folha de compartilhar do celular ou pelo zap.
+    // Copiar o link fica de reserva, pra folha que não abre
+    if (!state.expenses.length) {
+      const link = shareUrl(quem);
+      const convite = `🍻 bora rachar o *${evento() || 'rolê'}*? anota aí o que gastar que a conta se faz sozinha 👉 ${link}`;
+      if (!navigator.share) return abreZap(convite);
+      try {
+        await navigator.share({ text: convite });
+      } catch (e) {
+        if (e.name !== 'AbortError') copia(link, 'Link copiado. Agora é só colar no grupo.', 'Link do evento');
+      }
+      return;
+    }
     const waText = () => abreZap(summaryText(quem));
     btn.disabled = true;
     toast('Gerando a imagem…');

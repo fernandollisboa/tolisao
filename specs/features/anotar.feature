@@ -161,12 +161,15 @@ Funcionalidade: Anotar um gasto
     Então a lista tem 5 itens
 
   Cenário: desistir da edição não suja o próximo anotar
+    Nem quem pagou: o item que eu anotei pela Mengla não deixa ela como pagadora do próximo.
+    Dado que a Lia anotou um "Pastel" de R$ 12,00 que a Mengla pagou
     Quando eu abro o evento como Lia
     E eu abro a lista de itens
-    E eu edito o "Uber volta"
+    E eu edito o "Pastel"
     E eu fecho o anotar
     E eu toco no ✎
     Então o formulário vem vazio, pra anotar
+    E quem pagou é a Lia
 
   Cenário: Esc fecha o anotar e o teclado volta pro ✎
     Quando eu abro o evento como Lia

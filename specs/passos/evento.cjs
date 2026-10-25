@@ -110,6 +110,23 @@ Then('fica copiado o link do evento', async ({ mundo }) => {
   await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado))
     .toMatch(new RegExp(`^${mundo.base}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}$`));
 });
+// o link do evento: a pasta (semverba, sextou ou fiado) só escolhe a figurinha do preview
+const linkDoEvento = mundo => `${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/(semverba|sextou|fiado)/\\?evento=${mundo.evento.name}`;
+const casaConvite = (mundo, txt) => new RegExp(`^${txt.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('\\{link\\}', linkDoEvento(mundo))}$`, 'u');
+Then('o zap abre com o convite:', async ({ mundo }, txt) => {
+  await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).trim() : null))
+    .toMatch(casaConvite(mundo, txt));
+});
+Given('que meu celular compartilha', async ({ mundo }) => {
+  mundo.aparelho.push(() => { navigator.share = async d => { window.__compartilhado = d.text; }; });
+});
+Given('que a folha de compartilhar do meu celular falha', async ({ mundo }) => {
+  mundo.aparelho.push(() => { navigator.share = async () => { throw new DOMException('não deu', 'NotAllowedError'); }; });
+});
+Then('o celular compartilha o convite pro evento', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.evaluate(() => window.__compartilhado)).toMatch(new RegExp(`👉 ${linkDoEvento(mundo)}$`, 'u'));
+  expect(await mundo.p.evaluate(() => window.__aberto)).toBeFalsy();
+});
 Then('o cartão fecha', async ({ mundo }) => { await expect(mundo.p.locator('#overlay')).toHaveClass(/\bhidden\b/); });
 When('eu toco na caixa do caderno em branco', async ({ mundo }) => { await mundo.p.click('#settle .empty.anota'); });
 Then('o formulário de anotar abre', async ({ mundo }) => { await expect(mundo.p.locator('#sheet')).not.toHaveClass(/\bhidden\b/); });
@@ -171,6 +188,7 @@ When('eu abro o Quem vai?', async ({ mundo }) => {
   await mundo.p.click('#whoBtn'); await mundo.p.selectOption('#whoSel', '__new'); await mundo.p.waitForSelector('#setupName');
 });
 When('eu continuo', async ({ mundo }) => { await mundo.p.click('#setupGo'); });
+Then('a casinha do Quem vai? já vem com {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#setupName')).toHaveValue(nome); });
 Then('o site pergunta quem é você entre {gente}', async ({ mundo }, gente) => {
   await expect(mundo.p.locator('#overlayBox [data-sou]')).toHaveText(gente);
 });

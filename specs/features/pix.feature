@@ -94,3 +94,22 @@ Funcionalidade: Cadastrar a chave pix
     E eu cadastro a chave pix "fernando@exemplo.com"
     Então aparece o aviso "Sem espaço neste aparelho: a chave não salvou"
     E o banco não tem chave do Fernando
+
+  Regra: a chave que eu já usei em outro evento entra num toque
+    Quem tem a receber não passa pelo cartão pra repetir a chave de sempre: o botão mostra ela e salva no toque.
+    O cartão fica pra quem quer outra.
+
+    Exemplo: um toque usa a minha chave de sempre
+      Dado que eu já usei a chave pix "fernando@exemplo.com" em outro evento
+      Quando eu abro o evento como Fernando
+      Então o botão do pix mostra a chave "fernando@exemplo.com"
+      Quando eu toco em usar minha chave pix
+      Então aparece o aviso "Chave Pix salva"
+      E o banco guarda a chave do Fernando "fernando@exemplo.com"
+      E não aparece o botão de cadastrar pix
+
+    Exemplo: outra chave, pelo cartão de quem é você
+      Dado que eu já usei a chave pix "fernando@exemplo.com" em outro evento
+      Quando eu abro o evento como Fernando
+      E eu cadastro a chave pix "fernando@novo.com" pelo cartão de quem é você
+      Então o banco guarda a chave do Fernando "fernando@novo.com"

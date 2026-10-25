@@ -170,15 +170,26 @@ Funcionalidade: Entrar no evento
     E a conta aparece
     E a nota não pergunta quem eu sou
 
-  Cenário: quem chega e não está na turma se põe na lista
+  Cenário: quem chega e não está na turma se põe na lista, e já é quem pôs
+    Quem acabou de escrever o próprio nome não tem por que dizer de novo quem é.
     Dado o evento "churras" com Fernando, Júlia e Lia
     Quando eu abro o link do grupo
     E eu digo que não tô na turma
     E eu ponho Bia na lista
     E eu continuo
-    E eu toco no meu nome, Bia, no topo da nota
     Então o cabeçalho diz "sou Bia"
+    E nenhum cartão abre
     E o evento no banco tem Fernando, Júlia, Lia e Bia
+
+  Cenário: quem chega e põe mais de um nome ainda diz quem é, na própria nota
+    Pode ser alguém pondo a turma que faltava: o app não adivinha qual dos nomes é a pessoa.
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o link do grupo
+    E eu digo que não tô na turma
+    E eu ponho Bia e Caio na lista
+    E eu continuo
+    Então nenhum cartão abre
+    E a nota pergunta quem eu sou entre Fernando, Júlia, Lia, Bia e Caio
 
   Cenário: o quem do link não troca quem o aparelho já é
     Dado o evento "churras" com Fernando, Júlia e Lia
@@ -216,9 +227,28 @@ Funcionalidade: Entrar no evento
     Então o cartão de quem é você já vem com Lia escolhida
     E o cartão de quem é você não tem botão de sair
 
-  Cenário: antes do primeiro gasto, compartilhar já copia o link
-    Sem gasto ainda não tem comanda pra mandar, mas a turma já pode entrar.
+  Cenário: antes do primeiro gasto, compartilhar chama a turma pelo zap
+    Sem gasto ainda não tem comanda pra mandar, mas é justo a hora de chamar a turma.
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco em compartilhar
+    E eu mando pro grupo todo
+    Então o zap abre com o convite:
+      """
+      🍻 bora rachar o *bailedamada*? anota aí o que gastar que a conta se faz sozinha 👉 {link}
+      """
+
+  Cenário: no celular, o convite vai pela folha de compartilhar
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    E que meu celular compartilha
+    Quando eu abro o evento como Lia
+    E eu toco em compartilhar
+    E eu mando pro grupo todo
+    Então o celular compartilha o convite pro evento
+
+  Cenário: se a folha de compartilhar falha, fica copiado o link
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    E que a folha de compartilhar do meu celular falha
     Quando eu abro o evento como Lia
     E eu toco em compartilhar
     E eu mando pro grupo todo
@@ -257,8 +287,7 @@ Funcionalidade: Entrar no evento
     E eu tento pôr fernando na lista de novo
     Então aparece o aviso "Já existe alguém com esse nome"
     Quando eu continuo
-    E eu toco no meu nome, Lia, no topo da nota
-    Então o cabeçalho diz "sou Lia"
+    Então o cabeçalho diz "sou Fernando"
     E o evento no banco tem Fernando e Lia
 
   Cenário: fechar a lista de gente volta pra nota, e o quem é você abre ela de novo
@@ -291,8 +320,7 @@ Funcionalidade: Entrar no evento
     Quando eu crio o evento "praia"
     E eu ponho Fernando na lista
     E eu escrevo Lia e aperto pronto sem dar enter
-    Então a nota pergunta quem eu sou entre Fernando e Lia
-    E o evento no banco tem Fernando e Lia
+    Então o evento no banco tem Fernando e Lia
 
   Cenário: o ✕ da lista diz quem ele tira
     Quem ouve a tela no leitor escuta "tirar Lia", e não "multiplicação x".
@@ -323,14 +351,24 @@ Funcionalidade: Entrar no evento
     Quando eu abro o Quem vai?
     Então ninguém tem a mesma cor
 
-  Cenário: depois do pronto, quem é você é perguntado uma vez só, na própria nota
-    A nota já mostra a turma no topo, um nome por pessoa: um cartão por cima perguntaria a mesma coisa de novo.
+  Cenário: quem cria o evento é o nome que pôs no "seu nome"
+    Quem cria como Fernando é o Fernando: ninguém pergunta de novo. Quem criou pros outros troca no "sou" do cabeçalho.
     Dado que eu abro o site sem evento
     Quando eu crio o evento "praia"
     E eu ponho Fernando e Lia na lista
     E eu continuo
     Então nenhum cartão abre
-    E a nota pergunta quem eu sou entre Fernando e Lia
+    E o cabeçalho diz "sou Fernando"
+    E a nota não pergunta quem eu sou
+
+  Cenário: no evento novo, o Quem vai? já vem com o meu nome
+    O aparelho sabe quem eu sou nos outros eventos: não preciso escrever o meu nome de novo.
+    Dado que da última vez, em outro evento, eu fui "Lia"
+    E que eu abro o site sem evento
+    Quando eu crio o evento "praia"
+    Então a casinha do Quem vai? já vem com "Lia"
+    Quando eu continuo
+    Então o cabeçalho diz "sou Lia"
 
   Cenário: evento de uma pessoa só não pergunta quem é você
     Dado que eu abro o site sem evento

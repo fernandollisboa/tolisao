@@ -90,6 +90,11 @@ Then('o {string} no banco não tem mais a chave pix da/do {word}', async ({ mund
 
 // o tema: o botão do pé da nota, e o claro/escuro do celular
 When('eu toco no tema', async ({ mundo }) => { await mundo.p.click('#temaBtn'); });
+// Tab de verdade até o tema: prova que ele pega foco, não só que reage ao Enter
+When('eu troco o tema só com o teclado', async ({ mundo }) => {
+  for (let i = 0; i < 80 && !(await mundo.p.evaluate(() => document.activeElement?.id === 'temaBtn')); i++) await mundo.p.keyboard.press('Tab');
+  await mundo.p.keyboard.press('Enter');
+});
 When('eu toco no tema {int} vezes', async ({ mundo }, n) => { for (let i = 0; i < n; i++) await mundo.p.click('#temaBtn'); });
 When('o celular passa pro escuro', async ({ mundo }) => { await mundo.p.emulateMedia({ colorScheme: 'dark' }); });
 When('o celular volta pro claro', async ({ mundo }) => { await mundo.p.emulateMedia({ colorScheme: 'light' }); });

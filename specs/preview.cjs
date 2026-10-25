@@ -17,7 +17,41 @@ const DADOS = {
   ],
 };
 
+// --tema: o tema gravado no aparelho antes do app, como se a pessoa tivesse tocado o "tema:" do pé da nota.
+// papel é o claro; auto é o celular, que sai escuro (vira o neon) pra mostrar alguma coisa
+const TEMAS = ['papel', 'neon', 'grafite', 'auto'];
+const esquema = tema => (tema === 'auto' ? 'dark' : 'light');
+/** põe o tema no `tolisa` do aparelho; registre depois de quem grava o `tolisa` inteiro, senão ele apaga */
+async function poeTema(p, tema) {
+  if (!tema || tema === 'papel') return;
+  if (!TEMAS.includes(tema)) throw new Error(`tema desconhecido: ${tema} (tem ${TEMAS.join(', ')})`);
+  await p.addInitScript(t => {
+    try { localStorage.setItem('tolisa', JSON.stringify({ ...JSON.parse(localStorage.getItem('tolisa') || '{}'), tema: t })); } catch {}
+  }, tema);
+}
+
+/** a folha comparativa: as imagens lado a lado, em tamanho real, rotuladas */
+async function folha(b, imgs, largura, saida, colunas = 2) {
+  const b64 = f => 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
+  const larg = Math.min(colunas, imgs.length) * (largura + 24) + 24;
+  const m = await b.newPage({ viewport: { width: larg, height: 10 } });
+  await m.setContent(`<body style="margin:0;background:#15171a;color:#e8e8e8;font:18px ui-monospace,monospace;padding:20px">
+    <div style="display:flex;flex-wrap:wrap;gap:24px">${imgs.map(i => `<div><div style="margin-bottom:8px;color:#9fd">${i.chave}${i.nome ? ' · ' + i.nome : ''}</div><img src="${b64(i.arq)}" style="width:${largura}px;display:block"></div>`).join('')}</div></body>`);
+  await m.setViewportSize({ width: larg, height: await m.evaluate(() => document.body.scrollHeight) });
+  await m.screenshot({ path: saida, fullPage: true });
+}
+
 async function preview(opts = {}) {
+  // --temas: a mesma foto no papel, no neon e no grafite, lado a lado
+  if (opts.temas) {
+    const saida = opts.saida || path.join(os.tmpdir(), 'preview.png'), largura = opts.largura || 390;
+    const imgs = [];
+    for (const tema of ['papel', 'neon', 'grafite'])
+      imgs.push({ chave: tema, arq: await preview({ ...opts, temas: false, tema, saida: path.join(os.tmpdir(), `preview-tema-${tema}.png`) }) });
+    const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
+    try { await folha(b, imgs, largura, saida, 3); } finally { await b.close(); }
+    return saida;
+  }
   const { alvo = null, quem = 'Lia', pix = true, largura = 390, altura = 900,
           dados = DADOS, variantes = null, recorte = null, inicio = false, comanda = false } = opts;
   const saida = opts.saida || path.join(os.tmpdir(), 'preview.png');
@@ -25,7 +59,7 @@ async function preview(opts = {}) {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
   try {
     const ctx = await b.newContext({ acceptDownloads: true, viewport: { width: largura, height: altura }, deviceScaleFactor: 2,
-      reducedMotion: opts.quieto ? 'reduce' : 'no-preference' });
+      reducedMotion: opts.quieto ? 'reduce' : 'no-preference', colorScheme: esquema(opts.tema) });
     await ctx.route(/fake-db/, r => {
       const u = r.request().url();
       if (u.includes('/pix/')) return r.fulfill({ json: pix && u.includes('/fernando/') ? 'fernando@exemplo.com' : null });
@@ -34,6 +68,7 @@ async function preview(opts = {}) {
     });
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
+    await poeTema(p, opts.tema);
     if (opts.js) await p.addInitScript(opts.js);
     if (inicio) {
       // aparelho limpo, sem evento: a estreia. o quadro sai depois do título se digitar (~7,5 s)
@@ -84,20 +119,14 @@ async function preview(opts = {}) {
         await tirar(arq); imgs.push({ chave, nome: v.nome || '', arq });
         if (tag) await tag.evaluate(e => e.remove());
       }
-      const b64 = f => 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
-      const larg = Math.min(2, imgs.length) * (largura + 24) + 24;
-      const m = await b.newPage({ viewport: { width: larg, height: 10 } });
-      await m.setContent(`<body style="margin:0;background:#15171a;color:#e8e8e8;font:18px ui-monospace,monospace;padding:20px">
-        <div style="display:flex;flex-wrap:wrap;gap:24px">${imgs.map(i => `<div><div style="margin-bottom:8px;color:#9fd">${i.chave}${i.nome ? ' · ' + i.nome : ''}</div><img src="${b64(i.arq)}" style="width:${largura}px;display:block"></div>`).join('')}</div></body>`);
-      await m.setViewportSize({ width: larg, height: await m.evaluate(() => document.body.scrollHeight) });
-      await m.screenshot({ path: saida, fullPage: true });
+      await folha(b, imgs, largura, saida);
     }
     if (erros.length) console.error('ERROS NA PÁGINA:', erros);
     return saida;
   } finally { await b.close(); srv.close(); }
 }
 
-module.exports = { preview, DADOS };
+module.exports = { preview, DADOS, poeTema, esquema };
 
 if (require.main === module) {
   const args = process.argv.slice(2);
@@ -116,6 +145,7 @@ if (require.main === module) {
     recorte: op('recorte') ? (([x,y,width,height]) => ({x,y,width,height}))(op('recorte').split(',').map(Number)) : null,
     variantes: varArq ? require(path.resolve(varArq)) : null,
     inicio: args.includes('--inicio'), quieto: args.includes('--quieto'),
+    tema: op('tema'), temas: args.includes('--temas'),
     js: arqJs ? fs.readFileSync(arqJs, 'utf8') : undefined,
   }).then(f => console.log(f)).catch(e => { console.error(e); process.exit(1); });
 }

@@ -177,4 +177,11 @@ const regra = (nome, erro) => { if (erro) falhas.push(`✗ ${nome}\n    ${erro}`
   regra('as imagens do link cabem no WhatsApp', erros.join('; '));
 }
 
+// ---------- link sem href é botão: sem role e tabindex o teclado e o leitor de tela não chegam nele ----------
+{
+  const soltos = [['index.html', html], ['app.js', app]].flatMap(([f, txt]) => (txt.match(/<a\b[^>]*>/g) || [])
+    .filter(a => !/\bhref=/.test(a) && !(/role="button"/.test(a) && /tabindex="0"/.test(a))).map(a => `${f}: ${a}`));
+  regra('todo <a> sem href tem role="button" e tabindex="0"', soltos.join('; '));
+}
+
 if (falhas.length) { console.error('\n' + falhas.join('\n')); process.exit(1); }

@@ -1,6 +1,6 @@
 # Leitor da foto da conta
 
-O 📷 do anotar (protótipo, liga no aparelho com `?foto`) lê os preços da foto com o [tesseract.js](https://github.com/naptha/tesseract.js). Os arquivos moram aqui, e não numa CDN: a CSP só deixa o próprio site, e o service worker guarda eles pra abrir sem rede. Nada daqui baixa até a pessoa tocar na 📷.
+O 📷 do anotar (protótipo do modo mesa, liga no aparelho com `?mesa`) lê os preços da foto com o [tesseract.js](https://github.com/naptha/tesseract.js). Os arquivos moram aqui, e não numa CDN: a CSP só deixa o próprio site, e o service worker guarda eles pra abrir sem rede. Nada daqui baixa até a pessoa tocar na 📷.
 
 | arquivo | o que é | de onde | licença |
 |---|---|---|---|
@@ -25,6 +25,6 @@ Medido antes de entrar, com o tesseract.js lendo 30 contas de bar geradas no jei
 | flash | 68% | 64% | 1 em 6 |
 | noite, papel desbotado | 5% | 20% | nunca |
 
-Ampliar a foto não ajudou. À noite ele às vezes lê um número errado sem avisar (628,70 vira 625,70; 168,00 vira 68,00): por isso a soma fica escrita no cartão, pra pessoa conferir com a conta. Leitura: de 1 a 2 s por foto no computador (de 3 a 8 s no "mais contraste"); no celular, o `?foto` mostra quanto levou.
+Ampliar a foto não ajudou. À noite ele às vezes lê um número errado sem avisar (628,70 vira 625,70; 168,00 vira 68,00): por isso a soma fica escrita no cartão, pra pessoa conferir com a conta. Leitura: de 1 a 2 s por foto no computador (de 3 a 8 s no "mais contraste"); no celular, o cartão da foto mostra quanto levou.
 
 Trocar de versão: `npm i tesseract.js@<versão>` numa pasta qualquer e copiar os quatro de novo, dos mesmos lugares.

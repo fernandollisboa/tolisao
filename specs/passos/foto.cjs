@@ -31,6 +31,7 @@ When(/^eu toco em (\d.*) na foto$/, async ({ mundo }, s) => {
 When('eu uso a soma da foto', async ({ mundo }) => { await mundo.p.click('#fotoUsar'); });
 
 Then('o anotar não tem a câmera', async ({ mundo }) => { await expect(mundo.p.locator('#fotoBtn')).toBeHidden(); });
+Then('o anotar tem a câmera', async ({ mundo }) => { await expect(mundo.p.locator('#fotoBtn')).toBeVisible(); });
 Then(/^a foto soma R\$ ([\d.,]+)$/, async ({ mundo }, v) => { await expect(mundo.p.locator('#fotoSoma')).toHaveText(`R$\u00a0${v}`); });
 Then('a foto diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#fotoRecado')).toContainText(txt); });
 Then(/^o valor do anotar é ([\d.,]+)$/, async ({ mundo }, v) => { await expect(mundo.p.locator('#amount')).toHaveValue(v); });

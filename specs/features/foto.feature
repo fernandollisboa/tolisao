@@ -2,7 +2,7 @@
 Funcionalidade: Foto da conta
   No bar, a conta chega impressa. Em vez de somar de cabeça o que entra no gasto, a pessoa
   fotografa a conta e toca nos preços: a soma vai pro valor do anotar.
-  Ainda é protótipo: só aparece pra quem pediu pra testar.
+  Ainda é protótipo do modo mesa: só aparece pra quem pediu pra testar.
 
   Contexto:
     Dado o evento "bar" com Ana, Beto e Caio
@@ -12,10 +12,17 @@ Funcionalidade: Foto da conta
     E eu toco no ✎
     Então o anotar não tem a câmera
 
+  Cenário: quem ligou a foto pelo link antigo continua com a câmera
+    O teste da foto passou pra dentro do modo mesa: quem já testava não precisa ligar de novo.
+    Dado que eu tinha ligado a foto da conta pelo link antigo
+    Quando eu abro o evento como Ana
+    E eu toco no ✎
+    Então o anotar tem a câmera
+
   Regra: pra quem pediu pra testar, os preços tocados na foto somam no valor do anotar
 
     Contexto:
-      Dado que eu pedi pra testar a foto da conta
+      Dado que eu pedi pra testar o modo mesa
 
     Exemplo: a soma do que eu toquei vai pro valor
       Dado uma conta em que se lê 12,90, 39,90 e 22,00

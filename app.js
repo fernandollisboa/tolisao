@@ -2514,8 +2514,9 @@
   const CORES_CHUVA = ['', 'quite', 'ouro', 'deve']; // âmbar, rosa, dourada e vermelha
   /** as fichas da chuva, sempre as mesmas (sorteio de semente fixa): o preview não muda à toa */
   function fichasDaChuva() {
-    // tela larga espalha as mesmas fichas e a chuva fica rala: até o dobro delas no desktop
-    const mais = Math.min(2, Math.max(1, innerWidth / 600));
+    // tela larga espalha as mesmas fichas e a chuva fica rala: mais delas no desktop, mas não o dobro
+    // (88 fichas davam 45 quadros por segundo com a CPU 4x mais lenta; 78 e a sombra só na frente dão 59; #317)
+    const mais = Math.min(1.75, Math.max(1, innerWidth / 600));
     let semente = 7;
     const r = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
     const entre = (/** @type {[number, number]} */ [a, b]) => a + r() * (b - a);
@@ -2531,12 +2532,14 @@
           // só as da frente viram de lado. As do fundo, de perfil, miúdas, viram um risquinho; as do meio, em 3D,
           // travavam a tela no desktop (lá elas dobram). O sorteio do meio fica, pra chuva não mudar de lugar
           vira = k && r() < 0.4 && k === CHUVA.length - 1 ? 360 : 0,
-          cor = CORES_CHUVA[Math.floor(r() * CORES_CHUVA.length)];
+          cor = CORES_CHUVA[Math.floor(r() * CORES_CHUVA.length)],
+          // a sombra só nas da frente: atrás ninguém repara nela, e com as do meio dobradas ela pesava
+          frente = k === CHUVA.length - 1 ? ' frente' : '';
         const estilo = `--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}`;
         // a que vira de lado ganha espessura (duas caras e a lateral em facetas): de perfil ela não some
         if (vira)
           return `<span class="fichinha moeda ${cor}" style="${estilo}"><img src="diva.png" alt=""><img src="diva.png" alt="">${FACETAS}</span>`;
-        return `<img class="fichinha ${cor}" src="diva.png" alt="" style="${estilo}">`;
+        return `<img class="fichinha ${cor}${frente}" src="diva.png" alt="" style="${estilo}">`;
       });
     }).join('');
   }

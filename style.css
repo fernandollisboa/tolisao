@@ -277,6 +277,7 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 /* segurando a ficha (ou o rodapé) o iPhone não pode achar que é pra selecionar texto */
 body.segurando{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
+[role="button"]:focus-visible{outline:2px dashed var(--ink);outline-offset:3px;border-radius:3px}
 #splitHint a.link{color:inherit}   /* 'igualmente' na mesma cor do resto da frase */
 /* "quem é você?" é o que falta fazer: marca-texto amarelo com borda de tinta, e um balancinho de me-aperte */
 a.link.amb{color:var(--ink);background:#ffd23f;text-decoration:none;border:2px solid var(--ink);border-radius:4px;box-shadow:2px 2px 0 var(--sombra);padding:1px 8px;font-size:16px;text-transform:uppercase;display:inline-block}
@@ -471,6 +472,8 @@ button.ico,button.danger,a.link.amb,#chegouFora,#whoBtn,.digital a.link{position
 #pixLine.cheio{max-height:46px;margin:-2px 0 10px}
 #pixLine .acts{transition:transform .35s ease}
 #pixLine.gone{max-height:0;margin:0;opacity:0} #pixLine.gone .acts{transform:translateY(-14px) scale(.4)}
+/* o "usar minha chave pix" mostra a chave; a que não cabe na linha é cortada no fim, com reticências */
+button.ico.amb.minha{max-width:100%;text-transform:none;white-space:nowrap} button.ico.amb.minha svg{flex:none} button.ico.amb.minha .chave{min-width:0;max-width:22ch;overflow:hidden;text-overflow:ellipsis}
 .link.dim{opacity:.5;font-size:13px} .link.dim svg{width:12px;height:12px} .link.go{color:var(--green);font-size:17px}
 #mineRows .row.sub .v{display:inline-flex;align-items:center;gap:0}
 #mineRows .row.hdr{font-size:15px;color:var(--ink2);line-height:1.4;margin-top:6px} #mineRows .row.hdr .v{font-size:15px;text-transform:uppercase} #mineRows .row.hdr .d{visibility:hidden}

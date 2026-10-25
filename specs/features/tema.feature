@@ -18,6 +18,11 @@ Funcionalidade: O tema
     Então o pé da nota diz "tema: grafite"
     E o recibo é escuro
 
+  Cenário: quem não usa o dedo também troca o tema
+    Teclado e leitor de tela chegam em tudo que se toca na nota.
+    Quando eu troco o tema só com o teclado
+    Então o pé da nota diz "tema: neon"
+
   Cenário: no tema do celular, o recibo segue o claro e o escuro dele
     Quando eu toco no tema 3 vezes
     Então o pé da nota diz "tema: celular"

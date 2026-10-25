@@ -80,7 +80,7 @@ Funcionalidade: Meus eventos
       BORA
       """
     E o código do evento não pega o foco sozinho
-    Quando eu digito o código "praia"
+    Quando eu colo o link do "praia" no campo do código
     Então o endereço termina em "?evento=praia"
     Quando eu abro o site sem código
     E eu toco no "churras" da lista
@@ -91,7 +91,7 @@ Funcionalidade: Meus eventos
     O cartão do evento tem o mesmo campo da tela inicial: não precisa voltar pra ela.
     Quando eu abro o evento "churras" como Lia
     E eu toco no nome do evento
-    E eu digito o código "praia" no cartão do evento
+    E eu colo o link do "praia" no cartão do evento
     Então o endereço termina em "?evento=praia"
     E o nome do evento no cabeçalho é "praia"
 

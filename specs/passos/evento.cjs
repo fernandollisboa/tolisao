@@ -68,6 +68,13 @@ Given('que este aparelho já abriu o evento {string} pelo link {string}', async 
 When('eu colo no campo do código:', async ({ mundo }, txt) => { await mundo.p.fill('#gateCode', txt); await mundo.p.click('#gateForm button'); });
 Then('o site pergunta se é um evento novo', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeVisible(); });
 When('eu volto', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
+// a página recarrega pelo ?novo= e para no cartão que pergunta, sem abrir evento nenhum
+When('eu digito no cartão do evento o nome {string}, que não é da minha lista', async ({ mundo }, nome) => {
+  await mundo.p.fill('#gateCode', nome);
+  await Promise.all([mundo.p.waitForEvent('load'), mundo.p.click('#gateForm button')]);
+  await mundo.p.waitForSelector('#abreEsse');
+});
+When('eu toco em abrir esse mesmo', async ({ mundo }) => { await mundo.p.click('#abreEsse'); });
 Then('o cartão do código volta com {string} escrito', async ({ mundo }, codigo) => { await expect(mundo.p.locator('#gateCode')).toHaveValue(codigo); });
 Then('aparece o recado {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#gateErr')).toHaveText(txt); });
 When('eu toco fora do cartão', async ({ mundo }) => { await mundo.p.mouse.click(5, 5); await mundo.p.waitForTimeout(200); });

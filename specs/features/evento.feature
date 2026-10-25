@@ -64,13 +64,32 @@ Funcionalidade: Entrar no evento
     Quando eu colo o link "?evento=bailedamada" na mesma aba
     Então o site pergunta se é um evento novo
 
-  Cenário: evento que já existe abre pelo código de sempre
+  Cenário: nome digitado que já é de outra turma pergunta, e o padrão é criar o meu
+    Nome curto sem final sorteado é de qualquer um: cair direto no "churras" de estranho mostra
+    a conta e o pix de gente que a pessoa nem conhece.
     Dado o evento "churras" com Fernando, Júlia e Lia
     E que eu abro o site sem evento
     Quando eu digito o código "churras"
-    Então o site não pergunta nada
-    E o endereço termina em "?evento=churras"
+    Então o cartão pergunta 'Já existe um "churras"'
+    Quando eu confirmo
+    Então o endereço é "?evento=churras-" com um final sorteado
     E o nome do evento no cabeçalho é "churras"
+
+  Cenário: o evento antigo da turma, de antes do final sorteado, ainda abre pelo nome
+    Dado o evento "churras" com Fernando, Júlia e Lia
+    E que eu abro o site sem evento
+    Quando eu digito o código "churras"
+    E eu toco em abrir esse mesmo
+    Então o endereço termina em "?evento=churras"
+    E o banco tem 1 evento
+
+  Cenário: no cartão do evento, nome de outra turma também pergunta
+    Dado o evento "praia" com Fernando e Lia
+    E o evento "churras" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco no nome do evento
+    E eu digito no cartão do evento o nome "praia", que não é da minha lista
+    Então o cartão pergunta 'Já existe um "praia"'
 
   Cenário: colar o link do zap no campo abre o evento
     O que a pessoa tem no zap é o link, não o código. Colado no campo, sozinho ou com a

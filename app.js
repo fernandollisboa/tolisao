@@ -3196,7 +3196,7 @@
   // o l, o I e o | são 1, e o S é 5
   const PRECO = /^-?([0-9OolI|S]{1,3}(?:\.[0-9]{3})?)[,.]([0-9OolI|S]{2})-?$/;
   const soDigito = (s) => s.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1').replace(/S/g, '5').replace(/\./g, '');
-  /** @typedef {{ c: number, x0: number, y0: number, x1: number, y1: number, un?: boolean }} PrecoLido */
+  /** @typedef {{ c: number, x0: number, y0: number, x1: number, y1: number, un?: boolean, item?: string }} PrecoLido */
   /** os preços que o leitor achou, com a caixa de cada um em pontos da foto que ele leu. O que tem outro preço
    *  à direita na mesma linha é o unitário (`un`): fica apagado, porque quem soma a conta quer o total da linha
    *  @param {any[]} palavras @returns {PrecoLido[]} */
@@ -3218,6 +3218,53 @@
       p.un = precos.some((q) => q !== p && q.x0 > p.x1 && Math.abs((q.y0 + q.y1) / 2 - meio) < alt * 0.6);
     }
     return precos;
+  }
+  // a linha do item na conta de restaurante: "6 UND x 18,90", "4 und x 15,00", "2 x 9,90". O total dela fica na
+  // beirada direita, e a impressora térmica corta o último dígito (60,0( em vez de 60,00): o leitor nem vê preço ali.
+  // O total sai da quantidade vezes o unitário, que vêm inteiros
+  const ITEM = /(?:^|\s)(\d{1,3})\s*(?:und|un|unid)?\.?\s*[x×*]\s*(\d{1,3}(?:\.\d{3})*,\d{2})(?!\d)/i;
+  /** os itens que o leitor achou, um por linha "qtd x unitário", com a caixa da quantidade até o fim da linha e o
+   *  nome que vem na linha de cima @param {any[]} linhas @returns {PrecoLido[]} */
+  function achaItens(linhas) {
+    /** @type {PrecoLido[]} */
+    const itens = [];
+    linhas.forEach((l, i) => {
+      const ws = l.words || [];
+      // o texto da linha e onde cada palavra começa nele, pra achar a palavra em que o casamento começa
+      let texto = '';
+      const ini = ws.map((w) => {
+        const at = texto.length;
+        texto += String(w.text) + ' ';
+        return at;
+      });
+      const m = texto.match(ITEM);
+      if (!m) return;
+      const qtd = +m[1],
+        un = +m[2].replace(/\D/g, '');
+      if (!qtd || !un) return;
+      const onde = m.index + m[0].indexOf(m[1]),
+        de = Math.max(
+          0,
+          ini.findLastIndex((at) => at <= onde),
+        ),
+        cx = ws.slice(de).map((w) => w.bbox);
+      // o nome é a linha de cima, sem o grão da mesa que o leitor pega nas pontas (palavra de uma ou duas letras)
+      const nome = ((linhas[i - 1] && linhas[i - 1].words) || [])
+        .map((w) => String(w.text))
+        .join(' ')
+        .replace(/^(?:\S{1,2}\s+)+/, '')
+        .replace(/(?:\s+\S)+$/, '')
+        .trim();
+      itens.push({
+        c: qtd * un,
+        x0: Math.min(...cx.map((b) => b.x0)),
+        y0: Math.min(...cx.map((b) => b.y0)),
+        x1: Math.max(...cx.map((b) => b.x1)),
+        y1: Math.max(...cx.map((b) => b.y1)),
+        item: nome || ' ',
+      });
+    });
+    return itens;
   }
 
   /** a foto aberta no cartão: o que o leitor achou nela e o que a pessoa tocou, na ordem do toque
@@ -3272,6 +3319,9 @@
         t1 = performance.now(),
         cv = preparaFoto(f.foto, pb),
         img = await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+      // a conta lida como um bloco só, linha a linha: no modo automático, a coluna dos totais virava um bloco à parte
+      // e se perdia (na conta do Bar do Caranguejo, nenhum total de item saiu)
+      await w.setParameters({ tessedit_pageseg_mode: '6' });
       ({ data } = await w.recognize(img, {}, { blocks: true }));
       if (fotoConta !== f) return; // fechou ou trocou de foto no meio
       // o que o teste no bar quer saber: quanto o leitor levou pra baixar, quanto disso a pessoa esperou com a foto
@@ -3282,8 +3332,18 @@
         `${s(performance.now() - t1)} · ${pb ? 'mais contraste' : 'cinza'}`;
       // as caixas vêm em pontos da foto que o leitor leu: voltam pra escala da original
       const k = f.foto.width / cv.width;
-      const palavras = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines.flatMap((l) => l.words)));
-      f.precos = achaPrecos(palavras).map((p) => ({ ...p, x0: p.x0 * k, y0: p.y0 * k, x1: p.x1 * k, y1: p.y1 * k }));
+      const linhas = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines)),
+        palavras = linhas.flatMap((l) => l.words);
+      // o preço solto que cai na linha de um item é o unitário ou o total dele: quem vale é o item
+      const itens = achaItens(linhas),
+        doItem = (p) => itens.some((it) => (p.y0 + p.y1) / 2 > it.y0 && (p.y0 + p.y1) / 2 < it.y1);
+      f.precos = [...itens, ...achaPrecos(palavras).filter((p) => !doItem(p))].map((p) => ({
+        ...p,
+        x0: p.x0 * k,
+        y0: p.y0 * k,
+        x1: p.x1 * k,
+        y1: p.y1 * k,
+      }));
       f.tocados = [];
       f.pb = pb;
       // o recorte: em volta dos preços e do que ele leu com certeza, com folga. À noite o grão da mesa vira
@@ -3342,7 +3402,8 @@
       f.precos
         .map(
           (p, i) =>
-            `<button type="button" class="preco${p.un ? ' un' : ''}" data-preco="${i}" aria-label="${comSifrao(Math.abs(p.c))}" aria-pressed="false" ` +
+            `<button type="button" class="preco${p.un ? ' un' : ''}${p.item ? ' item' : ''}" data-preco="${i}" aria-label="${comSifrao(Math.abs(p.c))}" aria-pressed="false" ` +
+            (p.item ? `title="${esc(p.item.trim())}" data-total="= ${reais(p.c)}" ` : '') +
             `style="left:${pc(p.x0, x0, w)};top:${pc(p.y0, y0, h)};width:${pc(p.x1, p.x0, w)};height:${pc(p.y1, p.y0, h)}"></button>`,
         )
         .join('');

@@ -53,7 +53,7 @@ Funcionalidade: A mesma turma em outro evento
     E eu toco em cadastrar chave pix
     Então a caixa da chave já vem com "julia@exemplo.com"
 
-  Regra: quem abre sem dizer quem é já entra como a pessoa que o aparelho conhece
+  Regra: quem não disse quem é já entra como a pessoa que o aparelho conhece
     Ninguém responde de novo o que o aparelho já sabe: o "sou Lia" do cabeçalho troca num toque.
 
     Exemplo: a pessoa que eu já sou na turma de outro evento
@@ -67,6 +67,16 @@ Funcionalidade: A mesma turma em outro evento
       Dado que da última vez, em outro evento, eu fui "Lia"
       Quando eu abro o evento "churras"
       Então o cabeçalho diz "sou Lia"
+
+    Exemplo: no evento que eu acabei de criar, o meu nome no Quem vai? já sou eu
+      Quem cria o evento e põe o próprio nome na lista não tem por que confirmar quem é.
+      Dado que da última vez, em outro evento, eu fui "Lia"
+      E que eu abro o site sem evento
+      Quando eu crio o evento "praia"
+      E eu ponho Lia e Mengla na lista
+      E eu continuo
+      Então o cabeçalho diz "sou Lia"
+      E nenhum cartão abre
 
     Exemplo: sou duas pessoas da turma, então o aparelho pergunta
       Dado que neste aparelho eu sou Lia no "churras"

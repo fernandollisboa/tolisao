@@ -1013,6 +1013,9 @@
   // o Adicionar à Tela de Início: quadrado arredondado com um mais
   const MAIS_SVG =
     '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  // o instalar: a seta descendo pra bandeja
+  const BAIXAR_SVG =
+    '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M4 20h16"/></svg>';
   const LAPIS_SVG =
     '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M16.4 3.9a2 2 0 0 1 2.8 2.8L8.1 17.8l-3.6.9.9-3.6L16.4 3.9Z"/><path d="M16 18h6M19 15v6"/></svg>';
   const WA_SVG =
@@ -1435,8 +1438,9 @@
   /** quem eu sou nos meus outros eventos (lido ao abrir este): a turma trazida leva os mesmos ids @type {Set<string>} */
   let meusIds = new Set();
   /** quem eu devo ser aqui, pelo que o aparelho sabe: a pessoa que eu já sou em outro evento (mesmo id) ou,
-   *  sem ela, a do último nome que escolhi. Dois ids batendo, nada. Ao abrir, o palpite já vira escolha;
-   *  a gente que chega depois, no sync, ganha o "você é Fulano?" de um toque no cabeçalho */
+   *  sem ela, a do último nome que escolhi. Dois ids batendo, nada. O palpite sempre vira escolha, sem
+   *  perguntar: ao abrir o evento, e no render, quando a pessoa aparece depois (no Quem vai? do evento que
+   *  acabei de criar, ou no sync). O "Sou Fulano" do cabeçalho troca num toque */
   function palpite() {
     if (temMe()) return null;
     const porId = state.people.filter((p) => meusIds.has(p.id));
@@ -1463,6 +1467,12 @@
    *  Trocar a ordem não dá erro nenhum, só bagunça a fila das animações */
   function render() {
     if (!state) return;
+    // o palpite entra sozinho: criei o evento e pus o meu nome no Quem vai?, já sou eu. Com cartão aberto
+    // (o próprio Quem vai?) ou ainda abrindo (o &quem= do link vem antes), espera: o render de depois resolve
+    if (!temMe() && semCartao() && !$('#app').classList.contains('loading')) {
+      const sug = palpite();
+      if (sug) return souEu(sug.id);
+    }
     const hasMe = temMe();
     const vazio = state.expenses.length === 0; // sem nada anotado, Minha conta e Itens só teriam zeros: somem
     const saldo = balances(),
@@ -1523,22 +1533,18 @@
     document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
     $('#roomLabel').onclick = () => showGate();
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
-    const wl = $('#whoLine'),
-      sug = hasMe ? null : palpite();
+    const wl = $('#whoLine');
     const html = hasMe
       ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
-      : sug
-        ? `<a class="link amb" id="whoSugere" data-quem="${sug.id}">você é ${esc(sug.name)}?</a> <a class="link" id="whoBtn">não</a>`
-        : QUEM_NO_TOPO || !state.people.length
-          ? `<a class="link amb" id="whoBtn">Quem é você?</a>`
-          : '';
+      : QUEM_NO_TOPO || !state.people.length
+        ? `<a class="link amb" id="whoBtn">Quem é você?</a>`
+        : '';
     if (wl.dataset.k !== html) {
       wl.innerHTML = html;
       wl.dataset.k = html;
     }
     // evento sem ninguém começa pela lista de gente; com gente, é só dizer qual você é
     if ($('#whoBtn')) $('#whoBtn').onclick = () => (state.people.length ? showWho() : showSetup());
-    if ($('#whoSugere')) $('#whoSugere').onclick = () => souEu($('#whoSugere').dataset.quem);
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     const frase = $('#signoff');
     // todo mundo quite: a frase do rodapé é o convite pro próximo rolê
@@ -2447,8 +2453,9 @@
           d = -r() * t,
           vx = Math.round((r() - 0.5) * 40),
           giro = Math.round((r() - 0.5) * 400),
-          // as do fundo não viram de lado: de perfil, miúdas, viram um risquinho
-          vira = k && r() < 0.4 ? 360 : 0,
+          // só as da frente viram de lado. As do fundo, de perfil, miúdas, viram um risquinho; as do meio, em 3D,
+          // travavam a tela no desktop (lá elas dobram). O sorteio do meio fica, pra chuva não mudar de lugar
+          vira = k && r() < 0.4 && k === CHUVA.length - 1 ? 360 : 0,
           cor = CORES_CHUVA[Math.floor(r() * CORES_CHUVA.length)];
         const estilo = `--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}`;
         // a que vira de lado ganha espessura (duas caras e a lateral em facetas): de perfil ela não some
@@ -2600,7 +2607,7 @@
       : '';
     const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
+      `<button id="instalarGate" class="hidden">${BAIXAR_SVG} instalar</button><h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
         msg || !evs.length
           ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome serve!'}</p>`
           : ''
@@ -2611,6 +2618,7 @@
       }${ofereceApagar() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
       !aberto,
     );
+    mostraInstalar();
     if (aberto) $('#evBack').onclick = closeOverlay;
     if (!aberto) digitaTitulo($('#tituloGate'), chegou ? fichaDoPonto : undefined, chegou ? rodaComanda : undefined);
     if (chegou) chove();
@@ -4454,6 +4462,7 @@
   /** @type {[string, (el: HTMLElement) => unknown][]} vale o primeiro seletor que o clique acertar */
   const CLIQUES = [
     ['#temaBtn', trocaTema],
+    ['#instalar, #instalarGate', instala],
     ['#fotoBtn', tiraFoto],
     ['[data-preco]', marcaPreco],
     ['#fotoUsar', usaFoto],
@@ -5061,7 +5070,8 @@
   // #region instalar
   // ---------- instalar na tela de início ----------
   // O navegador avisa que dá (beforeinstallprompt) e espera o site pedir. O #instalar,
-  // no topo, embaixo do subtítulo, pede; o toque do ✎ também convida, uma vez só, na segunda visita e só
+  // no topo da nota, embaixo do subtítulo, pede, e o #instalarGate também: o carimbo no canto da tela de início,
+  // pra quem acabou de chegar já instalar. O toque do ✎ também convida, uma vez só, na segunda visita e só
   // com gasto anotado. No iPhone o evento não existe: o botão ensina o caminho do Safari.
   let convite = null;
   const jaInstalado = () =>
@@ -5069,8 +5079,10 @@
   const ehIOS = () =>
     /iphone|ipad|ipod/i.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad se passa por Mac
-  const mostraInstalar = () =>
-    $('#instalar').classList.toggle('hidden', !INSTALAR || jaInstalado() || !(convite || ehIOS()));
+  const mostraInstalar = () => {
+    const nao = !INSTALAR || jaInstalado() || !(convite || ehIOS());
+    for (const b of document.querySelectorAll('#instalar, #instalarGate')) b.classList.toggle('hidden', nao);
+  };
   window.addEventListener('beforeinstallprompt', (ev) => {
     ev.preventDefault();
     convite = ev;
@@ -5092,13 +5104,13 @@
     c.prompt();
     return (await c.userChoice).outcome === 'accepted';
   }
-  $('#instalar').onclick = async () => {
+  async function instala() {
     if (convite) {
       if (!(await pedeInstalar())) toast('Deixa pra próxima, meu bem.');
       return;
     }
     ensinaInstalar();
-  };
+  }
   /** o navegador de dentro do Facebook e do Instagram não instala. O Chrome e o Edge do iPhone instalam
    *  pelo Compartilhar deles desde o iOS 16.4, então seguem com o passo a passo */
   const foraDoSafari = () => /FBAN|FBAV|Instagram/.test(navigator.userAgent);

@@ -8,6 +8,9 @@ class Banco {
   // a gravação da sala só volta quando o passo soltar: espera por estado, e não um atraso fixo que
   // ora sobra (segundos à toa no CI), ora falta (a corrida que o cenário testa nem acontece)
   segura() { this.presas = 0; this.presa = new Promise(ok => { this.solta = () => { this.presa = null; ok(); return this.presas; }; }); }
+  // a rede lenta segura o pix (GET ou PUT) até o passo soltar: espera por estado, e não um atraso fixo
+  prendePix(m) { let solta; const p = new Promise(ok => { solta = ok; }); this.pixPreso = { m, p, solta }; }
+  soltaPix() { const s = this.pixPreso?.solta; this.pixPreso = null; s?.(); }
   pega(partes) { let n = this.arvore; for (const p of partes) { if (n == null || typeof n !== 'object') return null; n = n[p]; } return n ?? null; }
 
   // o banco inteiro numa função: (método, caminho, cabeçalhos, corpo) → { status, corpo, cabecalhos }.
@@ -18,6 +21,7 @@ class Banco {
     const nega = () => json(401, { error: 'Permission denied' });
     if (partes[0] === 'pix') {
       if (this.atrasoPix) await new Promise(ok => setTimeout(ok, this.atrasoPix));
+      if (this.pixPreso?.m === m) await this.pixPreso.p;
       const [, sala, pessoa, filho] = partes; if (!sala || !pessoa) return nega();
       // a rede engasgou: o banco não responde a chave (como um 5xx do Firebase no bar)
       if (this.pixFora && m === 'GET') { this.pixFalhas = (this.pixFalhas || 0) + 1; return json(503, { error: 'fora do ar' }); }

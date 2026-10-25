@@ -60,6 +60,25 @@ Funcionalidade: Cadastrar a chave pix
     E eu toco em quem é você
     Então o cartão aberto mostra a minha chave, cadastrada em outro aparelho
 
+  Cenário: o quem é você que já fechou não volta quando as chaves pix chegam
+    Com a rede lenta, o cartão voltava sozinho por cima da nota, e o toque seguinte batia nele.
+    Dado que as chaves pix ainda não chegaram
+    Quando eu abro o evento como Fernando
+    E eu toco no meu nome
+    E eu toco fora do cartão
+    E as chaves pix chegam
+    Então aparece o botão de cadastrar pix
+    E nenhum cartão abre
+
+  Cenário: o quem é você aberto enquanto a chave salva passa a mostrar ela
+    Com a rede lenta, o cartão aberto antes da chave subir ainda oferecia cadastrar, e o trocar nunca aparecia.
+    Dado que o banco demora pra gravar a chave pix
+    Quando eu abro o evento como Fernando
+    E eu cadastro a chave pix "fernando@exemplo.com"
+    E eu toco no meu nome
+    E a chave pix termina de salvar
+    Então o cartão aberto mostra a minha chave, com trocar e apagar
+
   Cenário: sem chave, o cartão de quem é você cadastra
     Quando eu abro o evento como Lia
     E eu cadastro a chave pix "lia@exemplo.com" pelo cartão de quem é você

@@ -760,7 +760,8 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .fichinha.ouro{--f1:#c8961a;--f2:#fff4cc}
 /* só transform anima (roda fora da thread principal) e o contain isola a chuva do resto da página: é enfeite, não pode pesar */
 .chuva{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;contain:strict;perspective:600px}
-.chuva .fichinha{top:0;left:calc(var(--x) - var(--s) / 2);opacity:var(--op);box-shadow:2px 4px 6px rgba(0,0,0,.35);will-change:transform;animation:chove var(--t) linear var(--d) infinite}
+.chuva .fichinha{top:0;left:calc(var(--x) - var(--s) / 2);opacity:var(--op);will-change:transform;animation:chove var(--t) linear var(--d) infinite}
+.chuva .frente{box-shadow:2px 4px 6px rgba(0,0,0,.35)}
 @keyframes chove{from{transform:translate(0,calc(-100% - 10px)) rotate(0) rotateY(0)}to{transform:translate(var(--vx),calc(100vh + 10px)) rotate(var(--r)) rotateY(var(--ry))}}
 /* a que vira de lado é uma ficha de pôquer 3D de verdade, mas barata: duas caras e a lateral em 14 facetas, cada uma
    metade branca e metade cor, emendando com as listras da cara (são as 14 do repeating-conic) */

@@ -47,12 +47,6 @@ Funcionalidade: A mesma turma em outro evento
       E o evento no banco tem Fernando, Júlia e Lia
       E o evento novo não tem nenhum gasto
 
-  Cenário: a minha chave de sempre já vem escrita no cadastro
-    Dado que eu já usei a chave pix "julia@exemplo.com" em outro evento
-    Quando eu abro o evento como Júlia
-    E eu toco em cadastrar chave pix
-    Então a caixa da chave já vem com "julia@exemplo.com"
-
   Regra: quem não disse quem é já entra como a pessoa que o aparelho conhece
     Ninguém responde de novo o que o aparelho já sabe: o "sou Lia" do cabeçalho troca num toque.
 

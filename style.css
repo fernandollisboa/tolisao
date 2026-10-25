@@ -523,22 +523,44 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 #expenses .item.open .row .l{white-space:normal}
 #expenses .day{margin:10px 0 0}
 #amount{font-size:30px;letter-spacing:1px}
-/* a foto da conta (?foto): o 📷 entre o valor e o "O quê?", e o cartão com a foto e uma caixa em cada preço.
-   As caixas são laranja vivo com contorno escuro: aparecem na conta branca de dia e na âmbar da noite */
+/* a foto da conta (?mesa): o 📷 entre o valor e o "O quê?", e o cartão com a foto, uma caixa em cada item, o item
+   escolhido com quem pegou, a lista dos itens e quanto fica pra cada um. As caixas são laranja vivo com contorno
+   escuro: aparecem na conta branca de dia e na âmbar da noite. A foto fica baixa, pra quem pegou caber embaixo dela */
 .two:has(#fotoBtn:not(.hidden)){grid-template-columns:140px 44px 1fr}
 #fotoBtn{width:44px;height:44px;padding:0;display:grid;place-content:center;box-shadow:2px 2px 0 var(--sombra);margin-bottom:4px}
-.fotoConta{border:2px solid var(--ink);box-shadow:3px 3px 0 var(--sombra);overflow:auto;max-height:62vh;background:#111;margin-top:10px}
+.fotoConta{border:2px solid var(--ink);box-shadow:3px 3px 0 var(--sombra);overflow:auto;max-height:46vh;background:#111;margin-top:10px}
 .fotoConta .tela{position:relative;line-height:0}
 .fotoConta.perto .tela{width:220%}
 .fotoConta img{width:100%;display:block}
 .fotoConta.lendo img{opacity:.45}
-.fotoConta .preco{position:absolute;box-sizing:content-box;margin:-3px 0 0 -5px;padding:1px 3px;border:2px dashed #ff8c1a;border-radius:3px;background:rgba(255,140,26,.1);box-shadow:none}
-.fotoConta .preco.un{border:1px dotted rgba(255,140,26,.8);background:none}
-.fotoConta .preco.sim{border:2px solid #ff8c1a;background:rgba(255,140,26,.22);box-shadow:0 0 0 1.5px #222,inset 0 0 0 1px #222}
-@media (hover:hover) and (pointer:fine){.fotoConta .preco:hover:not(:disabled){background:rgba(255,140,26,.4)}}
-.somaFoto{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:10px 0}
-.somaFoto .fita{font-size:16px;color:var(--muted);letter-spacing:.5px;overflow-wrap:anywhere}
-.somaFoto b{font-weight:400;font-size:28px;white-space:nowrap}
+.fotoConta .caixa{position:absolute;box-sizing:content-box;margin:-3px 0 0 -5px;padding:1px 3px;border:2px dashed #ff8c1a;border-radius:3px;background:rgba(255,140,26,.1);box-shadow:none}
+.fotoConta .caixa.sim{border-style:solid;background:rgba(255,140,26,.18)}
+.fotoConta .caixa.ativo{border:3px solid #ff8c1a;background:rgba(255,140,26,.3);box-shadow:0 0 0 1.5px #222,inset 0 0 0 1px #222}
+.fotoConta .bolas{position:absolute;bottom:-7px;right:6px;display:flex;gap:3px}
+.fotoConta .bolas i{width:10px;height:10px;border-radius:50%;border:1.5px solid #222}
+@media (hover:hover) and (pointer:fine){.fotoConta .caixa:hover:not(:disabled){background:rgba(255,140,26,.4)}}
+.itemFoto{margin-top:12px;padding:8px 10px 10px;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--sombra);background:var(--card)}
+.itemFoto .row{font-size:19px;align-items:center}
+.itemFoto input[data-valor]{width:100px;flex:none;text-align:right;padding:2px 4px;font-size:24px;letter-spacing:1px}
+.quemPegou{margin:6px 0}
+.chips.pegou{gap:6px}
+.chips.pegou .chip{text-transform:none;border-radius:999px;border-style:dashed;border-color:var(--rule);color:var(--muted);padding:3px 12px;background:none}
+.chips.pegou .chip.on{border:2px solid var(--cor,var(--ink));box-shadow:2px 2px 0 var(--cor,var(--ink));background:var(--card);color:var(--ink)}
+.itemFoto .passo{margin-top:10px;font-size:17px;display:flex;justify-content:space-between;align-items:baseline}
+.itensFoto{margin-top:14px}
+.itensFoto .it{padding:2px 6px;margin:0 -6px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.itensFoto .it.ativo{outline:2px dashed var(--ink);outline-offset:-1px}
+.itensFoto .row{font-size:18px;line-height:1.5}
+.itensFoto .quem{font-size:16px;color:var(--ink2);padding-left:12px;line-height:1.3}
+.itensFoto .it.ninguem .quem{color:var(--muted)}
+.itensFoto .taxaFoto{cursor:pointer;margin-top:6px}
+.itensFoto .taxaFoto .l{text-transform:none;display:inline-flex;align-items:center;gap:6px}
+.itensFoto .taxaFoto input{width:auto;margin:0;accent-color:var(--ink)}
+.itensFoto .confere{font-size:17px;text-align:center;margin:8px 0 0;color:var(--ink2)}
+.itensFoto .confere.ok{color:var(--green)} .itensFoto .confere.erro{color:var(--red)}
+.itensFoto .fora{text-align:center;margin:6px 0 0}
+.itensFoto > .c{margin:2px 0 4px;font-size:17px}
+#fotoUsar{margin-top:14px}
 .fotoMais{margin-top:10px;font-size:17px}
 /* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
 .quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}

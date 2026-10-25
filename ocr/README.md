@@ -1,6 +1,6 @@
 # Leitor da foto da conta
 
-O 📷 do anotar (protótipo do modo mesa, liga no aparelho com `?mesa`) lê os preços da foto com o [tesseract.js](https://github.com/naptha/tesseract.js). Os arquivos moram aqui, e não numa CDN: a CSP só deixa o próprio site, e o service worker guarda eles pra abrir sem rede. Nada daqui baixa até a pessoa tocar na 📷.
+O 📷 do anotar (protótipo do modo mesa, liga no aparelho com `?mesa`) lê os itens da foto com o [tesseract.js](https://github.com/naptha/tesseract.js). Os arquivos moram aqui, e não numa CDN: a CSP só deixa o próprio site, e o service worker guarda eles pra abrir sem rede. Nada daqui baixa até a pessoa tocar na 📷.
 
 | arquivo | o que é | de onde | licença |
 |---|---|---|---|
@@ -26,5 +26,22 @@ Medido antes de entrar, com o tesseract.js lendo 30 contas de bar geradas no jei
 | noite, papel desbotado | 5% | 20% | nunca |
 
 Ampliar a foto não ajudou. À noite ele às vezes lê um número errado sem avisar (628,70 vira 625,70; 168,00 vira 68,00): por isso a soma fica escrita no cartão, pra pessoa conferir com a conta. Leitura: de 1 a 2 s por foto no computador (de 3 a 8 s no "mais contraste"); no celular, o cartão da foto mostra quanto levou.
+
+## Os itens da conta
+
+O leitor não procura mais só o preço solto: o app lê a conta linha a linha e monta cada item com nome, quantidade e valor (`achaItens()` no `app.js`). Conta de bar costuma vir com o nome numa linha e `6 UND x 18,90  113,40` na de baixo, e a impressora come o último dígito da coluna da direita (`113,4`). Por isso o valor do item é quantidade × unitário, e o número cortado só confirma a quantidade: o leitor lê o 1 como 7, e 7 × 32,90 não começa com 32,9. Antes de ler, a foto é endireitada (até 12° pra cada lado).
+
+Medido numa conta térmica de verdade (Bar do Caranguejo, 4 itens, coluna da direita cortada), com versões feitas dela:
+
+| foto | itens certos (cinza) | itens certos (mais contraste) |
+|---|---|---|
+| original, à noite com luz da mesa | 4 de 4 | 3 de 4 |
+| mais escura e âmbar | 4 de 4 | 3 de 4 |
+| tremida | 4 de 4 | 1 de 4 |
+| comprimida pelo zap (900 px) | 4 de 4 | 2 de 4 |
+| torta 7° | 4 de 4 | 4 de 4 |
+| escura e tremida | 4 de 4 | 3 de 4 |
+
+Nenhum valor errado em nenhuma; o que erra é o nome (HOSCOW MULE, BUDWE SER 600ML). Lendo só o preço solto, como era antes, o 60,00 e o 113,40 dessa conta nunca saíam. O TOTAL impresso, quando o leitor pega, confere a soma no cartão.
 
 Trocar de versão: `npm i tesseract.js@<versão>` numa pasta qualquer e copiar os quatro de novo, dos mesmos lugares.

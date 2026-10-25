@@ -56,9 +56,9 @@
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
-  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta, o 📷 do anotar que lê os preços da foto (o
-  // tesseract, em ocr/) e cada preço tocado soma no valor. Desligado pra todo mundo. Liga no aparelho com ?mesa (fica
-  // lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
+  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta, o 📷 do anotar que lê os itens da foto (o
+  // tesseract, em ocr/), e a pessoa diz quem pegou cada um: o anotar vem dividido em partes. Desligado pra todo mundo.
+  // Liga no aparelho com ?mesa (fica lembrado; ?mesa=0 desliga). O que vier pra mesa entra atrás desta mesma flag
   const MESA = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
   // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema
@@ -1233,7 +1233,8 @@
     'input',
     (ev) => {
       const t = /** @type {HTMLInputElement} */ (ev.target);
-      if (t.matches && t.matches('#amount, #sharesBox input[data-share], #quitaValor')) mascara(t);
+      if (t.matches && t.matches('#amount, #sharesBox input[data-share], #quitaValor, #fotoItem input[data-valor]'))
+        mascara(t);
     },
     true,
   );
@@ -3101,9 +3102,10 @@
   // #region a foto da conta
   // ---------- a foto da conta ----------
   // o 📷 do anotar (MESA, ou ?mesa no aparelho). A foto vem da câmera do celular pelo input de arquivo, sem biblioteca;
-  // o leitor (tesseract.js, em ocr/) só baixa no toque da 📷, enquanto a pessoa enquadra a conta. Cada preço que ele
-  // acha vira uma caixa em cima da foto, e tocar soma no valor do anotar. De dia ele acha quase tudo; à noite, metade,
-  // e às vezes lê um número errado (628,70 vira 625,70): a soma fica escrita embaixo pra pessoa conferir (ocr/README.md)
+  // o leitor (tesseract.js, em ocr/) só baixa no toque da 📷, enquanto a pessoa enquadra a conta. Ele acha os itens
+  // (nome, quantidade e valor), cada um vira uma caixa em cima da foto, e a pessoa toca no item e em quem pegou. O que
+  // cada um pegou, mais a parte dele no serviço, vai pro anotar em partes diferentes. O leitor erra, mais à noite: o
+  // valor de cada item se corrige no cartão, e o que os itens somam fica escrito pra conferir com a conta (ocr/README.md)
 
   /** o worker do tesseract: baixa uma vez por visita, e quem toca de novo na 📷 já acha ele pronto
    *  @type {Promise<any> | null} */
@@ -3160,10 +3162,49 @@
       }
     return out;
   }
+  /** o ângulo da conta na foto, em graus: o que deixa as linhas de texto mais retas (a soma de cada linha da imagem
+   *  varia mais quando as letras de uma linha de texto caem todas na mesma). Só conta ponto de letra, escuro no meio
+   *  do claro do papel: a mesa e a mão ficam de fora. Torta 7°, o leitor perdia metade dos itens
+   *  @param {Uint8ClampedArray} g a foto em cinza, já esticada @param {number} w @param {number} h */
+  function anguloDa(g, w, h) {
+    const k = Math.max(1, Math.round(w / 600)),
+      W = Math.floor(w / k),
+      H = Math.floor(h / k),
+      p = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) p[y * W + x] = g[y * k * w + x * k];
+    const I = new Float64Array((W + 1) * (H + 1)),
+      r = Math.round(W / 30),
+      pts = [];
+    for (let y = 1; y <= H; y++)
+      for (let x = 1, lin = 0; x <= W; x++)
+        I[y * (W + 1) + x] = I[(y - 1) * (W + 1) + x] + (lin += p[(y - 1) * W + x - 1]);
+    for (let y = r; y < H - r; y++)
+      for (let x = r; x < W - r; x++) {
+        const y0 = (y - r) * (W + 1),
+          y1 = (y + r + 1) * (W + 1),
+          media = (I[y1 + x + r + 1] - I[y0 + x + r + 1] - I[y1 + x - r] + I[y0 + x - r]) / (2 * r + 1) ** 2;
+        if (media > 150 && p[y * W + x] < media * 0.7) pts.push(x, y);
+      }
+    if (pts.length < 300) return 0;
+    let melhor = 0,
+      nota = -1;
+    for (let a = -12; a <= 12; a += 0.5) {
+      const rad = (a * Math.PI) / 180,
+        s = Math.sin(rad),
+        c = Math.cos(rad),
+        lin = new Float64Array(W + H + 2);
+      for (let i = 0; i < pts.length; i += 2) lin[Math.round(pts[i + 1] * c - pts[i] * s + W)]++;
+      let v = 0;
+      for (let i = 1; i < lin.length; i++) v += (lin[i] - lin[i - 1]) ** 2;
+      if (v > nota) [nota, melhor] = [v, a];
+    }
+    return melhor;
+  }
   /** a foto que o leitor lê: até 1600 de largura, em cinza, com o contraste esticado (o 1% mais escuro vira preto,
-   *  o 1% mais claro vira branco). `pb` passa ainda o limiar de Bradley: lê mais à noite, e inventa mais número
-   *  @param {ImageBitmap} foto @param {boolean} pb */
-  function preparaFoto(foto, pb) {
+   *  o 1% mais claro vira branco) e endireitada pelo `angulo` (em graus; sem ele, mede). `pb` passa ainda o limiar
+   *  de Bradley: lê mais à noite, e inventa mais número
+   *  @param {ImageBitmap} foto @param {boolean} pb @param {number} [angulo] */
+  function preparaFoto(foto, pb, angulo) {
     const k = Math.min(1, 1600 / foto.width),
       w = Math.round(foto.width * k),
       h = Math.round(foto.height * k);
@@ -3185,43 +3226,185 @@
     conta = 0;
     while ((conta += hist[hi]) < g.length / 100 && hi > lo + 1) hi--;
     for (let i = 0; i < g.length; i++) g[i] = ((g[i] - lo) * 255) / (hi - lo);
+    const a = angulo ?? anguloDa(g, w, h);
     const sai = pb ? bradley(g, w, h) : g;
     for (let i = 0; i < g.length; i++) px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = sai[i];
     ctx.putImageData(img, 0, 0);
-    return cv;
+    if (Math.abs(a) < 1) return { cv, angulo: 0 };
+    // torta: gira pro outro lado, numa tela que cabe a foto inteira, e o canto que sobra fica branco como o papel
+    const r = (-a * Math.PI) / 180,
+      s = Math.abs(Math.sin(r)),
+      c = Math.cos(r),
+      reta = Object.assign(document.createElement('canvas'), {
+        width: Math.round(w * c + h * s),
+        height: Math.round(w * s + h * c),
+      }),
+      rc = reta.getContext('2d');
+    rc.fillStyle = '#fff';
+    rc.fillRect(0, 0, reta.width, reta.height);
+    rc.translate(reta.width / 2, reta.height / 2);
+    rc.rotate(r);
+    rc.drawImage(cv, -w / 2, -h / 2);
+    return { cv: reta, angulo: a };
   }
 
-  // um preço como o leitor escreve: "12,90", "1.234,50", "12.90", "-2,00", "0,25-". Num número, o O é 0,
-  // o l, o I e o | são 1, e o S é 5
+  // o leitor troca letra por número: num número, o O é 0, o l, o I, o | e o f são 1, e o S é 5
+  const soDigito = (s) =>
+    s
+      .replace(/[Oo]/g, '0')
+      .replace(/[lI|f!]/g, '1')
+      .replace(/S/g, '5')
+      .replace(/\./g, '');
+  // um preço inteiro, como o leitor escreve: "12,90", "1.234,50", "12.90"
   const PRECO = /^-?([0-9OolI|S]{1,3}(?:\.[0-9]{3})?)[,.]([0-9OolI|S]{2})-?$/;
-  const soDigito = (s) => s.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1').replace(/S/g, '5').replace(/\./g, '');
-  /** @typedef {{ c: number, x0: number, y0: number, x1: number, y1: number, un?: boolean }} PrecoLido */
-  /** os preços que o leitor achou, com a caixa de cada um em pontos da foto que ele leu. O que tem outro preço
-   *  à direita na mesma linha é o unitário (`un`): fica apagado, porque quem soma a conta quer o total da linha
-   *  @param {any[]} palavras @returns {PrecoLido[]} */
-  function achaPrecos(palavras) {
-    /** @type {PrecoLido[]} */
-    const precos = [];
-    for (const w of palavras) {
-      const t = String(w.text)
-          .replace(/^[:;'"`]+/, '')
-          .replace(/[.:;|'"`]+$/, ''),
-        m = t.match(PRECO);
-      if (!m || !/\d/.test(m[1])) continue;
-      const c = +soDigito(m[1]) * 100 + +soDigito(m[2]);
-      if (c) precos.push({ c: t.includes('-') ? -c : c, ...w.bbox });
-    }
-    for (const p of precos) {
-      const meio = (p.y0 + p.y1) / 2,
-        alt = p.y1 - p.y0;
-      p.un = precos.some((q) => q !== p && q.x0 > p.x1 && Math.abs((q.y0 + q.y1) / 2 - meio) < alt * 0.6);
-    }
-    return precos;
+  /** "12,90" → 1290; o que não é preço → NaN */
+  const lePreco = (t) => {
+    const m = String(t)
+      .replace(/^[:;'"`(]+/, '')
+      .replace(/[.:;|'"`)]+$/, '')
+      .match(PRECO);
+    return m && /\d/.test(m[1]) ? +soDigito(m[1]) * 100 + +soDigito(m[2]) : NaN;
+  };
+  // a linha da quantidade: "6 UND x 18,90 113,40", "2 x 12,00", "2,000 UN X 12,00 24,00". O x às vezes some, ou
+  // vira 1 ou «, e aí a "und" segura. O número da direita pode vir cortado: a impressora come o último dígito
+  const QTD =
+    /(?:^|\s)([0-9OolI|Sf+]{1,3}(?:,0{3})?)\s*(?:(?:und|uno|unid|un|u)\.?\s*(?:[x×«*]|1(?=\s))?|[x×«*])\s*([0-9OolI|S]{1,4}[,.][0-9OolI|S]{2})(?:\s+(\S+))?/i;
+  // linha com preço que não é item
+  const NAO_ITEM =
+    /total|taxa|servi[cç]o|gar[cç]o|gorjeta|troco|pago|pagamento|dinheiro|cart[aã]o|cr[eé]dito|d[eé]bito|\bpix\b|desconto|pessoa|cnpj|cpf|fone|tel\b|cep\b|valor|saldo|acr[eé]sc|caixa|atendente|controle|mesa\b|comanda/i;
+  // o couver é do músico: não paga serviço
+  const COUVER = /couver|couvert|art[ií]stic|ingresso|entrada/i;
+  /** as palavras da linha sem o lixo das pontas: a mesa e o dedo viram letras soltas, com pouca certeza
+   *  @param {any[]} ws as palavras do leitor */
+  const semLixo = (ws) => {
+    const lixo = (w) =>
+      w.confidence < 15 ||
+      !/[a-z0-9]{2}/i.test(w.text) ||
+      (w.text.replace(/[^a-z]/gi, '').length < 3 && !/^\d+ml$|^c\/$/i.test(w.text) && w.confidence < 80);
+    let i = 0,
+      j = ws.length;
+    while (i < j && lixo(ws[i])) i++;
+    while (j > i && lixo(ws[j - 1])) j--;
+    return ws.slice(i, j);
+  };
+  /** o nome que as palavras escrevem, sem o lixo @param {any[]} ws */
+  const nomeDe = (ws) =>
+    semLixo(ws)
+      .map((w) => w.text.replace(/^[^a-z0-9]+|[^a-z0-9/%)]+$/gi, ''))
+      .filter(Boolean)
+      .join(' ');
+  /** a posição da última palavra que passa no `ok`, ou -1 @param {any[]} ws @param {(w: any) => boolean} ok */
+  const ultima = (ws, ok) => {
+    let i = ws.length - 1;
+    while (i >= 0 && !ok(ws[i])) i--;
+    return i;
+  };
+  /** o número lido à direita (inteiro ou cortado) é q × unitário? A parte inteira pode ter perdido dígito à
+   *  esquerda, e o segundo centavo nem conta: é onde a impressora corta, e o leitor inventa um % ou um € */
+  const cabe = (q, un, lido) => {
+    const m = /^[^0-9OolI|S]*([0-9OolI|S]+)[,.]([0-9]?)/.exec(lido || '');
+    if (!m) return false;
+    const [i, d] = ((q * un) / 100).toFixed(2).split('.'),
+      li = soDigito(m[1]);
+    return /^\d+$/.test(li) && i.endsWith(li) && (!m[2] || d[0] === m[2]);
+  };
+  /** @typedef {{ nome: string, q: number, c: number, quem: string[], x0?: number, y0?: number, x1?: number, y1?: number }} ItemLido */
+  /** os itens da conta, lidos linha a linha. A conta de bar vem de dois jeitos: o nome numa linha e "6 UND x 18,90
+   *  113,40" na de baixo, ou tudo numa linha só ("CERVEJA 12,90"). Com quantidade e unitário, o valor do item sai
+   *  da conta, e não do número da direita, que vem cortado; ele só confirma a quantidade (o leitor lê o 1 como 7, e
+   *  7 × 32,90 não dá 32,9). Acha também o nome do bar, o serviço (em %) e o TOTAL, pra conferir
+   *  @param {any[]} linhas as linhas do leitor, de cima pra baixo
+   *  @returns {{ itens: ItemLido[], total: number, taxa: number, nome: string }} */
+  function achaItens(linhas) {
+    /** @type {ItemLido[]} */
+    const itens = [];
+    const usada = new Set();
+    let total = NaN,
+      taxa = 0,
+      nome = '';
+    // a caixa do item na foto: só das palavras dele, que a linha inteira pega também o lixo da mesa
+    const caixa = (ws) => ({
+      x0: Math.min(...ws.map((w) => w.bbox.x0)),
+      y0: Math.min(...ws.map((w) => w.bbox.y0)),
+      x1: Math.max(...ws.map((w) => w.bbox.x1)),
+      y1: Math.max(...ws.map((w) => w.bbox.y1)),
+    });
+    linhas.forEach((l, n) => {
+      const t = l.words.map((w) => w.text).join(' ');
+      // o nome do bar: a primeira linha que diz que é bar, sem o LTDA da razão social
+      if (!nome && n < linhas.length / 2) {
+        const bons = l.words.filter((w) => w.confidence >= 80);
+        if (
+          bons.some((w) =>
+            /^(bar|boteco|botequim|restaurante|cervejaria|choperia|pizzaria|lanchonete|quiosque|espetinho|barraca)$/i.test(
+              w.text,
+            ),
+          )
+        )
+          nome = nomeDe(bons).replace(/\s+(ltda|me|epp|eireli)\.?$/i, '');
+      }
+      // o serviço: "TAXA DE SERVICO (10%)", "SERVIÇO 10%". Lido torto ("(105)"), fica nos 10% de costume
+      if (/servi[cç]o|gar[cç]om|gorjeta/i.test(t)) {
+        const pc = t.match(/(?:^|[\s(])(\d{1,2})\s*%/);
+        taxa = pc && +pc[1] > 0 && +pc[1] <= 20 ? +pc[1] : taxa || 10;
+      }
+      // o TOTAL: o último preço inteiro da linha (o SUB-TOTAL não)
+      if (/total/i.test(t) && !/sub/i.test(t)) {
+        const v = l.words.map((w) => lePreco(w.text)).filter((v) => v > 0);
+        if (v.length) total = v[v.length - 1];
+      }
+      const m = t.match(QTD);
+      if (!m || NAO_ITEM.test(t)) return;
+      const un = lePreco(m[2]);
+      if (!(un > 0)) return;
+      let q = parseInt(soDigito(m[1].replace(/,0{3}$/, '').replace(/\+/g, '1')), 10) || 1;
+      // a quantidade que o número da direita confirma, a lida primeiro
+      if (m[3] && !cabe(q, un, m[3])) q = [...Array(99)].map((_, i) => i + 1).find((x) => cabe(x, un, m[3])) || q;
+      // o nome: na mesma linha, antes da quantidade, ou na de cima, se ela ainda não é de outro item
+      const ate = Math.max(
+          0,
+          l.words.findIndex((w) => w.text.endsWith(m[1])),
+        ),
+        fim = ultima(l.words, (w) => w.text.includes(m[3] || m[2]));
+      let dele = semLixo(l.words.slice(0, ate));
+      if (!/[a-z]{4}/i.test(nomeDe(dele))) {
+        dele = [];
+        const c = linhas[n - 1];
+        if (
+          c &&
+          !usada.has(n - 1) &&
+          !NAO_ITEM.test(c.text) &&
+          !QTD.test(c.text) &&
+          /[a-z]{3}/i.test(nomeDe(c.words))
+        ) {
+          dele = semLixo(c.words);
+          usada.add(n - 1);
+        }
+      }
+      usada.add(n);
+      const ws = [...dele, ...l.words.slice(ate, fim + 1)];
+      itens.push({ nome: nomeDe(dele) || 'item', q, c: q * un, quem: [], ...caixa(ws) });
+    });
+    // conta de uma linha só: nome à esquerda, preço inteiro à direita
+    if (!itens.length)
+      for (const l of linhas) {
+        const ult = ultima(l.words, (w) => lePreco(w.text) > 0),
+          dele = semLixo(l.words.slice(0, Math.max(0, ult)));
+        if (ult < 1 || NAO_ITEM.test(l.text) || !/[a-z]{3}/i.test(nomeDe(dele))) continue;
+        itens.push({
+          nome: nomeDe(dele),
+          q: 1,
+          c: lePreco(l.words[ult].text),
+          quem: [],
+          ...caixa([...dele, l.words[ult]]),
+        });
+      }
+    return { itens, total, taxa, nome };
   }
 
-  /** a foto aberta no cartão: o que o leitor achou nela e o que a pessoa tocou, na ordem do toque
-   *  `vista` é a foto em cinza com o contraste esticado: é ela que aparece, porque à noite a colorida é um breu
-   *  @type {{ foto: ImageBitmap, vista: HTMLCanvasElement, url: string, precos: PrecoLido[], tocados: number[], pb: boolean, corte: number[] } | null} */
+  /** a foto aberta no cartão: o que o leitor achou nela e quem pegou cada item. `vista` é a foto em cinza, com o
+   *  contraste esticado e endireitada: é ela que aparece (à noite a colorida é um breu), e as caixas são pontos dela
+   *  @type {{ foto: ImageBitmap, vista: HTMLCanvasElement, angulo: number, url: string, itens: ItemLido[], ativo: number, taxa: number, comTaxa: boolean, total: number, nome: string, pb: boolean, corte: number[] } | null} */
   let fotoConta = null;
   const tiraFoto = () => {
     carregaLeitor().catch(() => {}); // baixa enquanto a pessoa enquadra; o erro aparece quando for ler
@@ -3242,22 +3425,35 @@
     overlay(
       `<h2>Foto da conta</h2><p class="muted recado" id="fotoRecado">lendo a conta…</p>` +
         `<div class="fotoConta lendo" id="fotoConta"><div class="tela"><img id="fotoImg" alt="a foto da conta" src="${url}"></div></div>` +
-        `<div class="somaFoto"><span class="fita" id="fotoFita"></span><b id="fotoSoma"></b></div>` +
-        `<button class="big" id="fotoUsar" disabled>usar</button>` +
+        `<div class="itemFoto hidden" id="fotoItem"></div><div class="itensFoto" id="fotoItens"></div>` +
+        `<button class="big" id="fotoUsar" disabled>anotar</button>` +
         `<div class="c fotoMais"><a class="link" id="fotoPerto" role="button" tabindex="0">aumentar</a> · <a class="link" id="fotoContraste" role="button" tabindex="0">ler com mais contraste</a> · <a class="link" id="fotoOutra" role="button" tabindex="0">outra foto</a></div>` +
         `<p class="status" id="fotoTempo"></p><div class="c voltar"><button id="fotoVoltar" class="ghost">voltar</button></div>`,
     );
     try {
       const foto = await createImageBitmap(arq);
-      const vista = preparaFoto(foto, false);
-      fotoConta = { foto, vista, url, precos: [], tocados: [], pb: false, corte: [0, 0, foto.width, foto.height] };
+      const { cv, angulo } = preparaFoto(foto, false);
+      fotoConta = {
+        foto,
+        vista: cv,
+        angulo,
+        url,
+        itens: [],
+        ativo: 0,
+        taxa: 10,
+        comTaxa: false,
+        total: NaN,
+        nome: '',
+        pb: false,
+        corte: [0, 0, cv.width, cv.height],
+      };
     } catch {
       $('#fotoRecado').textContent = 'essa foto não abriu. tenta outra.';
       return;
     }
     leFoto(false);
   }
-  /** lê a foto aberta; `pb` em preto e branco (o "mais contraste"). Lida de novo, perde o que estava tocado */
+  /** lê a foto aberta; `pb` em preto e branco (o "mais contraste"). Lida de novo, perde quem pegou o quê */
   async function leFoto(pb) {
     const f = fotoConta;
     if (!f) return;
@@ -3265,33 +3461,31 @@
     $('#fotoRecado').textContent = 'lendo a conta…';
     $('#fotoTempo').textContent = '';
     const t0 = performance.now();
-    let data;
     try {
       const w = await carregaLeitor(),
         t1 = performance.now(),
-        cv = preparaFoto(f.foto, pb),
+        cv = pb ? preparaFoto(f.foto, true, f.angulo).cv : f.vista,
         img = await new Promise((ok) => cv.toBlob(ok, 'image/png'));
-      ({ data } = await w.recognize(img, {}, { blocks: true }));
+      const { data } = await w.recognize(img, {}, { blocks: true });
       if (fotoConta !== f) return; // fechou ou trocou de foto no meio
       // o que o teste no bar quer saber: quanto o leitor levou pra baixar, quanto disso a pessoa esperou com a foto
       // já tirada, e quanto a leitura levou
       const s = (ms) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
       $('#fotoTempo').textContent =
         `leitor baixou em ${s(tempoLeitor.fim - tempoLeitor.ini)} (esperei ${s(t1 - t0)}) · leu em ` +
-        `${s(performance.now() - t1)} · ${pb ? 'mais contraste' : 'cinza'}`;
-      // as caixas vêm em pontos da foto que o leitor leu: voltam pra escala da original
-      const k = f.foto.width / cv.width;
-      const palavras = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines.flatMap((l) => l.words)));
-      f.precos = achaPrecos(palavras).map((p) => ({ ...p, x0: p.x0 * k, y0: p.y0 * k, x1: p.x1 * k, y1: p.y1 * k }));
-      f.tocados = [];
-      f.pb = pb;
-      // o recorte: em volta dos preços e do que ele leu com certeza, com folga. À noite o grão da mesa vira
+        `${s(performance.now() - t1)} · ${pb ? 'mais contraste' : 'cinza'}${f.angulo ? ` · endireitei ${f.angulo}°` : ''}`;
+      const linhas = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines));
+      Object.assign(f, achaItens(linhas), { ativo: 0, pb });
+      f.comTaxa = f.taxa > 0;
+      f.taxa ||= 10;
+      // o recorte: em volta dos itens e do que ele leu com certeza, com folga. À noite o grão da mesa vira
       // "palavra" de uma letra ou duas: só entra palavra com três letras ou números seguidos. Sem nada, a foto inteira
       const caixas = [
-        ...f.precos,
-        ...palavras
+        ...f.itens,
+        ...linhas
+          .flatMap((l) => l.words)
           .filter((p) => p.confidence > 60 && /[a-z0-9]{3}/i.test(p.text))
-          .map((p) => ({ x0: p.bbox.x0 * k, y0: p.bbox.y0 * k, x1: p.bbox.x1 * k, y1: p.bbox.y1 * k })),
+          .map((p) => p.bbox),
       ];
       if (caixas.length) {
         const xs0 = Math.min(...caixas.map((p) => p.x0)),
@@ -3303,8 +3497,8 @@
         f.corte = [
           Math.max(0, xs0 - fx),
           Math.max(0, ys0 - fy),
-          Math.min(f.foto.width, xs1 + fx),
-          Math.min(f.foto.height, ys1 + fy),
+          Math.min(f.vista.width, xs1 + fx),
+          Math.min(f.vista.height, ys1 + fy),
         ];
       }
     } catch (e) {
@@ -3315,22 +3509,21 @@
     }
     await mostraFoto();
     if (fotoConta !== f) return;
-    const n = f.precos.filter((p) => !p.un).length;
+    const n = f.itens.length;
     $('#fotoRecado').textContent = n
-      ? `achei ${n} preço${n > 1 ? 's' : ''}. toque nos que entram nesse gasto.`
-      : 'não achei preço nessa foto. tenta com mais luz, ou ler com mais contraste.';
+      ? `achei ${n} ite${n > 1 ? 'ns' : 'm'}. toque num item e em quem pegou.`
+      : 'não achei item nessa foto. tenta com mais luz, ou ler com mais contraste.';
     $('#fotoContraste').textContent = pb ? 'ler sem contraste' : 'ler com mais contraste';
   }
-  /** a foto recortada no cartão, com uma caixa em cada preço achado */
+  /** a foto recortada no cartão, com uma caixa em cada item achado */
   async function mostraFoto() {
     const f = fotoConta;
     const [x0, y0, x1, y1] = f.corte,
       w = x1 - x0,
       h = y1 - y0,
       k = Math.min(1, 1000 / w);
-    const cv = Object.assign(document.createElement('canvas'), { width: Math.round(w * k), height: Math.round(h * k) }),
-      kv = f.vista.width / f.foto.width;
-    cv.getContext('2d').drawImage(f.vista, x0 * kv, y0 * kv, w * kv, h * kv, 0, 0, cv.width, cv.height);
+    const cv = Object.assign(document.createElement('canvas'), { width: Math.round(w * k), height: Math.round(h * k) });
+    cv.getContext('2d').drawImage(f.vista, x0, y0, w, h, 0, 0, cv.width, cv.height);
     const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.85));
     if (fotoConta !== f) return;
     URL.revokeObjectURL(f.url);
@@ -3338,45 +3531,201 @@
     const pc = (v, de, tam) => (((v - de) / tam) * 100).toFixed(2) + '%';
     $('#fotoConta .tela').innerHTML =
       `<img id="fotoImg" alt="a foto da conta" src="${f.url}">` +
-      f.precos
-        .map(
-          (p, i) =>
-            `<button type="button" class="preco${p.un ? ' un' : ''}" data-preco="${i}" aria-label="${comSifrao(Math.abs(p.c))}" aria-pressed="false" ` +
-            `style="left:${pc(p.x0, x0, w)};top:${pc(p.y0, y0, h)};width:${pc(p.x1, p.x0, w)};height:${pc(p.y1, p.y0, h)}"></button>`,
+      f.itens
+        .map((it, i) =>
+          it.x0 === undefined
+            ? ''
+            : `<button type="button" class="caixa" data-item="${i}" aria-label="${esc(it.nome)}" aria-pressed="false" ` +
+              `style="left:${pc(it.x0, x0, w)};top:${pc(it.y0, y0, h)};width:${pc(it.x1, it.x0, w)};height:${pc(it.y1, it.y0, h)}"><span class="bolas"></span></button>`,
         )
         .join('');
     $('#fotoConta').classList.remove('lendo');
-    somaFoto();
+    pintaFoto();
   }
-  /** a fita do que foi tocado, a soma e o botão de usar */
-  function somaFoto() {
+  /** quanto cada um deve pela foto: o item dividido igual entre quem pegou, mais o serviço na proporção do que
+   *  cada um pegou, fora o couver. O centavo que sobra do serviço fica com quem tem o maior resto
+   *  @returns {{ partes: Record<string, number>, servico: number, conta: number, fora: number }} */
+  function contaDaFoto() {
     const f = fotoConta,
-      soma = f.tocados.reduce((s, i) => s + f.precos[i].c, 0);
-    $('#fotoFita').textContent = f.tocados.map((i) => reais(f.precos[i].c)).join(' + ');
-    $('#fotoSoma').textContent = f.tocados.length ? comSifrao(soma) : '';
-    $('#fotoUsar').textContent = soma > 0 ? `usar ${comSifrao(soma)}` : 'usar';
+      pc = f.comTaxa ? f.taxa : 0;
+    /** @type {Record<string, number>} */ const partes = {};
+    /** @type {Record<string, number>} */ const base = {};
+    let todos = 0,
+      comServico = 0,
+      fora = 0;
+    for (const it of f.itens) {
+      const paga = !COUVER.test(it.nome);
+      todos += it.c;
+      if (paga) comServico += it.c;
+      if (!it.quem.length) fora += it.c;
+      const s = it.quem.length ? shares(it.c, it.quem) : {};
+      for (const id of it.quem) {
+        partes[id] = (partes[id] || 0) + s[id];
+        if (paga) base[id] = (base[id] || 0) + s[id];
+      }
+    }
+    const ids = Object.keys(base),
+      soma = ids.reduce((a, id) => a + base[id], 0),
+      servico = Math.round((soma * pc) / 100),
+      exato = ids.map((id) => (servico * base[id]) / (soma || 1));
+    ids.forEach((id, i) => (partes[id] += Math.floor(exato[i])));
+    ids
+      .map((id, i) => [id, exato[i] - Math.floor(exato[i])])
+      .sort((a, b) => +b[1] - +a[1])
+      .slice(0, servico - exato.reduce((a, v) => a + Math.floor(v), 0))
+      .forEach(([id]) => partes[id]++);
+    return { partes, servico, conta: todos + Math.round((comServico * pc) / 100), fora };
+  }
+  /** o item escolhido (nome, valor que se corrige e quem pegou), a lista dos itens com quem pegou cada um, o que
+   *  cada pessoa deve e o botão de anotar. `tudo` refaz também o item escolhido: quem está corrigindo o valor
+   *  dele não perde o campo a cada número */
+  function pintaFoto(tudo = true) {
+    const f = fotoConta,
+      it = f.itens[f.ativo],
+      gente = state.people;
+    if (tudo) {
+      $('#fotoItem').classList.toggle('hidden', !it);
+      if (it)
+        $('#fotoItem').innerHTML =
+          `<div class="row"><span class="l">${it.q > 1 ? it.q + '× ' : ''}${esc(it.nome)}</span><span class="d"></span>` +
+          `<input type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" data-valor="${f.ativo}" value="${it.c ? reais(it.c) : ''}" aria-label="valor de ${esc(it.nome)}"></div>` +
+          `<div class="muted quemPegou">quem pegou?</div><div class="chips pegou">${gente
+            .map(
+              (p) =>
+                `<button type="button" class="chip${it.quem.includes(p.id) ? ' on' : ''}" data-pegou="${p.id}" aria-pressed="${it.quem.includes(p.id)}" style="--cor:${colorOf(p.id)}">${esc(p.name)}</button>`,
+            )
+            .join(
+              '',
+            )}<button type="button" class="chip todos${it.quem.length === gente.length ? ' on' : ''}" data-pegou="*" aria-pressed="${it.quem.length === gente.length}">todos</button></div>` +
+          (f.itens.length > 1
+            ? `<div class="c passo"><a class="link" data-passo="-1" role="button" tabindex="0">‹ anterior</a> <span class="muted">${f.ativo + 1} de ${f.itens.length}</span> <a class="link" data-passo="1" role="button" tabindex="0">próximo ›</a></div>`
+            : '');
+    }
+    const { partes, servico, conta, fora } = contaDaFoto();
+    const quemTem = gente.filter((p) => partes[p.id] > 0),
+      soma = quemTem.reduce((a, p) => a + partes[p.id], 0),
+      temCouver = f.itens.some((x) => COUVER.test(x.nome));
+    const confere = !f.itens.length
+      ? ''
+      : f.total > 0 && Math.abs(f.total - conta) <= 1
+        ? `<p class="confere ok">✔ bate com o total da conta, ${comSifrao(f.total)}.</p>`
+        : f.total > 0
+          ? `<p class="confere erro">li ${comSifrao(f.total)} no total da conta, e os itens dão ${comSifrao(conta)}: confere os valores.</p>`
+          : `<p class="confere">os itens dão ${comSifrao(conta)}: confere com o total da conta.</p>`;
+    $('#fotoItens').innerHTML =
+      f.itens
+        .map(
+          (x, i) =>
+            `<div class="it${i === f.ativo ? ' ativo' : ''}${x.quem.length ? '' : ' ninguem'}" data-item="${i}" role="button" tabindex="0">` +
+            `<div class="row"><span class="l">${x.q > 1 ? x.q + '× ' : ''}${esc(x.nome)}</span><span class="d"></span><span class="v">${reais(x.c)}</span></div>` +
+            `<div class="quem">${x.quem.length === gente.length && gente.length > 1 ? 'todos' : x.quem.length ? x.quem.map(nomeHtml).join(', ') : 'ninguém ainda'}</div></div>`,
+        )
+        .join('') +
+      `<div class="c"><a class="link" id="fotoMaisItem" role="button" tabindex="0">faltou um item</a></div>` +
+      (f.itens.length
+        ? `<label class="row taxaFoto"><span class="l"><input type="checkbox" id="fotoTaxa"${f.comTaxa ? ' checked' : ''}> ${f.taxa}% de serviço${temCouver ? ' (sem o couver)' : ''}</span><span class="d"></span><span class="v">${reais(servico)}</span></label>`
+        : '') +
+      confere +
+      (quemTem.length
+        ? `<div class="hr"></div>` +
+          quemTem
+            .map(
+              (p) =>
+                `<div class="row"><span class="l">${nomeHtml(p.id)}</span><span class="d"></span><span class="v">${reais(partes[p.id])}</span></div>`,
+            )
+            .join('') +
+          (fora ? `<p class="muted fora">${comSifrao(fora)} sem ninguém ficam de fora.</p>` : '')
+        : '');
+    // na foto, o item escolhido fica marcado, e o que já tem gente ganha a bolinha de cada um
+    for (const b of inputs('#fotoConta [data-item]')) {
+      const x = f.itens[+b.dataset.item];
+      b.classList.toggle('ativo', +b.dataset.item === f.ativo);
+      b.classList.toggle('sim', x.quem.length > 0);
+      b.setAttribute('aria-pressed', String(+b.dataset.item === f.ativo));
+      b.firstElementChild.innerHTML = x.quem.map((id) => `<i style="background:${colorOf(id)}"></i>`).join('');
+    }
+    $('#fotoUsar').textContent = soma > 0 ? `anotar ${comSifrao(soma)}` : 'anotar';
     $('#fotoUsar').disabled = !(soma > 0);
   }
-  const marcaPreco = (el) => {
+  /** tocar num item (na foto ou na lista) escolhe ele; o cartão desce até quem pegou */
+  const escolheItem = (el) => {
     const f = fotoConta,
-      i = +el.dataset.preco;
-    if (!f || !f.precos[i]) return;
-    const j = f.tocados.indexOf(i);
-    if (j >= 0) f.tocados.splice(j, 1);
-    else f.tocados.push(i);
-    el.classList.toggle('sim', j < 0);
-    el.setAttribute('aria-pressed', String(j < 0));
-    somaFoto();
+      i = +el.dataset.item;
+    if (!f || !f.itens[i]) return;
+    f.ativo = i;
+    pintaFoto();
+    $('#fotoItem').scrollIntoView({ block: 'nearest', behavior: semMovimento() ? 'auto' : 'smooth' });
   };
-  /** a soma vai pro valor do anotar, como se a pessoa tivesse digitado */
-  const usaFoto = () => {
+  const passoItem = (el) => {
+    const f = fotoConta;
+    if (!f || !f.itens.length) return;
+    f.ativo = (f.ativo + +el.dataset.passo + f.itens.length) % f.itens.length;
+    pintaFoto();
+  };
+  /** quem pegou o item escolhido: tocar põe e tira; o "todos" põe todo mundo, ou tira, se já estão todos */
+  const pegou = (el) => {
     const f = fotoConta,
-      soma = f ? f.tocados.reduce((s, i) => s + f.precos[i].c, 0) : 0;
+      it = f && f.itens[f.ativo];
+    if (!it) return;
+    const id = el.dataset.pegou,
+      ids = state.people.map((p) => p.id);
+    const quem =
+      id === '*'
+        ? it.quem.length === ids.length
+          ? []
+          : ids
+        : it.quem.includes(id)
+          ? it.quem.filter((x) => x !== id)
+          : [...it.quem, id];
+    it.quem = ids.filter((x) => quem.includes(x));
+    pintaFoto();
+  };
+  /** o item que o leitor não achou: entra vazio, e o valor se digita */
+  const maisItem = () => {
+    const f = fotoConta;
+    if (!f) return;
+    f.itens.push({ nome: 'item', q: 1, c: 0, quem: [] });
+    f.ativo = f.itens.length - 1;
+    pintaFoto();
+    $('#fotoItem input[data-valor]').focus();
+  };
+  document.addEventListener('input', (ev) => {
+    const t = /** @type {HTMLInputElement} */ (ev.target);
+    if (!fotoConta || !t.matches?.('#fotoItem input[data-valor]')) return;
+    const it = fotoConta.itens[+t.dataset.valor];
+    if (it) it.c = lerCentavos(t.value) || 0;
+    pintaFoto(false);
+  });
+  document.addEventListener('change', (ev) => {
+    const t = /** @type {HTMLInputElement} */ (ev.target);
+    if (!fotoConta || t.id !== 'fotoTaxa') return;
+    fotoConta.comTaxa = t.checked;
+    pintaFoto(false);
+  });
+  /** o que cada um deve vai pro anotar, em partes diferentes: falta só dizer quem pagou a conta */
+  const usaFoto = () => {
+    const f = fotoConta;
+    if (!f) return;
+    const { partes } = contaDaFoto(),
+      ids = state.people.map((p) => p.id).filter((id) => partes[id] > 0),
+      soma = ids.reduce((a, id) => a + partes[id], 0);
     if (!(soma > 0)) return;
     $('#amount').value = reais(soma);
+    if (!$('#desc').value)
+      $('#desc').value = f.nome
+        ? f.nome.toLowerCase().replace(/(^|\s)(\S)(?=\S{2})/g, (_, a, b) => a + b.toUpperCase())
+        : 'a conta';
+    for (const c of inputs('#splitChips input')) {
+      c.checked = ids.includes(c.value);
+      c.closest('.chip').classList.toggle('on', c.checked);
+    }
+    splitMode = ids.length > 1 ? 'custom' : 'equal';
     updateHint();
+    for (const i of inputs('#sharesBox input[data-share]'))
+      i.value = partes[i.dataset.share] ? reais(partes[i.dataset.share]) : '';
+    atualizaFalta();
     closeOverlay();
-    if (!$('#desc').value) $('#desc').focus();
+    $('#payer').focus();
   };
   const fotoPerto = () => {
     const perto = $('#fotoConta').classList.toggle('perto');
@@ -4582,7 +4931,10 @@
     ['#temaBtn', trocaTema],
     ['#instalar, #instalarGate', instala],
     ['#fotoBtn', tiraFoto],
-    ['[data-preco]', marcaPreco],
+    ['#fotoConta [data-item], #fotoItens [data-item]', escolheItem],
+    ['[data-pegou]', pegou],
+    ['[data-passo]', passoItem],
+    ['#fotoMaisItem', maisItem],
     ['#fotoUsar', usaFoto],
     ['#fotoPerto', fotoPerto],
     ['#fotoContraste', () => fotoConta && leFoto(!fotoConta.pb)],

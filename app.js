@@ -252,6 +252,7 @@
   /** quando esta pessoa viu o evento pela última vez: o que chegou depois ganha "novo" */ let lastSeen = 0;
   /** pessoa → chave pix, lida do banco @type {Record<string, string>} */ let pixKeys = {};
   /** já consultou as chaves pix uma vez (antes disso, nada de botão de pix) */ let pixReady = false;
+  /** o "usar minha chave pix" está gravando: o segundo toque sortearia outro tok e travava a chave */ let pondoPix = false;
   /** a lista de itens aberta, e com todos (não só os 10 últimos) */ let itemsOpen = false,
     showAll = false;
   /** os itens apagados, recolhidos no fim da lista, estão abertos */ let showGone = false;
@@ -1127,6 +1128,22 @@
   }
   /** a última chave que cadastrei neste aparelho, se ainda serve: vem escrita no cadastro de um evento novo */
   const minhaChave = () => (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '';
+  /** a chave que o aparelho já conhece entra num toque, sem o cartão: o botão mostra ela antes */
+  async function usaMinhaChave() {
+    const k = minhaChave();
+    if (!me) return showWho();
+    if (!k) return savePix();
+    if (pondoPix) return;
+    pondoPix = true;
+    try {
+      await putPix(me, k);
+    } finally {
+      pondoPix = false;
+    }
+  }
+  /** o botão de um toque, com a chave à vista (cortada no fim, se não cabe), pra ninguém publicar a errada sem ver */
+  const botaoMinhaChave = (id, k) =>
+    `<button class="ico amb minha" id="${id}">${PIX_SVG}${KEY_SVG} usar minha chave pix ·&nbsp;<span class="chave">${esc(k)}</span></button>`;
   async function putPix(pid, key) {
     const sala = groupId, // a digital demora: o evento e a pessoa são os de quando tocou
       eu = me;
@@ -1713,11 +1730,17 @@
       anim.itens = agenda(APERTO_LEAD, APERTO_MS);
     }
   }
-  /** o "cadastrar chave pix", pra quem recebe e ainda não tem chave. Ele desce de debaixo
+  /** o "cadastrar chave pix", pra quem recebe e ainda não tem chave; com a chave de outro evento no
+   *  aparelho, vira o "usar minha chave pix", de um toque. Ele desce de debaixo
    *  do título; a altura vem um quadro depois do conteúdo, senão a transição não tem de onde sair */
   function renderLinhaPix(hasMe, bal) {
-    const quer = hasMe && bal > 0 && !pixKeys[me] && pixReady;
-    const html = quer ? `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>` : '';
+    const quer = hasMe && bal > 0 && !pixKeys[me] && pixReady,
+      k = minhaChave();
+    const html = !quer
+      ? ''
+      : k
+        ? botaoMinhaChave('pixBtn', k)
+        : `<button class="ico amb" id="pixBtn">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button>`;
     const pl = $('#pixLine');
     if (!html) {
       if (pl.dataset.k && !pl.classList.contains('gone')) {
@@ -1738,7 +1761,7 @@
         requestAnimationFrame(() => pl.classList.add('cheio'));
       }
     }
-    if ($('#pixBtn')) $('#pixBtn').onclick = savePix;
+    if ($('#pixBtn')) $('#pixBtn').onclick = usaMinhaChave;
   }
   /** o Falta pagar entra na fila atrás de Minha conta: primeiro as voltas do círculo (em
    *  cima), depois os riscos das quitações (embaixo), de cima pra baixo */
@@ -2995,6 +3018,7 @@
     $('#whoForm').onsubmit = (ev) => ev.preventDefault();
     if ($('#pixTroca')) $('#pixTroca').onclick = savePix;
     if ($('#pixNova')) $('#pixNova').onclick = savePix;
+    if ($('#pixMinha')) $('#pixMinha').onclick = usaMinhaChave;
     if ($('#pixDigital')) $('#pixDigital').onclick = liberaPix;
     if ($('#pixApaga'))
       $('#pixApaga').onclick = async () => {
@@ -3002,12 +3026,16 @@
       };
   }
   // trocar e apagar a chave só aparecem no aparelho que cadastrou: é ele que tem o tok
-  // o cartão nunca fica mudo sobre o pix: sem chave, cadastra; com chave de outro aparelho, diz por que não troca
+  // o cartão nunca fica mudo sobre o pix: sem chave, cadastra (a de outro evento num toque, ou outra
+  // pelo cartão); com chave de outro aparelho, diz por que não troca
   function whoPix() {
     if (!me || !pixReady) return '';
-    const k = pixKeys[me];
+    const k = pixKeys[me],
+      minha = minhaChave();
     const corpo = !k
-      ? `<div class="c"><button class="ico amb" id="pixNova">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button></div>`
+      ? minha
+        ? `<div class="c">${botaoMinhaChave('pixMinha', minha)}</div><div class="c" style="margin-top:8px"><button class="small ghost" id="pixNova">outra chave</button></div>`
+        : `<div class="c"><button class="ico amb" id="pixNova">${PIX_SVG}${KEY_SVG} cadastrar chave pix</button></div>`
       : linha('meu pix', esc(k), '', '', '', ' style="text-transform:none"') +
         ((room().pixTokens || {})[me]
           ? `<div class="c" style="margin-top:8px;display:flex;gap:10px;justify-content:center"><button class="small" id="pixTroca">trocar</button><button class="small ghost" id="pixApaga" style="color:var(--red)">apagar</button></div>`

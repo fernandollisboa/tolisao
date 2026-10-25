@@ -4075,6 +4075,8 @@
     $('#amount').focus();
   };
   const limpaForm = () => {
+    // quem pagou fica de um anotar pro outro, mas o da edição não: volta pra mim
+    if (editando) /** @type {HTMLSelectElement} */ ($('#payer')).value = me;
     editando = null;
     $('#desc').value = '';
     $('#amount').value = '';

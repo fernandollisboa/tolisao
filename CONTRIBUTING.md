@@ -52,6 +52,8 @@ node specs/video.cjs pega --vel=0.35   # animação vai de vídeo
 
 tamanho real, 390 de largura. detalhes em `.claude/skills/preview/SKILL.md`.
 
+mexeu em cor? `npm run contraste` lista, tema por tema e janela por janela, o texto abaixo de 4,5:1 e a borda ou ícone de botão abaixo de 3:1 (hover e `:active` inclusos). não é teste, não roda no CI.
+
 ## commit
 
 português, maiúscula, sem ponto, dizendo o que mudou pra quem usa o site:

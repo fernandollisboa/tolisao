@@ -119,7 +119,7 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
 /* risca encolhida e esticando (scaleX, não width): só transform anima, fora da thread principal */
 @keyframes risca{from{transform:scaleX(0)}}
 @media (prefers-reduced-motion:reduce){.row.paid.novo:after{animation:none}}
-.paid .l,.paid .v{color:#8a7a5a} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;transform-origin:left;top:50%;border-top:2px solid var(--ri,#8a7a5a);pointer-events:none;z-index:2}
+.paid .l,.paid .v{color:var(--muted)} .row.paid:after{content:"";position:absolute;left:0;right:auto;width:100%;transform-origin:left;top:50%;border-top:2px solid var(--ri,#8a7a5a);pointer-events:none;z-index:2}
 .row.paid.novo:after{animation:risca .55s ease-out both;animation-delay:var(--rd,0ms)}
 .nm{font-weight:400}
 .neg{color:var(--red)}.pos{color:var(--green)}
@@ -297,6 +297,8 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   button.danger:hover:not(:disabled){background:var(--red);color:var(--paper)}
   button.big.perigo:hover:not(:disabled){background:#7a1414;color:#fff}
   button.ghost:hover:not(:disabled){background:transparent;color:var(--ink)}
+  /* o 🔔 tem tinta própria (--ink2) e vencia o hover genérico: ficava tinta clara no fundo de tinta */
+  #mineRows .aviso button.ico:hover:not(:disabled){color:var(--paper)}
   .seg button:not(.on):hover{background:var(--card);color:var(--ink)}
   .shares .resto:hover{background:var(--amber) !important;color:#fff !important}
   /* o ✎ é âmbar o tempo todo: no hover ele escurece e afunda um tico, como quem aperta */

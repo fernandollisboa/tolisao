@@ -807,9 +807,10 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .comandinha.parada .fichinha.cai{display:none}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
 /* o instalar mora no topo, embaixo do subtítulo: âmbar cheio, como o botão do form.lado */
-/* na tela de início ele é o mesmo botão, embaixo do criar evento: âmbar cheio, que nem o Bora do lado */
+/* na tela de início ele é o mesmo botão, embaixo do criar evento, mas vazado: só o contorno âmbar e a sombra,
+   pra não brigar com o Bora do lado (no hover enche, como os outros âmbar) */
 #instalar,#instalarGate{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:var(--amber);color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--sombra)}
-#instalarGate{margin:14px 0 0}
+#instalarGate{margin:14px 0 0;background:var(--card);color:var(--amber);border-color:var(--amber)}
 /* sem o quem é você no cabeçalho, o ponto do lado do evento sai junto */
 #eventLine .sep:has(+ #whoLine:empty){display:none}
 /* os temas escuros (#285, o "tema:" do pé da nota): o html ganha data-tema e as cores viram noite. Os dois dividem o

@@ -28,3 +28,7 @@ Medido antes de entrar, com o tesseract.js lendo 30 contas de bar geradas no jei
 Ampliar a foto não ajudou. À noite ele às vezes lê um número errado sem avisar (628,70 vira 625,70; 168,00 vira 68,00): por isso a soma fica escrita no cartão, pra pessoa conferir com a conta. Leitura: de 1 a 2 s por foto no computador (de 3 a 8 s no "mais contraste"); no celular, o cartão da foto mostra quanto levou.
 
 Trocar de versão: `npm i tesseract.js@<versão>` numa pasta qualquer e copiar os quatro de novo, dos mesmos lugares.
+
+## Conta de restaurante
+
+Na conta da impressora térmica, o total de cada item fica na beirada e sai cortado (`60,0(`, `113,4(`): o leitor nem vê preço ali. Por isso o app lê a foto como um bloco só, linha a linha (`tessedit_pageseg_mode` 6; no automático a coluna dos totais virava um bloco à parte e se perdia), e a linha "6 UND x 18,90" vira um item de 113,40, a quantidade vezes o unitário, com o nome da linha de cima. Na conta do Bar do Caranguejo (foto de 23/10/2026, à noite, na mão), os quatro itens saíram certos e a soma bateu com o TOTAL.

@@ -41,6 +41,15 @@ Funcionalidade: Foto da conta
       E eu toco em 12,90, 39,90 e 12,90 na foto
       Então a foto soma R$ 39,90
 
+    Exemplo: o item da conta de restaurante vale a quantidade vezes o unitário
+      A impressora térmica corta o último dígito do total na beirada do papel: o total sai do "6 UND x 18,90".
+      Dado uma conta com o item "BUDWEISER 600ML" e a linha "6 UND x 18,90 113,4("
+      Quando eu abro o evento como Ana
+      E eu toco no ✎
+      E eu fotografo a conta
+      E eu toco no item "BUDWEISER 600ML" na foto
+      Então a foto soma R$ 113,40
+
     Exemplo: a foto em que não se lê preço avisa
       Dado uma conta em que não se lê preço nenhum
       Quando eu abro o evento como Ana

@@ -1353,7 +1353,7 @@
       // o app da Tela de Início não enxerga o que o Safari guardou: abre sem evento, e o link é que leva
       // até ele (digitar o nome lá criaria outro evento). Fora do Safari, o "copiar o link" já é esse link
       ensinaInstalar(
-        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo e toca no 🔔.${foraDoSafari() ? '' : ' <a class="link" id="instEvLink">copiar link do evento</a>'}`,
+        `No iPhone o aviso só chega com o tô lisa na Tela de Início. Copia o link do evento, instala, cola o link no campo e toca no 🔔.${foraDoSafari() ? '' : ' <a class="link" id="instEvLink" role="button" tabindex="0">copiar link do evento</a>'}`,
       );
       const link = $('#instEvLink');
       if (link) link.onclick = () => copia(shareUrl(me), 'Link copiado. Cola no tô lisa instalado.', 'Link do evento');
@@ -1567,9 +1567,9 @@
     // só reescreve quando muda: refazer o nó a cada sync reiniciava o balancinho do botão
     const wl = $('#whoLine');
     const html = hasMe
-      ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}">${esc(nameOf(me))}</a>`
+      ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}" role="button" tabindex="0">${esc(nameOf(me))}</a>`
       : QUEM_NO_TOPO || !state.people.length
-        ? `<a class="link amb" id="whoBtn">Quem é você?</a>`
+        ? `<a class="link amb" id="whoBtn" role="button" tabindex="0">Quem é você?</a>`
         : '';
     if (wl.dataset.k !== html) {
       wl.innerHTML = html;
@@ -1599,7 +1599,7 @@
     const html = quer
       ? `<h2>*** Quem é você? ***</h2>
       ${linkpras(state.people, 'chegou')}
-      <div class="c"><a class="link" id="chegouFora">não tô aqui</a></div><div class="hr"></div>`
+      <div class="c"><a class="link" id="chegouFora" role="button" tabindex="0">não tô aqui</a></div><div class="hr"></div>`
       : '';
     el.classList.toggle('hidden', !quer);
     if (el.dataset.k === html) return;
@@ -1796,7 +1796,7 @@
       return `<button class="ico ok${pi}" data-settle="${t.from}|${t.to}|${t.cents}" title="quitar">✔ paguei</button>`;
     };
     const valor = (t) =>
-      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}">${reais(t.cents)}</a>`;
+      `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}" role="button" tabindex="0">${reais(t.cents)}</a>`;
     // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi" (se RECEBI)
     // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
     // o cobrar pisca como o ✔ paguei, linha atrás da linha; depois da piscada o recebi (ou o
@@ -1962,7 +1962,7 @@
     if (!temNumeroZap()) return '';
     const gente = recebe.map((t) => t.from).filter((id) => zapDe(id) !== null);
     return gente.length
-      ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}">${esc(nameOf(id))}</a>`).join(', ')}</div>`
+      ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}" role="button" tabindex="0">${esc(nameOf(id))}</a>`).join(', ')}</div>`
       : '';
   };
   /** o 🔔 no pé de Minha conta, pra quem ainda não ligou: ligado, some (quem quiser desligar desliga nas
@@ -2128,7 +2128,7 @@
       .filter(Boolean)
       .join(' · ');
     $('#gone').innerHTML = gone.length
-      ? `<div class="c small"><a class="link" id="goneToggle">${showGone ? '▾' : '▸'} ${resumo}</a></div>` +
+      ? `<div class="c small"><a class="link" id="goneToggle" role="button" tabindex="0">${showGone ? '▾' : '▸'} ${resumo}</a></div>` +
         (showGone
           ? gone
               .map(
@@ -2274,7 +2274,8 @@
     const vazios = inputs('#sharesBox input[data-share]').filter((i) => !lerCentavos(i.value));
     const f = $('#falta');
     f.className = 'falta ' + (!total ? 'neutro' : resta === 0 ? 'ok' : 'erro');
-    const dividirResto = vazios.length > 1 ? '<a class="link" id="restoIgual">dividir o resto igual</a>' : '';
+    const dividirResto =
+      vazios.length > 1 ? '<a class="link" id="restoIgual" role="button" tabindex="0">dividir o resto igual</a>' : '';
     if (!total) f.innerHTML = 'digite o valor do gasto lá em cima.';
     else if (resta === 0) f.innerHTML = `✔ fechou ${comSifrao(total)}.`;
     else if (resta > 0)
@@ -2861,12 +2862,6 @@
       const e = turmas.find((x) => x.id === el.dataset.turma);
       if (!e) continue;
       el.onclick = () => showTurma(e);
-      el.onkeydown = (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          showTurma(e);
-        }
-      };
     }
     // evento de uma pessoa só: não há o que perguntar, quem criou é ela. Quem veio com a turma já é alguém
     // quem já é alguém e voltou pra pôr mais gente só fecha: continua sendo quem era. Com duas ou mais
@@ -2966,7 +2961,7 @@
   function showWho() {
     if (!temMe()) {
       overlay(`<h2>Quem é você?</h2>${linkpras(state.people, 'sou')}
-      <div class="c voltar"><a class="link" id="whoNova">+ outra pessoa</a></div>`);
+      <div class="c voltar"><a class="link" id="whoNova" role="button" tabindex="0">+ outra pessoa</a></div>`);
       for (const b of inputs('#overlayBox [data-sou]')) b.onclick = () => souEu(b.dataset.sou);
       // "+ outra pessoa" leva pro Quem vai?, onde dá pra pôr uma ou várias de uma vez
       $('#whoNova').onclick = showSetup;
@@ -3186,7 +3181,7 @@
         `<div class="fotoConta lendo" id="fotoConta"><div class="tela"><img id="fotoImg" alt="a foto da conta" src="${url}"></div></div>` +
         `<div class="somaFoto"><span class="fita" id="fotoFita"></span><b id="fotoSoma"></b></div>` +
         `<button class="big" id="fotoUsar" disabled>usar</button>` +
-        `<div class="c fotoMais"><a class="link" id="fotoPerto">aumentar</a> · <a class="link" id="fotoContraste">ler com mais contraste</a> · <a class="link" id="fotoOutra">outra foto</a></div>` +
+        `<div class="c fotoMais"><a class="link" id="fotoPerto" role="button" tabindex="0">aumentar</a> · <a class="link" id="fotoContraste" role="button" tabindex="0">ler com mais contraste</a> · <a class="link" id="fotoOutra" role="button" tabindex="0">outra foto</a></div>` +
         `<p class="status" id="fotoTempo"></p><div class="c voltar"><button id="fotoVoltar" class="ghost">voltar</button></div>`,
     );
     try {
@@ -3492,7 +3487,7 @@
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
       abreZap(
-        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl('', 'pago')}`,
+        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl(to, 'pago')}`,
         zapDe(to) || '',
       );
       fecha();
@@ -3773,12 +3768,6 @@
         }
         abre(e);
       };
-      el.onkeydown = (ev) => {
-        if (ev.target === el && (ev.key === 'Enter' || ev.key === ' ')) {
-          ev.preventDefault();
-          abre(e);
-        }
-      };
     }
   }
 
@@ -3927,14 +3916,6 @@
       e = $('#digEntra');
     if (g) g.onclick = guardaDigital;
     if (e) e.onclick = entraDigital;
-    // são botões pra quem usa teclado também: Enter e Espaço fazem o mesmo que o toque
-    for (const b of [g, e])
-      b?.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          b.click();
-        }
-      });
   }
   /** o desafio vale uma vez e por pouco tempo: um pra cada toque */
   async function desafioDigital() {
@@ -4087,13 +4068,6 @@
     if (itemsOpen) setDevice('itemsOpened', true);
     render();
   };
-  // é um botão pra quem usa teclado também: Enter e Espaço abrem como o clique
-  $('#itemsHead').addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter' || ev.key === ' ') {
-      ev.preventDefault();
-      $('#itemsHead').click();
-    }
-  });
   /** @type {HTMLElement | null} */
   let sheetDeQuem = null;
   const openSheet = () => {
@@ -4190,6 +4164,15 @@
     convidaInstalar();
   };
   $('#sheetClose').onclick = closeSheet;
+  // o que não é <button> mas faz papel de um (role="button": os a.link, as linhas da lista) é botão
+  // pra quem usa teclado também: Enter e Espaço fazem o mesmo que o toque
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const el = /** @type {HTMLElement} */ (ev.target);
+    if (!el.matches?.('[role="button"]')) return;
+    ev.preventDefault();
+    el.click();
+  });
   // Esc fecha o que tá por cima: o cartão primeiro, depois o anotar
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape' || ev.defaultPrevented) return;

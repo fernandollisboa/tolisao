@@ -52,7 +52,7 @@ Funcionalidade: Acertar as contas
     Então o zap abre com a mensagem:
       """
       ✅ Fernando, te paguei R$ 50,00 do *bailedamada* 👍
-      {site}/pago/?evento=bailedamada
+      {site}/pago/?evento=bailedamada&quem=fernando
       """
     E Minha conta diz "eu devo" R$ 67,84
     E o pagamento "Lia → Fernando" está carimbado "PAGO"
@@ -96,7 +96,7 @@ Funcionalidade: Acertar as contas
     Então o zap abre com a mensagem:
       """
       ✅ Fernando, te paguei R$ 117,84 do *bailedamada* 👍
-      {site}/pago/?evento=bailedamada
+      {site}/pago/?evento=bailedamada&quem=fernando
       """
 
   Cenário: cobrar no zap quem me deve

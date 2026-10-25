@@ -273,6 +273,7 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 /* segurando a ficha (ou o rodapé) o iPhone não pode achar que é pra selecionar texto */
 body.segurando{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
+[role="button"]:focus-visible{outline:2px dashed var(--ink);outline-offset:3px;border-radius:3px}
 #splitHint a.link{color:inherit}   /* 'igualmente' na mesma cor do resto da frase */
 /* "quem é você?" é o que falta fazer: marca-texto amarelo com borda de tinta, e um balancinho de me-aperte */
 a.link.amb{color:var(--ink);background:#ffd23f;text-decoration:none;border:2px solid var(--ink);border-radius:4px;box-shadow:2px 2px 0 var(--sombra);padding:1px 8px;font-size:16px;text-transform:uppercase;display:inline-block}

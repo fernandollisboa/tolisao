@@ -270,6 +270,23 @@ Funcionalidade: Entrar no evento
     E eu toco na caixa do caderno em branco
     Então o formulário de anotar abre
 
+  Cenário: sozinho no evento, a caixa também chama a turma
+    Evento só meu serve pra controlar os meus gastos, então anotar continua ali; quem quer rachar chama a turma dali mesmo.
+    Dado o evento "praia" com Lia
+    Quando eu abro o evento como Lia
+    E eu toco em chamar a turma, na caixa do caderno em branco
+    E eu mando pro grupo todo
+    Então o zap abre com o convite:
+      """
+      🍻 bora rachar o *praia*? anota aí o que gastar que a conta se faz sozinha 👉 {link}
+      """
+
+  Cenário: sozinho no evento, a caixa ainda anota
+    Dado o evento "praia" com Lia
+    Quando eu abro o evento como Lia
+    E eu toco em anotar, na caixa do caderno em branco
+    Então o formulário de anotar abre
+
   Cenário: evento novo começa pela lista de gente
     Dado que eu abro o site sem evento
     Quando eu crio o evento "praia"

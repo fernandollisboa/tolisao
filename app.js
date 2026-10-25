@@ -89,6 +89,8 @@
       .join('');
   const semMovimento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const semCartao = () => document.querySelector('#overlay').classList.contains('hidden');
+  /** o cartão de quem é você está aberto (o fechado guarda o html, com o #whoSel dentro) */
+  const quemAberto = () => !semCartao() && !!document.querySelector('#whoSel');
   // #endregion
   // #region o que fica no aparelho (localStorage)
   // ---------- o que fica no aparelho (localStorage) ----------
@@ -1079,8 +1081,9 @@
     pixKeys = out;
     pixReady = true;
     if (changed) render();
-    // o quem é você aberto antes das chaves chegarem ficava sem a parte do pix
-    if (primeira && $('#whoSel') && !$('#whoPix')) showWho();
+    // o quem é você aberto antes das chaves chegarem ficava sem a parte do pix. Aberto mesmo: o cartão
+    // fechado guarda o html, e o #whoSel de quem já escolheu o nome reabria o cartão por cima da nota (#334)
+    if (primeira && quemAberto() && !$('#whoPix')) showWho();
   }
   function validPixKey(k) {
     k = k.trim();
@@ -1176,6 +1179,8 @@
       if (key) pixKeys[pid] = key;
       else delete pixKeys[pid];
       render();
+      // o quem é você aberto enquanto a chave subia ainda oferecia cadastrar: passa a mostrar a chave (#334)
+      if (quemAberto()) showWho();
       toast(key ? 'Chave Pix salva' : 'Chave Pix apagada');
     } catch (e) {
       toast('A chave não salvou, tenta de novo');

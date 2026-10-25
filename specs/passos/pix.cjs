@@ -66,6 +66,14 @@ Then('nada na tela tem meia letra', async ({ mundo }) => {
 });
 // rede lenta: as chaves pix chegam bem depois da nota
 Given('que o banco demora pra mandar as chaves pix', async ({ mundo }) => { mundo.banco.atrasoPix = 1500; });
+Given('que as chaves pix ainda não chegaram', async ({ mundo }) => { mundo.banco.prendePix('GET'); });
+When('as chaves pix chegam', async ({ mundo }) => { mundo.banco.soltaPix(); });
+Given('que o banco demora pra gravar a chave pix', async ({ mundo }) => { mundo.banco.prendePix('PUT'); });
+When('a chave pix termina de salvar', async ({ mundo }) => { mundo.banco.soltaPix(); });
+Then('aparece o botão de cadastrar pix', async ({ mundo }) => { await expect(mundo.p.locator('#pixBtn')).toBeVisible(); });
+Then('o cartão aberto mostra a minha chave, com trocar e apagar', async ({ mundo }) => {
+  await expect(mundo.p.locator('#overlayBox #pixTroca')).toBeVisible(); await expect(mundo.p.locator('#overlayBox #pixApaga')).toBeVisible();
+});
 Then('o cartão aberto mostra a minha chave, cadastrada em outro aparelho', async ({ mundo }) => {
   await expect(mundo.p.locator('#overlayBox #pixOutro')).toBeVisible();
 });

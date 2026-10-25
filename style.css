@@ -294,8 +294,6 @@ button:disabled{opacity:.45;cursor:default;box-shadow:none}
   button.ghost:hover:not(:disabled){background:transparent;color:var(--ink)}
   .seg button:not(.on):hover{background:var(--card);color:var(--ink)}
   .shares .resto:hover{background:var(--amber) !important;color:#fff !important}
-  /* o carimbo do instalar enche de âmbar, que nem os botões âmbar */
-  #instalarGate:hover{background:var(--amber);color:var(--card);border-color:var(--amber)}
   /* o ✎ é âmbar o tempo todo: no hover ele escurece e afunda um tico, como quem aperta */
   #fab:hover{background:#7a4700;color:#fff}
   /* o #waBtn.wafab fixa a cor da tinta e vencia o hover genérico: ficava tinta no fundo
@@ -809,13 +807,9 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 .comandinha.parada .fichinha.cai{display:none}
 @media (prefers-reduced-motion:reduce){.comandinha *,.comandinha .row:after{animation:none !important}.comandinha .row{opacity:1 !important}.comandinha .fichinha.cai{display:none !important}}
 /* o instalar mora no topo, embaixo do subtítulo: âmbar cheio, como o botão do form.lado */
-#instalar{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:var(--amber);color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--sombra)}
-/* na tela de início ele é um carimbo âmbar no canto do papel, acima do título (o do pago, inclinado pro outro lado):
-   chega antes de tudo e não empurra nada pra baixo. A borda invisível do :after deixa o toque do tamanho do dedo */
-#instalarGate{position:absolute;top:8px;right:14px;display:inline-flex;align-items:center;gap:4px;font-family:'Permanent Marker',cursive;font-size:13px;line-height:1.5;letter-spacing:.5px;text-transform:lowercase;color:var(--amber);background:transparent;border:2px solid currentColor;border-radius:44% 56% 47% 53%/58% 46% 54% 42%;padding:2px 10px;transform:rotate(6deg)}
-#instalarGate:after{content:"";position:absolute;inset:-8px}
-/* tela estreita: o título chega no canto e o carimbo pisava nele; com o carimbo à vista, o título desce um tico */
-@media (max-width:380px){#instalarGate:not(.hidden)+h1{margin-top:18px}}
+/* na tela de início ele é o mesmo botão, embaixo do criar evento: âmbar cheio, que nem o Bora do lado */
+#instalar,#instalarGate{margin:2px 0 8px;height:26px;font-size:16px;padding:0 9px;gap:5px;background:var(--amber);color:#fff;border-color:var(--ink);box-shadow:2px 2px 0 var(--sombra)}
+#instalarGate{margin:14px 0 0}
 /* sem o quem é você no cabeçalho, o ponto do lado do evento sai junto */
 #eventLine .sep:has(+ #whoLine:empty){display:none}
 /* os temas escuros (#285, o "tema:" do pé da nota): o html ganha data-tema e as cores viram noite. Os dois dividem o

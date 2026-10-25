@@ -2607,13 +2607,13 @@
       : '';
     const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}` : '';
     overlay(
-      `<button id="instalarGate" class="hidden">${BAIXAR_SVG} instalar</button><h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
+      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
         msg || !evs.length
           ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome serve!'}</p>`
           : ''
       }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: praia, churras" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
-      <p id="gateErr" class="status err" style="margin:0"></p>${linhaDigital(evs.length > 0)}${
+      <p id="gateErr" class="status err" style="margin:0"></p><div class="c"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }${ofereceApagar() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
       !aberto,
@@ -5070,8 +5070,8 @@
   // #region instalar
   // ---------- instalar na tela de início ----------
   // O navegador avisa que dá (beforeinstallprompt) e espera o site pedir. O #instalar,
-  // no topo da nota, embaixo do subtítulo, pede, e o #instalarGate também: o carimbo no canto da tela de início,
-  // pra quem acabou de chegar já instalar. O toque do ✎ também convida, uma vez só, na segunda visita e só
+  // no topo da nota, embaixo do subtítulo, pede, e o #instalarGate também: o mesmo botão, embaixo do criar evento
+  // da tela de início, pra quem acabou de chegar já instalar. O toque do ✎ também convida, uma vez só, na segunda visita e só
   // com gasto anotado. No iPhone o evento não existe: o botão ensina o caminho do Safari.
   let convite = null;
   const jaInstalado = () =>

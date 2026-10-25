@@ -197,9 +197,28 @@ Funcionalidade: Entrar no evento
     Então o cartão de quem é você já vem com Lia escolhida
     E o cartão de quem é você não tem botão de sair
 
-  Cenário: antes do primeiro gasto, compartilhar já copia o link
-    Sem gasto ainda não tem comanda pra mandar, mas a turma já pode entrar.
+  Cenário: antes do primeiro gasto, compartilhar chama a turma pelo zap
+    Sem gasto ainda não tem comanda pra mandar, mas é justo a hora de chamar a turma.
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    Quando eu abro o evento como Lia
+    E eu toco em compartilhar
+    E eu mando pro grupo todo
+    Então o zap abre com o convite:
+      """
+      🍻 bora rachar o *bailedamada*? anota aí o que gastar que a conta se faz sozinha 👉 {link}
+      """
+
+  Cenário: no celular, o convite vai pela folha de compartilhar
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    E que meu celular compartilha
+    Quando eu abro o evento como Lia
+    E eu toco em compartilhar
+    E eu mando pro grupo todo
+    Então o celular compartilha o convite pro evento
+
+  Cenário: se a folha de compartilhar falha, fica copiado o link
+    Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    E que a folha de compartilhar do meu celular falha
     Quando eu abro o evento como Lia
     E eu toco em compartilhar
     E eu mando pro grupo todo

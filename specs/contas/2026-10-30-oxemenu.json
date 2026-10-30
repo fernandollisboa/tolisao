@@ -1,0 +1,15 @@
+{
+  "onde": "conta do sistema Oxe Menu, mesa 13",
+  "como": "noite, flash, na mão, papel amassado e com sombra do dedo; a quantidade vem antes do nome (9 CERVEJA ORIGINAL), sem unitário, e o total com R$ na frente",
+  "itens": [
+    { "nome": "CERVEJA ORIGINAL 600ML", "qtd": 9, "total": 12600 },
+    { "nome": "CARTEIRA LUCK STRIKE", "qtd": 1, "total": 2000 },
+    { "nome": "HALLS", "qtd": 1, "total": 400 },
+    { "nome": "CERVEJA BUDWEISER 600ML", "qtd": 4, "total": 5600 },
+    { "nome": "STELLA GOLD", "qtd": 4, "total": 6800 },
+    { "nome": "SURURU", "qtd": 4, "total": 7200 }
+  ],
+  "servico": 3460,
+  "total": 38060,
+  "outros": [34600, 7612]
+}

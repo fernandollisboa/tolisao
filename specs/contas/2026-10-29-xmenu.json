@@ -1,0 +1,18 @@
+{
+  "onde": "conta do sistema xmenu, mesa 27",
+  "como": "noite, luz branca, na mão, foto torta; colunas QTDE, PRECO e VALOR com ponto no decimal (22.00); nome de item quebra em duas linhas (KAFTA / APIMENTADA)",
+  "itens": [
+    { "nome": "PASTEL ARATU", "qtd": 2, "un": 2200, "total": 4400 },
+    { "nome": "ORIGINAL 600", "qtd": 7, "un": 1400, "total": 9800 },
+    { "nome": "KAFTA APIMENTADA", "qtd": 1, "un": 1400, "total": 1400 },
+    { "nome": "ALCATRA AO ALHO", "qtd": 1, "un": 1700, "total": 1700 },
+    { "nome": "CALDINHO DE FEIJOADA", "qtd": 1, "un": 1500, "total": 1500 },
+    { "nome": "CORDEIRO PRIME", "qtd": 1, "un": 1600, "total": 1600 },
+    { "nome": "PASTEL DE CAMARAO", "qtd": 1, "un": 1900, "total": 1900 },
+    { "nome": "CUPIM PRIME", "qtd": 1, "un": 1600, "total": 1600 },
+    { "nome": "CUPIM PRIME", "qtd": 1, "un": 1600, "total": 1600 }
+  ],
+  "servico": 2550,
+  "total": 28050,
+  "outros": [25500, 9350]
+}

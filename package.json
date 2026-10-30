@@ -4,7 +4,7 @@
   "description": "Ferramentas de desenvolvimento do tô lisa. O site é estático e não depende de nada disso.",
   "scripts": {
     "dev": "node specs/dev.cjs",
-    "test":"bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
+    "test": "bddgen -c specs/playwright.config.cjs && playwright test -c specs/playwright.config.cjs",
     "relatorio": "HTML=1 npm test",
     "cobertura": "node specs/_cobertura.cjs",
     "types": "tsc -p jsconfig.json",
@@ -14,7 +14,8 @@
     "preview": "node specs/preview.cjs",
     "contraste": "node specs/contraste.cjs",
     "video": "node specs/video.cjs",
-    "readme": "node specs/readme.cjs"
+    "readme": "node specs/readme.cjs",
+    "ocr": "node specs/ocr.cjs"
   },
   "devDependencies": {
     "@cucumber/pretty-formatter": "^4.0.2",

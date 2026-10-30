@@ -39,6 +39,9 @@ jobs:
       - name: Tira a API do site
         # o servidor/ sobe pela Cloudflare (servidor.yml): no Pages ia só ocupar a rota
         run: rm -rf servidor
+      - name: Tira as fotos de conta
+        # a régua do leitor da foto (npm run ocr): uns MB por foto que ninguém abre no site
+        run: rm -rf specs/contas
       # um artefato por tentativa: no re-run (o Pages às vezes dá 500) o da tentativa anterior
       # continua no mesmo run, e com dois de mesmo nome o deploy-pages se recusa
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

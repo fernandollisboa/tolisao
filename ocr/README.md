@@ -32,3 +32,5 @@ Trocar de versão: `npm i tesseract.js@<versão>` numa pasta qualquer e copiar o
 ## Conta de restaurante
 
 Na conta da impressora térmica, o total de cada item fica na beirada e sai cortado (`60,0(`, `113,4(`): o leitor nem vê preço ali. Por isso o app lê a foto como um bloco só, linha a linha (`tessedit_pageseg_mode` 6; no automático a coluna dos totais virava um bloco à parte e se perdia), e a linha "6 UND x 18,90" vira um item de 113,40, a quantidade vezes o unitário, com o nome da linha de cima. Na conta do Bar do Caranguejo (foto de 23/10/2026, à noite, na mão), os quatro itens saíram certos e a soma bateu com o TOTAL.
+
+As fotos de conta de verdade, com o gabarito de cada uma, ficam em [`specs/contas/`](../specs/contas/README.md): `npm run ocr` diz quanto o leitor acerta nelas.

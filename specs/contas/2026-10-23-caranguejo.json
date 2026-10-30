@@ -1,0 +1,13 @@
+{
+  "onde": "Bar do Caranguejo, Aracaju",
+  "como": "noite, luz amarela do bar, na mão, papel curvado; o total de cada item sai cortado na beirada (60,0( e 113,4()",
+  "itens": [
+    { "nome": "COUVER FINAL DE SEMANA", "qtd": 4, "un": 1500, "total": 6000 },
+    { "nome": "MOSCOW MULE", "qtd": 1, "un": 3290, "total": 3290 },
+    { "nome": "BUDWEISER 600ML", "qtd": 6, "un": 1890, "total": 11340 },
+    { "nome": "CAIPIROSCA IMPORTADA C/ ABSOLUT", "qtd": 1, "un": 3290, "total": 3290 }
+  ],
+  "servico": 1792,
+  "total": 25712,
+  "outros": [6000, 17920, 12856]
+}

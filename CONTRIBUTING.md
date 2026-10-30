@@ -54,6 +54,8 @@ tamanho real, 390 de largura. detalhes em `.claude/skills/preview/SKILL.md`.
 
 mexeu em cor? `npm run contraste` lista, tema por tema e janela por janela, o texto abaixo de 4,5:1 e a borda ou ícone de botão abaixo de 3:1 (hover e `:active` inclusos). não é teste, não roda no CI.
 
+mexeu no leitor da foto da conta? `npm run ocr` passa as contas de verdade de `specs/contas/` por ele e compara com o gabarito de cada uma. rode antes e depois. foto nova de conta entra lá, com o gabarito (como, no `specs/contas/README.md`).
+
 ## commit
 
 português, maiúscula, sem ponto, dizendo o que mudou pra quem usa o site:

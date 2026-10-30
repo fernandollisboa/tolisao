@@ -43,13 +43,13 @@ PY
 }
 ```
 
-`itens` na ordem do papel, um por linha da conta (item repetido aparece duas vezes). `outros` são os preços que estão no papel e não são item: subtotal, valor por pessoa, couvert separado. Sem eles, o que o leitor achar ali conta como inventado.
+`itens` na ordem do papel, um por linha da conta (item repetido aparece duas vezes). O `un` só quando o papel imprime o unitário. `outros` são os preços que estão no papel e não são item: subtotal, valor por pessoa, couvert separado. Sem eles, o que o leitor achar ali conta como inventado.
 
 As fotos não vão pro site (o `pages.yml` tira esta pasta).
 
 ## O que já se mediu
 
-29/10/2026, com o leitor do PR #341 (bloco único, "qtd x unitário"):
+30/10/2026, com o leitor do PR #341 (bloco único, "qtd x unitário"):
 
 | conta | modo | itens | nome | total | inventou |
 |---|---|---|---|---|---|
@@ -57,6 +57,9 @@ As fotos não vão pro site (o `pages.yml` tira esta pasta).
 | 2026-10-23-caranguejo | contraste | 4/4 | 2/4 | não | 0 |
 | 2026-10-29-xmenu | cinza | 6/9 | 0/9 | sim | 4 |
 | 2026-10-29-xmenu | contraste | 3/9 | 0/9 | sim | 4 |
+| 2026-10-30-oxemenu | cinza | 6/6 | 0/6 | sim | 0 |
+| 2026-10-30-oxemenu | contraste | 1/6 | 0/6 | não | 0 |
 
 - **caranguejo**: o total de cada item e o TOTAL saem cortados na beirada (`257,1(`); os itens vêm do "qtd x unitário". Em cinza o "1 UND x 32,90" do Moscow Mule vira 7 (230,30).
 - **xmenu**: conta em colunas (PRODUTO, QTDE, PRECO, VALOR), sem o "x", com ponto no decimal. O leitor só vê preço solto: não dá nome a nenhum, apaga o unitário de uns e não de outros, e troca 0 por 6 e 6 por 8 (19,06, 18,00). Nome de item quebra em duas linhas.
+- **oxemenu**: a quantidade vem antes do nome (`9 CERVEJA ORIGINAL 600ML  R$ 126,00`), sem unitário. Em cinza ele acha todos os preços, mas nenhum com nome (só o `qtd x unitário` dá nome). Com mais contraste, a sombra do dedo e o flash apagam quase tudo: só sobram 4,00 e o subtotal.

@@ -102,29 +102,42 @@ Funcionalidade: Acertar as contas
   Cenário: cobrar no zap quem me deve
     O link da cobrança já entra como quem deve: a pessoa abre e cai na própria conta.
     A dívida faz aniversário: conta do último gasto em que a pessoa entrou, que é quando a conta dela fechou.
-    Dado que o último gasto foi anotado há 12 dias
+    Dado que o último gasto foi anotado há 5 dias
     Quando eu abro o evento como Fernando
     E eu cobro a Mengla no zap
     Então o zap abre com a mensagem:
       """
       💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
-      🎂 hoje a dívida completa 12 dias
+      🎂 hoje a dívida completa 5 dias
 
       {site}/fiado/?evento=bailedamada&quem=mengla
       """
 
   Cenário: cobrar de novo a mesma pessoa lembra de outro jeito
-    Lembrar sempre com a mesma frase cansa: a segunda cobrança já vem com o nome do app.
+    Lembrar sempre com a mesma frase cansa: a segunda cobrança já vem diferente.
     Quando eu abro o evento como Fernando
     E eu cobro a Mengla no zap
     E eu cobro a Mengla no zap
     Então o zap abre com a mensagem:
       """
-      🥲 Mengla, tô lisa, socorro: faltam R$ 174,43 pra Fernando no *bailedamada*
+      🍻 Mengla, o *bailedamada* foi bom demais, né? só faltam R$ 174,43 pra Fernando
       🎂 hoje a dívida completa 1 semana. já saiu da maternidade 🏥
 
       {site}/fiado/?evento=bailedamada&quem=mengla
       """
+
+  Esquema do Cenário: a cobrança muda de tom conforme a dívida envelhece
+    Na primeira semana cobrar é só alegria; depois insiste, e só depois de um mês chora que tá lisa.
+    Dado que o último gasto foi anotado há <dias> dias
+    Quando eu abro o evento como Fernando
+    E eu cobro a Mengla no zap
+    Então a mensagem do zap começa com "<primeira linha>"
+
+    Exemplos:
+      | dias | primeira linha                                                                          |
+      | 7    | 💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada* |
+      | 8    | 🙈 Mengla, odeio ser essa pessoa, mas faltam R$ 174,43 pra Fernando no *bailedamada*      |
+      | 31   | 🥲 Mengla, tô lisa, socorro: faltam R$ 174,43 pra Fernando no *bailedamada*              |
 
   Cenário: cobrar abre o zap direto, sem perguntar o número
     No zap a pessoa escolhe o contato, ou o grupo, sem passar por cartão nenhum.
@@ -274,6 +287,13 @@ Funcionalidade: Acertar as contas
       | Lia       | Fernando | 117,84 |
       | Klinsmann | Júlia    | 34,72  |
     E o pagamento "Klinsmann → Fernando" está carimbado "PERDOADO"
+
+  Cenário: quem perdoa conta no zap
+    Perdão bom é perdão contado: o cartão oferece o zap, com o valor e o link do evento.
+    Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
+    Quando eu abro o evento como Fernando
+    E eu perdoo o Klinsmann e aviso no zap
+    Então o zap abre com o perdão dos R$ 3,61 do Klinsmann
 
   Cenário: desfazer um perdão
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando

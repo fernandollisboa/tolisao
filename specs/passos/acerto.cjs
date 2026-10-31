@@ -201,7 +201,25 @@ Then('não aparece aviso de pagamento', async ({ mundo }) => { await expect(mund
 
 // quem recebe age na própria linha de Minha conta: perdoar (dívida pequena)
 const linhaDe = (p, nome) => p.locator('#mineRows .row.sub').filter({ has: p.locator('.nm', { hasText: nome }) });
-When('eu perdoo a/o {word}', async ({ mundo }, nome) => { await linhaDe(mundo.p, nome).locator('[data-perdoa]').click(); await mundo.p.click('#okBtn'); });
+const perdoa = async (p, nome) => {
+  await p.evaluate(() => { window.__aberto = null; });
+  await linhaDe(p, nome).locator('[data-perdoa]').click(); await p.click('#okBtn');
+};
+// o cartão do "Perdoado!" fecha sem avisar; se a nota já estava quitada, ele nem abre
+When('eu perdoo a/o {word}', async ({ mundo }, nome) => {
+  await perdoa(mundo.p, nome);
+  await mundo.p.waitForFunction(() => document.querySelector('#quitOk') || /quitado/i.test(document.querySelector('#toast')?.textContent || ''));
+  if (await mundo.p.locator('#quitOk').count()) await mundo.p.click('#quitOk');
+});
+When('eu perdoo a/o {word} e aviso no zap', async ({ mundo }, nome) => { await perdoa(mundo.p, nome); await mundo.p.click('#waAviso'); });
+Then('o zap abre com o perdão dos R$ {num} da/do {word}', async ({ mundo }, valor, nome) => {
+  await expect.poll(() => mundo.p.evaluate(() => window.__aberto)).not.toBeNull();
+  const msg = await mundo.p.evaluate(() => decodeURIComponent(window.__aberto.split('text=')[1]).replace(/\u00a0/g, ' '));
+  const [frase, link] = msg.split('\n');
+  expect(frase).toMatch(new RegExp(`^\\S+ ${nome}, .*R\\$ ${valor.toFixed(2).replace('.', ',')}`));
+  expect(frase).toContain('*bailedamada*');
+  expect(link).toBe(`${mundo.base}/pago/?evento=bailedamada&quem=${mundo.pessoa(nome).id}`);
+});
 Then('só a/o {word} tem perdoar em Minha conta', async ({ mundo }, nome) => {
   await expect.poll(() => mundo.p.$$eval('#mineRows .row.sub:has([data-perdoa]) .nm', l => l.map(n => n.textContent))).toEqual([nome]);
 });

@@ -89,7 +89,7 @@ Funcionalidade: Aviso no celular quando me pagam ou anotam gasto comigo
     Quando eu cobro pelo cartão
     Então o zap abre com a mensagem:
       """
-      💅 Mengla, não tô cobrando, só lembrando: faltam R$ 174,43 pra Fernando no *bailedamada*
+      🙈 Mengla, odeio ser essa pessoa, mas faltam R$ 174,43 pra Fernando no *bailedamada*
       🎂 hoje a dívida completa 15 dias
 
       {site}/fiado/?evento=bailedamada&quem=mengla

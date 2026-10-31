@@ -50,7 +50,7 @@ As fotos não vão pro site (o `pages.yml` tira esta pasta).
 
 ## O que já se mediu
 
-31/10/2026, com o leitor do PR #341 (bloco único, "qtd x unitário"):
+31/10/2026, com a leitura esticada de reserva:
 
 | conta | modo | itens | nome | total | inventou |
 |---|---|---|---|---|---|
@@ -59,10 +59,10 @@ As fotos não vão pro site (o `pages.yml` tira esta pasta).
 | 2026-10-29-xmenu | cinza | 6/9 | 0/9 | sim | 4 |
 | 2026-10-29-xmenu | contraste | 3/9 | 0/9 | sim | 4 |
 | 2026-10-30-oxemenu | cinza | 6/6 | 0/6 | sim | 0 |
-| 2026-10-30-oxemenu | contraste | 1/6 | 0/6 | não | 0 |
-| 2026-10-31-grageru | cinza | 2/10 | 0/10 | não | 0 |
+| 2026-10-30-oxemenu | contraste | 1/6 | 0/6 | não | 1 |
+| 2026-10-31-grageru | cinza | 4/10 | 0/10 | não | 0 |
 | 2026-10-31-grageru | contraste | 3/10 | 0/10 | sim | 0 |
-| 2026-10-31-toca-do-indio | cinza | 0/3 | 0/3 | não | 0 |
+| 2026-10-31-toca-do-indio | cinza | 2/3 | 0/3 | não | 3 |
 | 2026-10-31-toca-do-indio | contraste | 0/3 | 0/3 | não | 1 |
 
 - **caranguejo**: o total de cada item e o TOTAL saem cortados na beirada (`257,1(`); os itens vêm do "qtd x unitário". Em cinza o "1 UND x 32,90" do Moscow Mule vira 7 (230,30).
@@ -75,3 +75,4 @@ As fotos não vão pro site (o `pages.yml` tira esta pasta).
 
 - **`R$` grudado e pontilhado antes do preço** (`FRANGO.....1X.....R$10,00`): saem antes de casar o preço. Ficou. Nas cinco contas não muda nada, porque o leitor quase não lê essas linhas; na Toca do Índio, com mais contraste, ele agora acha um `R$106,00` (era 108,00).
 - **Apagar o pontilhado da foto antes de ler** (fileira de manchas pequenas e iguais, sem nada em cima e embaixo, pintada da cor do papel): a Toca do Índio fica limpa e o leitor continua sem ler (`npm run ocr -- toca --texto`); nas outras, tirar o tracejado mudou a leitura pra pior (de 28 itens achados pra 23, e de 10 preços inventados pra 12). Ficou de fora. O problema da Toca é a letra estreita e alta: esticando a foto 2× na horizontal ele lê `R$108,00`, `R$12,40` e `R$136,40`.
+- **Esticar a foto na largura**: sempre esticada, cada conta reage de um jeito (1,5×: em cinza, de 17 itens achados pra 18; 2×: 15, com 13 inventados; a Toca do Índio só sai a 2×). Ficou como reserva: a primeira leitura achou menos de 3 preços, ele lê de novo a 2× e fica com a que achou mais. Em cinza, de 17 itens achados pra 21 (Grageru 2 → 4, Toca do Índio 0 → 2), e de 5 inventados pra 8: na Toca o zero cortado ainda vira outro algarismo (`R$6,00` sai `60,00`, `124,00` sai `120,00`). Quando lê duas vezes, demora o dobro.

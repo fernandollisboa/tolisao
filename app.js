@@ -3168,12 +3168,13 @@
       }
     return out;
   }
-  /** a foto que o leitor lê: até 1600 de largura, em cinza, com o contraste esticado (o 1% mais escuro vira preto,
-   *  o 1% mais claro vira branco). `pb` passa ainda o limiar de Bradley: lê mais à noite, e inventa mais número
-   *  @param {ImageBitmap} foto @param {boolean} pb */
-  function preparaFoto(foto, pb) {
+  /** a foto que o leitor lê: até 1600 de largura (vezes `estica`, que alarga a letra), em cinza, com o contraste
+   *  esticado (o 1% mais escuro vira preto, o 1% mais claro vira branco). `pb` passa ainda o limiar de Bradley: lê
+   *  mais à noite, e inventa mais número
+   *  @param {ImageBitmap} foto @param {boolean} pb @param {number} [estica] */
+  function preparaFoto(foto, pb, estica = 1) {
     const k = Math.min(1, 1600 / foto.width),
-      w = Math.round(foto.width * k),
+      w = Math.round(foto.width * k * estica),
       h = Math.round(foto.height * k);
     const cv = Object.assign(document.createElement('canvas'), { width: w, height: h }),
       ctx = cv.getContext('2d', { willReadFrequently: true });
@@ -3328,47 +3329,55 @@
     $('#fotoRecado').textContent = 'lendo a conta…';
     $('#fotoTempo').textContent = '';
     const t0 = performance.now();
-    let data;
     try {
       const w = await carregaLeitor(),
-        t1 = performance.now(),
-        cv = preparaFoto(f.foto, pb),
-        img = await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+        t1 = performance.now();
       // a conta lida como um bloco só, linha a linha: no modo automático, a coluna dos totais virava um bloco à parte
       // e se perdia (na conta do Bar do Caranguejo, nenhum total de item saiu)
       await w.setParameters({ tessedit_pageseg_mode: '6' });
-      ({ data } = await w.recognize(img, {}, { blocks: true }));
+      /** lê a foto esticada `estica` vezes na largura; os preços e as palavras voltam em pontos da foto original
+       *  @param {number} estica */
+      const le = async (estica) => {
+        const cv = preparaFoto(f.foto, pb, estica),
+          img = await new Promise((ok) => cv.toBlob(ok, 'image/png')),
+          { data } = await w.recognize(img, {}, { blocks: true }),
+          kx = f.foto.width / cv.width,
+          ky = f.foto.height / cv.height,
+          volta = (b) => ({ x0: b.x0 * kx, y0: b.y0 * ky, x1: b.x1 * kx, y1: b.y1 * ky });
+        const linhas = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines)),
+          palavras = linhas.flatMap((l) => l.words);
+        // o preço solto que cai na linha de um item é o unitário ou o total dele: quem vale é o item
+        const itens = achaItens(linhas),
+          doItem = (p) => itens.some((it) => (p.y0 + p.y1) / 2 > it.y0 && (p.y0 + p.y1) / 2 < it.y1);
+        return {
+          estica,
+          precos: [...itens, ...achaPrecos(palavras).filter((p) => !doItem(p))].map((p) => ({ ...p, ...volta(p) })),
+          // o que ele leu com certeza, pro recorte. À noite o grão da mesa vira "palavra" de uma letra ou duas: só entra
+          // palavra com três letras ou números seguidos
+          certas: palavras.filter((p) => p.confidence > 60 && /[a-z0-9]{3}/i.test(p.text)).map((p) => volta(p.bbox)),
+        };
+      };
+      const conta = (r) => r.precos.filter((p) => !p.un).length;
+      let lida = await le(1);
       if (fotoConta !== f) return; // fechou ou trocou de foto no meio
+      // achou pouco: lê de novo com a foto esticada 2 vezes na largura e fica com a que achou mais. A letra alta e
+      // estreita de algumas impressoras (a da Toca do Índio) o leitor só lê assim; nas outras, esticar sempre piorava
+      if (conta(lida) < 3) {
+        const esticada = await le(2);
+        if (fotoConta !== f) return;
+        if (conta(esticada) > conta(lida)) lida = esticada;
+      }
       // o que o teste no bar quer saber: quanto o leitor levou pra baixar, quanto disso a pessoa esperou com a foto
       // já tirada, e quanto a leitura levou
       const s = (ms) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
       $('#fotoTempo').textContent =
         `leitor baixou em ${s(tempoLeitor.fim - tempoLeitor.ini)} (esperei ${s(t1 - t0)}) · leu em ` +
-        `${s(performance.now() - t1)} · ${pb ? 'mais contraste' : 'cinza'}`;
-      // as caixas vêm em pontos da foto que o leitor leu: voltam pra escala da original
-      const k = f.foto.width / cv.width;
-      const linhas = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines)),
-        palavras = linhas.flatMap((l) => l.words);
-      // o preço solto que cai na linha de um item é o unitário ou o total dele: quem vale é o item
-      const itens = achaItens(linhas),
-        doItem = (p) => itens.some((it) => (p.y0 + p.y1) / 2 > it.y0 && (p.y0 + p.y1) / 2 < it.y1);
-      f.precos = [...itens, ...achaPrecos(palavras).filter((p) => !doItem(p))].map((p) => ({
-        ...p,
-        x0: p.x0 * k,
-        y0: p.y0 * k,
-        x1: p.x1 * k,
-        y1: p.y1 * k,
-      }));
+        `${s(performance.now() - t1)} · ${pb ? 'mais contraste' : 'cinza'}${lida.estica > 1 ? ' · esticada' : ''}`;
+      f.precos = lida.precos;
       f.tocados = [];
       f.pb = pb;
-      // o recorte: em volta dos preços e do que ele leu com certeza, com folga. À noite o grão da mesa vira
-      // "palavra" de uma letra ou duas: só entra palavra com três letras ou números seguidos. Sem nada, a foto inteira
-      const caixas = [
-        ...f.precos,
-        ...palavras
-          .filter((p) => p.confidence > 60 && /[a-z0-9]{3}/i.test(p.text))
-          .map((p) => ({ x0: p.bbox.x0 * k, y0: p.bbox.y0 * k, x1: p.bbox.x1 * k, y1: p.bbox.y1 * k })),
-      ];
+      // o recorte: em volta dos preços e do que ele leu com certeza, com folga. Sem nada, a foto inteira
+      const caixas = [...f.precos, ...lida.certas];
       if (caixas.length) {
         const xs0 = Math.min(...caixas.map((p) => p.x0)),
           ys0 = Math.min(...caixas.map((p) => p.y0)),

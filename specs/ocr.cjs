@@ -4,6 +4,7 @@
 //   npm run ocr                   todas as contas, lidas em cinza e com mais contraste
 //   npm run ocr -- xmenu          só as contas com "xmenu" no nome
 //   npm run ocr -- --detalhe      lista, conta por conta, o que ele achou e o que faltou
+//   npm run ocr -- --texto        e o texto que o leitor leu, linha a linha (pra entender por que não achou)
 // O que conta: "itens" é quantos totais de item ele achou (o preço que dá pra tocar, fora os unitários apagados);
 // "nome" é quantos desses vieram com o nome certo; "total" é se ele achou o total da conta; "inventou" é preço que
 // não está em lugar nenhum da conta (nem item, nem unitário, nem serviço, subtotal ou valor por pessoa).
@@ -13,7 +14,7 @@ const servir = require('./_serve.cjs');
 const { DADOS } = require('./preview.cjs');
 
 const PASTA = path.join(__dirname, 'contas');
-const args = process.argv.slice(2), detalhe = args.includes('--detalhe'), filtro = args.find(a => !a.startsWith('--'));
+const args = process.argv.slice(2), texto = args.includes('--texto'), detalhe = texto || args.includes('--detalhe'), filtro = args.find(a => !a.startsWith('--'));
 const contas = fs.readdirSync(PASTA).filter(f => f.endsWith('.json') && (!filtro || f.includes(filtro))).sort()
   .map(f => ({ nome: f.replace(/\.json$/, ''), foto: path.join(PASTA, f.replace(/\.json$/, '.jpg')),
     ...JSON.parse(fs.readFileSync(path.join(PASTA, f), 'utf8')) }));
@@ -25,6 +26,7 @@ const so = s => String(s).normalize('NFD').replace(/[^a-z0-9]/gi, '').toUpperCas
 
 /** o que o cartão da foto mostra: cada preço tocável, o unitário apagado, o nome do item e quanto ele levou */
 const lido = p => p.evaluate(() => ({
+  texto: /** @type {any} */ (window).__lido || '',
   tempo: document.querySelector('#fotoTempo').textContent,
   recado: document.querySelector('#fotoRecado').textContent,
   precos: [...document.querySelectorAll('[data-preco]')].map(b => ({
@@ -58,6 +60,14 @@ function nota(conta, { precos }) {
     await ctx.route(/fake-db/, r => r.fulfill({ json: r.request().method() === 'GET' && !r.request().url().includes('/pix/') ? DADOS : null }));
     const p = await ctx.newPage();
     const erros = []; p.on('pageerror', e => erros.push(e.message));
+    // guarda o texto da última leitura: o app só mostra os preços, e o --texto quer ver o que ele leu
+    if (texto) await p.addInitScript(() => {
+      let T; Object.defineProperty(window, 'Tesseract', { configurable: true, get: () => T, set: (v) => {
+        T = { ...v, createWorker: async (...a) => { const w = await v.createWorker(...a);
+          return { ...w, setParameters: (...b) => w.setParameters(...b), recognize: async (...b) => {
+            const r = await w.recognize(...b); window.__lido = r.data.text; return r; } }; } };
+      } });
+    });
     await p.goto(`http://localhost:${porta}/?evento=${DADOS.name}&mesa`);
     await p.waitForSelector('#whoBtn, #chegada [data-chegou]');
     if (await p.locator('#whoBtn').count()) await p.click('#whoBtn');
@@ -76,6 +86,7 @@ function nota(conta, { precos }) {
           total: n.total ? 'sim' : 'não', inventou: n.inventou.length, leu: (l.tempo.match(/leu em ([\d,]+ s)/) || [])[1] || '?' });
         if (detalhe) {
           console.log(`\n${conta.nome} (${modo}): ${l.recado}`);
+          if (texto) console.log(l.texto.replace(/^/gm, '  | '));
           for (const q of l.precos) console.log(`  ${q.un ? '·' : ' '} ${reais(q.c).padStart(8)}  ${q.item ? q.item.trim() : ''}`);
           if (n.faltou.length) console.log(`  faltou: ${n.faltou.map(it => `${it.nome} ${reais(it.total)}`).join('; ')}`);
           if (n.inventou.length) console.log(`  inventou: ${n.inventou.map(q => reais(q.c)).join(', ')}`);

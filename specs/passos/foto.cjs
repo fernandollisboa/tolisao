@@ -25,6 +25,8 @@ const lista = (s) => s.split(/, | e /);
 Given(/^uma conta em que se lê (\d.*)$/, async ({ mundo }, s) => { mundo.contaLida = lista(s); });
 Given('uma conta em que não se lê preço nenhum', async ({ mundo }) => { mundo.contaLida = []; });
 // o nome do item numa linha e, na de baixo, a quantidade, o unitário e o total como o leitor viu
+// uma linha só, palavra por palavra como o leitor separa (no espaço)
+Given('uma conta com a linha {string}', async ({ mundo }, linha) => { mundo.contaLinhas = [linha.split(' ')]; });
 Given('uma conta com o item {string} e a linha {string}', async ({ mundo }, nome, linha) => {
   mundo.contaLinhas = [nome.split(' '), linha.split(' ')];
 });

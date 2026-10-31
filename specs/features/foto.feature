@@ -50,6 +50,15 @@ Funcionalidade: Foto da conta
       E eu toco no item "BUDWEISER 600ML" na foto
       Então a foto soma R$ 113,40
 
+    Exemplo: o preço grudado no R$ e no pontilhado também conta
+      Tem conta que liga o nome ao preço com pontos e escreve o R$ colado no número.
+      Dado uma conta com a linha "ESPETINHO DE FRANGO.....1X.....R$10,00"
+      Quando eu abro o evento como Ana
+      E eu toco no ✎
+      E eu fotografo a conta
+      E eu toco em 10,00 na foto
+      Então a foto soma R$ 10,00
+
     Exemplo: a foto em que não se lê preço avisa
       Dado uma conta em que não se lê preço nenhum
       Quando eu abro o evento como Ana

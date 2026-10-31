@@ -5614,6 +5614,13 @@
       jogada = true;
       sorteiaVaga();
       clearTimeout(aviso);
+      // sem movimento não há voo nem fila pra esperar: aparece já pousada, pegável no mesmo toque
+      if (semMovimento()) {
+        marcada = true;
+        el.classList.add('pousou');
+        render();
+        return;
+      }
       // as seções só entram na fila depois que o #app sai do loading e o observador
       // reporta; pegar a vez no mesmo quadro fazia a ficha furar tudo. Um respiro e
       // aí sim ela pega o último lugar.
@@ -5624,7 +5631,7 @@
         aviso = setTimeout(
           () => {
             el.classList.add('voou');
-            // sem animação (movimento reduzido) não há animationend: já pousa
+            // o movimento reduzido ligado no meio da espera não tem animationend: já pousa
             if (semMovimento()) {
               el.classList.remove('voou');
               el.classList.add('pousou');

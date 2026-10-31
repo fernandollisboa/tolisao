@@ -3669,6 +3669,34 @@
       fecha();
     };
   }
+  // o recado do perdão sai sorteado; o "deixa pra lá" é o preferido e vem em dobro
+  /** @type {((n: string, v: string, ev: string) => string)[]} */
+  const PERDOES = [
+    (n, v, ev) => `🙏 ${n}, perdoei teus ${v} do *${ev}*. nome limpo no caderninho ✨`,
+    (n, v, ev) => `🕊️ ${n}, deixa os ${v} do *${ev}* pra lá: dívida perdoada 💖`,
+    (n, v, ev) => `🕊️ ${n}, deixa os ${v} do *${ev}* pra lá: dívida perdoada 💖`,
+    (n, v, ev) => `💅 ${n}, por ${v} eu nem cobro. tá tudo certo no *${ev}*`,
+    (n, v, ev) => `😇 ${n}, os ${v} do *${ev}* são presente meu 🎁`,
+  ];
+  /** depois do perdoar: o cartão oferece contar no zap pra quem devia @param {string} from @param {number} cents */
+  function showPerdoado(from, cents) {
+    overlay(`<h2>Perdoado!</h2>
+      <p class="muted recado" style="margin-bottom:14px">conte pra ${nomeHtml(from)} que a dívida sumiu</p>
+      <button id="waAviso" class="big">${WA_SVG} avisar no zap</button>
+      <div class="c voltar"><button id="quitOk" class="ghost">fechar</button></div>`);
+    const fecha = () => {
+      closeOverlay();
+      seguraRisco = false;
+      render();
+    };
+    $('#quitOk').onclick = fecha;
+    overlayCancel = fecha;
+    $('#waAviso').onclick = () => {
+      const frase = PERDOES[Math.floor(Math.random() * PERDOES.length)];
+      abreZap(`${frase(nameOf(from), comSifrao(cents), evento())}\n${shareUrl(from, 'pago')}`, zapDe(from) || '');
+      fecha();
+    };
+  }
   /** o endereço sem código é a lista de eventos (ou o cartão do código, pra quem nunca entrou em nenhum) */
   function leave() {
     location.href = location.pathname;
@@ -4620,11 +4648,18 @@
       byId: me || undefined,
       forgiven: modo === 'perdoa' || undefined,
     });
-    if (modo !== 'paguei') {
+    if (modo === 'recebi') {
       // quem recebe não tem quem avisar no zap: quem devia fica sabendo pelo aviso
       commit();
-      if (modo === 'recebi') festa(r.left + r.width / 2, r.top + r.height / 2);
-      toast(modo === 'perdoa' ? 'Perdoado 🙏' : 'Recebido! 🎉');
+      festa(r.left + r.width / 2, r.top + r.height / 2);
+      toast('Recebido! 🎉');
+      return;
+    }
+    if (modo === 'perdoa') {
+      // o perdão a gente conta: o cartão oferece o zap, com uma das frases do perdão
+      seguraRisco = true;
+      commit();
+      showPerdoado(from, cents);
       return;
     }
     seguraRisco = true;
@@ -4835,15 +4870,20 @@
         );
     caixa.focus();
   }
-  /** o aniversário da dívida, contado do último gasto em que a pessoa entrou (antes dele a conta dela não tinha
-   *  fechado): "🎂 hoje a dívida completa 12 dias", e ela cresce como bebê (mêsversário, aninho, escolinha).
-   *  Do mesmo dia não diz nada; o modo chato só diz há quanto tempo @param {string} quem */
-  function aniversario(quem) {
+  /** quando a conta de alguém fechou (o último gasto em que a pessoa entrou) e há quantos dias
+   *  @param {string} quem @returns {{ at: number, dias: number }} */
+  function idadeDaDivida(quem) {
     const at = Math.max(
       0,
       ...state.expenses.filter((e) => e.kind !== 'payment' && e.among.includes(quem)).map((e) => e.at),
     );
-    const dias = at ? diasDesde(at) : 0;
+    return { at, dias: at ? diasDesde(at) : 0 };
+  }
+  /** o aniversário da dívida, contado do último gasto em que a pessoa entrou (antes dele a conta dela não tinha
+   *  fechado): "🎂 hoje a dívida completa 12 dias", e ela cresce como bebê (mêsversário, aninho, escolinha).
+   *  Do mesmo dia não diz nada; o modo chato só diz há quanto tempo @param {string} quem */
+  function aniversario(quem) {
+    const { at, dias } = idadeDaDivida(quem);
     if (dias <= 0) return '';
     if (chato) return dias === 1 ? ', desde ontem' : `, há ${dias} dias`;
     const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
@@ -4867,16 +4907,39 @@
       : `${plural(meses, 'mês', 'meses')} e ${plural(resto, 'dia', 'dias')}`;
     return `\n🎂 hoje a dívida completa ${tempo}${anos >= 2 ? '. já tá na escolinha 🎒' : ''}`;
   }
-  // o jeito de lembrar muda a cada cobrança da mesma pessoa: a primeira é sempre a de sempre, a segunda é a do nome
-  // do app, e daí a lista roda. Ninguém recebe a mesma frase duas vezes seguidas
+  // o tom da cobrança acompanha a idade da dívida: na primeira semana é só alegria, depois insiste, e depois de um
+  // mês chora (o "tô lisa" fica pra lá). Dentro de cada fase a frase roda a cada cobrança da mesma pessoa, então
+  // ninguém recebe a mesma duas vezes seguidas
+  /** @type {{ ate: number, frases: ((n: string, v: string, eu: string, ev: string) => string)[] }[]} */
   const COBRANCAS = [
-    (n, v, eu, ev) => `💅 ${n}, não tô cobrando, só lembrando: faltam ${v} pra ${eu} no *${ev}*`,
-    (n, v, eu, ev) => `🥲 ${n}, tô lisa, socorro: faltam ${v} pra ${eu} no *${ev}*`,
-    (n, v, eu, ev) => `🧾 ${n}, o caderninho do *${ev}* diz que faltam ${v} pra ${eu}`,
-    (n, v, eu, ev) => `🙈 ${n}, odeio ser essa pessoa, mas faltam ${v} pra ${eu} no *${ev}*`,
-    (n, v, eu, ev) => `😇 ${n}, eu sei que você não esqueceu, mas faltam ${v} pra ${eu} no *${ev}*`,
-    (n, v, eu, ev) => `🫶 ${n}, amizade não tem preço, mas o *${ev}* tem: faltam ${v} pra ${eu}`,
-    (n, v, eu, ev) => `📌 ${n}, lembrete amigo: faltam ${v} pra ${eu} no *${ev}*`,
+    {
+      ate: 7,
+      frases: [
+        (n, v, eu, ev) => `💅 ${n}, não tô cobrando, só lembrando: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `🍻 ${n}, o *${ev}* foi bom demais, né? só faltam ${v} pra ${eu}`,
+        (n, v, eu, ev) => `🧾 ${n}, o caderninho do *${ev}* diz que faltam ${v} pra ${eu}`,
+        (n, v, eu, ev) => `✨ ${n}, passando pra lembrar com todo carinho: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `🫶 ${n}, amizade não tem preço, mas o *${ev}* tem: faltam ${v} pra ${eu}`,
+        (n, v, eu, ev) => `📌 ${n}, lembrete amigo: faltam ${v} pra ${eu} no *${ev}*`,
+      ],
+    },
+    {
+      ate: 30,
+      frases: [
+        (n, v, eu, ev) => `🙈 ${n}, odeio ser essa pessoa, mas faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `👀 ${n}, eu de novo: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `😇 ${n}, eu sei que você não esqueceu, mas faltam ${v} pra ${eu} no *${ev}*`,
+      ],
+    },
+    {
+      ate: Infinity,
+      frases: [
+        (n, v, eu, ev) => `🥲 ${n}, tô lisa, socorro: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `😭 ${n}, minha conta tá chorando: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `🕯️ ${n}, acendi uma vela pros ${v} do *${ev}* voltarem pra ${eu}`,
+        (n, v, eu, ev) => `🥀 ${n}, tô vendendo o almoço pra pagar a janta: faltam ${v} pra ${eu} no *${ev}*`,
+      ],
+    },
   ];
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
@@ -4893,7 +4956,8 @@
     mexe(roomKey(groupId), (o) => {
       o.charged = { ...(o.charged && typeof o.charged === 'object' ? o.charged : {}), [quem]: vez + 1 };
     });
-    const lembra = COBRANCAS[vez % COBRANCAS.length](nameOf(quem), comSifrao(cents), nameOf(me), evento());
+    const { frases } = COBRANCAS.find((f) => idadeDaDivida(quem).dias <= f.ate) || COBRANCAS[0];
+    const lembra = frases[vez % frases.length](nameOf(quem), comSifrao(cents), nameOf(me), evento());
     const msg = `${lembra}${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     const tel = zapDe(quem);
     if (tel === null && temNumeroZap()) pedeZap(quem, msg);

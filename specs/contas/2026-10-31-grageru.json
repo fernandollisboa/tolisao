@@ -1,0 +1,19 @@
+{
+  "onde": "bar de petiscos no Grageru, Aracaju, mesa 6",
+  "como": "noite, luz branca, na mão, sombra da mão atravessando a conta; colunas qtd, nome, unitário e total, com linha tracejada entre os itens; nome quebra no meio da palavra (C/ Q / UEIJ.); o mesmo item repetido em duas linhas",
+  "itens": [
+    { "nome": "BATATA FRITA", "qtd": 1, "un": 1790, "total": 1790 },
+    { "nome": "BRHAMA CHOPP", "qtd": 3, "un": 1190, "total": 3570 },
+    { "nome": "CAIPIFRUTAS NACIONAL", "qtd": 2, "un": 1250, "total": 2500 },
+    { "nome": "CAIPIFRUTAS NACIONAL", "qtd": 2, "un": 1250, "total": 2500 },
+    { "nome": "COCO VERDE", "qtd": 1, "un": 590, "total": 590 },
+    { "nome": "ESPET MED DE CARNE C/ QUEIJ.", "qtd": 1, "un": 1450, "total": 1450 },
+    { "nome": "ESPET. DE CUPIM", "qtd": 2, "un": 1350, "total": 2700 },
+    { "nome": "ESPET. DE FRANGO", "qtd": 1, "un": 1050, "total": 1050 },
+    { "nome": "KIBI", "qtd": 1, "un": 790, "total": 790 },
+    { "nome": "PAO DE ALHO", "qtd": 1, "un": 750, "total": 750 }
+  ],
+  "servico": 1769,
+  "total": 19459,
+  "outros": [17690]
+}

@@ -1,0 +1,12 @@
+{
+  "onde": "Bar Toca do Índio, comanda 088",
+  "como": "noite, luz amarela, na mão, papel manchado; linha pontilhada do nome até o preço (BRAHMA CHOPP......9X.....R$12,00), fonte estreita com zero cortado; com quantidade maior que 1, o total vem na linha de baixo (-TOTAL ITEM....R$108,00)",
+  "itens": [
+    { "nome": "BRAHMA CHOPP", "qtd": 9, "un": 1200, "total": 10800 },
+    { "nome": "AGUA DE COCO", "qtd": 1, "un": 600, "total": 600 },
+    { "nome": "ESPETINHO DE FRANGO", "qtd": 1, "un": 1000, "total": 1000 }
+  ],
+  "servico": 1240,
+  "total": 13640,
+  "outros": [12400]
+}

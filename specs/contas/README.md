@@ -49,7 +49,7 @@ As fotos não vão pro site (o `pages.yml` tira esta pasta).
 
 ## O que já se mediu
 
-30/10/2026, com o leitor do PR #341 (bloco único, "qtd x unitário"):
+31/10/2026, com o leitor do PR #341 (bloco único, "qtd x unitário"):
 
 | conta | modo | itens | nome | total | inventou |
 |---|---|---|---|---|---|
@@ -59,7 +59,13 @@ As fotos não vão pro site (o `pages.yml` tira esta pasta).
 | 2026-10-29-xmenu | contraste | 3/9 | 0/9 | sim | 4 |
 | 2026-10-30-oxemenu | cinza | 6/6 | 0/6 | sim | 0 |
 | 2026-10-30-oxemenu | contraste | 1/6 | 0/6 | não | 0 |
+| 2026-10-31-grageru | cinza | 2/10 | 0/10 | não | 0 |
+| 2026-10-31-grageru | contraste | 3/10 | 0/10 | sim | 0 |
+| 2026-10-31-toca-do-indio | cinza | 0/3 | 0/3 | não | 0 |
+| 2026-10-31-toca-do-indio | contraste | 0/3 | 0/3 | não | 0 |
 
 - **caranguejo**: o total de cada item e o TOTAL saem cortados na beirada (`257,1(`); os itens vêm do "qtd x unitário". Em cinza o "1 UND x 32,90" do Moscow Mule vira 7 (230,30).
 - **xmenu**: conta em colunas (PRODUTO, QTDE, PRECO, VALOR), sem o "x", com ponto no decimal. O leitor só vê preço solto: não dá nome a nenhum, apaga o unitário de uns e não de outros, e troca 0 por 6 e 6 por 8 (19,06, 18,00). Nome de item quebra em duas linhas.
 - **oxemenu**: a quantidade vem antes do nome (`9 CERVEJA ORIGINAL 600ML  R$ 126,00`), sem unitário. Em cinza ele acha todos os preços, mas nenhum com nome (só o `qtd x unitário` dá nome). Com mais contraste, a sombra do dedo e o flash apagam quase tudo: só sobram 4,00 e o subtotal.
+- **grageru**: colunas qtd, nome, unitário e total, com tracejado entre os itens e a sombra da mão atravessando a conta. Acha só os itens de fora da sombra; nome quebra no meio da palavra (`C/ Q` / `UEIJ.`).
+- **toca-do-indio**: fonte estreita, zero cortado e pontilhado do nome até o preço (`BRAHMA CHOPP......9X.....R$12,00`); com quantidade, o total vem na linha de baixo (`-TOTAL ITEM....R$108,00`). Não acha preço nenhum: o pontilhado vira lixo, e o `R$` grudado no número faz a palavra não parecer preço.

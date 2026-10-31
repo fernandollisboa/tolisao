@@ -6,6 +6,7 @@ Fotos de conta tiradas no bar, cada uma com o gabarito do lado: o que está escr
 npm run ocr                # todas, lidas em cinza e com mais contraste
 npm run ocr -- xmenu       # só as que têm "xmenu" no nome
 npm run ocr -- --detalhe   # o que ele achou, o que faltou e o que inventou, conta por conta
+npm run ocr -- toca --texto  # e o texto que ele leu, linha a linha
 ```
 
 Não é teste e não roda no CI: o leitor de verdade leva segundos por foto. A tabela diz, por conta e por jeito de ler:
@@ -62,10 +63,15 @@ As fotos não vão pro site (o `pages.yml` tira esta pasta).
 | 2026-10-31-grageru | cinza | 2/10 | 0/10 | não | 0 |
 | 2026-10-31-grageru | contraste | 3/10 | 0/10 | sim | 0 |
 | 2026-10-31-toca-do-indio | cinza | 0/3 | 0/3 | não | 0 |
-| 2026-10-31-toca-do-indio | contraste | 0/3 | 0/3 | não | 0 |
+| 2026-10-31-toca-do-indio | contraste | 0/3 | 0/3 | não | 1 |
 
 - **caranguejo**: o total de cada item e o TOTAL saem cortados na beirada (`257,1(`); os itens vêm do "qtd x unitário". Em cinza o "1 UND x 32,90" do Moscow Mule vira 7 (230,30).
 - **xmenu**: conta em colunas (PRODUTO, QTDE, PRECO, VALOR), sem o "x", com ponto no decimal. O leitor só vê preço solto: não dá nome a nenhum, apaga o unitário de uns e não de outros, e troca 0 por 6 e 6 por 8 (19,06, 18,00). Nome de item quebra em duas linhas.
 - **oxemenu**: a quantidade vem antes do nome (`9 CERVEJA ORIGINAL 600ML  R$ 126,00`), sem unitário. Em cinza ele acha todos os preços, mas nenhum com nome (só o `qtd x unitário` dá nome). Com mais contraste, a sombra do dedo e o flash apagam quase tudo: só sobram 4,00 e o subtotal.
 - **grageru**: colunas qtd, nome, unitário e total, com tracejado entre os itens e a sombra da mão atravessando a conta. Acha só os itens de fora da sombra; nome quebra no meio da palavra (`C/ Q` / `UEIJ.`).
 - **toca-do-indio**: fonte estreita, zero cortado e pontilhado do nome até o preço (`BRAHMA CHOPP......9X.....R$12,00`); com quantidade, o total vem na linha de baixo (`-TOTAL ITEM....R$108,00`). Não acha preço nenhum: o pontilhado vira lixo, e o `R$` grudado no número faz a palavra não parecer preço.
+
+## O que já se tentou
+
+- **`R$` grudado e pontilhado antes do preço** (`FRANGO.....1X.....R$10,00`): saem antes de casar o preço. Ficou. Nas cinco contas não muda nada, porque o leitor quase não lê essas linhas; na Toca do Índio, com mais contraste, ele agora acha um `R$106,00` (era 108,00).
+- **Apagar o pontilhado da foto antes de ler** (fileira de manchas pequenas e iguais, sem nada em cima e embaixo, pintada da cor do papel): a Toca do Índio fica limpa e o leitor continua sem ler (`npm run ocr -- toca --texto`); nas outras, tirar o tracejado mudou a leitura pra pior (de 28 itens achados pra 23, e de 10 preços inventados pra 12). Ficou de fora. O problema da Toca é a letra estreita e alta: esticando a foto 2× na horizontal ele lê `R$108,00`, `R$12,40` e `R$136,40`.

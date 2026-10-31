@@ -3200,8 +3200,10 @@
   }
 
   // um preço como o leitor escreve: "12,90", "1.234,50", "12.90", "-2,00", "0,25-". Num número, o O é 0,
-  // o l, o I e o | são 1, e o S é 5
+  // o l, o I e o | são 1, e o S é 5. O R$ grudado e o pontilhado que vem antes ("FRANGO.....1X.....R$10,00") saem
+  // antes de casar (ANTES)
   const PRECO = /^-?([0-9OolI|S]{1,3}(?:\.[0-9]{3})?)[,.]([0-9OolI|S]{2})-?$/;
+  const ANTES = /^.*(?:R[$S]|\.{2,}|…)/;
   const soDigito = (s) => s.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1').replace(/S/g, '5').replace(/\./g, '');
   /** @typedef {{ c: number, x0: number, y0: number, x1: number, y1: number, un?: boolean, item?: string }} PrecoLido */
   /** os preços que o leitor achou, com a caixa de cada um em pontos da foto que ele leu. O que tem outro preço
@@ -3211,13 +3213,19 @@
     /** @type {PrecoLido[]} */
     const precos = [];
     for (const w of palavras) {
-      const t = String(w.text)
+      const bruto = String(w.text),
+        t = bruto
+          .replace(ANTES, '')
           .replace(/^[:;'"`]+/, '')
           .replace(/[.:;|'"`]+$/, ''),
         m = t.match(PRECO);
       if (!m || !/\d/.test(m[1])) continue;
       const c = +soDigito(m[1]) * 100 + +soDigito(m[2]);
-      if (c) precos.push({ c: t.includes('-') ? -c : c, ...w.bbox });
+      // a caixa começa onde o preço começa: o que saiu da frente da palavra leva junto a parte dela
+      const b = w.bbox,
+        tirou = bruto.length - bruto.replace(ANTES, '').length,
+        x0 = b.x0 + ((b.x1 - b.x0) * tirou) / bruto.length;
+      if (c) precos.push({ c: t.includes('-') ? -c : c, ...b, x0 });
     }
     for (const p of precos) {
       const meio = (p.y0 + p.y1) / 2,

@@ -27,6 +27,10 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
+  // o dono do aparelho é o nome que mais fui nos eventos daqui. Com 1 evento o aparelho pergunta se sou ele; a partir
+  // de DONO_CERTO já entra como ele, e a partir de PIX_DIRETO a chave pix dele entra sozinha (antes, num toque)
+  const DONO_CERTO = 2;
+  const PIX_DIRETO = 3;
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
   const QUITADO_DIAS = 7; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
@@ -103,8 +107,8 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, testesOn, tema, naoConta }
-  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, testesOn, tema, naoConta }
+  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok; pixName: de quem é ela;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (a foto da conta), pelo ?mesa;
@@ -112,7 +116,7 @@
   //                  tema: o tema escolhido no pé da nota ('papel' é o papel; sem ele, vale o TEMA);
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono))
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
-  //                  pushTok, pushOn, pushTry, charged }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
+  //                  pushTok, pushOn, pushTry, charged, naoSou }  (naoSou: a pessoa que eu disse que não sou, pra não perguntar de novo; pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
   //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render;
   //                  charged: {pessoa: quantas vezes cobrei no zap}, pra cada cobrança lembrar de um jeito)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
@@ -1037,6 +1041,7 @@
     // o quem é você aberto antes das chaves chegarem ficava sem a parte do pix. Aberto mesmo: o cartão
     // fechado guarda o html, e o #whoSel de quem já escolheu o nome reabria o cartão por cima da nota (#334)
     if (primeira && quemAberto() && !$('#whoPix')) showWho();
+    chaveSozinha();
   }
   function validPixKey(k) {
     k = k.trim();
@@ -1082,8 +1087,21 @@
     if (!key) return;
     await putPix(me, key);
   }
-  /** a última chave que cadastrei neste aparelho, se ainda serve: vem escrita no cadastro de um evento novo */
-  const minhaChave = () => (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '';
+  /** a chave que o dono cadastrou neste aparelho, se ainda serve e se quem eu sou aqui (ou `nome`) é ele: pros
+   *  outros nomes o aparelho não sugere nada. A chave lembrada antes do pixName é do dono */
+  const minhaChave = (nome = temMe() ? nameOf(me) : '') => {
+    const k = (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '',
+      dela = typeof device().pixName === 'string' && device().pixName ? device().pixName : dono().nome;
+    return k && nome && buscaNome(nome) === buscaNome(dela) && souDono(nome) ? k : '';
+  };
+  /** o dono em PIX_DIRETO eventos ou mais nem toca: a chave dele entra sozinha, uma vez por evento */
+  const chaveTentada = new Set();
+  function chaveSozinha() {
+    if (!pixReady || !temMe() || pixKeys[me] || chaveTentada.has(groupId)) return;
+    if (!minhaChave() || dono().n < PIX_DIRETO) return;
+    chaveTentada.add(groupId);
+    usaMinhaChave();
+  }
   /** a chave que o aparelho já conhece entra num toque, sem o cartão: o botão mostra ela antes */
   async function usaMinhaChave() {
     const k = minhaChave();
@@ -1125,8 +1143,13 @@
       if (!r.ok) return toast('A chave não salvou, tenta de novo');
       // a minha chave fica lembrada no aparelho, pra oferecer no próximo evento (só a chave: o tok é de cada evento)
       if (pid === eu) {
-        if (key) setDevice('pixKey', key);
-        else if (device().pixKey === pixKeys[pid]) setDevice('pixKey', undefined);
+        if (key) {
+          setDevice('pixKey', key);
+          setDevice('pixName', nameOf(eu));
+        } else if (device().pixKey === pixKeys[pid]) {
+          setDevice('pixKey', undefined);
+          setDevice('pixName', undefined);
+        }
       }
       // apagar grava a chave vazia: o nó fica, e a regra deixa qualquer aparelho cadastrar de novo
       if (key) pixKeys[pid] = key;
@@ -1462,19 +1485,33 @@
   const temMe = () => !!me && state.people.some((p) => p.id === me);
   /** quem eu sou nos meus outros eventos (lido ao abrir este): a turma trazida leva os mesmos ids @type {Set<string>} */
   let meusIds = new Set();
-  /** quem eu devo ser aqui, pelo que o aparelho sabe: a pessoa que eu já sou em outro evento (mesmo id) ou,
-   *  sem ela, a do último nome que escolhi. Dois ids batendo, nada. O palpite sempre vira escolha, sem
-   *  perguntar: ao abrir o evento, e no render, quando a pessoa aparece depois (no Quem vai? do evento que
-   *  acabei de criar, ou no sync). O "Sou Fulano" do cabeçalho troca num toque */
+  /** quem eu devo ser aqui, pelo que o aparelho sabe: a pessoa que eu já sou em outro evento (mesmo id) ou a do
+   *  nome do dono do aparelho. Dois ids batendo, nada. `certo` entra sozinho (ao abrir o evento, e no render,
+   *  quando a pessoa aparece depois); sem certeza (o dono de um evento só, ou o último nome que escolhi), ao abrir
+   *  o evento o aparelho pergunta. O "Sou Fulano" do cabeçalho troca num toque
+   *  @returns {{ p: Person, certo: boolean } | null} */
   function palpite() {
     if (temMe()) return null;
     const porId = state.people.filter((p) => meusIds.has(p.id));
-    if (porId.length) return porId.length === 1 ? porId[0] : null;
-    const nome = device().myName;
-    return (
-      (typeof nome === 'string' && nome && state.people.find((p) => p.name.toLowerCase() === nome.toLowerCase())) ||
-      null
-    );
+    if (porId.length) return porId.length === 1 ? { p: porId[0], certo: true } : null;
+    const d = dono(),
+      nome = d.nome || (typeof device().myName === 'string' ? device().myName : '');
+    const p = nome && state.people.find((x) => buscaNome(x.name) === buscaNome(nome));
+    return p ? { p, certo: !!d.nome && d.n >= DONO_CERTO } : null;
+  }
+  /** o dono de um evento só: o aparelho pergunta uma vez se sou ele, e o "não" fica guardado neste evento
+   *  @param {Person} p */
+  function perguntaSeSou(p) {
+    if (room().naoSou === p.id) return;
+    overlay(`<h2 class="pergunta">Você é ${nomeHtml(p.id)}?</h2>
+      <button id="souSim" class="big">sou eu</button>
+      <div class="c voltar"><button id="souNao" class="ghost">não sou</button></div>`);
+    $('#souSim').onclick = () => souEu(p.id);
+    $('#souNao').onclick = () => {
+      setRoom('naoSou', p.id);
+      closeOverlay();
+    };
+    overlayCancel = () => setRoom('naoSou', p.id);
   }
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) => (lastSeen > 0 && e.at > lastSeen && !anotouQuem(e, me) ? '<span class="tag">novo</span>' : '');
@@ -1496,7 +1533,7 @@
     // (o próprio Quem vai?) ou ainda abrindo (o &quem= do link vem antes), espera: o render de depois resolve
     if (!temMe() && semCartao() && !$('#app').classList.contains('loading')) {
       const sug = palpite();
-      if (sug) return souEu(sug.id);
+      if (sug && sug.certo) return souEu(sug.p.id);
     }
     const hasMe = temMe();
     const vazio = state.expenses.length === 0; // sem nada anotado, Minha conta e Itens só teriam zeros: somem
@@ -2890,7 +2927,7 @@
   function showTurma(e) {
     const gente = /** @type {Room} */ (e.snap).people,
       fora = new Set(),
-      chave = e.me ? minhaChave() : '';
+      chave = e.me ? minhaChave(gente.find((p) => p.id === e.me)?.name) : '';
     const desenha = () => {
       const ficam = gente.filter((p) => !fora.has(p.id)),
         vem = ficam.length;
@@ -2956,6 +2993,8 @@
     me = v;
     setRoom('me', me);
     if (temMe()) setDevice('myName', nameOf(me)); // o palpite de quem eu sou num evento que não tem a minha turma
+    donoMemo = null;
+    chaveSozinha();
     rearmaAnims();
     closeOverlay();
     render();
@@ -3528,6 +3567,7 @@
       me = typeof r.me === 'string' ? r.me : null;
       lastSeen = +r.lastSeen || 0;
     }
+    donoMemo = null;
     meusIds = new Set(
       meusEventos()
         .filter((e) => e.id !== id && e.me)
@@ -3572,7 +3612,8 @@
     // já sabe era o cabeçalho e a nota fazendo a mesma pergunta. O "Sou Fulano" do topo troca num toque
     else if (!temMe()) {
       const sug = palpite();
-      if (sug) souEu(sug.id);
+      if (sug && sug.certo) souEu(sug.p.id);
+      else if (sug) perguntaSeSou(sug.p);
     }
     // ninguém é interrompido na chegada: sem palpite, a tela de estreia e o "quem é você?"
     // esperam o toque no botão do cabeçalho
@@ -3666,6 +3707,24 @@
       })
       .sort((a, b) => b.at - a.at);
   }
+  /** o dono do aparelho: o nome que mais fui nos eventos daqui (sem acento, sem caixa) e em quantos. Empate
+   *  não tem dono. Lê todas as cópias: guarda até eu trocar de pessoa ou de evento @type {{ nome: string, n: number } | null} */
+  let donoMemo = null;
+  function dono() {
+    if (donoMemo) return donoMemo;
+    /** @type {Map<string, { nome: string, n: number }>} */ const conta = new Map();
+    for (const e of meusEventos()) {
+      const p = e.me && e.snap && e.snap.people.find((x) => x.id === e.me);
+      if (!p) continue;
+      const k = buscaNome(p.name),
+        c = conta.get(k) || { nome: p.name, n: 0 };
+      c.n++;
+      conta.set(k, c);
+    }
+    const [a, b] = [...conta.values()].sort((x, y) => y.n - x.n);
+    return (donoMemo = !a || (b && b.n === a.n) ? { nome: '', n: 0 } : a);
+  }
+  const souDono = (nome = temMe() ? nameOf(me) : '') => !!nome && buscaNome(nome) === buscaNome(dono().nome);
   /** esquecer só esconde: apagar a gaveta levaria junto o tok do pix, e a chave travava */
   const esconde = (id) =>
     mexe(roomKey(id), (o) => {

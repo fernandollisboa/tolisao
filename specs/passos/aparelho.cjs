@@ -11,6 +11,15 @@ Given('que neste aparelho eu sou {word} no {string}', async ({ mundo }, quem, no
 Given('que eu vi o evento pela última vez ontem', async ({ mundo }) => { naGaveta(mundo, `tolisa:${mundo.sala}`, { lastSeen: AGORA - 86400000 }); });
 Given('que eu já usei a chave pix {string} em outro evento', async ({ mundo }, chave) => { naGaveta(mundo, 'tolisa', { pixKey: chave }); });
 Given('que da última vez, em outro evento, eu fui {string}', async ({ mundo }, nome) => { naGaveta(mundo, 'tolisa', { myName: nome }); });
+Given('que eu já usei a chave pix {string} como {word}', async ({ mundo }, chave, quem) => { naGaveta(mundo, 'tolisa', { pixKey: chave, pixName: quem }); });
+// eventos que só este aparelho conhece, com outra turma: o nome é o mesmo, a pessoa (o id) não
+Given('que este aparelho foi {word} em {int} evento(s)', async ({ mundo }, quem, n) => {
+  for (let i = 0; i < n; i++) {
+    const sala = String(i).repeat(64).slice(0, 64), id = 'velho' + i;
+    naGaveta(mundo, `tolisa:${sala}`, { code: 'antigo' + i, openedAt: AGORA - (i + 2) * 86400000, me: id,
+      snapshot: { v: 2, name: 'antigo' + i, updatedAt: AGORA - (i + 2) * 86400000, people: [{ id, name: quem, at: 1 }], expenses: [], deleted: [], gone: [] } });
+  }
+});
 
 const gaveta = (mundo, k) => mundo.p.evaluate(k => JSON.parse(localStorage.getItem(k) || 'null'), k);
 

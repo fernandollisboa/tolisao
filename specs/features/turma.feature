@@ -57,10 +57,26 @@ Funcionalidade: A mesma turma em outro evento
       Então o cabeçalho diz "sou Lia"
       E nenhum cartão abre
 
-    Exemplo: sem a turma, o nome que escolhi da última vez
-      Dado que da última vez, em outro evento, eu fui "Lia"
+    Exemplo: sem a turma, quem eu fui em dois eventos
+      O nome que o aparelho mais usa é o do dono: de dois eventos pra cima, ele já tem certeza.
+      Dado que este aparelho foi Lia em 2 eventos
       Quando eu abro o evento "churras"
       Então o cabeçalho diz "sou Lia"
+      E nenhum cartão abre
+
+    Exemplo: quem eu fui num evento só, o aparelho pergunta
+      Dado que este aparelho foi Lia em 1 evento
+      Quando eu abro o evento "churras"
+      Então o cartão pergunta "Você é Lia?"
+      Quando eu digo que sou
+      Então o cabeçalho diz "sou Lia"
+
+    Exemplo: disse que não sou, e ele não pergunta de novo
+      Dado que este aparelho foi Lia em 1 evento
+      Quando eu abro o evento "churras"
+      E eu digo que não sou
+      E eu entro no evento "churras"
+      Então nenhum cartão abre
 
     Exemplo: no evento que eu acabei de criar, o meu nome no Quem vai? já sou eu
       Quem cria o evento e põe o próprio nome na lista não tem por que confirmar quem é.

@@ -457,8 +457,10 @@
   const ESCUROS = ['neon', 'grafite'];
   const temEscuro = () => ESCUROS.includes(tema());
   const BARRA = { '': '#6b4a2b', natal: '#123a2a', neon: '#0c0912', grafite: '#160f0b' };
+  /** o natal muda a diva (de gorro) e as falas dela (ho ho ho) */
+  const natal = () => tema() === 'natal';
   /** a foto da diva das fichas: no natal ela vem de gorro */
-  const diva = () => (tema() === 'natal' ? 'diva-natal.png' : 'diva.png');
+  const diva = () => (natal() ? 'diva-natal.png' : 'diva.png');
   /** liga o tema no html, na barra do navegador e no botão do pé da nota; vale já, antes do primeiro render */
   const aplicaTema = () => {
     const t = tema(),
@@ -1254,6 +1256,62 @@
       'Entra, minha flor, a cerveja tá gelada.',
     ],
   };
+  // no tema natal a diva veste o gorro: as mesmas situações, em ho ho ho
+  /** @type {typeof SIGNOFF} */
+  const SIGNOFF_NATAL = {
+    owe: [
+      'Ho ho ho, paga logo, meu bem.',
+      'Então é Natal. E o pix, você fez?',
+      'O 13º caiu? Então o pix também.',
+      'É pavê ou pacumê? É pix, meu bem.',
+      'Papai Noel não aceita fiado, viu?',
+      'Ho ho, quem deve fica sem presente.',
+      'Dívida é uva-passa: ninguém quer.',
+      'Ho ho ho, a rena não puxa fiado.',
+      'Na lista dos bonzinhos só quem paga.',
+      'Hohoho, devendo e pedindo panetone?',
+    ],
+    owed: [
+      'Ho ho ho, quem me deve?',
+      'Natal é tempo de dar. Pix, no caso.',
+      'Dívida não é amigo secreto. Cobra!',
+      'Cobra antes que o 13º evapore.',
+      'Conferi a lista duas vezes, viu?',
+      'Ho ho ho, espero o pix na chaminé.',
+      'O caderninho é a lista do Noel.',
+      'Ho ho, meu presente é o teu pix.',
+      'Ho ho ho, quem não paga ganha carvão.',
+      'Pedi pro Noel só o meu de volta.',
+    ],
+    even: [
+      'Ho ho ho, Feliz Natal, meu bem!',
+      'Na lista dos bonzinhos, minha flor.',
+      'Sem dívida e sem uva-passa. Diva!',
+      'Ho ho, pode repetir a rabanada.',
+      'Conta zerada, ceia em paz.',
+      'Quite! Noel te deve um presente.',
+      'Hohoho, nem deve, nem cobra. Diva!',
+      'Meia vazia de dívida, coração cheio.',
+    ],
+    all: [
+      'Todo mundo pagou. Milagre de Natal!',
+      'Até o tio do pavê pagou. Benção!',
+      'Tudo pago. Agora é pavê ou pacumê?',
+      'Ho ho ho, todo mundo quite. Benção!',
+      'Zerou! Bora abrir a do réveillon?',
+      'Pode desligar o pisca-pisca, tá pago.',
+      'Ninguém deve. Pode servir o pavê.',
+    ],
+    none: [
+      'Ho ho ho, quem é você, meu bem?',
+      'Amigo secreto aqui não: diz teu nome.',
+      'Entra, flor, a rabanada tá quentinha.',
+      'Diz quem tu é, que o Noel anota.',
+      'Sem nome não tem presente, meu amor.',
+      'Ho ho ho, senta que a ceia é sua.',
+      'Um beijo e um panetone, benção.',
+    ],
+  };
   // #endregion
   // #region aviso no celular
   // ---------- aviso no celular (push) ----------
@@ -1447,17 +1505,19 @@
   }
   /** o subtítulo do cabeçalho muda com o saldo de quem está vendo */
   function subtitulo(hasMe, bal) {
-    if (!hasMe || bal > 0) return 'quem me deve?';
-    if (bal < 0) return 'pra quem eu devo?';
-    return 'mas não devo a ninguém';
+    const n = natal();
+    if (!hasMe || bal > 0) return n ? 'ho ho ho, quem me deve?' : 'quem me deve?';
+    if (bal < 0) return n ? 'pra quem eu devo, noel?' : 'pra quem eu devo?';
+    return n ? 'tô na lista dos bonzinhos' : 'mas não devo a ninguém';
   }
   /** a lista de frases do rodapé que combina com a situação */
   function frasesDoRodape(hasMe, bal, allEven) {
-    if (allEven) return SIGNOFF.all;
-    if (!hasMe) return SIGNOFF.none;
-    if (bal < 0) return SIGNOFF.owe;
-    if (bal > 0) return SIGNOFF.owed;
-    return SIGNOFF.even;
+    const f = natal() ? SIGNOFF_NATAL : SIGNOFF;
+    if (allEven) return f.all;
+    if (!hasMe) return f.none;
+    if (bal < 0) return f.owe;
+    if (bal > 0) return f.owed;
+    return f.even;
   }
   const temMe = () => !!me && state.people.some((p) => p.id === me);
   /** quem eu sou nos meus outros eventos (lido ao abrir este): a turma trazida leva os mesmos ids @type {Set<string>} */
@@ -2492,7 +2552,7 @@
       });
     }).join('');
   }
-  const EXEMPLOS = [
+  const EXEMPLOS_ANO = [
     'churras',
     'praia',
     'rolê',
@@ -2517,6 +2577,31 @@
     'x10 dos nerdolas',
     'carnaval da bahia',
   ];
+  // no natal, os rolês de fim de ano
+  const EXEMPLOS_NATAL = [
+    'ceia',
+    'confra',
+    'natal',
+    'chester',
+    'panetone',
+    'rabanada',
+    'pavê',
+    'réveillon',
+    'amigo secreto',
+    'amigo oculto',
+    'ceia da vó',
+    'confra da firma',
+    'ceia de natal',
+    'chester da tia',
+    'pavê do tio',
+    'rabanada da vó',
+    'sobra da ceia',
+    'natal na praia',
+    'vaquinha do noel',
+    'churras de natal',
+    'amigo da onça',
+    'réveillon 2027',
+  ];
   /** o "ex:" do campo já chega com dois exemplos escritos, para, e anda um de cada vez (1 2 → 2 3 → 3 4):
    * o primeiro desliza pra trás do "ex:" enquanto o novo se escreve no fim. O placeholder só anda de letra em
    * letra (dá pulinho), então quem anda é uma camada por cima do campo; o placeholder fica transparente,
@@ -2526,6 +2611,7 @@
    * @param {HTMLInputElement} campo */
   function trocaExemplo(campo) {
     if (semMovimento()) return;
+    const EXEMPLOS = natal() ? EXEMPLOS_NATAL : EXEMPLOS_ANO;
     const raiz = (/** @type {string} */ x) => x.split(' ')[0],
       sorteia1 = (/** @type {string[]} */ l) => l[Math.floor(Math.random() * l.length)];
     let primeiro = sorteia1(EXEMPLOS),
@@ -2590,7 +2676,7 @@
     estreiaRodou = true;
     const chuva = semMovimento() ? '' : '<div class="chuva" aria-hidden="true"></div>';
     return `${chuva}<div class="comandinha${parada ? ' parada' : digita ? '' : ' roda'}" aria-hidden="true">
-      <div class="row f1"><span class="l"><span class="nm" style="color:${corDe(0)}">francisquinha</span> pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
+      <div class="row f1"><span class="l"><span class="nm" style="color:${corDe(0)}">francisquinha</span> pagou ${natal() ? 'o chester' : 'a janta'}</span><span class="d"></span><span class="v">90,00</span></div>
       <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n"><span class="nm" style="color:${corDe(1)}">teobaldo</span> <span data-t="deve">deve</span></span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v" data-t="30,00">30,00</span></div>
       <div class="row f3"><span class="l"><span class="nm" style="color:${corDe(2)}">beleleuson</span> deve</span><span class="d"></span><span class="v">30,00</span></div>
       <img class="fichinha cai" src="${diva()}" alt="" style="--s:34px"></div>`;
@@ -2629,17 +2715,17 @@
     const chegou = !msg && !evs.length && !aberto;
     // o mesmo campo cria e entra: quem chega sem código precisa saber que um nome qualquer já serve
     const intro = chegou
-      ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">racha a conta do rolê.<br>sem app, sem cadastro.</div>
+      ? `<div class="c" style="text-transform:none;font-size:18px;line-height:1.4;margin:6px 0 8px">${natal() ? 'ho ho ho, racha a ceia.' : 'racha a conta do rolê.'}<br>sem app, sem cadastro.</div>
       ${estreia()}`
       : '';
     const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}` : '';
     overlay(
       `<div class="cordao" aria-hidden="true"></div><h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
         msg || !evs.length
-          ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome serve!'}</p>`
+          ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || (natal() ? 'qualquer nome serve, até de rena!' : 'qualquer nome serve!')}</p>`
           : ''
       }
-      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: praia, churras" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
+      <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: ${natal() ? 'amigo secreto, ceia' : 'praia, churras'}" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p><div class="c"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
       }`,
@@ -4673,6 +4759,36 @@
       ],
     },
   ];
+  /** as mesmas três fases no natal, de gorro @type {typeof COBRANCAS} */
+  const COBRANCAS_NATAL = [
+    {
+      ate: 7,
+      frases: [
+        (n, v, eu, ev) => `🎅 ${n}, ho ho ho! o Papai Noel passou pra lembrar: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `🎄 ${n}, então é Natal, e o que você fez? ainda faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `🎁 ${n}, nem precisa de amigo secreto: o presente que ${eu} quer é o pix de ${v} do *${ev}*`,
+        (n, v, eu, ev) => `🦌 ${n}, ho ho, as renas não tão cobrando, só lembrando: faltam ${v} pra ${eu} no *${ev}*`,
+      ],
+    },
+    {
+      ate: 30,
+      frases: [
+        (n, v, eu, ev) => `📜 ${n}, conferi a lista duas vezes e você tá nela: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `🧦 ${n}, ho ho ho, a meia tá pendurada esperando: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `🍮 ${n}, é pavê ou pacumê? é pix: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `💸 ${n}, antes que o 13º evapore: faltam ${v} pra ${eu} no *${ev}*`,
+      ],
+    },
+    {
+      ate: Infinity,
+      frases: [
+        (n, v, eu, ev) => `🥲 ${n}, ho... ho... hoje é só choro: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `😭 ${n}, meu ho ho ho virou buá buá buá: faltam ${v} pra ${eu} no *${ev}*`,
+        (n, v, eu, ev) => `💌 ${n}, escrevi cartinha pro Noel pedindo os ${v} do *${ev}* de volta pra ${eu}`,
+        (n, v, eu, ev) => `🎄 ${n}, o pisca-pisca apagou e a esperança também: faltam ${v} pra ${eu} no *${ev}*`,
+      ],
+    },
+  ];
   /** cobrar no zap, da linha de quem me deve: o link já entra como a pessoa, e o zap abre
    *  direto do toque (nada de await antes do window.open, senão o celular barra o pop-up) */
   function cobra(el) {
@@ -4688,7 +4804,8 @@
     mexe(roomKey(groupId), (o) => {
       o.charged = { ...(o.charged && typeof o.charged === 'object' ? o.charged : {}), [quem]: vez + 1 };
     });
-    const { frases } = COBRANCAS.find((f) => idadeDaDivida(quem).dias <= f.ate) || COBRANCAS[0];
+    const fases = natal() ? COBRANCAS_NATAL : COBRANCAS;
+    const { frases } = fases.find((f) => idadeDaDivida(quem).dias <= f.ate) || fases[0];
     const lembra = frases[vez % frases.length](nameOf(quem), comSifrao(cents), nameOf(me), evento());
     const msg = `${lembra}${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
     abreZap(msg);

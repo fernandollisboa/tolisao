@@ -5,6 +5,7 @@ Funcionalidade: O tema
 
   Contexto:
     Dado o evento "bailedamada" com Fernando, Júlia e Lia
+    E o Fernando pagou R$ 90 dividido igual entre todo mundo
     Quando eu abro o evento como Lia
 
   Cenário: cada toque troca o tema, e o aparelho lembra
@@ -36,14 +37,16 @@ Funcionalidade: O tema
     Então o recibo é claro
 
   Cenário: no fim do ano, quem nunca escolheu chega no natal, e o papel continua na roda
-    O natal é o tema de todo mundo até o dia de Reis; quem prefere o papel escolhe ele e fica nele.
+    O natal é o tema de todo mundo até o dia de Reis, e a diva fala de gorro; quem prefere o papel escolhe ele e fica nele.
     Quando o calendário chega em "2026-12-20"
     E eu recarrego a página
     Então o pé da nota diz "tema: natal"
     E o recibo é claro
+    E o subtítulo diz "pra quem eu devo, noel?"
     Quando eu toco no tema 4 vezes
     E eu recarrego a página
     Então o pé da nota diz "tema: papel"
+    E o subtítulo diz "pra quem eu devo?"
 
   Cenário: passado o dia de Reis, o natal sai do padrão
     Quando o calendário chega em "2027-01-07"

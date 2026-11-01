@@ -44,43 +44,14 @@ Then('o aparelho não guarda mais o último evento na gaveta dele', async ({ mun
   expect((await gaveta(mundo, `tolisa:${mundo.sala}`)).code).toBe(mundo.evento.name);
 });
 
-// apagar meus dados: a chave pix que este aparelho cadastrou (o tok fica na gaveta), o evento esquecido pelo ✕
 const salaDe = (mundo, nome) => { const rooms = mundo.banco.arvore.rooms; return Object.keys(rooms).find(id => rooms[id].name === nome); };
-const idNo = (mundo, sala, quem) => mundo.banco.arvore.rooms[sala].people.find(p => p.name === quem).id;
-Given('que neste aparelho eu cadastrei a chave pix {string} da/do {word} no {string}', async ({ mundo }, chave, quem, nome) => {
-  const sala = salaDe(mundo, nome), id = idNo(mundo, sala, quem);
-  ((mundo.banco.arvore.pix ||= {})[sala] ||= {})[id] = { key: chave, tok: 'tok-deste-aparelho' };
-  naGaveta(mundo, `tolisa:${sala}`, { pixTokens: { [id]: 'tok-deste-aparelho' } });
-  naGaveta(mundo, 'tolisa', { pixKey: chave, myName: quem });
-});
 Given('que o {string} sumiu do banco', async ({ mundo }, nome) => { delete mundo.banco.arvore.rooms[salaDe(mundo, nome)]; });
-Given('que eu esqueci o {string} neste aparelho', async ({ mundo }, nome) => { naGaveta(mundo, `tolisa:${salaDe(mundo, nome)}`, { hidden: true }); });
-// o banco não aceita a chave vazia: a chave fica lá, e o tok tem que ficar aqui
-Given('que o banco não deixa tirar chave pix agora', async ({ mundo }) => { mundo.banco.pixTravado = true; });
-When('o banco volta a deixar tirar chave pix', async ({ mundo }) => { mundo.banco.pixTravado = false; });
-Then('o {string} no banco ainda tem a chave pix {string} da/do {word}', async ({ mundo }, nome, chave, quem) => {
-  const sala = salaDe(mundo, nome);
-  expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe(chave);
-});
-// o ?apagar do endereço, que o aparelho guarda (o APAGAR_DADOS vem desligado)
+// os links de cada coisa em teste, que o aparelho guarda
 Given('que eu pedi pra testar a galera de sempre', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { galeraOn: true }); });
 Given('que eu pedi pra testar tudo', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { testesOn: true }); });
 Given('que eu pedi pra testar o modo mesa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { mesaOn: true }); });
 // o ?foto de antes do ?mesa: o aparelho que ligou por ele guardou o fotoOn
 Given('que eu tinha ligado a foto da conta pelo link antigo', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { fotoOn: true }); });
-Given('que eu pedi pra testar o apagar meus dados', async ({ mundo }) => {
-  naGaveta(mundo, 'tolisa', { apagarOn: true });
-});
-When('eu toco em apagar meus dados deste aparelho', async ({ mundo }) => { await mundo.p.click('#apagaTudo'); await mundo.p.waitForSelector('#okBtn'); });
-Then('a tela é a de quem nunca entrou', async ({ mundo }) => {
-  await expect(mundo.p.locator('#overlayBox')).toContainText('racha a conta do rolê');
-  await expect(mundo.p.locator('#overlayBox .ev')).toHaveCount(0);
-  await expect(mundo.p.locator('#apagaTudo')).toHaveCount(0);
-});
-Then('o {string} no banco não tem mais a chave pix da/do {word}', async ({ mundo }, nome, quem) => {
-  const sala = salaDe(mundo, nome);
-  expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe('');
-});
 
 // o tema: o botão do pé da nota, e o claro/escuro do celular
 When('eu toco no tema', async ({ mundo }) => { await mundo.p.click('#temaBtn'); });

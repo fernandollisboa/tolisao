@@ -596,7 +596,7 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 @media (prefers-reduced-motion:reduce){.toast.show,.toast.recebe.show{animation:none;opacity:1}.toast.sai{animation:none}}
 @media (min-width:900px) and (min-height:600px){html{zoom:1.5}}
 #boot{display:none;margin:14px 0 2px} #boot .spin{width:22px;height:22px;border-width:3px}
-#app.loading>*:not(h1):not(#boot){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}
+#app.loading>*:not(h1):not(#boot):not(.cordao){display:none} #app.loading #boot{display:block} #app.loading.nospin{display:none} #app.loading~.fab{display:none}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app:not(.loading)>*:not(.stain){animation:fadein .35s ease both}
 /* a passagem pro quite (o viraQuite): de cima pra baixo, a caixa, os itens, o título e as linhas. O que é refeito a cada
@@ -824,34 +824,34 @@ button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-
 #instalarGate{margin:14px 0 0;background:var(--card);color:var(--amber);border-color:var(--amber)}
 /* sem o quem é você no cabeçalho, o ponto do lado do evento sai junto */
 #eventLine .sep:has(+ #whoLine:empty){display:none}
-/* os temas escuros (#285, o "tema:" do pé da nota): o html ganha data-tema e as cores viram noite. Os dois dividem o
+/* os temas escuros (#285, o "tema:" do pé da nota): o html ganha data-escuro e as cores viram noite. Os dois dividem o
    que é de escuro (o neon do quite na plaquinha da QT, com o letreiro claro, docs/neon-escuro.md); cada um tem a sua paleta e o --acento, a cor
    do seu neon (o quite, o ✎ e o compartilhar) */
-html[data-tema] .paper{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
-html[data-tema] .empty.vazio{box-shadow:3px 3px 0 rgba(0,0,0,.35)}
-html[data-tema] #overlay,html[data-tema] #sheet{background:rgba(8,5,10,.78)}
-html[data-tema] .comandinha{box-shadow:0 2px 10px rgba(0,0,0,.5)}
-html[data-tema] .bars svg{fill:var(--ink)}
+html[data-escuro] .paper{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
+html[data-escuro] .empty.vazio{box-shadow:3px 3px 0 rgba(0,0,0,.35)}
+html[data-escuro] #overlay,html[data-escuro] #sheet{background:rgba(8,5,10,.78)}
+html[data-escuro] .comandinha{box-shadow:0 2px 10px rgba(0,0,0,.5)}
+html[data-escuro] .bars svg{fill:var(--ink)}
 /* os botões de quem recebe no neon ganham brilho */
 html[data-tema=neon] #mineRows .dupla>button.ico:is(.cobra,[data-recebi],[data-perdoa]){box-shadow:2px 2px 0 var(--tc),0 0 8px color-mix(in srgb,var(--tc) 55%,transparent);text-shadow:0 0 6px color-mix(in srgb,var(--tc) 60%,transparent)}
 /* no escuro a plaquinha é preta e encardida, com um fio claro em volta que destaca do papel escuro, e o tubo mais claro
    e mais aceso, na cor do tema */
-html[data-tema] .empty.vazio.quite{--neon:var(--acento);border-color:rgba(255,255,255,.16);
+html[data-escuro] .empty.vazio.quite{--neon:var(--acento);border-color:rgba(255,255,255,.16);
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .35 0 0 0 -.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 40%,var(--placa),var(--placaFundo) 80%);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08),3px 4px 0 rgba(0,0,0,.55),0 0 calc(30px*var(--luz)) color-mix(in srgb,var(--tubo) 28%,transparent);
   color:color-mix(in srgb,#fff calc(var(--luzT)*62%),var(--tuboT));
   text-shadow:0 0 1px rgba(255,255,255,calc(var(--luzT)*.5)),0 0 4px var(--tuboT),0 0 calc(12px*var(--luzT)) var(--tuboT),0 0 calc(24px*var(--luzT)) color-mix(in srgb,var(--tuboT) 55%,transparent)}
 /* o ✎ cheio na cor do tema e o compartilhar aceso nela (no escuro o amarelo claro sumia com o ícone claro) */
 /* o "Quem é você?" amarelo ficava com a letra clara do tema em cima: no escuro ele é cheio na cor do tema */
-html[data-tema] a.link.amb{color:var(--paper);background:var(--acento);border-color:var(--acento);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
-html[data-tema] #fab.chamando{background:var(--acento);color:var(--paper);border-color:var(--paper);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
-html[data-tema] #waBtn.wafab{background:var(--card);color:var(--acento);border-color:var(--acento);box-shadow:0 0 8px color-mix(in srgb,var(--acento) 50%,transparent)}
-html[data-tema] #fab.chamando.vaza:not(:hover):not(:active){background:color-mix(in srgb,var(--acento) 50%,transparent);border-color:color-mix(in srgb,var(--paper) 70%,transparent);box-shadow:none}
+html[data-escuro] a.link.amb{color:var(--paper);background:var(--acento);border-color:var(--acento);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
+html[data-escuro] #fab.chamando{background:var(--acento);color:var(--paper);border-color:var(--paper);box-shadow:0 0 10px color-mix(in srgb,var(--acento) 60%,transparent)}
+html[data-escuro] #waBtn.wafab{background:var(--card);color:var(--acento);border-color:var(--acento);box-shadow:0 0 8px color-mix(in srgb,var(--acento) 50%,transparent)}
+html[data-escuro] #fab.chamando.vaza:not(:hover):not(:active){background:color-mix(in srgb,var(--acento) 50%,transparent);border-color:color-mix(in srgb,var(--paper) 70%,transparent);box-shadow:none}
 /* o fundo escuro do compartilhar já é quase o papel: tirar o fundo não basta pra vazar como o ✎, então o ícone e a
    borda apagam pela metade, sem o brilho */
-html[data-tema] #waBtn.wafab.vaza:not(:hover):not(:active){background:transparent;color:color-mix(in srgb,var(--acento) 55%,transparent);border-color:color-mix(in srgb,var(--acento) 55%,transparent);box-shadow:none}
-@media (hover:hover){html[data-tema] #fab:hover{background:color-mix(in srgb,var(--acento) 75%,#fff);color:var(--paper)}}
-html[data-tema] .empty.vazio.quite::before{border-color:color-mix(in srgb,#fff calc(var(--luz)*35%),var(--tubo));
+html[data-escuro] #waBtn.wafab.vaza:not(:hover):not(:active){background:transparent;color:color-mix(in srgb,var(--acento) 55%,transparent);border-color:color-mix(in srgb,var(--acento) 55%,transparent);box-shadow:none}
+@media (hover:hover){html[data-escuro] #fab:hover{background:color-mix(in srgb,var(--acento) 75%,#fff);color:var(--paper)}}
+html[data-escuro] .empty.vazio.quite::before{border-color:color-mix(in srgb,#fff calc(var(--luz)*35%),var(--tubo));
   box-shadow:0 0 2px var(--tubo),0 0 calc(9px*var(--luz)) var(--tubo),0 0 calc(20px*var(--luz)) color-mix(in srgb,var(--tubo) 50%,transparent),inset 0 0 calc(9px*var(--luz)) color-mix(in srgb,var(--tubo) 45%,transparent)}
 /* neon: papel roxo-preto, títulos e valores acesos, réguas com um fio de luz */
 html[data-tema=neon]{--acento:#b44dff;--card:#1f1a2b;--afundado:#18131f;--sombra:#3d3152;--amber:#ff7a1a;--wood:#0c0912;--paper:#16121e;--ink:#f1e9ff;--ink2:#c3b3dc;--rule:#5d4b7c;--muted:#9d8fb5;--red:#ff4d6d;--green:#2ef2a0;
@@ -869,3 +869,24 @@ html[data-tema=grafite]{--acento:#ff8a2a;--card:#29221f;--afundado:#1c1715;--som
   --placa:#151015;--placaFundo:#060407;--placaSombra:#0b080c;--apagado:#4a3e44;--vidro:#3a3236;--ponta:#000}
 html[data-tema=grafite] body{background:var(--wood) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23160f0b"/><path d="M0 0h200v200H0z" fill="none" stroke="%23241a12" stroke-width="2" stroke-dasharray="1 7"/></svg>')}
 html[data-tema=grafite] .paper{box-shadow:0 14px 30px rgba(0,0,0,.7)}
+/* natal: o papel de sempre numa mesa de pinheiro com neve, o pisca-pisca pendurado no alto da nota, o título vermelho,
+   as réguas de bengala doce e a diva de gorro (o diva-natal.png, que o specs/gorro.cjs desenha). É claro: as cores de
+   gente são as do papel */
+html[data-tema=natal]{--wood:#123a2a;--natal:#b3121f;--pinho:#1d5c3a}
+html[data-tema=natal] body{background:var(--wood) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' fill='%23fff'%3E%3Cg fill-opacity='.5'%3E%3Ccircle cx='18' cy='26' r='2'/%3E%3Ccircle cx='96' cy='12' r='1.4'/%3E%3Ccircle cx='160' cy='48' r='2.2'/%3E%3Ccircle cx='52' cy='92' r='1.3'/%3E%3Ccircle cx='130' cy='118' r='1.8'/%3E%3Ccircle cx='200' cy='150' r='1.4'/%3E%3Ccircle cx='30' cy='170' r='2.4'/%3E%3Ccircle cx='96' cy='200' r='1.5'/%3E%3C/g%3E%3Cg fill-opacity='.25'%3E%3Ccircle cx='70' cy='54' r='1'/%3E%3Ccircle cx='190' cy='90' r='1'/%3E%3Ccircle cx='10' cy='120' r='1'/%3E%3Ccircle cx='150' cy='186' r='1'/%3E%3Ccircle cx='120' cy='70' r='1'/%3E%3C/g%3E%3C/svg%3E")}
+html[data-tema=natal] h1{color:var(--natal)}
+html[data-tema=natal] .hr{border-top:0;height:2px;background:repeating-linear-gradient(90deg,var(--natal) 0 9px,transparent 9px 14px,var(--pinho) 14px 23px,transparent 23px 28px)}
+html[data-tema=natal] :is(#mine,#itemsSec)>.hr{background:none}
+html[data-tema=natal] #overlay,html[data-tema=natal] #sheet{background:rgba(6,28,18,.74)}
+/* o gorro no Ô do título, em pixel como a fonte, por cima do chapéu do acento; enquanto o título se digita ele espera */
+html[data-tema=natal] h1>span{position:relative}
+html[data-tema=natal] h1>span:not(.digitando)::before{content:"";position:absolute;left:calc(1.5ch + 3px - .36em);top:-.13em;width:.75em;height:.45em;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 9' shape-rendering='crispEdges'%3E%3Cpath fill='%23c4141f' d='M6 0h3v1h-3zM4 1h7v1h-7zM3 2h10v1h-10zM3 3h6v1h-6zM11 3h3v1h-3zM2 4h7v1h-7zM2 5h7v1h-7zM1 6h9v1h-9z'/%3E%3Cpath fill='%238a0d15' d='M9 3h2v1h-2zM9 4h1v1h-1zM9 5h1v1h-1z'/%3E%3Cpath fill='%23fffaf0' d='M12 4h2v1h-2zM11 5h4v1h-4zM12 6h2v1h-2zM0 7h11v1h-11zM0 8h1v1h-1zM2 8h2v1h-2zM5 8h3v1h-3zM9 8h2v1h-2z'/%3E%3Cpath fill='%23d9d2c3' d='M1 8h1v1h-1zM4 8h1v1h-1zM8 8h1v1h-1z'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat;transform:rotate(-7deg)}
+/* o pisca-pisca: o fio no elemento e as lâmpadas em dois circuitos (o ::before e o ::after), que acendem um quando o
+   outro apaga, como o de verdade. Só no natal; com movimento reduzido fica tudo aceso */
+.cordao{display:none}
+html[data-tema=natal] .cordao{display:block;position:absolute;top:-9px;left:0;right:0;height:32px;z-index:2;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='32'%3E%3Cpath d='M0 5Q22 16 44 5T88 5T132 5T176 5' fill='none' stroke='%231c2e1f' stroke-width='2'/%3E%3C/svg%3E") 0 0/176px 32px repeat-x}
+html[data-tema=natal] .cordao::before,html[data-tema=natal] .cordao::after{content:"";position:absolute;inset:0;background:0 0/176px 32px repeat-x;filter:drop-shadow(0 0 3px rgba(255,236,190,.9));animation:lampada 1.6s steps(1) infinite}
+html[data-tema=natal] .cordao::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='32'%3E%3Cg transform='rotate(-8 22 10)'%3E%3Crect x='19.5' y='9' width='5' height='5' rx='1' fill='%232b3a2b'/%3E%3Cellipse cx='22' cy='20' rx='4.5' ry='7' fill='%23ff3045'/%3E%3Cellipse cx='20.5' cy='17' rx='1.3' ry='2.4' fill='%23fff' fill-opacity='.6'/%3E%3C/g%3E%3Cg transform='rotate(8 110 10)'%3E%3Crect x='107.5' y='9' width='5' height='5' rx='1' fill='%232b3a2b'/%3E%3Cellipse cx='110' cy='20' rx='4.5' ry='7' fill='%233d8bff'/%3E%3Cellipse cx='108.5' cy='17' rx='1.3' ry='2.4' fill='%23fff' fill-opacity='.6'/%3E%3C/g%3E%3C/svg%3E")}
+html[data-tema=natal] .cordao::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='32'%3E%3Cg transform='rotate(8 66 10)'%3E%3Crect x='63.5' y='9' width='5' height='5' rx='1' fill='%232b3a2b'/%3E%3Cellipse cx='66' cy='20' rx='4.5' ry='7' fill='%2334d36a'/%3E%3Cellipse cx='64.5' cy='17' rx='1.3' ry='2.4' fill='%23fff' fill-opacity='.6'/%3E%3C/g%3E%3Cg transform='rotate(-8 154 10)'%3E%3Crect x='151.5' y='9' width='5' height='5' rx='1' fill='%232b3a2b'/%3E%3Cellipse cx='154' cy='20' rx='4.5' ry='7' fill='%23ffb52e'/%3E%3Cellipse cx='152.5' cy='17' rx='1.3' ry='2.4' fill='%23fff' fill-opacity='.6'/%3E%3C/g%3E%3C/svg%3E");animation-delay:-.8s}
+@keyframes lampada{0%{opacity:1}50%{opacity:.4;filter:none}}
+@media (prefers-reduced-motion:reduce){html[data-tema=natal] .cordao::before,html[data-tema=natal] .cordao::after{animation:none}}

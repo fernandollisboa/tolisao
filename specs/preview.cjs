@@ -19,7 +19,7 @@ const DADOS = {
 
 // --tema: o tema gravado no aparelho antes do app, como se a pessoa tivesse tocado o "tema:" do pé da nota.
 // papel é o claro; auto é o celular, que sai escuro (vira o neon) pra mostrar alguma coisa
-const TEMAS = ['papel', 'neon', 'grafite', 'auto'];
+const TEMAS = ['papel', 'natal', 'neon', 'grafite', 'auto'];
 const esquema = tema => (tema === 'auto' ? 'dark' : 'light');
 /** põe o tema no `tolisa` do aparelho; registre depois de quem grava o `tolisa` inteiro, senão ele apaga */
 async function poeTema(p, tema) {

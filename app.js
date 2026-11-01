@@ -54,11 +54,13 @@
   // lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
   const MESA = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
-  // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema
-  // escuro, o html ganha data-tema e o style.css redefine as cores. Tema novo: entra aqui, no BARRA e no style.css
+  // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema,
+  // o html ganha data-tema (e data-escuro nos escuros) e o style.css redefine as cores. Tema novo: entra aqui, no BARRA
+  // e no style.css; se for escuro, no ESCUROS também. O natal é claro: o papel de sempre com pisca-pisca e a diva de gorro
   const TEMA = '';
   const TEMAS = [
     ['', 'papel'],
+    ['natal', 'natal'],
     ['neon', 'neon'],
     ['grafite', 'grafite'],
     ['auto', 'celular'],
@@ -465,14 +467,21 @@
     const t = temaEscolhido();
     return t === 'auto' ? (celularEscuro.matches ? 'neon' : '') : t;
   };
-  const temEscuro = () => tema() !== '';
-  const BARRA = { '': '#6b4a2b', neon: '#0c0912', grafite: '#160f0b' };
+  const ESCUROS = ['neon', 'grafite'];
+  const temEscuro = () => ESCUROS.includes(tema());
+  const BARRA = { '': '#6b4a2b', natal: '#123a2a', neon: '#0c0912', grafite: '#160f0b' };
+  /** a foto da diva das fichas: no natal ela vem de gorro */
+  const diva = () => (tema() === 'natal' ? 'diva-natal.png' : 'diva.png');
   /** liga o tema no html, na barra do navegador e no botão do pé da nota; vale já, antes do primeiro render */
   const aplicaTema = () => {
     const t = tema(),
       nome = TEMAS.find(([id]) => id === temaEscolhido())?.[1];
-    if (t) document.documentElement.dataset.tema = t;
-    else delete document.documentElement.dataset.tema;
+    const html = document.documentElement;
+    if (t) html.dataset.tema = t;
+    else delete html.dataset.tema;
+    html.toggleAttribute('data-escuro', temEscuro());
+    for (const f of /** @type {NodeListOf<HTMLImageElement>} */ (document.querySelectorAll('img[src^="diva"]')))
+      f.src = diva();
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BARRA[t]);
     const rotulo = document.querySelector('#temaBtn span');
     if (rotulo) rotulo.textContent = `tema: ${nome}`;
@@ -2493,8 +2502,8 @@
         const estilo = `--x:${x.toFixed(1)}%;--s:${s}px;--t:${t.toFixed(2)}s;--d:${d.toFixed(2)}s;--vx:${vx}px;--r:${giro}deg;--ry:${vira}deg;--op:${op};z-index:${k}`;
         // a que vira de lado ganha espessura (duas caras e a lateral em facetas): de perfil ela não some
         if (vira)
-          return `<span class="fichinha moeda ${cor}" style="${estilo}"><img src="diva.png" alt=""><img src="diva.png" alt="">${FACETAS}</span>`;
-        return `<img class="fichinha ${cor}${frente}" src="diva.png" alt="" style="${estilo}">`;
+          return `<span class="fichinha moeda ${cor}" style="${estilo}"><img src="${diva()}" alt=""><img src="${diva()}" alt="">${FACETAS}</span>`;
+        return `<img class="fichinha ${cor}${frente}" src="${diva()}" alt="" style="${estilo}">`;
       });
     }).join('');
   }
@@ -2599,7 +2608,7 @@
       <div class="row f1"><span class="l"><span class="nm" style="color:${corDe(0)}">francisquinha</span> pagou a janta</span><span class="d"></span><span class="v">90,00</span></div>
       <div class="row paid novo f2" style="--ri:${corDe(1)}"><span class="l"><span class="n"><span class="nm" style="color:${corDe(1)}">teobaldo</span> <span data-t="deve">deve</span></span><span class="stampbox"><span class="stamp" style="color:${corDe(1)}">pago</span></span></span><span class="d"></span><span class="v" data-t="30,00">30,00</span></div>
       <div class="row f3"><span class="l"><span class="nm" style="color:${corDe(2)}">beleleuson</span> deve</span><span class="d"></span><span class="v">30,00</span></div>
-      <img class="fichinha cai" src="diva.png" alt="" style="--s:34px"></div>`;
+      <img class="fichinha cai" src="${diva()}" alt="" style="--s:34px"></div>`;
   }
   /** solta a comandinha e avisa quando ela termina (o tempo é o da última animação dela no style.css) */
   const COMANDA_MS = 3600;
@@ -2615,7 +2624,7 @@
     if (!t.isConnected) return;
     // sem medir nada: absoluta e sem left/top, a ficha fica onde o texto acaba (o zoom do desktop não desalinha)
     if (entrou)
-      t.insertAdjacentHTML('afterend', '<img class="fichinha ponto" src="diva.png" alt="" aria-hidden="true">');
+      t.insertAdjacentHTML('afterend', `<img class="fichinha ponto" src="${diva()}" alt="" aria-hidden="true">`);
     else {
       const f = t.parentElement?.querySelector('.fichinha.ponto');
       if (!f) return;
@@ -2640,7 +2649,7 @@
       : '';
     const lista = evs.length ? `<div class="hr"></div><h2>*** Meus eventos ***</h2>${listaEventos(evs, true)}` : '';
     overlay(
-      `<h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
+      `<div class="cordao" aria-hidden="true"></div><h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
         msg || !evs.length
           ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || 'qualquer nome serve!'}</p>`
           : ''

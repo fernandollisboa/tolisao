@@ -20,8 +20,8 @@ node specs/preview.cjs --recorte=0,0,390,240        # pedaço por coordenadas (c
 node specs/preview.cjs '#settle' --variantes=/tmp/v.cjs --saida=/tmp/opts.png
 node specs/preview.cjs '#overlay .paper' --inicio  # a estreia, aparelho limpo, depois do título e da comandinha
 node specs/preview.cjs '#overlay .paper' --inicio --quieto  # a mesma com movimento reduzido (quadro parado)
-node specs/preview.cjs '#settle' --tema=neon       # num tema escuro: neon, grafite, ou auto (o celular escuro)
-node specs/preview.cjs '#settle' --temas           # papel, neon e grafite lado a lado
+node specs/preview.cjs '#settle' --tema=neon       # noutro tema: natal, neon, grafite, ou auto (o celular escuro)
+node specs/preview.cjs '#settle' --temas           # papel, natal, neon e grafite lado a lado
 ```
 
 Seletores úteis: `#mine`, `#itemsSec`, `#settle`, `#app`, `#overlay .paper`.
@@ -46,7 +46,7 @@ node specs/video.cjs inicio --js=/tmp/v.js      # variação da estreia: o js ro
 node specs/video.cjs inicio --quieto            # a estreia com movimento reduzido
 ```
 
-`--vel` é a velocidade das animações (0.35 = bem devagar). `--css=arq.css` injeta uma folha depois da do app: como o `@keyframes` de mesmo nome vence o anterior, dá pra gravar uma variação da animação sem tocar no `style.css` — é assim que se oferecem opções de movimento, um vídeo por letra. Na cena `inicio` o `--css` entra depois do `goto` e desalinha os atrasos com o título: variação vai de `--js` (roda antes do app, também no `preview.cjs`). Ela grava em `--vel=1` por padrão, porque o título digita com `setTimeout`, que o `--vel` não desacelera. `--quieto` liga o `prefers-reduced-motion` nas duas ferramentas, e `--tema=neon|grafite|auto` grava o tema no aparelho antes do app nas duas também. Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é (ou `inicio: true`, pra estreia sem evento), quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.
+`--vel` é a velocidade das animações (0.35 = bem devagar). `--css=arq.css` injeta uma folha depois da do app: como o `@keyframes` de mesmo nome vence o anterior, dá pra gravar uma variação da animação sem tocar no `style.css` — é assim que se oferecem opções de movimento, um vídeo por letra. Na cena `inicio` o `--css` entra depois do `goto` e desalinha os atrasos com o título: variação vai de `--js` (roda antes do app, também no `preview.cjs`). Ela grava em `--vel=1` por padrão, porque o título digita com `setTimeout`, que o `--vel` não desacelera. `--quieto` liga o `prefers-reduced-motion` nas duas ferramentas, e `--tema=papel|natal|neon|grafite|auto` grava o tema no aparelho antes do app nas duas também. Cena nova? Acrescente em `CENAS`, no topo do arquivo: cada uma diz quem você é (ou `inicio: true`, pra estreia sem evento), quanto o pix demora, o que a câmera faz e, se precisar, os próprios dados. Mande o `.webm` com `SendUserFile`.
 
 ## Opções de design
 
@@ -65,7 +65,7 @@ Cada variante pode ter `css` e `js`; a folha sai rotulada com a letra e o nome. 
 ## Regras
 
 - **Tamanho real.** A folha usa a largura de tela de verdade. Nunca encolha a imagem pra caber mais coisa, senão o preview mente e o usuário reclama, com razão.
-- **Os três temas.** Mexeu em cor ou em coisa que aparece na nota, mande com `--temas`: o que fica bom no papel pode sumir no neon ou no grafite.
+- **Os temas.** Mexeu em cor ou em coisa que aparece na nota, mande com `--temas`: o que fica bom no papel pode sumir no neon ou no grafite, ou brigar com o vermelho e o verde do natal. No fim do ano o padrão é o natal: pro papel, `--tema=papel`.
 - **Celular primeiro.** Padrão é 390 de largura. Se a mudança afeta desktop, mande também com `--largura=1440`.
 - **Estado que importa.** Escolha `--quem` de quem enxerga o que você mexeu: quem deve vê os botões de quitar e copiar pix, quem recebe vê a lista de quem deve.
 - **Antes e depois.** Em ajuste de espaçamento, alinhamento ou cor, mostre as duas versões lado a lado usando uma variante com o CSS antigo.

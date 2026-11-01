@@ -24,6 +24,10 @@ Then('o cartão de quem é você mostra a chave, cadastrada em outro aparelho', 
   await expect(mundo.p.locator('#pixOutro')).toBeVisible();
   await expect(mundo.p.locator('#pixTroca, #pixApaga')).toHaveCount(0); await mundo.fechaCartao();
 });
+Then('o cartão de quem é você só oferece cadastrar uma chave', async ({ mundo }) => {
+  await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#pixNova');
+  await expect(mundo.p.locator('#pixMinha')).toHaveCount(0); await mundo.fechaCartao();
+});
 When('eu cadastro a chave pix {string} pelo cartão de quem é você', async ({ mundo }, chave) => {
   const p = mundo.p; await p.click('#whoBtn'); await p.click('#pixNova'); await p.fill('#askInput', chave); await p.click('#askForm button.big');
 });

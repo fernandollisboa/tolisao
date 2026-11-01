@@ -151,6 +151,8 @@ When('eu aperto Esc', async ({ mundo }) => { await mundo.p.keyboard.press('Escap
 // a sala aberta é a gaveta que guarda o código que está no endereço
 const salaAberta = mundo => mundo.p.evaluate(() => { const c = new URLSearchParams(location.search).get('evento');
   return Object.keys(localStorage).find(k => k.startsWith('tolisa:') && JSON.parse(localStorage.getItem(k) || '{}').code === c)?.slice(7); });
+When('eu digo que sou', async ({ mundo }) => { await mundo.p.click('#souSim'); });
+When('eu digo que não sou', async ({ mundo }) => { await mundo.p.click('#souNao'); });
 When('eu toco em quem é você', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#overlayBox h2'); });
 When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
   for (const n of gente) { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); await expect(mundo.p.locator('#setupName')).toHaveValue(''); }

@@ -33,8 +33,8 @@ Funcionalidade: Entrar no evento
     E aparece o recado "nada foi criado."
 
     Exemplos:
-      | código        |
-      | k7f3q9x2ab    |
+      | código         |
+      | k7f3q9         |
       | churras-k7f3q9 |
 
   Cenário: tocar fora também volta pro código

@@ -91,7 +91,7 @@ Then('o banco tem {int} evento(s)', async ({ mundo }, n) => {
 });
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
 Then('o endereço tem um código sorteado', async ({ mundo }) => {
-  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(/^\?evento=[a-z0-9]{10}$/);
+  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(/^\?evento=[a-z0-9]{6}$/);
 });
 Then('o nome do evento no cabeçalho é {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#roomLabel')).toHaveText(nome); });
 Then('o site não pergunta nada', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeHidden(); });

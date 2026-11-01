@@ -1,6 +1,6 @@
 // @ts-check
 /** @typedef {{ id: string, name: string, at: number }} Person */
-/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, byId?: string, shares?: Record<string, number>, rec?: string }} Expense */
+/** @typedef {{ id: string, desc: string, amount: number, payer: string, among: string[], at: number, kind?: 'payment', forgiven?: true, by?: string, byId?: string, shares?: Record<string, number> }} Expense */
 /** @typedef {{ id: string, desc: string, amount: number, at: number, by: string, byId?: string, goneAt: number, to?: string, lostTo?: string }} Gone */
 /** @typedef {{ v: 2, name: string, updatedAt: number, people: Person[], expenses: Expense[], deleted: string[], gone: Gone[] }} Room */
 /** @typedef {{ from: string, to: string, cents: number }} Transfer */
@@ -46,13 +46,6 @@
   // "apagar meus dados deste aparelho" no fim do cartão do evento: desligado pra todo mundo. Liga no aparelho
   // abrindo o site com ?apagar (fica lembrado; ?apagar=0 desliga)
   const APAGAR_DADOS = false;
-  // conta fixa, o "repete todo mês" do anotar: desligada pra todo mundo. Liga no aparelho abrindo o site com ?fixo
-  // (fica lembrado; ?fixo=0 desliga). Desligada, o gasto que já repetia não lança mês novo
-  const FIXO = false;
-  // o número do zap de quem eu cobro: o "Zap de Fulano?" no primeiro cobrar e o "trocar o zap de Fulano" no pé de
-  // Minha conta. Desligado pra todo mundo: o cobrar abre o zap direto, na conversa se o número já está guardado,
-  // senão na escolha de contato. Liga no aparelho com ?numerozap (fica lembrado; ?numerozap=0 desliga)
-  const NUMERO_ZAP = false;
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
@@ -118,18 +111,15 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, fixoOn, numeroZapOn, galeraOn, mesaOn, testesOn, tema, naoConta,
-  //                  phones: {nome: '55…' ou '' de pulado} }
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, galeraOn, mesaOn, testesOn, tema, naoConta }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
-  //                  fixoOn: a conta fixa, pelo ?fixo; numeroZapOn: pedir e trocar o número do zap, pelo ?numerozap;
   //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (a foto da conta), pelo ?mesa;
   //                  testesOn: tudo que está em teste de uma vez, pelo ?testes;
   //                  tema: o tema escolhido no pé da nota;
-  //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono);
-  //                  phones: o zap de quem eu cobro, pelo nome, só neste aparelho)
+  //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono))
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn, pushTry, charged }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
   //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render;
@@ -337,7 +327,6 @@
         if (o.kind && e.forgiven === true) o.forgiven = true; // pagamento perdoado: conta igual, carimbo PERDOADO
         if (typeof e.by === 'string') o.by = str(e.by, 30);
         if (okId(e.byId)) o.byId = e.byId; // quem anotou, pelo id: o `by` em texto fica pro item antigo
-        if (!o.kind && okId(e.rec)) o.rec = e.rec; // gasto fixo: o id da série, que a edição mantém
         if (e.shares && typeof e.shares === 'object') {
           o.shares = {};
           for (const id of o.among) o.shares[id] = Math.max(0, Math.round(+e.shares[id] || 0));
@@ -442,16 +431,13 @@
     };
   }
 
-  (() => {
-    const q = new URLSearchParams(location.search);
-    if (q.has('fixo')) setDevice('fixoOn', q.get('fixo') === '0' ? undefined : true);
-  })();
-  const temFixo = () => FIXO || emTeste() || device().fixoOn === true;
-  (() => {
-    const q = new URLSearchParams(location.search);
-    if (q.has('numerozap')) setDevice('numeroZapOn', q.get('numerozap') === '0' ? undefined : true);
-  })();
-  const temNumeroZap = () => NUMERO_ZAP || emTeste() || device().numeroZapOn === true;
+  // o gasto fixo (?fixo) e o número do zap (?numerozap) saíram: o que eles deixaram no aparelho vai embora junto
+  if (['fixoOn', 'numeroZapOn', 'phones'].some((k) => k in device()))
+    mexe(DEVICE, (o) => {
+      delete o.fixoOn;
+      delete o.numeroZapOn;
+      delete o.phones;
+    });
   (() => {
     const q = new URLSearchParams(location.search);
     if (q.has('galera')) setDevice('galeraOn', q.get('galera') === '0' ? undefined : true);
@@ -504,39 +490,6 @@
     aplicaTema();
     render();
   });
-  /** gasto fixo (`rec`) volta todo mês, no mesmo dia, até hoje. A cópia tem id certo (série + mês):
-   *  dois aparelhos lançando juntos dão o mesmo item, e a cópia apagada não volta. Conta em UTC pra
-   *  dar igual em qualquer fuso. Devolve se lançou alguma @param {Room} st */
-  function lancaFixos(st) {
-    if (!temFixo()) return false;
-    const agora = Date.now(),
-      fora = new Set(st.deleted),
-      tem = new Set(st.expenses.map((e) => e.id)),
-      antes = st.expenses.length;
-    // o modelo da série é o item mais novo com o `rec`: editar troca o item e o `rec` vai junto
-    /** @type {Map<string, Expense>} */ const modelos = new Map();
-    for (const e of st.expenses) if (e.rec && !((modelos.get(e.rec)?.at || -1) >= e.at)) modelos.set(e.rec, e);
-    for (const m of modelos.values()) {
-      const d = new Date(m.at);
-      for (let k = 1; k <= 24; k++) {
-        const mes = d.getUTCMonth() + k,
-          dias = new Date(Date.UTC(d.getUTCFullYear(), mes + 1, 0)).getUTCDate(),
-          at = Date.UTC(d.getUTCFullYear(), mes, Math.min(d.getUTCDate(), dias), d.getUTCHours(), d.getUTCMinutes());
-        if (at > agora) break;
-        const q = new Date(at),
-          id = `${m.rec.slice(0, 24)}m${q.getUTCFullYear()}${String(q.getUTCMonth() + 1).padStart(2, '0')}`;
-        if (tem.has(id) || fora.has(id)) continue;
-        const copia = { ...m, id, at };
-        delete copia.rec;
-        st.expenses.push(copia);
-        tem.add(id);
-      }
-    }
-    if (st.expenses.length === antes) return false;
-    st.expenses.sort((x, y) => x.at - y.at);
-    st.updatedAt = agora;
-    return true;
-  }
 
   // #endregion
   // #region o banco (sync)
@@ -605,7 +558,6 @@
       for (let vez = 1; ; vez++) {
         const { data: remote, etag } = await baixa(groupId);
         const merged = renomeia(merge(state, remote), remote);
-        lancaFixos(merged);
         const changed = canon(merged) !== canon(remote);
         state = merged;
         cacheSave();
@@ -1889,7 +1841,6 @@
         ? `<div class="empty vazio quite" style="${neonEstilo()}">${acerto.length ? `${nomeHtml(me)}, tudo quite!` : 'tudo quite!'} 💅${queima()}</div>`
         : linha(bal > 0 ? 'me devem' : 'eu devo', valorHtml(bal), bal > 0 ? 'pos' : 'neg')) +
       quem.join('') +
-      (bal > 0 ? botaoTrocaZap(recebe) : '') +
       (temAviso() ? botaoAviso(bal > 0) : '');
     neonAnda();
   }
@@ -2002,14 +1953,6 @@
     if (prox <= t) neon.quadro = requestAnimationFrame(neonAnda);
     else neon.espera = setTimeout(neonAnda, prox - t);
   }
-  /** quem já tem zap guardado (ou pulado) cobra direto, sem cartão: daqui troca ou esquece o número */
-  const botaoTrocaZap = (recebe) => {
-    if (!temNumeroZap()) return '';
-    const gente = recebe.map((t) => t.from).filter((id) => zapDe(id) !== null);
-    return gente.length
-      ? `<div class="c trocaZap">trocar o zap de ${gente.map((id) => `<a class="link" data-trocazap="${id}" role="button" tabindex="0">${esc(nameOf(id))}</a>`).join(', ')}</div>`
-      : '';
-  };
   /** o 🔔 no pé de Minha conta, pra quem ainda não ligou: ligado, some (quem quiser desligar desliga nas
    *  notificações do próprio navegador). Avisa o gasto novo com a pessoa e o pagamento pra ela; o convite fala
    *  do que mais importa pra ela agora: quem recebe quer saber quando pagarem
@@ -2053,7 +1996,6 @@
       prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
-    $('#expenseForm .fixo').classList.toggle('hidden', !temFixo());
     $('#fotoBtn').classList.toggle('hidden', !temMesa());
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
@@ -2151,7 +2093,7 @@
             head +
             `<div class="item ${openItems.has(e.id) ? 'open' : ''}" data-item="${e.id}">` +
             linha(`${tagNovo(e) || tagMudou(g)}${esc(e.desc)}`, reais(centavos(e))) +
-            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${e.rec && temFixo() ? '<span class="fixo"> · todo mês</span>' : ''}${by}</span>${botoes}</div></div>`
+            `<div class="small"><span>${nomeHtml(e.payer)} pagou · ${howText(e, nomeHtml, true)}${by}</span>${botoes}</div></div>`
           );
         })
         .join('') || '<div class="empty">nada anotado ainda</div>';
@@ -3662,10 +3604,7 @@
     $('#quitOk').onclick = fecha;
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
-      abreZap(
-        `✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl(to, 'pago')}`,
-        zapDe(to) || '',
-      );
+      abreZap(`✅ ${nameOf(to)}, te paguei ${comSifrao(cents)} do *${evento()}* 👍\n${shareUrl(to, 'pago')}`);
       fecha();
     };
   }
@@ -3693,7 +3632,7 @@
     overlayCancel = fecha;
     $('#waAviso').onclick = () => {
       const frase = PERDOES[Math.floor(Math.random() * PERDOES.length)];
-      abreZap(`${frase(nameOf(from), comSifrao(cents), evento())}\n${shareUrl(from, 'pago')}`, zapDe(from) || '');
+      abreZap(`${frase(nameOf(from), comSifrao(cents), evento())}\n${shareUrl(from, 'pago')}`);
       fecha();
     };
   }
@@ -4292,12 +4231,6 @@
     delete $('#sharesBox').dataset.k;
     $('#sheet h2').textContent = 'Anotar';
     $('#expenseForm button.big').textContent = 'Anotar';
-    marcaFixo(false);
-  };
-  const marcaFixo = (on) => {
-    const c = /** @type {HTMLInputElement} */ ($('#fixo'));
-    c.checked = on;
-    c.closest('.chip').classList.toggle('on', on);
   };
   // fechar no meio de uma edição joga ela fora: o próximo anotar começa limpo
   const closeSheet = () => {
@@ -4330,7 +4263,6 @@
       for (const i of inputs('#sharesBox input[data-share]')) i.value = reais(e.shares[i.dataset.share] || 0);
       atualizaFalta();
     }
-    marcaFixo(temFixo() && !!e.rec);
     $('#sheet h2').textContent = 'Editar';
     $('#expenseForm button.big').textContent = 'Salvar';
     openSheet();
@@ -4435,8 +4367,6 @@
       for (const id of among) exp.shares[id] = sh[id] || 0;
     }
     const velho = editando && state.expenses.find((x) => x.id === editando);
-    // a série continua a mesma na edição: senão os meses que já vieram viriam de novo
-    if (/** @type {HTMLInputElement} */ ($('#fixo')).checked) exp.rec = (velho && velho.rec) || exp.id;
     if (splitMode !== 'custom' && total % among.length) {
       // editou só a descrição (ou o pagante): o centavo fica com quem já estava
       const igual = velho && ehIgual(velho) && centavos(velho) === total && velho.among.join() === among.join();
@@ -4728,7 +4658,6 @@
     ['#apagaTudo', apagaTudo],
     ['#proxRole', proximoRole],
     ['[data-cobra]', cobra],
-    ['[data-trocazap]', (el) => state.people.some((p) => p.id === el.dataset.trocazap) && pedeZap(el.dataset.trocazap)],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],
     ['[data-del-expense]', excluiGasto],
     [
@@ -4755,8 +4684,7 @@
   // os chips de quem divide e o ✔ das linhas das partes marcam a mesma lista
   document.addEventListener('change', (ev) => {
     const tgt = /** @type {HTMLInputElement} */ (ev.target);
-    if (tgt.matches('#fixo')) marcaFixo(tgt.checked);
-    else if (tgt.matches('#splitChips input')) {
+    if (tgt.matches('#splitChips input')) {
       tgt.closest('.chip').classList.toggle('on', tgt.checked);
       updateHint();
     } else if (tgt.matches('#sharesBox [data-quem]')) {
@@ -4785,91 +4713,9 @@
   const linkDoQr = () => `${SITE}?evento=${encodeURIComponent(roomName)}`;
   // api.whatsapp.com, não wa.me: o redirecionamento do wa.me troca emoji acima de
   // U+FFFF (🧾 💸 👉) por U+FFFD na web
-  // com o número (55 + DDD + número), o zap cai direto na conversa da pessoa
-  const abreZap = (txt, tel = '') =>
-    window.open(
-      'https://api.whatsapp.com/send?' + (tel ? `phone=${tel}&` : '') + 'text=' + encodeURIComponent(txt),
-      '_blank',
-      'noopener',
-    );
-  // o zap de cada pessoa fica só neste aparelho (gaveta `tolisa`, em `phones`), pelo nome: vale em
-  // qualquer evento. Nunca vai pro banco: lá ele ficaria à vista de quem tem o link, como o pix sem telefone.
-  // '' é o "pular": não pergunta mais
-  const chaveDoNome = (n) =>
-    n
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .trim();
-  /** o número guardado ('55…'), '' se pulou, null se nunca perguntei @returns {string|null} */
-  const zapDe = (id) => {
-    const ps = device().phones,
-      v = ps && typeof ps === 'object' ? ps[chaveDoNome(nameOf(id))] : undefined;
-    return v === '' || (typeof v === 'string' && /^55\d{10,11}$/.test(v)) ? v : null;
-  };
-  /** `tel` undefined esquece: a próxima cobrança pergunta de novo */
-  const guardaZap = (id, tel) =>
-    mexe(DEVICE, (o) => {
-      const ps = { ...(o.phones && typeof o.phones === 'object' ? o.phones : {}), [chaveDoNome(nameOf(id))]: tel };
-      if (tel === undefined) delete ps[chaveDoNome(nameOf(id))];
-      o.phones = ps;
-    });
-  /** número de celular ou fixo do Brasil, do jeito que vier: '55' + DDD + número, ou null */
-  const telBR = (v) => {
-    let d = String(v).replace(/\D/g, '').replace(/^0+/, '');
-    if (/^55\d{10,11}$/.test(d)) d = d.slice(2);
-    return /^\d{10,11}$/.test(d) ? '55' + d : null;
-  };
-  /** a primeira cobrança de alguém pede o zap dela, uma vez só. O zap abre do próprio toque
-   *  no cobrar ou no pular, sem await no meio (senão o celular barra o pop-up).
-   *  Sem `msg` é o trocar: guarda o número novo, ou esquece, e não abre o zap */
-  function pedeZap(quem, msg = '') {
-    // a agenda do celular (Contact Picker, Chrome no Android) só preenche a caixa
-    const nav = /** @type {any} */ (navigator),
-      agenda = nav.contacts && typeof nav.contacts.select === 'function',
-      velho = msg ? '' : zapDe(quem) || '';
-    overlay(
-      `<h2 class="pergunta">Zap de ${nomeHtml(quem)}?</h2>
-      <p class="muted recado" id="askDesc">com o número, a cobrança já cai na conversa. ele fica só neste aparelho</p>
-      <form id="zapForm" autocomplete="off"><input id="askInput" type="tel" inputmode="tel" placeholder="(81) 99999-9999" value="${velho.slice(2)}">${agenda ? '<div class="c"><button type="button" id="zapAgenda" class="ghost">📇 pegar da agenda</button></div>' : ''}<button class="big">${msg ? `${WA_SVG} cobrar` : 'guardar'}</button></form>
-      <div class="c voltar"><button id="zapPular" class="ghost">${msg ? 'pular' : 'esquecer o número'}</button></div>`,
-    );
-    const caixa = $('#askInput'),
-      erro = [caixa, $('#askDesc')];
-    caixa.addEventListener('input', () => erro.forEach((e) => e.classList.remove('erro')));
-    /** @param {string|undefined} tel @param {boolean} [guarda] */
-    const manda = (tel, guarda = true) => {
-      if (guarda) guardaZap(quem, tel);
-      closeOverlay();
-      if (msg) abreZap(msg, tel || '');
-      else render();
-    };
-    $('#zapForm').onsubmit = (ev) => {
-      ev.preventDefault();
-      // caixa vazia não é pular: cobra sem número, e a próxima cobrança pergunta de novo
-      if (!caixa.value.trim()) return msg ? manda('', false) : manda(undefined);
-      const tel = telBR(caixa.value);
-      if (tel) return manda(tel);
-      erro.forEach((e) => {
-        e.classList.remove('erro');
-        void e.offsetWidth;
-        e.classList.add('erro');
-      });
-      caixa.focus();
-    };
-    $('#zapPular').onclick = () => manda(msg ? '' : undefined);
-    if (agenda)
-      $('#zapAgenda').onclick = () =>
-        nav.contacts.select(['tel']).then(
-          (cs) => {
-            const t = cs && cs[0] && cs[0].tel && cs[0].tel[0];
-            if (t && caixa.isConnected) caixa.value = t;
-          },
-          () => {},
-        );
-    caixa.focus();
-  }
+  // sem número: o zap abre na escolha de contato, e a pessoa escolhe quem (ou o grupo)
+  const abreZap = (txt) =>
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank', 'noopener');
   /** quando a conta de alguém fechou (o último gasto em que a pessoa entrou) e há quantos dias
    *  @param {string} quem @returns {{ at: number, dias: number }} */
   function idadeDaDivida(quem) {
@@ -4959,9 +4805,7 @@
     const { frases } = COBRANCAS.find((f) => idadeDaDivida(quem).dias <= f.ate) || COBRANCAS[0];
     const lembra = frases[vez % frases.length](nameOf(quem), comSifrao(cents), nameOf(me), evento());
     const msg = `${lembra}${aniversario(quem)}${pix}\n\n${shareUrl(quem)}`;
-    const tel = zapDe(quem);
-    if (tel === null && temNumeroZap()) pedeZap(quem, msg);
-    else abreZap(msg, tel || '');
+    abreZap(msg);
   }
   /** o toque no aviso do mêsversário da dívida: o cartão já diz quanto e há quanto tempo, e o cobrar abre o zap
    *  do próprio toque, como o da linha @param {string} quem @param {number} cents */

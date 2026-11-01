@@ -242,6 +242,9 @@
   /** o anotar: 'equal' (igual) ou 'custom' (partes diferentes) */ let splitMode = 'equal';
   /** o gasto que o anotar está editando @type {string|null} */ let editando = null;
   /** modo chato (easter egg da ficha): sem diva, e o rodapé vira "Deus é fiel." */ let chato = !!device().boringMode;
+  /** a conta tinha dívida no render de antes: zerar agora é o que chama a nevasca do natal */ let tinhaDivida = false;
+  const NEVASCA_MS = 6000, // a nevasca do natal (o nevascaSome do style.css)
+    GORRO_MS = 1300; // a pirueta do gorro do título (o voaGorro do style.css)
   let pollTimer = null,
     saving = false, // um sync de cada vez
     deNovo = false; // pediram sync no meio de outro: roda de novo no fim, senão o gasto anotado ali espera o próximo poll
@@ -459,6 +462,18 @@
   const BARRA = { '': '#6b4a2b', natal: '#123a2a', neon: '#0c0912', grafite: '#160f0b' };
   /** o natal muda a diva (de gorro) e as falas dela (ho ho ho) */
   const natal = () => tema() === 'natal';
+  /** no tema natal, o 24 e o 25 são de Feliz Natal e o 31 e o 1º de Feliz Ano Novo: '' nos outros dias */
+  const diaDeFesta = () => {
+    if (!natal()) return '';
+    const d = new Date(),
+      m = d.getMonth(),
+      dia = d.getDate();
+    if (m === 11 && (dia === 24 || dia === 25)) return 'natal';
+    if ((m === 11 && dia === 31) || (m === 0 && dia === 1)) return 'ano';
+    return '';
+  };
+  /** o ano que a virada traz: no 31 é o que vem, no 1º é o que chegou */
+  const anoNovo = () => new Date().getFullYear() + (new Date().getMonth() === 11 ? 1 : 0);
   /** a foto da diva das fichas: no natal ela vem de gorro */
   const diva = () => (natal() ? 'diva-natal.png' : 'diva.png');
   /** liga o tema no html, na barra do navegador e no botão do pé da nota; vale já, antes do primeiro render */
@@ -1312,6 +1327,39 @@
       'Um beijo e um panetone, benção.',
     ],
   };
+  // no 24 e no 25, só Feliz Natal
+  /** @type {typeof SIGNOFF} */
+  const SIGNOFF_DIA_NATAL = {
+    owe: [
+      'Feliz Natal! Agora paga, meu bem.',
+      'Ho ho ho, Feliz Natal e paga o pix.',
+      'Feliz Natal! Meu presente? Teu pix.',
+    ],
+    owed: [
+      'Feliz Natal! Quem me deve, me paga.',
+      'Ho ho ho, Feliz Natal, cadê meu pix?',
+      'Feliz Natal, e o Noel anotou tudo.',
+    ],
+    even: ['Feliz Natal, meu bem! Nome limpo.', 'Ho ho ho, Feliz Natal, minha flor!'],
+    all: ['Feliz Natal! Ninguém deve nada.', 'Ho ho ho! Feliz Natal, tá tudo pago.'],
+    none: ['Feliz Natal! Diz quem tu é, meu bem.', 'Ho ho ho, Feliz Natal, minha flor!'],
+  };
+  /** no 31 e no 1º, Feliz Ano Novo, com o ano que chega @param {number} a @returns {typeof SIGNOFF} */
+  const signoffAnoNovo = (a) => ({
+    owe: [
+      `Feliz ${a}! Começa o ano sem dívida.`,
+      'Pula sete ondas e paga o pix, meu bem.',
+      'Ano novo, pix velho: paga, meu bem.',
+    ],
+    owed: [
+      `Feliz ${a}! Quem me deve, me paga.`,
+      'Ano novo, cobrança velha, meu bem.',
+      'Na virada eu pedi: meu pix de volta.',
+    ],
+    even: [`Feliz ${a}, nome limpo, minha flor!`, 'Ano novo, conta zerada. Chique!'],
+    all: [`Feliz ${a}! Todo mundo quite.`, 'Virou o ano sem dívida. Milagre!'],
+    none: [`Feliz ${a}! Diz quem tu é, meu bem.`, 'Senta, que o ano tá só começando.'],
+  });
   // #endregion
   // #region aviso no celular
   // ---------- aviso no celular (push) ----------
@@ -1505,6 +1553,9 @@
   }
   /** o subtítulo do cabeçalho muda com o saldo de quem está vendo */
   function subtitulo(hasMe, bal) {
+    const festa = diaDeFesta(),
+      oi = festa === 'natal' ? 'feliz natal' : `feliz ${anoNovo()}`;
+    if (festa) return !hasMe || bal > 0 ? `${oi}, quem me deve?` : bal < 0 ? `${oi}, devo a quem?` : `${oi}, tô quite!`;
     const n = natal();
     if (!hasMe || bal > 0) return n ? 'ho ho ho, quem me deve?' : 'quem me deve?';
     if (bal < 0) return n ? 'pra quem eu devo, noel?' : 'pra quem eu devo?';
@@ -1512,7 +1563,15 @@
   }
   /** a lista de frases do rodapé que combina com a situação */
   function frasesDoRodape(hasMe, bal, allEven) {
-    const f = natal() ? SIGNOFF_NATAL : SIGNOFF;
+    const festa = diaDeFesta(),
+      f =
+        festa === 'natal'
+          ? SIGNOFF_DIA_NATAL
+          : festa === 'ano'
+            ? signoffAnoNovo(anoNovo())
+            : natal()
+              ? SIGNOFF_NATAL
+              : SIGNOFF;
     if (allEven) return f.all;
     if (!hasMe) return f.none;
     if (bal < 0) return f.owe;
@@ -1573,6 +1632,9 @@
     const nMeus = acerto.filter((t) => t.from === me).length;
 
     viraQuite(hasMe, bal);
+    // no natal, a conta que acabou de zerar pra todo mundo ganha uma nevasca
+    if (allEven && tinhaDivida && natal()) nevasca();
+    if (!vazio) tinhaDivida = !allEven;
     renderCabecalho(hasMe, bal, allEven);
     renderChegada(hasMe);
     if (hasMe && !vazio) renderMinha(bal, acerto);
@@ -1613,6 +1675,18 @@
     app.style.setProperty('--vq', `${virou.em - Date.now()}ms`);
   }
   /** o nome do evento, o "Sou Fulano", o subtítulo e a frase do rodapé */
+  /** no natal, tocar no título faz o gorro do Ô dar uma pirueta, com um ho ho ho @param {HTMLElement} t */
+  function voaGorro(t) {
+    if (!natal() || semMovimento() || t.classList.contains('digitando') || t.classList.contains('voa')) return;
+    t.classList.add('voa');
+    setTimeout(() => t.classList.remove('voa'), GORRO_MS);
+  }
+  /** a neve engrossa por uns segundos, por cima de tudo, e some sozinha */
+  function nevasca() {
+    if (semMovimento() || $('.nevasca')) return;
+    document.body.insertAdjacentHTML('beforeend', '<div class="nevasca" aria-hidden="true"></div>');
+    setTimeout(() => $('.nevasca')?.remove(), NEVASCA_MS);
+  }
   function renderCabecalho(hasMe, bal, allEven) {
     $('#roomLabel').textContent = evento() || '—';
     document.title = evento() ? `${evento()} · tô lisa` : 'tô lisa · quem me deve?';
@@ -4610,6 +4684,7 @@
   /** @type {[string, (el: HTMLElement) => unknown][]} vale o primeiro seletor que o clique acertar */
   const CLIQUES = [
     ['#temaBtn', trocaTema],
+    ['h1>span', voaGorro],
     ['#instalar, #instalarGate', instala],
     ['#fotoBtn', tiraFoto],
     ['[data-preco]', marcaPreco],

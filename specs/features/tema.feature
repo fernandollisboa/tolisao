@@ -52,3 +52,14 @@ Funcionalidade: O tema
     Quando o calendário chega em "2027-01-07"
     E eu recarrego a página
     Então o pé da nota diz "tema: papel"
+
+  Esquema do Cenário: no natal, a diva deseja boas festas no dia
+    Quando o calendário chega em "<dia>"
+    E eu recarrego a página
+    Então o subtítulo diz "<subtítulo>"
+
+    Exemplos:
+      | dia        | subtítulo                 |
+      | 2026-12-25 | feliz natal, devo a quem? |
+      | 2026-12-31 | feliz 2027, devo a quem?  |
+      | 2027-01-01 | feliz 2027, devo a quem?  |

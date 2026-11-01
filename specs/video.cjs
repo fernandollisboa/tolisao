@@ -229,6 +229,10 @@ const CENAS = {
       await p.click('#okBtn'); await p.waitForTimeout(1400);
       await p.click('#quitOk'); await p.waitForTimeout(4500);
       for (const espera of [1800, 1800, 300, 1500]) { await p.click('#temaBtn'); await p.waitForTimeout(espera); } } },
+  // o natal: tocar no título faz o gorro do Ô dar uma pirueta (grave com --tema=natal)
+  gorro: { nome: 'o gorro do título dá uma pirueta a cada toque', quem: 'Lia', atrasoPix: 0, vel: 1,
+    acao: async p => { await p.waitForTimeout(1200);
+      for (const espera of [1800, 1800]) { await p.click('#titulo'); await p.waitForTimeout(espera); } } },
   risco: { nome: 'o risco correndo nas linhas pagas', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await p.evaluate(() => document.querySelector('#settle').scrollIntoView({ block: 'center' }));
       await p.waitForTimeout(3500); } },

@@ -10,10 +10,6 @@ Given('que neste aparelho eu sou {word} no {string}', async ({ mundo }, quem, no
 // a última visita deste aparelho ao evento: o que mudou depois dela ganha marca na lista
 Given('que eu vi o evento pela última vez ontem', async ({ mundo }) => { naGaveta(mundo, `tolisa:${mundo.sala}`, { lastSeen: AGORA - 86400000 }); });
 Given('que eu já usei a chave pix {string} em outro evento', async ({ mundo }, chave) => { naGaveta(mundo, 'tolisa', { pixKey: chave }); });
-// o zap de cada pessoa fica no aparelho pelo nome, sem acento e em minúscula
-Given('que este aparelho já guardou o número {string} da/do {word}, em outro evento', async ({ mundo }, tel, nome) => {
-  naGaveta(mundo, 'tolisa', { phones: { [nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()]: tel } });
-});
 Given('que da última vez, em outro evento, eu fui {string}', async ({ mundo }, nome) => { naGaveta(mundo, 'tolisa', { myName: nome }); });
 
 const gaveta = (mundo, k) => mundo.p.evaluate(k => JSON.parse(localStorage.getItem(k) || 'null'), k);
@@ -67,8 +63,6 @@ Then('o {string} no banco ainda tem a chave pix {string} da/do {word}', async ({
   expect(mundo.banco.pega(['pix', sala, idNo(mundo, sala, quem), 'key'])).toBe(chave);
 });
 // o ?apagar do endereço, que o aparelho guarda (o APAGAR_DADOS vem desligado)
-Given('que eu pedi pra testar o número do zap', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { numeroZapOn: true }); });
-Given('que eu pedi pra testar a conta fixa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { fixoOn: true }); });
 Given('que eu pedi pra testar a galera de sempre', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { galeraOn: true }); });
 Given('que eu pedi pra testar tudo', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { testesOn: true }); });
 Given('que eu pedi pra testar o modo mesa', async ({ mundo }) => { naGaveta(mundo, 'tolisa', { mesaOn: true }); });

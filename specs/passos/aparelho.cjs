@@ -91,6 +91,8 @@ When('eu troco o tema só com o teclado', async ({ mundo }) => {
 });
 When('eu toco no tema {int} vezes', async ({ mundo }, n) => { for (let i = 0; i < n; i++) await mundo.p.click('#temaBtn'); });
 When('o celular passa pro escuro', async ({ mundo }) => { await mundo.p.emulateMedia({ colorScheme: 'dark' }); });
+// o dia no relógio do aparelho, ao meio-dia (longe da virada do fuso): vale a partir do próximo carregamento
+When('o calendário chega em {string}', async ({ mundo }, dia) => { await mundo.p.context().clock.setSystemTime(Date.parse(`${dia}T12:00:00-03:00`)); });
 When('o celular volta pro claro', async ({ mundo }) => { await mundo.p.emulateMedia({ colorScheme: 'light' }); });
 Then('o pé da nota diz {string}', async ({ mundo }, txt) => { await expect(mundo.p.locator('#temaBtn')).toHaveText(txt); });
 // claro ou escuro pela luz do papel do recibo, do jeito que a pessoa vê

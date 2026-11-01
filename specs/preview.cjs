@@ -18,12 +18,12 @@ const DADOS = {
 };
 
 // --tema: o tema gravado no aparelho antes do app, como se a pessoa tivesse tocado o "tema:" do pé da nota.
-// papel é o claro; auto é o celular, que sai escuro (vira o neon) pra mostrar alguma coisa
+// papel é o claro (gravado com nome: no fim do ano o padrão é o natal); auto é o celular, que sai escuro (vira o neon)
 const TEMAS = ['papel', 'natal', 'neon', 'grafite', 'auto'];
 const esquema = tema => (tema === 'auto' ? 'dark' : 'light');
 /** põe o tema no `tolisa` do aparelho; registre depois de quem grava o `tolisa` inteiro, senão ele apaga */
 async function poeTema(p, tema) {
-  if (!tema || tema === 'papel') return;
+  if (!tema) return;
   if (!TEMAS.includes(tema)) throw new Error(`tema desconhecido: ${tema} (tem ${TEMAS.join(', ')})`);
   await p.addInitScript(t => {
     try { localStorage.setItem('tolisa', JSON.stringify({ ...JSON.parse(localStorage.getItem('tolisa') || '{}'), tema: t })); } catch {}
@@ -42,14 +42,14 @@ async function folha(b, imgs, largura, saida, colunas = 2) {
 }
 
 async function preview(opts = {}) {
-  // --temas: a mesma foto no papel, no neon e no grafite, lado a lado
+  // --temas: a mesma foto no papel, no natal, no neon e no grafite, lado a lado
   if (opts.temas) {
     const saida = opts.saida || path.join(os.tmpdir(), 'preview.png'), largura = opts.largura || 390;
     const imgs = [];
-    for (const tema of ['papel', 'neon', 'grafite'])
+    for (const tema of ['papel', 'natal', 'neon', 'grafite'])
       imgs.push({ chave: tema, arq: await preview({ ...opts, temas: false, tema, saida: path.join(os.tmpdir(), `preview-tema-${tema}.png`) }) });
     const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
-    try { await folha(b, imgs, largura, saida, 3); } finally { await b.close(); }
+    try { await folha(b, imgs, largura, saida, 4); } finally { await b.close(); }
     return saida;
   }
   const { alvo = null, quem = 'Lia', pix = true, largura = 390, altura = 900,

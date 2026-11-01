@@ -2,7 +2,7 @@
 // (#299). Ferramenta, não teste: não roda no CI. Marca o que fica abaixo de 4,5:1 (texto) e 3:1 (borda, ícone).
 // Mede também o :hover e o :active dos botões (forçados pelo DevTools, sem clicar).
 //   npm run contraste                  todos os temas, todas as telas, só o que falha
-//   npm run contraste -- --tema=neon   um tema (papel, neon, grafite)
+//   npm run contraste -- --tema=neon   um tema (papel, natal, neon, grafite)
 //   npm run contraste -- --tela=quitar uma tela (as chaves de TELAS)
 //   npm run contraste -- --tudo        lista também o que passa
 // O fundo é a soma das cores de fundo dos pais (com transparência); fundo de imagem/gradiente entra pela cor de baixo
@@ -126,7 +126,7 @@ const lum = ([r, g, b]) => { const c = v => (v /= 255) <= 0.03928 ? v / 12.92 : 
 const razao = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
 const hex = c => '#' + c.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 
-async function contraste({ temas = ['papel', 'neon', 'grafite'], telas = Object.keys(TELAS), tudo = false } = {}) {
+async function contraste({ temas = ['papel', 'natal', 'neon', 'grafite'], telas = Object.keys(TELAS), tudo = false } = {}) {
   const { srv, porta } = await servir();
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM });
   const achados = [];

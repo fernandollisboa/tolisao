@@ -21,7 +21,7 @@ const tema = t => `try { localStorage.setItem('tolisa', JSON.stringify({ tema: '
   // a nota da Lia nos três temas que se escolhem no pé da nota (o "celular" é um deles, conforme o aparelho)
   const dados = falsa(DADOS), quem = NOMES.lia;
   for (const t of ['papel', 'neon', 'grafite'])
-    await preview({ dados, quem, quieto: true, js: t === 'papel' ? undefined : tema(t), saida: em(`tema-${t}.png`) });
+    await preview({ dados, quem, quieto: true, js: tema(t), saida: em(`tema-${t}.png`) });
   // anotando um gasto
   await preview({ dados, quem, quieto: true, recorte: { x: 0, y: 0, width: 390, height: 844 }, altura: 844, saida: em('anotar.png'),
     acao: async p => { await p.click('#fab'); await p.waitForSelector('#sheet:not(.hidden)');

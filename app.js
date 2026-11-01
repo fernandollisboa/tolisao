@@ -56,8 +56,11 @@
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
   // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema,
   // o html ganha data-tema (e data-escuro nos escuros) e o style.css redefine as cores. Tema novo: entra aqui, no BARRA
-  // e no style.css; se for escuro, no ESCUROS também. O natal é claro: o papel de sempre com pisca-pisca e a diva de gorro
-  const TEMA = '';
+  // e no style.css; se for escuro, no ESCUROS também. O natal é claro: o papel de sempre com pisca-pisca e a diva de gorro,
+  // e é o padrão de 1º de novembro até o dia de Reis (NATAL, a virada do dia no relógio do aparelho). Quem toca no papel
+  // fica nele
+  const NATAL = [new Date(2026, 10, 1), new Date(2027, 0, 7)];
+  const TEMA = Date.now() >= NATAL[0].getTime() && Date.now() < NATAL[1].getTime() ? 'natal' : '';
   const TEMAS = [
     ['', 'papel'],
     ['natal', 'natal'],
@@ -120,7 +123,7 @@
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (a foto da conta), pelo ?mesa;
   //                  testesOn: tudo que está em teste de uma vez, pelo ?testes;
-  //                  tema: o tema escolhido no pé da nota;
+  //                  tema: o tema escolhido no pé da nota ('papel' é o papel; sem ele, vale o TEMA);
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono))
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
   //                  pushTok, pushOn, pushTry, charged }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
@@ -460,7 +463,7 @@
   /** o tema que a pessoa escolheu, um dos de TEMAS */
   const temaEscolhido = () => {
     const t = device().tema || TEMA;
-    return TEMAS.some(([id]) => id === t) ? t : '';
+    return TEMAS.some(([id]) => id === t) ? t : ''; // o 'papel' gravado cai aqui também
   };
   /** o tema de agora: '' é o papel; o celular vira o neon ou o papel */
   const tema = () => {
@@ -489,7 +492,8 @@
   /** o toque no tema: vai pro próximo da lista, e a nota se repinta com as cores de gente do tema novo */
   const trocaTema = () => {
     const i = TEMAS.findIndex(([id]) => id === temaEscolhido());
-    setDevice('tema', TEMAS[(i + 1) % TEMAS.length][0] || undefined);
+    // o papel fica gravado com nome: vazio, ele voltava pro padrão, que no fim do ano é o natal
+    setDevice('tema', TEMAS[(i + 1) % TEMAS.length][0] || 'papel');
     aplicaTema();
     render();
   };

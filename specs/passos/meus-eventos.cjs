@@ -21,7 +21,7 @@ When('eu digito o código {string} no cartão do evento', async ({ mundo }, codi
   usa(mundo, codigo); await mundo.p.fill('#gateCode', codigo);
   await recarrega(mundo, () => mundo.p.click('#gateForm button')); await mundo.p.waitForSelector('#app:not(.loading)');
 });
-// o "praia" do Contexto é de antes do final sorteado: digitado, ele perguntaria se é de outra turma
+// o "praia" do Contexto é de antes do código sorteado: digitado, ele perguntaria se é de outra turma
 When('eu colo o link do {string} no campo do código', async ({ mundo }, nome) => {
   usa(mundo, nome); await mundo.p.fill('#gateCode', `${mundo.base}/?evento=${nome}`); await mundo.p.click('#gateForm button');
   await mundo.p.waitForSelector('#app:not(.loading)');
@@ -85,7 +85,6 @@ When('a/o {word} paga R$ {num} pra/pro {word} no {string}, em outro aparelho', a
   sala.expenses = [...(sala.expenses || []), { id: 'pgfora', kind: 'payment', desc: 'Pagamento', amount: valor, payer: id(quem), among: [id(pra)], at: AGORA + 60000, by: quem }];
   sala.updatedAt = AGORA + 60000;
 });
-Given('que este aparelho está no modo chato', async ({ mundo }) => { mundo.antes = { ...mundo.antes, tolisa: JSON.stringify({ boringMode: true }) }; });
 Then('a mensagem do zap começa com {string}', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.evaluate(() => window.__aberto ? decodeURIComponent(window.__aberto.split('text=')[1]).replace(/ /g, ' ').split('\n')[0] : null)).toBe(txt);
 });

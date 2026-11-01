@@ -25,7 +25,7 @@ const gaveta = (mundo, k) => mundo.p.evaluate(k => JSON.parse(localStorage.getIt
 
 Given('que este aparelho guardou, do jeito antigo, que eu sou {word} e o segredo {string} da chave dele', async ({ mundo }, quem, tok) => {
   const eu = mundo.pessoa(quem).id;
-  mundo.antes = { [`racha:${mundo.sala}:me`]: eu, [`racha:${mundo.sala}:pixtok:${eu}`]: tok, 'racha:visitas': '4', 'racha:chato': '1',
+  mundo.antes = { [`racha:${mundo.sala}:me`]: eu, [`racha:${mundo.sala}:pixtok:${eu}`]: tok, 'racha:visitas': '4',
     'racha:room': JSON.stringify({ code: mundo.evento.name, id: mundo.sala }) };
 });
 When('eu abro o evento', async ({ mundo }) => { await mundo.abre(); await mundo.p.waitForSelector('#app:not(.loading)'); });
@@ -33,7 +33,7 @@ Then('o aparelho guarda que eu sou {string} e o segredo {string} da chave do/da 
   const s = await gaveta(mundo, `tolisa:${mundo.sala}`);
   expect(s.me).toBe(id); expect(s.pixTokens[mundo.pessoa(quem).id]).toBe(tok);
   expect(s.code).toBe(mundo.evento.name);
-  const dev = await gaveta(mundo, 'tolisa'); expect(dev).toMatchObject({ visits: 5, boringMode: true }); expect(dev.lastRoom).toBeUndefined();
+  const dev = await gaveta(mundo, 'tolisa'); expect(dev).toMatchObject({ visits: 5 }); expect(dev.lastRoom).toBeUndefined();
 });
 Then('o aparelho não guarda mais nada do jeito antigo', async ({ mundo }) => {
   expect(await mundo.p.evaluate(() => Object.keys(localStorage).filter(k => !k.startsWith('tolisa')))).toEqual([]);

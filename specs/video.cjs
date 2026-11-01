@@ -107,10 +107,6 @@ const CENAS = {
       await ficha.desce(p, true); await ficha.pousa(p, 8000); await ficha.agarra(p);
       await leva('#mineRows [data-settle]'); await ficha.solta(p); await p.waitForTimeout(1600);
       await p.click('#cancelBtn'); await p.waitForTimeout(800); } },
-  chato: { nome: 'segura, toca, segura na ficha: a diva desliga; o mesmo no rodapé liga de novo', quem: 'Lia', atrasoPix: 0,
-    acao: async p => { await ficha.desce(p); await ficha.pousa(p);
-      await ficha.senha(p, '.stain'); await p.waitForTimeout(2000); await ficha.senha(p, '#signoff'); await p.waitForTimeout(400);
-      await ficha.desce(p, true); await ficha.pousa(p, 8000); } },
   toque: { nome: 'o toque preenchendo o ✔ e o copiar pix, que no celular não têm hover', quem: 'Lia', atrasoPix: 900, dados: TRES,
     acao: async p => {
       await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => {} } }));

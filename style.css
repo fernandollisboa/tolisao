@@ -91,11 +91,6 @@ button.ico.ok.mira{background:var(--green) !important}
 @keyframes engoliu{40%{scale:1.12}}
 @media (prefers-reduced-motion:reduce){.engoliu{animation:none}}
 .stain.fora{display:none}
-/* modo chato (easter egg): a diva apaga, desbota e some; o subtítulo vai junto */
-.stain.apaga{animation:apaga .7s ease-in forwards;pointer-events:none}
-@keyframes apaga{to{opacity:0;filter:grayscale(1) brightness(1.4);transform:rotate(var(--rot)) scale(.6)}}
-body.chato .stain,body.chato #tagline{display:none}
-#signoff{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}
 /* só na primeira tela que a pessoa vê neste aparelho: "tô lisa" se digita sozinho
    (app.js troca o textContent por setTimeout — nada de animação CSS no texto em si,
@@ -273,8 +268,6 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 #askDesc.erro,#askInput.erro{animation:tranco .5s ease-out}
 @keyframes tranco{0%,100%{transform:none}15%{transform:translateX(-6px)}35%{transform:translateX(4px)}55%{transform:translateX(-2px)}75%{transform:translateX(1px)}}
 @media (prefers-reduced-motion:reduce){#askDesc.erro,#askInput.erro{animation:none}}
-/* segurando a ficha (ou o rodapé) o iPhone não pode achar que é pra selecionar texto */
-body.segurando{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
 [role="button"]:focus-visible{outline:2px dashed var(--ink);outline-offset:3px;border-radius:3px}
 #splitHint a.link{color:inherit}   /* 'igualmente' na mesma cor do resto da frase */
@@ -707,6 +700,7 @@ button.linkpra i{flex:none;width:14px;height:14px;border-radius:50%;background:v
 button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-shadow:2px 2px 0 var(--sombra)}
 /* no cartão do evento o QR é um botãozinho com o ícone e o QR escrito, na linha de baixo do link, na mesma linha */
 .qr svg{display:block;width:100%;max-width:320px;margin:4px auto 0;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--sombra)}
+.linkQr{margin:6px 0 0;font-size:17px;text-transform:none;overflow-wrap:anywhere}
 /* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
 .pessoa.row .l[contenteditable]{outline:0;cursor:text}
 .pessoa.row .l[contenteditable]:focus{border-bottom-style:dashed;background:var(--card)}

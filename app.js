@@ -229,7 +229,7 @@
   // ---------- o estado da página ----------
   // tudo que muda enquanto a página está aberta. O resto do arquivo lê e escreve aqui
   /** o id do evento no banco: sha-256 do código @type {string|null} */ let groupId = null;
-  /** o código do evento: sorteado ("k7f3q9x2ab"), ou o nome com final sorteado dos eventos de antes ("churras-k7f3q9") */ let roomName =
+  /** o código do evento: sorteado ("k7f3q9"), ou o nome com final sorteado dos eventos de antes ("churras-k7f3q9") */ let roomName =
     '';
   /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
   /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
@@ -3221,13 +3221,13 @@
   /** código com cara de sorteado (os 10 de agora, ou o final de 6 dos eventos de antes, com algum número e alguma
    *  letra): veio de um link, não é nome de evento novo */
   function pareceLink(code) {
-    return /^(?=[a-z]*\d)(?=\d*[a-z])[a-z0-9]{10}$/.test(code) || /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+    return /^(?=[a-z]*\d)(?=\d*[a-z])[a-z0-9]{6}$/.test(code) || /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
   }
-  /** o código de um evento novo: 10 letras e números sorteados (36¹⁰), sem o nome, com pelo menos um de cada. O nome
+  /** o código de um evento novo: 6 letras e números sorteados (36⁶), sem o nome, com pelo menos um de cada. O nome
    *  fica só no evento, e o link fica curto */
   function codigoNovo() {
     for (;;) {
-      const c = sorteia(10);
+      const c = sorteia(6);
       if (/\d/.test(c) && /[a-z]/.test(c)) return c;
     }
   }
@@ -3290,7 +3290,7 @@
     }
     if (!existing) {
       // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo ganha um código
-      // sorteado ("k7f3q9x2ab"), e o nome da tela continua "churras"
+      // sorteado ("k7f3q9"), e o nome da tela continua "churras"
       const nome = code;
       criou = true;
       code = codigoNovo();

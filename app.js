@@ -2771,7 +2771,7 @@
     const n = state.people.length;
     // a casinha é o "seu nome" até eu escrever o primeiro; o nome que o aparelho sabe já vem nela
     const seuNome = !temMe() && !quemVai.escritos.length,
-      nomeSabido = !seuNome ? '' : dono().nome || (typeof device().myName === 'string' ? device().myName : ''),
+      nomeSabido = seuNome && typeof device().myName === 'string' ? device().myName : '',
       jaVem = nomeSabido && !nomeExiste(nomeSabido) ? nomeSabido : '';
     // lista vazia: a turma de um dos meus eventos vem num toque, da cópia do aparelho (abre sem internet)
     const turmas = n

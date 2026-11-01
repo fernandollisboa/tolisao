@@ -256,7 +256,6 @@ Funcionalidade: Acertar as contas
     E a Mengla paga R$ 174,43 pro Fernando em outro aparelho
     Então não aparece aviso de pagamento
 
-  # o "recebi" de quem recebe está desligado (RECEBI no app.js); o cenário dele volta junto com a flag
 
   Cenário: quem recebe perdoa depois de quem deve já ter marcado paguei em outro aparelho
     A minha nota ainda não sabia do paguei: o perdão não quita de novo, senão quem pagou passa a ter a receber.

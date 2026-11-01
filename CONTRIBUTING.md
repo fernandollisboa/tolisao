@@ -27,7 +27,7 @@ os testes são cucumber em português: a especificação fica em `specs/features
 
 ## não rola
 
-- **dependência nova no site.** o navegador não tem? a gente escreve (por isso existem `crc16`, `code128Widths` e o recibo em canvas). ferramenta de desenvolvimento pode. a exceção é o leitor da foto da conta (`ocr/`, o tesseract.js): ler texto em foto não se escreve na mão, então ele mora no site e só baixa no toque da 📷.
+- **dependência nova no site.** o navegador não tem? a gente escreve (por isso existem `crc16`, `code128Widths` e o recibo em canvas). ferramenta de desenvolvimento pode.
 - **dependência na API além do `wrangler`.** o `servidor/` é um Worker da Cloudflare em JS puro, testado com `cd servidor && npm test`; sobe sozinho pelo `servidor.yml` quando muda na `main`.
 - **build, bundler, framework.** tipo é JSDoc com `// @ts-check`.
 - **reescrita grande.** edição pequena em `app.js`/`style.css`. o formato é do prettier (`npm run formata`), não se discute.
@@ -54,7 +54,7 @@ tamanho real, 390 de largura. detalhes em `.claude/skills/preview/SKILL.md`.
 
 mexeu em cor? `npm run contraste` lista, tema por tema e janela por janela, o texto abaixo de 4,5:1 e a borda ou ícone de botão abaixo de 3:1 (hover e `:active` inclusos). não é teste, não roda no CI.
 
-mexeu no leitor da foto da conta? `npm run ocr` passa as contas de verdade de `specs/contas/` por ele e compara com o gabarito de cada uma. rode antes e depois. foto nova de conta entra lá, com o gabarito (como, no `specs/contas/README.md`).
+conta de bar nova? a foto entra em `specs/contas/`, com o gabarito e, se der, o texto que o celular copiou dela (como, no `specs/contas/README.md`): é a base realista do texto da conta.
 
 ## commit
 

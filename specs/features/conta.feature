@@ -1,88 +1,78 @@
 # language: pt
-Funcionalidade: A conta sempre fecha
-  O que um paga, os outros devem, centavo por centavo. Nenhum gasto some calado nem
-  conta duas vezes, por maior que seja a turma e por mais aparelhos que mexam ao mesmo tempo.
+Funcionalidade: Texto da conta
+  No bar, a conta chega impressa, e o próprio celular já lê o texto de uma foto. Em vez de somar de cabeça
+  o que entra no gasto, a pessoa copia o texto da foto, cola no anotar e toca nos preços: a soma vai pro valor.
+  Ainda é protótipo do modo mesa: só aparece pra quem pediu pra testar.
 
-  Regra: um gasto se divide entre até 100 pessoas
+  Contexto:
+    Dado o evento "bar" com Ana, Beto e Caio
 
-    Cenário: numa formatura, quem dividiu paga a mesma parte que todo mundo
-      Dado uma formatura com 60 pessoas, da Ana à Zoe
-      E a Ana pagou R$ 600,00 dividido igual entre todo mundo
-      Quando eu abro o evento como Zoe
-      Então eu devo R$ 10,00 pra Ana
+  Cenário: sem pedir pra testar, o anotar não oferece colar a conta
+    Quando eu abro o evento como Ana
+    E eu toco no ✎
+    Então o anotar não oferece colar a conta
 
-    Cenário: acima de 100 pessoas, o anotar avisa em vez de deixar gente de fora
-      Dado uma formatura com 101 pessoas, da Ana à Zoe
+  Cenário: quem ligou a foto pelo link antigo continua com o modo mesa
+    O teste da foto passou pra dentro do modo mesa: quem já testava não precisa ligar de novo.
+    Dado que eu tinha ligado a foto da conta pelo link antigo
+    Quando eu abro o evento como Ana
+    E eu toco no ✎
+    Então o anotar oferece colar a conta
+
+  Regra: pra quem pediu pra testar, os preços tocados no texto colado somam no valor do anotar
+
+    Contexto:
+      Dado que eu pedi pra testar o modo mesa
       Quando eu abro o evento como Ana
       E eu toco no ✎
-      E eu preencho R$ 101,00 de "Buffet"
-      E eu salvo
-      Então aparece o aviso "Dá pra dividir entre até 100 pessoas"
 
-  Regra: dois aparelhos mexendo ao mesmo tempo não desequilibram a conta
+    Exemplo: na primeira vez, o cartão ensina a copiar o texto da foto
+      Ninguém sabe de cabeça que o celular lê texto em foto: o passo a passo vem aberto até a primeira conta colada.
+      Quando eu abro o texto da conta
+      Então o cartão ensina a copiar no iPhone e no Android
 
-    Cenário: duas pessoas editam o mesmo item, e vale a última edição
-      A Júlia salvou a dela um pouco antes de mim: o item fica com o meu valor, e uma vez só.
-      Dado o evento "churras" com Fernando, Júlia e Lia
-      E os gastos:
-        | o quê | valor | pagou    | divide entre         |
-        | Pizza | 60,00 | Fernando | Fernando, Júlia, Lia |
-      Quando eu abro o evento como Fernando
-      E eu abro a lista de itens
-      E eu edito o "Pizza"
-      E a Júlia troca o valor da "Pizza" pra R$ 90,00 em outro aparelho
-      E eu troco o valor pra R$ 75,00 e salvo
-      Então o "Pizza" fica de 75,00
-      E falta pagar:
-        | quem  | paga pra | valor |
-        | Júlia | Fernando | 25,00 |
-        | Lia   | Fernando | 25,00 |
-
-    Cenário: a edição que perdeu fica no fim da lista, dizendo qual valeu
-      Quem perdeu acharia que o valor dela valeu: a edição sobrescrita não some calada.
-      Dado o evento "churras" com Fernando, Júlia e Lia
-      E os gastos:
-        | o quê | valor | pagou    | divide entre         |
-        | Pizza | 60,00 | Fernando | Fernando, Júlia, Lia |
-      Quando eu abro o evento como Fernando
-      E eu abro a lista de itens
-      E eu edito o "Pizza"
-      E a Júlia troca o valor da "Pizza" pra R$ 90,00 em outro aparelho
-      E eu troco o valor pra R$ 75,00 e salvo
-      E eu abro o evento como Júlia em outro aparelho
-      E eu abro a lista de itens
-      Então o fim da lista diz "▸ 1 edição sobrescrita"
-      Quando eu abro os itens apagados
-      Então a "Pizza" de 90,00 aparece riscada: "edição de Júlia, sobrescrita pela de Fernando"
-
-    Cenário: quem acabou de entrar num gasto em outro aparelho não sai da lista
-      O ✕ só aparece pra quem não tem conta, mas outro aparelho pode ter posto a pessoa num gasto agorinha.
-      Dado o evento "churras" com Fernando, Júlia e Lia
-      Quando eu abro o evento como Fernando
-      E eu toco em quem é você
-      E eu escolho outra pessoa
-      E outro aparelho anota:
-        | o quê | valor | pagou    | divide entre  |
-        | Pizza | 60,00 | Fernando | Fernando, Lia |
-      E eu tiro a Lia da lista
-      Então o evento no banco tem Fernando, Júlia e Lia
-      Quando eu continuo
-      Então falta pagar:
-        | quem | paga pra | valor |
-        | Lia  | Fernando | 30,00 |
-
-  Regra: as partes diferentes somam o valor do item
-
-    Cenário: partes que não somam o valor do item viram divisão igual
-      O banco é de todo mundo: um item gravado com partes que não fecham não pode sumir com dinheiro.
-      Dado que alguém gravou no banco o evento:
+    Exemplo: a soma do que eu toquei vai pro valor
+      Quando eu colo a conta:
         """
-        { "name": "churras", "updatedAt": 1, "deleted": [],
-          "people": [ { "id": "fernando", "name": "Fernando", "at": 1 }, { "id": "lia", "name": "Lia", "at": 2 } ],
-          "expenses": [ { "id": "a", "desc": "Pizza", "amount": 60, "payer": "fernando", "among": ["fernando", "lia"],
-                          "shares": { "fernando": 1000, "lia": 2000 }, "at": 1 } ] }
+        CHOPP 12,90
+        PORCAO 39,90
+        AGUA 22,00
         """
-      Quando eu abro o evento como Fernando
-      Então falta pagar:
-        | quem | paga pra | valor |
-        | Lia  | Fernando | 30,00 |
+      E eu toco em 12,90 e 39,90 na conta
+      E eu uso a soma da conta
+      Então o valor do anotar é 52,80
+
+    Exemplo: tocar de novo num preço tira ele da soma
+      Quando eu colo a conta:
+        """
+        CHOPP 12,90
+        PORCAO 39,90
+        """
+      E eu toco em 12,90, 39,90 e 12,90 na conta
+      Então a conta soma R$ 39,90
+
+    Exemplo: o item com quantidade vale a quantidade vezes o unitário
+      A impressora térmica corta o total na beirada do papel: ele sai do "6 UND x 18,90", com o nome da linha de cima.
+      Quando eu colo a conta:
+        """
+        BUDWEISER 600ML
+        6 UND x 18,90
+        """
+      Então a conta mostra "BUDWEISER 600ML" por 113,40
+
+    Exemplo: o pontilhado, o R$ grudado e o total do item na linha de baixo
+      Quando eu colo a conta:
+        """
+        BRAHMA CHOPP......9X.....R$12,00
+        -TOTAL ITEM....R$108,00
+        ESPETINHO DE FRANGO.....1X.....R$10,00
+        """
+      Então a conta mostra "BRAHMA CHOPP" por 108,00
+      E a conta mostra "ESPETINHO DE FRANGO" por 10,00
+
+    Exemplo: o texto sem preço avisa
+      Quando eu colo a conta:
+        """
+        OBRIGADO PELA PREFERENCIA
+        """
+      Então a conta diz "não achei preço nesse texto"

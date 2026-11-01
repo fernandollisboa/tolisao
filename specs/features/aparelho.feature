@@ -15,7 +15,7 @@ Funcionalidade: O que fica guardado no aparelho
     Dado que eu pedi pra testar tudo
     Quando eu abro o evento como Lia
     E eu toco no ✎
-    Então o anotar tem a câmera
+    Então o anotar oferece colar a conta
 
   Cenário: quem já usava o site não perde quem é nem o segredo da chave
     Dado que este aparelho guardou, do jeito antigo, que eu sou Fernando e o segredo "tok-antigo" da chave dele

@@ -84,7 +84,7 @@ async function preview(opts = {}) {
     } else {
       await p.goto(`http://localhost:${porta}/?evento=${dados.name}`);
       // quem vazio é quem chegou pelo link do grupo e ainda não disse quem é
-      // com a flag QUEM_NO_TOPO desligada o cabeçalho não pergunta: escolhe pelos nomes do topo da nota
+      // com gente no evento o cabeçalho não pergunta: escolhe pelos nomes do topo da nota
       if (quem) {
         await p.waitForSelector('#whoBtn, #chegada [data-chegou]');
         if (await p.locator('#whoBtn').count()) await p.click('#whoBtn');

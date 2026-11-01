@@ -91,11 +91,6 @@ button.ico.ok.mira{background:var(--green) !important}
 @keyframes engoliu{40%{scale:1.12}}
 @media (prefers-reduced-motion:reduce){.engoliu{animation:none}}
 .stain.fora{display:none}
-/* modo chato (easter egg): a diva apaga, desbota e some; o subtítulo vai junto */
-.stain.apaga{animation:apaga .7s ease-in forwards;pointer-events:none}
-@keyframes apaga{to{opacity:0;filter:grayscale(1) brightness(1.4);transform:rotate(var(--rot)) scale(.6)}}
-body.chato .stain,body.chato #tagline{display:none}
-#signoff{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 h1{font-family:'VT323',monospace;font-size:40px;margin:0;text-align:center;letter-spacing:2px;text-transform:uppercase;font-weight:400;line-height:1}
 /* só na primeira tela que a pessoa vê neste aparelho: "tô lisa" se digita sozinho
    (app.js troca o textContent por setTimeout — nada de animação CSS no texto em si,
@@ -273,8 +268,6 @@ button.sec{display:block;width:100%;font-size:20px;padding:8px 16px;box-shadow:3
 #askDesc.erro,#askInput.erro{animation:tranco .5s ease-out}
 @keyframes tranco{0%,100%{transform:none}15%{transform:translateX(-6px)}35%{transform:translateX(4px)}55%{transform:translateX(-2px)}75%{transform:translateX(1px)}}
 @media (prefers-reduced-motion:reduce){#askDesc.erro,#askInput.erro{animation:none}}
-/* segurando a ficha (ou o rodapé) o iPhone não pode achar que é pra selecionar texto */
-body.segurando{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 a.link{color:var(--ink2);cursor:pointer;text-decoration:underline}
 [role="button"]:focus-visible{outline:2px dashed var(--ink);outline-offset:3px;border-radius:3px}
 #splitHint a.link{color:inherit}   /* 'igualmente' na mesma cor do resto da frase */
@@ -519,25 +512,24 @@ button.edita{border-color:transparent;background:transparent;text-decoration:und
 #expenses .item.open .row .l{white-space:normal}
 #expenses .day{margin:10px 0 0}
 #amount{font-size:30px;letter-spacing:1px}
-/* a foto da conta (?foto): o 📷 entre o valor e o "O quê?", e o cartão com a foto e uma caixa em cada preço.
-   As caixas são laranja vivo com contorno escuro: aparecem na conta branca de dia e na âmbar da noite */
-.two:has(#fotoBtn:not(.hidden)){grid-template-columns:140px 44px 1fr}
-#fotoBtn{width:44px;height:44px;padding:0;display:grid;place-content:center;box-shadow:2px 2px 0 var(--sombra);margin-bottom:4px}
-.fotoConta{border:2px solid var(--ink);box-shadow:3px 3px 0 var(--sombra);overflow:auto;max-height:62vh;background:#111;margin-top:10px}
-.fotoConta .tela{position:relative;line-height:0}
-.fotoConta.perto .tela{width:220%}
-.fotoConta img{width:100%;display:block}
-.fotoConta.lendo img{opacity:.45}
-.fotoConta .preco{position:absolute;box-sizing:content-box;margin:-3px 0 0 -5px;padding:1px 3px;border:2px dashed #ff8c1a;border-radius:3px;background:rgba(255,140,26,.1);box-shadow:none}
-.fotoConta .preco.un{border:1px dotted rgba(255,140,26,.8);background:none}
-/* o item (qtd x unitário) leva o total da linha, feito na conta: a etiqueta mostra ele na ponta, por cima do total cortado */
-.fotoConta .preco.item::after{content:attr(data-total);position:absolute;right:1px;top:50%;transform:translateY(-50%);padding:0 4px;border-radius:3px;background:#ff8c1a;color:#fff;font-size:13px;line-height:1.4;white-space:nowrap}
-.fotoConta .preco.sim{border:2px solid #ff8c1a;background:rgba(255,140,26,.22);box-shadow:0 0 0 1.5px #222,inset 0 0 0 1px #222}
-@media (hover:hover) and (pointer:fine){.fotoConta .preco:hover:not(:disabled){background:rgba(255,140,26,.4)}}
+/* o texto da conta (?mesa): o 📋 entre o valor e o "O quê?", e o cartão onde se cola o texto que o celular leu da
+   foto. Cada linha com preço vira um botão de linha da nota; o tocado fica marcado e soma embaixo */
+.two:has(#contaBtn:not(.hidden)){grid-template-columns:140px 44px 1fr}
+#contaBtn{width:44px;height:44px;padding:0;display:grid;place-content:center;box-shadow:2px 2px 0 var(--sombra);margin-bottom:4px}
+.comoCopiar{margin:4px 0 10px;font-size:17px;text-transform:none;color:var(--ink2)}
+.comoCopiar summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.comoCopiar ol{margin:6px 0 0;padding-left:22px}
+.comoCopiar li{margin:3px 0}
+#contaTexto{width:100%;font:inherit;font-size:17px;line-height:1.25;padding:8px;border:2px solid var(--ink);background:var(--card);color:var(--ink);resize:vertical;text-transform:none}
+.precosConta{display:grid;gap:4px;margin-top:10px;max-height:44vh;overflow:auto}
+.precoConta{display:flex;align-items:baseline;gap:6px;width:100%;padding:6px 8px;text-align:left;text-transform:none;box-shadow:none;border:2px dashed var(--rule);background:none;color:var(--ink);font-size:18px}
+.precoConta .l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.precoConta .d{flex:1;border-bottom:2px dotted var(--rule);min-width:12px}
+.precoConta .v{white-space:nowrap}
+.precoConta.sim{border-style:solid;border-color:var(--ink);background:var(--afundado);box-shadow:2px 2px 0 var(--sombra)}
 .somaFoto{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:10px 0}
 .somaFoto .fita{font-size:16px;color:var(--muted);letter-spacing:.5px;overflow-wrap:anywhere}
 .somaFoto b{font-weight:400;font-size:28px;white-space:nowrap}
-.fotoMais{margin-top:10px;font-size:17px}
 /* o quanto pagou do Quitar?: o mesmo campo do valor do gasto, no verde de quem recebe */
 .quitaValor{display:flex;width:max-content;align-items:baseline;gap:6px;margin:10px auto 0;padding:0 4px 4px;font-size:30px;color:var(--green);border-bottom:2px solid var(--green)}
 #quitaValor{width:5ch;flex:none;padding:0;border:0;text-align:left;font-size:30px;color:var(--green)}
@@ -708,6 +700,7 @@ button.linkpra i{flex:none;width:14px;height:14px;border-radius:50%;background:v
 button.qrbtn{display:inline-flex;align-items:center;gap:8px;margin-top:16px;box-shadow:2px 2px 0 var(--sombra)}
 /* no cartão do evento o QR é um botãozinho com o ícone e o QR escrito, na linha de baixo do link, na mesma linha */
 .qr svg{display:block;width:100%;max-width:320px;margin:4px auto 0;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--sombra)}
+.linkQr{margin:6px 0 0;font-size:17px;text-transform:none;overflow-wrap:anywhere}
 /* o nome se edita ali mesmo: no foco a linha vira tracejada, como um campo */
 .pessoa.row .l[contenteditable]{outline:0;cursor:text}
 .pessoa.row .l[contenteditable]:focus{border-bottom-style:dashed;background:var(--card)}

@@ -60,7 +60,7 @@ When('eu abro o evento como {word} em outro aparelho', async ({ mundo }, quem) =
 When('eu recarrego a página', async ({ mundo }) => { await mundo.p.reload(); await mundo.p.waitForSelector('#app:not(.loading)'); });
 
 When('eu digito o código {string}', async ({ mundo }, codigo) => { await mundo.p.fill('#gateCode', codigo); await mundo.p.click('#gateForm button'); });
-// evento criado pelo campo: o código tem o final sorteado, o nome é o que a pessoa digitou
+// evento criado pelo campo: o código é sorteado, o nome é o que a pessoa digitou
 Given('que este aparelho já abriu o evento {string} pelo link {string}', async ({ mundo }, nome, codigo) => {
   const ev = mundo.criaEvento({ name: codigo, people: [], expenses: [], deleted: [] }); ev.name = nome;
   mundo.antes = { ...mundo.antes, ['tolisa:' + mundo.sala]: JSON.stringify({ code: codigo, openedAt: AGORA, snapshot: ev }) };
@@ -90,9 +90,8 @@ Then('o banco tem {int} evento(s)', async ({ mundo }, n) => {
   await expect.poll(() => Object.keys(mundo.banco.arvore.rooms || {}).length).toBe(n);
 });
 Then('o endereço termina em {string}', async ({ mundo }, fim) => { await expect.poll(() => mundo.p.evaluate(() => location.search)).toBe(fim); });
-Then('o endereço é {string} com um final sorteado', async ({ mundo }, ini) => {
-  const esc = ini.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(new RegExp(`^${esc}[a-z0-9]{6}$`));
+Then('o endereço tem um código sorteado', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.evaluate(() => location.search)).toMatch(/^\?evento=[a-z0-9]{6}$/);
 });
 Then('o nome do evento no cabeçalho é {string}', async ({ mundo }, nome) => { await expect(mundo.p.locator('#roomLabel')).toHaveText(nome); });
 Then('o site não pergunta nada', async ({ mundo }) => { await expect(mundo.p.locator('#okBtn')).toBeHidden(); });
@@ -151,6 +150,8 @@ When('eu aperto Esc', async ({ mundo }) => { await mundo.p.keyboard.press('Escap
 // a sala aberta é a gaveta que guarda o código que está no endereço
 const salaAberta = mundo => mundo.p.evaluate(() => { const c = new URLSearchParams(location.search).get('evento');
   return Object.keys(localStorage).find(k => k.startsWith('tolisa:') && JSON.parse(localStorage.getItem(k) || '{}').code === c)?.slice(7); });
+When('eu digo que sou', async ({ mundo }) => { await mundo.p.click('#souSim'); });
+When('eu digo que não sou', async ({ mundo }) => { await mundo.p.click('#souNao'); });
 When('eu toco em quem é você', async ({ mundo }) => { await mundo.p.click('#whoBtn'); await mundo.p.waitForSelector('#overlayBox h2'); });
 When('eu ponho {gente} na lista', async ({ mundo }, gente) => {
   for (const n of gente) { await mundo.p.fill('#setupName', n); await mundo.p.press('#setupName', 'Enter'); await expect(mundo.p.locator('#setupName')).toHaveValue(''); }
@@ -311,6 +312,10 @@ When('eu abro o endereço {string}', async ({ mundo }, q) => { await mundo.abre(
 // o QR do link do grupo, do "Mandar pra quem?": o SVG da tela vira imagem e passa pelo leitor
 When('eu peço o QR do evento', async ({ mundo }) => { await mundo.p.click('#waBtn'); await mundo.p.click('#qrBtn'); await mundo.p.waitForSelector('#overlayBox .qr svg'); });
 When('eu fecho o QR', async ({ mundo }) => { await mundo.p.click('#cancelBtn'); });
+When('eu toco no link embaixo do QR', async ({ mundo }) => { await mundo.p.click('#qrLink'); });
+Then('fica copiado o link curto do evento', async ({ mundo }) => {
+  await expect.poll(() => mundo.p.evaluate(() => /** @type {any} */ (window).__copiado)).toMatch(doGrupo(mundo));
+});
 // o link curto, sem a pasta do preview do zap (semverba, sextou, fiado): o index.html abre o evento direto
 const doGrupo = mundo => new RegExp(`^${mundo.base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\?evento=${mundo.evento.name}$`);
 Then('o QR na tela abre o evento direto', async ({ mundo }) => {

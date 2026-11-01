@@ -11,7 +11,7 @@
   //   → a conta: limpar e mesclar (clean, merge) → o banco (sync) → dinheiro
   //   → a conta: saldos e quem paga quem (balances, settlements) → cores
   //   → fila das animações → desenhos (ícones) → pix → aviso no celular → a nota (render) → o anotar
-  //   → cartões (overlays) → a foto da conta → entrar num evento → meus eventos → a digital → botões → cliques
+  //   → cartões (overlays) → o texto da conta → entrar num evento → meus eventos → a digital → botões → cliques
   //   → imagem da comanda → instalar → a ficha do rodapé → código de barras → início
   // o QR (qrMatriz, qrSvg) mora no qr.js, que o index.html carrega antes: a plaquinha de mesa (mesa/) usa o mesmo.
   // tudo começa na última seção, "início": lê o ?evento= do endereço e abre o evento.
@@ -27,19 +27,23 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
+  // o dono do aparelho é o nome que mais fui nos eventos daqui. Com 1 evento o aparelho pergunta se sou ele; a partir
+  // de DONO_CERTO já entra como ele, e a partir de PIX_DIRETO a chave pix dele entra sozinha (antes, num toque)
+  const DONO_CERTO = 2;
+  const PIX_DIRETO = 3;
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
   const QUITADO_DIAS = 7; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
-  const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
+  const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
-  // o modo mesa, a conta do restaurante: por enquanto é a foto da conta, o 📷 do anotar que lê os preços da foto (o
-  // tesseract, em ocr/) e cada preço tocado soma no valor. Desligado pra todo mundo. Liga no aparelho com ?mesa (fica
-  // lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
+  // o modo mesa, a conta do restaurante: por enquanto é o texto da conta, o 📋 do anotar onde a pessoa cola o texto
+  // que o celular leu da foto, e cada preço tocado soma no valor. Desligado pra todo mundo. Liga no aparelho com ?mesa
+  // (fica lembrado; ?mesa=0 desliga). O que vier pra mesa (dividir sem ninguém ter pago) entra atrás desta mesma flag
   const MESA = false;
   // os temas (#285): quem nunca escolheu fica no papel (TEMA vazio). O "tema: papel" do pé da nota troca a cada toque,
   // na ordem de TEMAS, e fica lembrado no aparelho; o celular segue o claro/escuro dele (escuro vira o neon). Com tema,
@@ -103,16 +107,17 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, testesOn, tema, naoConta }
-  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, contaColou, testesOn, tema, naoConta }
+  //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok; pixName: de quem é ela;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
-  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (a foto da conta), pelo ?mesa;
+  //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (o texto da conta), pelo ?mesa;
+  //                  contaColou: já colou uma conta, o passo a passo de copiar o texto vem fechado;
   //                  testesOn: tudo que está em teste de uma vez, pelo ?testes;
   //                  tema: o tema escolhido no pé da nota ('papel' é o papel; sem ele, vale o TEMA);
   //                  naoConta: este aparelho fica fora das visitas, pelo ?naoconta (o do dono))
   //   tolisa:<sala>  { code, openedAt, changedAt, hidden, me, lastSeen, pixTokens: {pessoa: tok}, lightsSeen: [pessoa], paysSeen: [id], snapshot,
-  //                  pushTok, pushOn, pushTry, charged }  (pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
+  //                  pushTok, pushOn, pushTry, charged, naoSou }  (naoSou: a pessoa que eu disse que não sou, pra não perguntar de novo; pushTok: o segredo dos avisos desse evento, como o tok do pix; pushOn: quem ligou o aviso;
   //                  pushTry: pra quem o aviso já tentou ligar sozinho, pra não insistir a cada render;
   //                  charged: {pessoa: quantas vezes cobrei no zap}, pra cada cobrança lembrar de um jeito)
   // quem lê sempre pega o que está no localStorage na hora, então outra aba não perde o que gravou
@@ -164,7 +169,6 @@
       if (a === 'visitas') dev.visits = Math.max(+v || 0, dev.visits || 0);
       else if (a === 'convidou') dev.installPrompted = true;
       else if (a === 'abriuItens') dev.itemsOpened = true;
-      else if (a === 'chato') dev.boringMode = true;
       else if (a === 'room') dev.lastRoom ??= json();
       else if (/^[0-9a-f]{64}$/.test(a)) {
         if (!b) sala(a).snapshot ??= json();
@@ -225,7 +229,8 @@
   // ---------- o estado da página ----------
   // tudo que muda enquanto a página está aberta. O resto do arquivo lê e escreve aqui
   /** o id do evento no banco: sha-256 do código @type {string|null} */ let groupId = null;
-  /** o código inteiro, com o final sorteado ("churras-k7f3q9") */ let roomName = '';
+  /** o código do evento: sorteado ("k7f3q9"), ou o nome com final sorteado dos eventos de antes ("churras-k7f3q9") */ let roomName =
+    '';
   /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
   /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
   /** o &quem= do link compartilhado: quem abre já entra como essa pessoa @type {string|null} */ let quemDoLink = null;
@@ -241,7 +246,6 @@
   /** os itens com os detalhes abertos @type {Set<string>} */ const openItems = new Set();
   /** o anotar: 'equal' (igual) ou 'custom' (partes diferentes) */ let splitMode = 'equal';
   /** o gasto que o anotar está editando @type {string|null} */ let editando = null;
-  /** modo chato (easter egg da ficha): sem diva, e o rodapé vira "Deus é fiel." */ let chato = !!device().boringMode;
   /** a conta tinha dívida no render de antes: zerar agora é o que chama a nevasca do natal */ let tinhaDivida = false;
   const NEVASCA_MS = 6000, // a nevasca do natal (o nevascaSome do style.css)
     GORRO_MS = 1300; // a pirueta do gorro do título (o voaGorro do style.css)
@@ -423,9 +427,9 @@
     };
   }
 
-  // o gasto fixo (?fixo), o número do zap (?numerozap) e o apagar meus dados (?apagar) saíram: o que eles
-  // deixaram no aparelho vai embora junto
-  const SAIRAM = ['fixoOn', 'numeroZapOn', 'phones', 'apagarOn'];
+  // o gasto fixo (?fixo), o número do zap (?numerozap), o apagar meus dados (?apagar) e o modo chato saíram: o
+  // que eles deixaram no aparelho vai embora junto
+  const SAIRAM = ['fixoOn', 'numeroZapOn', 'phones', 'apagarOn', 'boringMode'];
   if (SAIRAM.some((k) => k in device()))
     mexe(DEVICE, (o) => {
       for (const k of SAIRAM) delete o[k];
@@ -1054,6 +1058,7 @@
     // o quem é você aberto antes das chaves chegarem ficava sem a parte do pix. Aberto mesmo: o cartão
     // fechado guarda o html, e o #whoSel de quem já escolheu o nome reabria o cartão por cima da nota (#334)
     if (primeira && quemAberto() && !$('#whoPix')) showWho();
+    chaveSozinha();
   }
   function validPixKey(k) {
     k = k.trim();
@@ -1099,8 +1104,21 @@
     if (!key) return;
     await putPix(me, key);
   }
-  /** a última chave que cadastrei neste aparelho, se ainda serve: vem escrita no cadastro de um evento novo */
-  const minhaChave = () => (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '';
+  /** a chave que o dono cadastrou neste aparelho, se ainda serve e se quem eu sou aqui (ou `nome`) é ele: pros
+   *  outros nomes o aparelho não sugere nada. A chave lembrada antes do pixName é do dono */
+  const minhaChave = (nome = temMe() ? nameOf(me) : '') => {
+    const k = (typeof device().pixKey === 'string' && validPixKey(device().pixKey)) || '',
+      dela = typeof device().pixName === 'string' && device().pixName ? device().pixName : dono().nome;
+    return k && nome && buscaNome(nome) === buscaNome(dela) && souDono(nome) ? k : '';
+  };
+  /** o dono em PIX_DIRETO eventos ou mais nem toca: a chave dele entra sozinha, uma vez por evento */
+  const chaveTentada = new Set();
+  function chaveSozinha() {
+    if (!pixReady || !temMe() || pixKeys[me] || chaveTentada.has(groupId)) return;
+    if (!minhaChave() || dono().n < PIX_DIRETO) return;
+    chaveTentada.add(groupId);
+    usaMinhaChave();
+  }
   /** a chave que o aparelho já conhece entra num toque, sem o cartão: o botão mostra ela antes */
   async function usaMinhaChave() {
     const k = minhaChave();
@@ -1142,8 +1160,13 @@
       if (!r.ok) return toast('A chave não salvou, tenta de novo');
       // a minha chave fica lembrada no aparelho, pra oferecer no próximo evento (só a chave: o tok é de cada evento)
       if (pid === eu) {
-        if (key) setDevice('pixKey', key);
-        else if (device().pixKey === pixKeys[pid]) setDevice('pixKey', undefined);
+        if (key) {
+          setDevice('pixKey', key);
+          setDevice('pixName', nameOf(eu));
+        } else if (device().pixKey === pixKeys[pid]) {
+          setDevice('pixKey', undefined);
+          setDevice('pixName', undefined);
+        }
       }
       // apagar grava a chave vazia: o nó fica, e a regra deixa qualquer aparelho cadastrar de novo
       if (key) pixKeys[pid] = key;
@@ -1505,52 +1528,6 @@
   // ---------- a nota (render) ----------
   const luck = Math.random();
   const pick = (list) => list[Math.floor(luck * list.length)];
-  // easter egg: segurar, tocar, segurar na ficha desliga a diva (modo chato). Some a
-  // ficha, some o subtítulo e o rodapé vira "Deus é fiel.". O mesmo toque no rodapé
-  // liga de novo. Fica guardado no aparelho.
-  document.body.classList.toggle('chato', chato);
-  /** forte (segurou) e fraco (tocou) em sequência; três seguidos formam a senha */
-  function senha(alvo, ok) {
-    let ritmo = [],
-      ini = 0,
-      x0 = 0,
-      y0 = 0,
-      longe = false,
-      zera = 0;
-    // segurar é o gesto de selecionar texto no iPhone: enquanto o dedo está na ficha (ou
-    // no rodapé), a página inteira fica sem seleção, senão o toque longo pintava o papel
-    const solta = () => document.body.classList.remove('segurando');
-    alvo.addEventListener('pointerdown', (e) => {
-      ini = e.timeStamp;
-      x0 = e.clientX;
-      y0 = e.clientY;
-      longe = false;
-      clearTimeout(zera);
-      document.body.classList.add('segurando');
-    });
-    alvo.addEventListener('pointercancel', solta);
-    addEventListener('pointerup', solta);
-    alvo.addEventListener('pointermove', (e) => {
-      if (ini && Math.hypot(e.clientX - x0, e.clientY - y0) > 14) longe = true;
-    });
-    alvo.addEventListener('pointerup', (e) => {
-      if (!ini) return;
-      const dur = e.timeStamp - ini;
-      ini = 0;
-      if (longe) {
-        ritmo = [];
-        return;
-      }
-      ritmo = [...ritmo, dur >= 450 ? 'F' : 'f'].slice(-3);
-      if (ritmo.join('') === 'FfF') {
-        ritmo = [];
-        ok();
-      }
-      zera = setTimeout(() => {
-        ritmo = [];
-      }, 1600);
-    });
-  }
   /** o subtítulo do cabeçalho muda com o saldo de quem está vendo */
   function subtitulo(hasMe, bal) {
     const festa = diaDeFesta(),
@@ -1581,19 +1558,33 @@
   const temMe = () => !!me && state.people.some((p) => p.id === me);
   /** quem eu sou nos meus outros eventos (lido ao abrir este): a turma trazida leva os mesmos ids @type {Set<string>} */
   let meusIds = new Set();
-  /** quem eu devo ser aqui, pelo que o aparelho sabe: a pessoa que eu já sou em outro evento (mesmo id) ou,
-   *  sem ela, a do último nome que escolhi. Dois ids batendo, nada. O palpite sempre vira escolha, sem
-   *  perguntar: ao abrir o evento, e no render, quando a pessoa aparece depois (no Quem vai? do evento que
-   *  acabei de criar, ou no sync). O "Sou Fulano" do cabeçalho troca num toque */
+  /** quem eu devo ser aqui, pelo que o aparelho sabe: a pessoa que eu já sou em outro evento (mesmo id) ou a do
+   *  nome do dono do aparelho. Dois ids batendo, nada. `certo` entra sozinho (ao abrir o evento, e no render,
+   *  quando a pessoa aparece depois); sem certeza (o dono de um evento só, ou o último nome que escolhi), ao abrir
+   *  o evento o aparelho pergunta. O "Sou Fulano" do cabeçalho troca num toque
+   *  @returns {{ p: Person, certo: boolean } | null} */
   function palpite() {
     if (temMe()) return null;
     const porId = state.people.filter((p) => meusIds.has(p.id));
-    if (porId.length) return porId.length === 1 ? porId[0] : null;
-    const nome = device().myName;
-    return (
-      (typeof nome === 'string' && nome && state.people.find((p) => p.name.toLowerCase() === nome.toLowerCase())) ||
-      null
-    );
+    if (porId.length) return porId.length === 1 ? { p: porId[0], certo: true } : null;
+    const d = dono(),
+      nome = d.nome || (typeof device().myName === 'string' ? device().myName : '');
+    const p = nome && state.people.find((x) => buscaNome(x.name) === buscaNome(nome));
+    return p ? { p, certo: !!d.nome && d.n >= DONO_CERTO } : null;
+  }
+  /** o dono de um evento só: o aparelho pergunta uma vez se sou ele, e o "não" fica guardado neste evento
+   *  @param {Person} p */
+  function perguntaSeSou(p) {
+    if (room().naoSou === p.id) return;
+    overlay(`<h2 class="pergunta">Você é ${nomeHtml(p.id)}?</h2>
+      <button id="souSim" class="big">sou eu</button>
+      <div class="c voltar"><button id="souNao" class="ghost">não sou</button></div>`);
+    $('#souSim').onclick = () => souEu(p.id);
+    $('#souNao').onclick = () => {
+      setRoom('naoSou', p.id);
+      closeOverlay();
+    };
+    overlayCancel = () => setRoom('naoSou', p.id);
   }
   /** chegou depois da última visita e foi outra pessoa que anotou */
   const tagNovo = (e) => (lastSeen > 0 && e.at > lastSeen && !anotouQuem(e, me) ? '<span class="tag">novo</span>' : '');
@@ -1615,7 +1606,7 @@
     // (o próprio Quem vai?) ou ainda abrindo (o &quem= do link vem antes), espera: o render de depois resolve
     if (!temMe() && semCartao() && !$('#app').classList.contains('loading')) {
       const sug = palpite();
-      if (sug) return souEu(sug.id);
+      if (sug && sug.certo) return souEu(sug.p.id);
     }
     const hasMe = temMe();
     const vazio = state.expenses.length === 0; // sem nada anotado, Minha conta e Itens só teriam zeros: somem
@@ -1708,10 +1699,10 @@
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     const frase = $('#signoff');
     // todo mundo quite: a frase do rodapé é o convite pro próximo rolê
-    if (frase && !chato && allEven && hasMe)
+    if (frase && allEven && hasMe)
       frase.innerHTML =
         '<a class="link" id="proxRole" role="button" tabindex="0">Zerou. Bora abrir outra, meu bem?</a>';
-    else if (frase) frase.textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
+    else if (frase) frase.textContent = pick(frasesDoRodape(hasMe, bal, allEven));
   }
   /** um botão por pessoa, numa cápsula com contorno e pontinho na cor dela, com o id em data-<attr>
    *  @param {Person[]} gente @param {string} attr */
@@ -2124,7 +2115,7 @@
       prevPayer = payerSel.value || me;
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
-    $('#fotoBtn').classList.toggle('hidden', !temMesa());
+    $('#contaBtn').classList.toggle('hidden', !temMesa());
     const prev = inputs('#splitChips input');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
@@ -3050,7 +3041,7 @@
   function showTurma(e) {
     const gente = /** @type {Room} */ (e.snap).people,
       fora = new Set(),
-      chave = e.me ? minhaChave() : '';
+      chave = e.me ? minhaChave(gente.find((p) => p.id === e.me)?.name) : '';
     const desenha = () => {
       const ficam = gente.filter((p) => !fora.has(p.id)),
         vem = ficam.length;
@@ -3116,6 +3107,8 @@
     me = v;
     setRoom('me', me);
     if (temMe()) setDevice('myName', nameOf(me)); // o palpite de quem eu sou num evento que não tem a minha turma
+    donoMemo = null;
+    chaveSozinha();
     rearmaAnims();
     closeOverlay();
     render();
@@ -3202,337 +3195,136 @@
   }
 
   // #endregion
-  // #region a foto da conta
-  // ---------- a foto da conta ----------
-  // o 📷 do anotar (MESA, ou ?mesa no aparelho). A foto vem da câmera do celular pelo input de arquivo, sem biblioteca;
-  // o leitor (tesseract.js, em ocr/) só baixa no toque da 📷, enquanto a pessoa enquadra a conta. Cada preço que ele
-  // acha vira uma caixa em cima da foto, e tocar soma no valor do anotar. De dia ele acha quase tudo; à noite, metade,
-  // e às vezes lê um número errado (628,70 vira 625,70): a soma fica escrita embaixo pra pessoa conferir (ocr/README.md)
+  // #region o texto da conta
+  // ---------- o texto da conta ----------
+  // o 📋 do anotar (MESA, ou ?mesa no aparelho). A conta chega impressa, e o próprio celular já lê texto em foto (o
+  // Texto ao Vivo do iPhone, o Lens do Android) melhor que qualquer leitor no site: a pessoa copia o texto da foto e
+  // cola aqui. Cada linha com preço vira um botão, e tocar soma no valor do anotar
 
-  /** o worker do tesseract: baixa uma vez por visita, e quem toca de novo na 📷 já acha ele pronto
-   *  @type {Promise<any> | null} */
-  let leitor = null;
-  const tempoLeitor = { ini: 0, fim: 0 };
-  const carregaLeitor = () =>
-    (leitor ??= new Promise((ok, erro) => {
-      tempoLeitor.ini = performance.now();
-      const s = document.createElement('script');
-      s.src = 'ocr/tesseract.min.js';
-      s.onload = ok;
-      s.onerror = () => erro(new Error('o leitor não baixou'));
-      document.head.append(s);
-    })
-      .then(() =>
-        /** @type {any} */ (window).Tesseract.createWorker('por', 1, {
-          workerPath: 'ocr/worker.min.js',
-          corePath: 'ocr/',
-          langPath: 'ocr',
-          // o worker sai do arquivo, não de um blob: a CSP só deixa script do próprio site
-          workerBlobURL: false,
-        }),
-      )
-      .then((w) => {
-        tempoLeitor.fim = performance.now();
-        return w;
-      })
-      .catch((e) => {
-        leitor = null;
-        throw e;
-      }));
-
-  /** limiar adaptativo de Bradley, pela imagem integral: preto onde o ponto é 13% mais escuro que a média em volta.
-   *  À noite a luz muda de um canto pro outro da conta, e um limiar só pra foto toda apagava metade dela
-   *  @param {Uint8ClampedArray} g a foto em cinza @param {number} w @param {number} h */
-  function bradley(g, w, h) {
-    const W = w + 1,
-      I = new Float64Array(W * (h + 1)),
-      r = Math.round(w / 24),
-      out = new Uint8ClampedArray(w * h);
-    for (let y = 1; y <= h; y++)
-      for (let x = 1, lin = 0; x <= w; x++) {
-        lin += g[(y - 1) * w + x - 1];
-        I[y * W + x] = I[(y - 1) * W + x] + lin;
+  // um preço: "12,90", "1.234,50", "12.90", "-2,00", "0,25-". O R$ e o pontilhado em volta não atrapalham
+  const PRECO_TXT = /(-?)(\d{1,3}(?:\.\d{3})+|\d{1,4})[,.](\d{2})(-?)(?![\d,.])/g;
+  /** @typedef {{ c: number, nome: string, qtd?: number }} PrecoDaConta */
+  /** as linhas com preço do texto colado, na ordem da conta. O preço de uma linha é o último dela (o de antes é o
+   *  unitário); com quantidade, vale ela vezes o unitário. O "TOTAL ITEM" da linha de baixo é o total do item de
+   *  cima. O Lens do Android às vezes copia a coluna dos nomes e depois a dos preços: os preços que vêm sem nome
+   *  pegam, na ordem, os nomes soltos logo antes deles
+   *  @param {string} texto @returns {PrecoDaConta[]} */
+  function precosDoTexto(texto) {
+    /** @type {PrecoDaConta[]} */ const out = [];
+    /** @type {string[]} */ let soltos = []; // os nomes sem preço desde a última linha com nome e preço
+    /** @type {PrecoDaConta[]} */ let semNome = []; // os preços sem nome que vieram depois deles
+    const casa = () => {
+      const tira = soltos.slice(-semNome.length);
+      semNome.forEach((p, k) => (p.nome = tira[k - (semNome.length - tira.length)] || ''));
+      if (semNome.length) soltos = [];
+      semNome = [];
+    };
+    for (const bruta of String(texto).split(/\r?\n/)) {
+      const l = bruta.replace(/\s+/g, ' ').trim();
+      if (!l) continue;
+      const ps = [...l.matchAll(PRECO_TXT)];
+      if (!ps.length) {
+        if (semNome.length) casa();
+        if (/[a-z]{2}/i.test(l)) soltos.push(l.slice(0, 40));
+        continue;
       }
-    for (let y = 0; y < h; y++)
-      for (let x = 0; x < w; x++) {
-        const x0 = Math.max(0, x - r),
-          x1 = Math.min(w, x + r + 1),
-          y0 = Math.max(0, y - r),
-          y1 = Math.min(h, y + r + 1);
-        const soma = I[y1 * W + x1] - I[y0 * W + x1] - I[y1 * W + x0] + I[y0 * W + x0];
-        out[y * w + x] = g[y * w + x] * (x1 - x0) * (y1 - y0) < soma * 0.87 ? 0 : 255;
+      const ult = ps[ps.length - 1],
+        c = (+ult[2].replace(/\./g, '') * 100 + +ult[3]) * (ult[1] || ult[4] ? -1 : 1);
+      if (!c) continue;
+      if (/^-?\s*total\s+(do\s+)?item/i.test(l) && out.length) {
+        out[out.length - 1].c = c;
+        continue;
       }
+      // o nome é o que sobra da linha sem os preços, o pontilhado, o R$ e a quantidade
+      const resto = l
+          .replace(PRECO_TXT, ' ')
+          .replace(/R\$/gi, ' ')
+          .replace(/[.…_]{2,}|\s-+\s/g, ' ')
+          .replace(/^-+/, ' '),
+        q = resto.match(/(?:^|\s)(\d{1,3})\s*(?:und|un|unid)?\.?\s*[x×*](?=\s|$)/i),
+        qtd = q ? +q[1] : 0,
+        nome = resto
+          .replace(/(?:^|\s)\d{1,3}\s*(?:und|un|unid)?\.?\s*[x×*](?=\s|$)/gi, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 40);
+      // com quantidade e um preço só na linha, o preço é o unitário; com dois, o último já é o total
+      const p = { c: qtd > 1 && ps.length === 1 ? c * qtd : c, nome: /[a-z]{2}/i.test(nome) ? nome : '' };
+      if (qtd > 1) p.qtd = qtd;
+      out.push(p);
+      if (p.nome) {
+        if (semNome.length) casa();
+        soltos = [];
+      } else semNome.push(p);
+    }
+    casa();
     return out;
   }
-  /** a foto que o leitor lê: até 1600 de largura (vezes `estica`, que alarga a letra), em cinza, com o contraste
-   *  esticado (o 1% mais escuro vira preto, o 1% mais claro vira branco). `pb` passa ainda o limiar de Bradley: lê
-   *  mais à noite, e inventa mais número
-   *  @param {ImageBitmap} foto @param {boolean} pb @param {number} [estica] */
-  function preparaFoto(foto, pb, estica = 1) {
-    const k = Math.min(1, 1600 / foto.width),
-      w = Math.round(foto.width * k * estica),
-      h = Math.round(foto.height * k);
-    const cv = Object.assign(document.createElement('canvas'), { width: w, height: h }),
-      ctx = cv.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(foto, 0, 0, w, h);
-    const img = ctx.getImageData(0, 0, w, h),
-      px = img.data,
-      g = new Uint8ClampedArray(w * h),
-      hist = new Array(256).fill(0);
-    for (let i = 0; i < g.length; i++) {
-      g[i] = (px[i * 4] * 299 + px[i * 4 + 1] * 587 + px[i * 4 + 2] * 114) / 1000;
-      hist[g[i]]++;
-    }
-    let lo = 0,
-      hi = 255,
-      conta = 0;
-    while ((conta += hist[lo]) < g.length / 100 && lo < 254) lo++;
-    conta = 0;
-    while ((conta += hist[hi]) < g.length / 100 && hi > lo + 1) hi--;
-    for (let i = 0; i < g.length; i++) g[i] = ((g[i] - lo) * 255) / (hi - lo);
-    const sai = pb ? bradley(g, w, h) : g;
-    for (let i = 0; i < g.length; i++) px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = sai[i];
-    ctx.putImageData(img, 0, 0);
-    return cv;
-  }
 
-  // um preço como o leitor escreve: "12,90", "1.234,50", "12.90", "-2,00", "0,25-". Num número, o O é 0,
-  // o l, o I e o | são 1, e o S é 5. O R$ grudado e o pontilhado que vem antes ("FRANGO.....1X.....R$10,00") saem
-  // antes de casar (ANTES)
-  const PRECO = /^-?([0-9OolI|S]{1,3}(?:\.[0-9]{3})?)[,.]([0-9OolI|S]{2})-?$/;
-  const ANTES = /^.*(?:R[$S]|\.{2,}|…)/;
-  const soDigito = (s) => s.replace(/[Oo]/g, '0').replace(/[lI|]/g, '1').replace(/S/g, '5').replace(/\./g, '');
-  /** @typedef {{ c: number, x0: number, y0: number, x1: number, y1: number, un?: boolean, item?: string }} PrecoLido */
-  /** os preços que o leitor achou, com a caixa de cada um em pontos da foto que ele leu. O que tem outro preço
-   *  à direita na mesma linha é o unitário (`un`): fica apagado, porque quem soma a conta quer o total da linha
-   *  @param {any[]} palavras @returns {PrecoLido[]} */
-  function achaPrecos(palavras) {
-    /** @type {PrecoLido[]} */
-    const precos = [];
-    for (const w of palavras) {
-      const bruto = String(w.text),
-        t = bruto
-          .replace(ANTES, '')
-          .replace(/^[:;'"`]+/, '')
-          .replace(/[.:;|'"`]+$/, ''),
-        m = t.match(PRECO);
-      if (!m || !/\d/.test(m[1])) continue;
-      const c = +soDigito(m[1]) * 100 + +soDigito(m[2]);
-      // a caixa começa onde o preço começa: o que saiu da frente da palavra leva junto a parte dela
-      const b = w.bbox,
-        tirou = bruto.length - bruto.replace(ANTES, '').length,
-        x0 = b.x0 + ((b.x1 - b.x0) * tirou) / bruto.length;
-      if (c) precos.push({ c: t.includes('-') ? -c : c, ...b, x0 });
-    }
-    for (const p of precos) {
-      const meio = (p.y0 + p.y1) / 2,
-        alt = p.y1 - p.y0;
-      p.un = precos.some((q) => q !== p && q.x0 > p.x1 && Math.abs((q.y0 + q.y1) / 2 - meio) < alt * 0.6);
-    }
-    return precos;
-  }
-  // a linha do item na conta de restaurante: "6 UND x 18,90", "4 und x 15,00", "2 x 9,90". O total dela fica na
-  // beirada direita, e a impressora térmica corta o último dígito (60,0( em vez de 60,00): o leitor nem vê preço ali.
-  // O total sai da quantidade vezes o unitário, que vêm inteiros
-  const ITEM = /(?:^|\s)(\d{1,3})\s*(?:und|un|unid)?\.?\s*[x×*]\s*(\d{1,3}(?:\.\d{3})*,\d{2})(?!\d)/i;
-  /** os itens que o leitor achou, um por linha "qtd x unitário", com a caixa da quantidade até o fim da linha e o
-   *  nome que vem na linha de cima @param {any[]} linhas @returns {PrecoLido[]} */
-  function achaItens(linhas) {
-    /** @type {PrecoLido[]} */
-    const itens = [];
-    linhas.forEach((l, i) => {
-      const ws = l.words || [];
-      // o texto da linha e onde cada palavra começa nele, pra achar a palavra em que o casamento começa
-      let texto = '';
-      const ini = ws.map((w) => {
-        const at = texto.length;
-        texto += String(w.text) + ' ';
-        return at;
-      });
-      const m = texto.match(ITEM);
-      if (!m) return;
-      const qtd = +m[1],
-        un = +m[2].replace(/\D/g, '');
-      if (!qtd || !un) return;
-      const onde = m.index + m[0].indexOf(m[1]),
-        de = Math.max(
-          0,
-          ini.findLastIndex((at) => at <= onde),
-        ),
-        cx = ws.slice(de).map((w) => w.bbox);
-      // o nome é a linha de cima, sem o grão da mesa que o leitor pega nas pontas (palavra de uma ou duas letras)
-      const nome = ((linhas[i - 1] && linhas[i - 1].words) || [])
-        .map((w) => String(w.text))
-        .join(' ')
-        .replace(/^(?:\S{1,2}\s+)+/, '')
-        .replace(/(?:\s+\S)+$/, '')
-        .trim();
-      itens.push({
-        c: qtd * un,
-        x0: Math.min(...cx.map((b) => b.x0)),
-        y0: Math.min(...cx.map((b) => b.y0)),
-        x1: Math.max(...cx.map((b) => b.x1)),
-        y1: Math.max(...cx.map((b) => b.y1)),
-        item: nome || ' ',
-      });
-    });
-    return itens;
-  }
-
-  /** a foto aberta no cartão: o que o leitor achou nela e o que a pessoa tocou, na ordem do toque
-   *  `vista` é a foto em cinza com o contraste esticado: é ela que aparece, porque à noite a colorida é um breu
-   *  @type {{ foto: ImageBitmap, vista: HTMLCanvasElement, url: string, precos: PrecoLido[], tocados: number[], pb: boolean, corte: number[] } | null} */
-  let fotoConta = null;
-  const tiraFoto = () => {
-    carregaLeitor().catch(() => {}); // baixa enquanto a pessoa enquadra; o erro aparece quando for ler
-    $('#fotoArq').click();
-  };
-  $('#fotoArq').addEventListener('change', () => {
-    const arq = $('#fotoArq').files[0];
-    $('#fotoArq').value = ''; // a mesma foto de novo também dispara
-    if (arq) abreFoto(arq);
-  });
-  async function abreFoto(arq) {
-    if (fotoConta) {
-      fotoConta.foto.close();
-      URL.revokeObjectURL(fotoConta.url);
-    }
-    fotoConta = null;
-    const url = URL.createObjectURL(arq);
+  /** o cartão aberto: os preços do texto e os tocados, na ordem do toque
+   *  @type {{ precos: PrecoDaConta[], tocados: number[] } | null} */
+  let contaColada = null;
+  const COMO_COPIAR =
+    '<details class="comoCopiar"><summary>como pegar o texto da conta</summary><ol>' +
+    '<li>tira uma foto da conta com a câmera do celular</li>' +
+    '<li><b>iPhone:</b> abre a foto, toca e segura numa palavra, toca em <b>Selecionar Tudo</b> e em <b>Copiar</b></li>' +
+    '<li><b>Android:</b> abre a foto no Google Fotos, toca em <b>Lens</b>, escolhe <b>Texto</b>, <b>Selecionar tudo</b> e <b>Copiar</b></li>' +
+    '<li>volta aqui e cola</li></ol></details>';
+  function abreConta() {
+    contaColada = { precos: [], tocados: [] };
+    const cola = !!(navigator.clipboard && navigator.clipboard.readText);
     overlay(
-      `<h2>Foto da conta</h2><p class="muted recado" id="fotoRecado">lendo a conta…</p>` +
-        `<div class="fotoConta lendo" id="fotoConta"><div class="tela"><img id="fotoImg" alt="a foto da conta" src="${url}"></div></div>` +
+      `<h2>Texto da conta</h2><p class="muted recado" id="contaRecado">copia o texto da foto da conta e cola aqui</p>` +
+        COMO_COPIAR +
+        `<textarea id="contaTexto" rows="4" placeholder="cola o texto da conta aqui" autocomplete="off" spellcheck="false"></textarea>` +
+        (cola ? '<div class="c"><button type="button" id="contaCola" class="ico amb">📋 colar</button></div>' : '') +
+        `<div class="precosConta" id="contaPrecos"></div>` +
         `<div class="somaFoto"><span class="fita" id="fotoFita"></span><b id="fotoSoma"></b></div>` +
         `<button class="big" id="fotoUsar" disabled>usar</button>` +
-        `<div class="c fotoMais"><a class="link" id="fotoPerto" role="button" tabindex="0">aumentar</a> · <a class="link" id="fotoContraste" role="button" tabindex="0">ler com mais contraste</a> · <a class="link" id="fotoOutra" role="button" tabindex="0">outra foto</a></div>` +
-        `<p class="status" id="fotoTempo"></p><div class="c voltar"><button id="fotoVoltar" class="ghost">voltar</button></div>`,
+        `<div class="c voltar"><button id="fotoVoltar" class="ghost">voltar</button></div>`,
     );
+    // na primeira vez o passo a passo já vem aberto
+    if (!device().contaColou) $('.comoCopiar').open = true;
+    $('#contaTexto').addEventListener('input', () => leConta($('#contaTexto').value));
+  }
+  /** o botão de colar lê a área de transferência (o navegador pergunta antes) */
+  async function colaConta() {
     try {
-      const foto = await createImageBitmap(arq);
-      const vista = preparaFoto(foto, false);
-      fotoConta = { foto, vista, url, precos: [], tocados: [], pb: false, corte: [0, 0, foto.width, foto.height] };
+      const t = await navigator.clipboard.readText();
+      $('#contaTexto').value = t;
+      leConta(t);
     } catch {
-      $('#fotoRecado').textContent = 'essa foto não abriu. tenta outra.';
-      return;
+      $('#contaTexto').focus();
+      $('#contaRecado').textContent = 'segura na caixa e cola';
     }
-    leFoto(false);
   }
-  /** lê a foto aberta; `pb` em preto e branco (o "mais contraste"). Lida de novo, perde o que estava tocado */
-  async function leFoto(pb) {
-    const f = fotoConta;
+  /** o texto colado vira os botões; colado de novo, perde o que estava tocado */
+  function leConta(texto) {
+    const f = contaColada;
     if (!f) return;
-    $('#fotoConta').classList.add('lendo');
-    $('#fotoRecado').textContent = 'lendo a conta…';
-    $('#fotoTempo').textContent = '';
-    const t0 = performance.now();
-    try {
-      const w = await carregaLeitor(),
-        t1 = performance.now();
-      // a conta lida como um bloco só, linha a linha: no modo automático, a coluna dos totais virava um bloco à parte
-      // e se perdia (na conta do Bar do Caranguejo, nenhum total de item saiu)
-      await w.setParameters({ tessedit_pageseg_mode: '6' });
-      /** lê a foto esticada `estica` vezes na largura; os preços e as palavras voltam em pontos da foto original
-       *  @param {number} estica */
-      const le = async (estica) => {
-        const cv = preparaFoto(f.foto, pb, estica),
-          img = await new Promise((ok) => cv.toBlob(ok, 'image/png')),
-          { data } = await w.recognize(img, {}, { blocks: true }),
-          kx = f.foto.width / cv.width,
-          ky = f.foto.height / cv.height,
-          volta = (b) => ({ x0: b.x0 * kx, y0: b.y0 * ky, x1: b.x1 * kx, y1: b.y1 * ky });
-        const linhas = (data.blocks || []).flatMap((b) => b.paragraphs.flatMap((p) => p.lines)),
-          palavras = linhas.flatMap((l) => l.words);
-        // o preço solto que cai na linha de um item é o unitário ou o total dele: quem vale é o item
-        const itens = achaItens(linhas),
-          doItem = (p) => itens.some((it) => (p.y0 + p.y1) / 2 > it.y0 && (p.y0 + p.y1) / 2 < it.y1);
-        return {
-          estica,
-          precos: [...itens, ...achaPrecos(palavras).filter((p) => !doItem(p))].map((p) => ({ ...p, ...volta(p) })),
-          // o que ele leu com certeza, pro recorte. À noite o grão da mesa vira "palavra" de uma letra ou duas: só entra
-          // palavra com três letras ou números seguidos
-          certas: palavras.filter((p) => p.confidence > 60 && /[a-z0-9]{3}/i.test(p.text)).map((p) => volta(p.bbox)),
-        };
-      };
-      const conta = (r) => r.precos.filter((p) => !p.un).length;
-      let lida = await le(1);
-      if (fotoConta !== f) return; // fechou ou trocou de foto no meio
-      // achou pouco: lê de novo com a foto esticada 2 vezes na largura e fica com a que achou mais. A letra alta e
-      // estreita de algumas impressoras (a da Toca do Índio) o leitor só lê assim; nas outras, esticar sempre piorava
-      if (conta(lida) < 3) {
-        const esticada = await le(2);
-        if (fotoConta !== f) return;
-        if (conta(esticada) > conta(lida)) lida = esticada;
-      }
-      // o que o teste no bar quer saber: quanto o leitor levou pra baixar, quanto disso a pessoa esperou com a foto
-      // já tirada, e quanto a leitura levou
-      const s = (ms) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
-      $('#fotoTempo').textContent =
-        `leitor baixou em ${s(tempoLeitor.fim - tempoLeitor.ini)} (esperei ${s(t1 - t0)}) · leu em ` +
-        `${s(performance.now() - t1)} · ${pb ? 'mais contraste' : 'cinza'}${lida.estica > 1 ? ' · esticada' : ''}`;
-      f.precos = lida.precos;
-      f.tocados = [];
-      f.pb = pb;
-      // o recorte: em volta dos preços e do que ele leu com certeza, com folga. Sem nada, a foto inteira
-      const caixas = [...f.precos, ...lida.certas];
-      if (caixas.length) {
-        const xs0 = Math.min(...caixas.map((p) => p.x0)),
-          ys0 = Math.min(...caixas.map((p) => p.y0)),
-          xs1 = Math.max(...caixas.map((p) => p.x1)),
-          ys1 = Math.max(...caixas.map((p) => p.y1));
-        const fx = (xs1 - xs0) * 0.06,
-          fy = (ys1 - ys0) * 0.03;
-        f.corte = [
-          Math.max(0, xs0 - fx),
-          Math.max(0, ys0 - fy),
-          Math.min(f.foto.width, xs1 + fx),
-          Math.min(f.foto.height, ys1 + fy),
-        ];
-      }
-    } catch (e) {
-      if (fotoConta !== f) return;
-      $('#fotoConta').classList.remove('lendo');
-      $('#fotoRecado').textContent = `não deu pra ler: ${e && e.message ? e.message : e}. tenta de novo com rede.`;
-      return;
+    f.precos = precosDoTexto(texto);
+    f.tocados = [];
+    const n = f.precos.length;
+    if (n) {
+      setDevice('contaColou', true);
+      $('.comoCopiar').open = false;
     }
-    await mostraFoto();
-    if (fotoConta !== f) return;
-    const n = f.precos.filter((p) => !p.un).length;
-    $('#fotoRecado').textContent = n
-      ? `achei ${n} preço${n > 1 ? 's' : ''}. toque nos que entram nesse gasto.`
-      : 'não achei preço nessa foto. tenta com mais luz, ou ler com mais contraste.';
-    $('#fotoContraste').textContent = pb ? 'ler sem contraste' : 'ler com mais contraste';
-  }
-  /** a foto recortada no cartão, com uma caixa em cada preço achado */
-  async function mostraFoto() {
-    const f = fotoConta;
-    const [x0, y0, x1, y1] = f.corte,
-      w = x1 - x0,
-      h = y1 - y0,
-      k = Math.min(1, 1000 / w);
-    const cv = Object.assign(document.createElement('canvas'), { width: Math.round(w * k), height: Math.round(h * k) }),
-      kv = f.vista.width / f.foto.width;
-    cv.getContext('2d').drawImage(f.vista, x0 * kv, y0 * kv, w * kv, h * kv, 0, 0, cv.width, cv.height);
-    const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.85));
-    if (fotoConta !== f) return;
-    URL.revokeObjectURL(f.url);
-    f.url = URL.createObjectURL(blob);
-    const pc = (v, de, tam) => (((v - de) / tam) * 100).toFixed(2) + '%';
-    $('#fotoConta .tela').innerHTML =
-      `<img id="fotoImg" alt="a foto da conta" src="${f.url}">` +
-      f.precos
-        .map(
-          (p, i) =>
-            `<button type="button" class="preco${p.un ? ' un' : ''}${p.item ? ' item' : ''}" data-preco="${i}" aria-label="${comSifrao(Math.abs(p.c))}" aria-pressed="false" ` +
-            (p.item ? `title="${esc(p.item.trim())}" data-total="= ${reais(p.c)}" ` : '') +
-            `style="left:${pc(p.x0, x0, w)};top:${pc(p.y0, y0, h)};width:${pc(p.x1, p.x0, w)};height:${pc(p.y1, p.y0, h)}"></button>`,
-        )
-        .join('');
-    $('#fotoConta').classList.remove('lendo');
+    $('#contaRecado').textContent = !texto.trim()
+      ? 'copia o texto da foto da conta e cola aqui'
+      : n
+        ? `achei ${n} preço${n > 1 ? 's' : ''}. toque nos que entram nesse gasto.`
+        : 'não achei preço nesse texto.';
+    $('#contaPrecos').innerHTML = f.precos
+      .map(
+        (p, i) =>
+          `<button type="button" class="precoConta" data-preco="${i}" aria-pressed="false" aria-label="${esc(p.nome ? `${p.nome} ` : '')}${comSifrao(p.c)}"><span class="l">${esc(p.nome || '·')}${p.qtd ? ` <span class="muted">(${p.qtd}×)</span>` : ''}</span><span class="d"></span><span class="v">${reais(p.c)}</span></button>`,
+      )
+      .join('');
     somaFoto();
   }
   /** a fita do que foi tocado, a soma e o botão de usar */
   function somaFoto() {
-    const f = fotoConta,
+    const f = contaColada,
       soma = f.tocados.reduce((s, i) => s + f.precos[i].c, 0);
     $('#fotoFita').textContent = f.tocados.map((i) => reais(f.precos[i].c)).join(' + ');
     $('#fotoSoma').textContent = f.tocados.length ? comSifrao(soma) : '';
@@ -3540,7 +3332,7 @@
     $('#fotoUsar').disabled = !(soma > 0);
   }
   const marcaPreco = (el) => {
-    const f = fotoConta,
+    const f = contaColada,
       i = +el.dataset.preco;
     if (!f || !f.precos[i]) return;
     const j = f.tocados.indexOf(i);
@@ -3552,17 +3344,13 @@
   };
   /** a soma vai pro valor do anotar, como se a pessoa tivesse digitado */
   const usaFoto = () => {
-    const f = fotoConta,
+    const f = contaColada,
       soma = f ? f.tocados.reduce((s, i) => s + f.precos[i].c, 0) : 0;
     if (!(soma > 0)) return;
     $('#amount').value = reais(soma);
     updateHint();
     closeOverlay();
     if (!$('#desc').value) $('#desc').focus();
-  };
-  const fotoPerto = () => {
-    const perto = $('#fotoConta').classList.toggle('perto');
-    $('#fotoPerto').textContent = perto ? 'diminuir' : 'aumentar';
   };
   // #endregion
   // #region entrar num evento
@@ -3590,18 +3378,27 @@
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
     return { code: meu ? meu.code : code, quem: null, link: false, meu: !!meu };
   }
-  /** código com cara de final sorteado (6 letras e números, com algum número): veio de um link */
+  /** código com cara de sorteado (os 10 de agora, ou o final de 6 dos eventos de antes, com algum número e alguma
+   *  letra): veio de um link, não é nome de evento novo */
   function pareceLink(code) {
-    return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+    return /^(?=[a-z]*\d)(?=\d*[a-z])[a-z0-9]{6}$/.test(code) || /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+  }
+  /** o código de um evento novo: 6 letras e números sorteados (36⁶), sem o nome, com pelo menos um de cada. O nome
+   *  fica só no evento, e o link fica curto */
+  function codigoNovo() {
+    for (;;) {
+      const c = sorteia(6);
+      if (/\d/.test(c) && /[a-z]/.test(c)) return c;
+    }
   }
   const ENGASGOU = 'a internet engasgou. tenta de novo?';
-  /** o nome digitado já é de um evento fora da lista: o padrão é criar o meu (com final sorteado);
-   *  "abrir esse mesmo" fica pro evento antigo da própria turma, de antes do final
+  /** o nome digitado já é de um evento fora da lista: o padrão é criar o meu (com código sorteado);
+   *  "abrir esse mesmo" fica pro evento antigo da própria turma, de antes do código sorteado
    *  @returns {Promise<'meu'|'esse'|null>} */
   function escolheNomeOcupado(code) {
     return new Promise((res) => {
       overlay(
-        `<h2>Já existe um "${esc(code)}"</h2><p class="muted recado">é de outra turma. o seu ganha um final sorteado, à prova de enxerido.</p><button id="okBtn" class="big">criar o meu</button><div class="c voltar"><button id="abreEsse" class="ghost">abrir esse mesmo</button><button id="cancelBtn" class="ghost">voltar</button></div>`,
+        `<h2>Já existe um "${esc(code)}"</h2><p class="muted recado">é de outra turma. o seu ganha um código sorteado, à prova de enxerido.</p><button id="okBtn" class="big">criar o meu</button><div class="c voltar"><button id="abreEsse" class="ghost">abrir esse mesmo</button><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);
       const fecha = (/** @type {'meu'|'esse'|null} */ r) => () => {
@@ -3627,7 +3424,7 @@
       if (!e.notFound) throw new Error(ENGASGOU);
     }
     let criou = false;
-    // nome digitado sem final sorteado que já existe é de outra turma (evento de antes do final, ou gravado
+    // nome digitado sem código sorteado que já existe é de outra turma (evento de antes do sorteio, ou gravado
     // direto no banco): abrir sem perguntar punha a pessoa no "churras" de estranho, pix dele e tudo
     if (existing && digitou && !pareceLink(code)) {
       const r = await escolheNomeOcupado(code);
@@ -3636,7 +3433,7 @@
     }
     // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link
     if (!existing && (pareceLink(code) || !digitou)) {
-      // código com cara de final sorteado é link velho ou cortado, não nome novo:
+      // código com cara de sorteado é link velho ou cortado, não nome novo:
       // "esse nome tá livre" ali faria a pessoa criar um evento fantasma
       const [titulo, desc, ok] = pareceLink(code)
         ? [
@@ -3646,17 +3443,17 @@
           ]
         : [
             `Criar "${esc(code)}"?`,
-            'esse nome tá livre. o link ganha um final sorteado, à prova de enxerido.',
+            'esse nome tá livre. o link ganha um código sorteado, à prova de enxerido.',
             'criar',
           ];
       if (!(await ask(titulo, desc, ok))) throw new Error('nada foi criado.');
     }
     if (!existing) {
-      // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
-      // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
+      // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo ganha um código
+      // sorteado ("k7f3q9"), e o nome da tela continua "churras"
       const nome = code;
       criou = true;
-      code = `${code}-${sorteia(6)}`;
+      code = codigoNovo();
       id = await sha(code);
       await apiPut(id, fresh(nome)).catch(() => {
         throw new Error(ENGASGOU);
@@ -3688,6 +3485,7 @@
       me = typeof r.me === 'string' ? r.me : null;
       lastSeen = +r.lastSeen || 0;
     }
+    donoMemo = null;
     meusIds = new Set(
       meusEventos()
         .filter((e) => e.id !== id && e.me)
@@ -3732,7 +3530,8 @@
     // já sabe era o cabeçalho e a nota fazendo a mesma pergunta. O "Sou Fulano" do topo troca num toque
     else if (!temMe()) {
       const sug = palpite();
-      if (sug) souEu(sug.id);
+      if (sug && sug.certo) souEu(sug.p.id);
+      else if (sug) perguntaSeSou(sug.p);
     }
     // ninguém é interrompido na chegada: sem palpite, a tela de estreia e o "quem é você?"
     // esperam o toque no botão do cabeçalho
@@ -3826,6 +3625,24 @@
       })
       .sort((a, b) => b.at - a.at);
   }
+  /** o dono do aparelho: o nome que mais fui nos eventos daqui (sem acento, sem caixa) e em quantos. Empate
+   *  não tem dono. Lê todas as cópias: guarda até eu trocar de pessoa ou de evento @type {{ nome: string, n: number } | null} */
+  let donoMemo = null;
+  function dono() {
+    if (donoMemo) return donoMemo;
+    /** @type {Map<string, { nome: string, n: number }>} */ const conta = new Map();
+    for (const e of meusEventos()) {
+      const p = e.me && e.snap && e.snap.people.find((x) => x.id === e.me);
+      if (!p) continue;
+      const k = buscaNome(p.name),
+        c = conta.get(k) || { nome: p.name, n: 0 };
+      c.n++;
+      conta.set(k, c);
+    }
+    const [a, b] = [...conta.values()].sort((x, y) => y.n - x.n);
+    return (donoMemo = !a || (b && b.n === a.n) ? { nome: '', n: 0 } : a);
+  }
+  const souDono = (nome = temMe() ? nameOf(me) : '') => !!nome && buscaNome(nome) === buscaNome(dono().nome);
   /** esquecer só esconde: apagar a gaveta levaria junto o tok do pix, e a chave travava */
   const esconde = (id) =>
     mexe(roomKey(id), (o) => {
@@ -4686,12 +4503,10 @@
     ['#temaBtn', trocaTema],
     ['h1>span', voaGorro],
     ['#instalar, #instalarGate', instala],
-    ['#fotoBtn', tiraFoto],
+    ['#contaBtn', abreConta],
+    ['#contaCola', colaConta],
     ['[data-preco]', marcaPreco],
     ['#fotoUsar', usaFoto],
-    ['#fotoPerto', fotoPerto],
-    ['#fotoContraste', () => fotoConta && leFoto(!fotoConta.pb)],
-    ['#fotoOutra', () => $('#fotoArq').click()],
     ['#fotoVoltar', closeOverlay],
     ['#splitSeg button', escolheAba],
     ['[data-resto]', poeResto],
@@ -4774,11 +4589,10 @@
   }
   /** o aniversário da dívida, contado do último gasto em que a pessoa entrou (antes dele a conta dela não tinha
    *  fechado): "🎂 hoje a dívida completa 12 dias", e ela cresce como bebê (mêsversário, aninho, escolinha).
-   *  Do mesmo dia não diz nada; o modo chato só diz há quanto tempo @param {string} quem */
+   *  Do mesmo dia não diz nada @param {string} quem */
   function aniversario(quem) {
     const { at, dias } = idadeDaDivida(quem);
     if (dias <= 0) return '';
-    if (chato) return dias === 1 ? ', desde ontem' : `, há ${dias} dias`;
     const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
     if (dias === 7) return '\n🎂 hoje a dívida completa 1 semana. já saiu da maternidade 🏥';
     // meses de calendário: de 3/9 a 3/10 é um mês certinho
@@ -4951,10 +4765,13 @@
       `<h2 class="pergunta">Aponta a câmera</h2>
       <div class="qr">${svg}</div>
       <p class="muted recado c">quem escanear cai no ${esc(evento())}</p>
-      <p class="c"><a id="mesaLink" class="link" target="_blank" href="${esc(`${SITE}mesa/?evento=${encodeURIComponent(roomName)}`)}">imprimir plaquinha de mesa</a></p>
+      <p class="c linkQr"><a id="qrLink" class="link" role="button" tabindex="0" title="copiar o link">${esc(url.replace(/^https?:\/\//, ''))}</a></p>
+      <p class="c"><a id="mesaLink" class="link" target="_blank" href="${esc(`${SITE}mesa/?evento=${encodeURIComponent(roomName)}&nome=${encodeURIComponent(evento())}`)}">imprimir plaquinha de mesa</a></p>
       <div class="c voltar"><button id="cancelBtn" class="ghost">fechar</button></div>`,
     );
     $('#cancelBtn').onclick = closeOverlay;
+    // o link embaixo do QR se copia num toque: é dele que sai o convite sem passar pelo zap
+    $('#qrLink').onclick = () => copia(url, 'Link copiado', 'Link do evento');
     $('#cancelBtn').focus(); // o botão que tinha o foco sumiu com o cartão anterior
     acendeTela();
   }
@@ -4962,11 +4779,11 @@
     const st = settlements(balances());
     const ev = evento() || 'acerto';
     if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl(quem, 'quitado')}`;
-    // evento parado muda o tom: lembra, e depois de um mês a diva cobra (o modo chato só lembra)
+    // evento parado muda o tom: lembra, e depois de um mês a diva cobra
     const dias = state.updatedAt ? diasDesde(state.updatedAt) : 0,
       pendurado = comSifrao(st.reduce((a, t) => a + t.cents, 0));
     const abre =
-      dias >= ESQUECIDO_DIAS && !chato
+      dias >= ESQUECIDO_DIAS
         ? `💅 meu bem, o *${ev}* faz ${dias} dias e tem ${pendurado} pendurado. fiado tem limite, viu?`
         : dias >= PARADO_DIAS
           ? `👀 lembra do *${ev}*? faz ${dias} dias e ainda tem ${pendurado} pendurado…`
@@ -5524,12 +5341,12 @@
       aviso = 0;
     ficha.vem = () => {
       if (!jogada) confere();
-      return !chato && jogada && !marcada;
+      return jogada && !marcada;
     };
     const confere = () => {
       // ainda carregando, a nota é só o spinner: numa tela alta isso já é o "fim da
       // página" e a ficha caía antes do evento existir
-      if (chato || jogada || $('#app').classList.contains('loading')) return;
+      if (jogada || $('#app').classList.contains('loading')) return;
       if (el.classList.contains('hidden') || !noFim()) return; // nota sem gasto: a ficha espera
       // com cartão ou o anotar abertos ela cairia por trás, sem ninguém ver: espera fechar
       if (!semCartao() || !$('#sheet').classList.contains('hidden')) return;
@@ -5799,34 +5616,9 @@
       pega = null;
       aponta(null);
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('voou', 'pousou', 'solta', 'largada', 'segura', 'fora', 'apaga', 'engole');
+      el.classList.remove('voou', 'pousou', 'solta', 'largada', 'segura', 'fora', 'engole');
       confere();
     };
-    // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
-    senha(el, () => {
-      chato = true;
-      setDevice('boringMode', true);
-      pega = null;
-      cancelAnimationFrame(voo);
-      aponta(null);
-      el.classList.remove('segura');
-      el.classList.add('apaga');
-      setTimeout(() => {
-        document.body.classList.add('chato');
-        render();
-      }, 700);
-    });
-    // e no "Deus é fiel." do rodapé, liga de novo: ela volta falando e é jogada outra vez
-    const frase = $('#signoff');
-    if (frase)
-      senha(frase, () => {
-        if (!chato) return;
-        chato = false;
-        setDevice('boringMode', undefined);
-        document.body.classList.remove('chato');
-        render();
-        ficha.rejoga();
-      });
   })();
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
   let olhoSec = null;

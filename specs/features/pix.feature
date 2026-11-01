@@ -114,9 +114,10 @@ Funcionalidade: Cadastrar a chave pix
     Então aparece o aviso "Sem espaço neste aparelho: a chave não salvou"
     E o banco não tem chave do Fernando
 
-  Regra: a chave que eu já usei em outro evento entra num toque
+  Regra: a chave do dono do aparelho entra num toque, e depois sozinha
     Quem tem a receber não passa pelo cartão pra repetir a chave de sempre: o botão mostra ela e salva no toque.
-    O cartão fica pra quem quer outra.
+    O cartão fica pra quem quer outra. A chave é do dono do aparelho, o nome que ele mais usa: pros outros nomes
+    não aparece. De três eventos com o mesmo nome pra cima, nem precisa tocar.
 
     Exemplo: um toque usa a minha chave de sempre
       Dado que eu já usei a chave pix "fernando@exemplo.com" em outro evento
@@ -125,6 +126,19 @@ Funcionalidade: Cadastrar a chave pix
       Quando eu toco em usar minha chave pix
       Então aparece o aviso "Chave Pix salva"
       E o banco guarda a chave do Fernando "fernando@exemplo.com"
+      E não aparece o botão de cadastrar pix
+
+    Exemplo: sendo outra pessoa, o aparelho não oferece a chave do dono
+      Dado que eu já usei a chave pix "fernando@exemplo.com" como Fernando
+      E que este aparelho foi Fernando em 2 eventos
+      Quando eu abro o evento como Lia
+      Então o cartão de quem é você só oferece cadastrar uma chave
+
+    Exemplo: no terceiro evento como Fernando, a chave entra sozinha
+      Dado que eu já usei a chave pix "fernando@exemplo.com" como Fernando
+      E que este aparelho foi Fernando em 2 eventos
+      Quando eu abro o evento como Fernando
+      Então o banco guarda a chave do Fernando "fernando@exemplo.com"
       E não aparece o botão de cadastrar pix
 
     Exemplo: outra chave, pelo cartão de quem é você

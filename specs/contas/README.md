@@ -1,20 +1,8 @@
 # Contas de verdade
 
-Fotos de conta tiradas no bar, cada uma com o gabarito do lado: o que está escrito no papel. É a régua do leitor da foto (o 📷 do anotar, `ocr/`): mexeu no `preparaFoto`, no `achaItens`, no `achaPrecos` ou no jeito de chamar o tesseract, rode antes e depois e compare.
+Fotos de conta tiradas no bar, cada uma com o gabarito do lado: o que está escrito no papel. Eram a régua do leitor de foto do site (o tesseract, que saiu em 01/11/2026: lia metade à noite e inventava número). Ficam como base realista pro texto da conta (o 📋 do anotar, atrás do `?mesa`): a pessoa tira a foto com o celular, copia o texto que o próprio celular lê (Texto ao Vivo no iPhone, Lens no Android) e cola, e o `precosDoTexto()` acha os preços.
 
-```sh
-npm run ocr                # todas, lidas em cinza e com mais contraste
-npm run ocr -- xmenu       # só as que têm "xmenu" no nome
-npm run ocr -- --detalhe   # o que ele achou, o que faltou e o que inventou, conta por conta
-npm run ocr -- toca --texto  # e o texto que ele leu, linha a linha
-```
-
-Não é teste e não roda no CI: o leitor de verdade leva segundos por foto. A tabela diz, por conta e por jeito de ler:
-
-- **itens**: quantos totais de item viraram preço tocável (o unitário apagado não conta);
-- **nome**: quantos desses vieram com o nome certo (o lido contém o da conta, sem acento nem pontuação);
-- **total**: se ele achou o total da conta;
-- **inventou**: preço que não está em lugar nenhum do papel (1 UND lido como 7, 16,00 lido como 18,00).
+Pra medir o `precosDoTexto()` numa conta, ponha do lado o `.txt` de mesmo nome com o texto que o celular copiou da foto, do jeito que veio.
 
 ## Pôr uma conta nova
 
@@ -44,11 +32,12 @@ PY
 }
 ```
 
-`itens` na ordem do papel, um por linha da conta (item repetido aparece duas vezes). O `un` só quando o papel imprime o unitário. `outros` são os preços que estão no papel e não são item: subtotal, valor por pessoa, couvert separado. Sem eles, o que o leitor achar ali conta como inventado.
+`itens` na ordem do papel, um por linha da conta (item repetido aparece duas vezes). O `un` só quando o papel imprime o unitário. `outros` são os preços que estão no papel e não são item: subtotal, valor por pessoa, couvert separado. 
 
 As fotos não vão pro site (o `pages.yml` tira esta pasta).
 
-## O que já se mediu
+## O que o tesseract media (histórico)
+
 
 31/10/2026, com a leitura esticada de reserva:
 

@@ -21,16 +21,21 @@ Funcionalidade: Entrar no evento
     E eu toco no nome do evento
     E eu digito o código "praia" no cartão do evento
     Então o cartão pergunta "Quem vai?"
-    E o endereço é "?evento=praia-" com um final sorteado
+    E o endereço tem um código sorteado
 
-  Cenário: link de evento que não existe não oferece criar como se fosse nome novo
-    Código com o final sorteado é de um link: se não abre nada, o link veio errado ou o evento sumiu.
+  Esquema do Cenário: link de evento que não existe não oferece criar como se fosse nome novo
+    Código sorteado é de um link: se não abre nada, o link veio errado ou o evento sumiu.
     Dado que eu abro o site sem evento
-    Quando eu digito o código "churras-k7f3q9"
-    Então o cartão pergunta 'Não achei "churras-k7f3q9"'
+    Quando eu digito o código "<código>"
+    Então o cartão pergunta 'Não achei "<código>"'
     Quando eu volto
-    Então o cartão do código volta com "churras-k7f3q9" escrito
+    Então o cartão do código volta com "<código>" escrito
     E aparece o recado "nada foi criado."
+
+    Exemplos:
+      | código         |
+      | k7f3q9         |
+      | churras-k7f3q9 |
 
   Cenário: tocar fora também volta pro código
     Dado que eu abro o site sem evento
@@ -52,12 +57,12 @@ Funcionalidade: Entrar no evento
     Quando eu aperto Esc
     Então aparece o cartão do código
 
-  Cenário: o código fica no endereço, com um final sorteado
-    Código curto se adivinha testando direto no banco. O evento novo ganha um
-    final sorteado no link, e a tela continua com o nome que a pessoa digitou.
+  Cenário: o evento novo ganha um código sorteado, e a tela fica com o nome
+    Código curto se adivinha testando direto no banco. O link do evento novo é só um código
+    sorteado, curto de mandar, e a tela continua com o nome que a pessoa digitou.
     Dado que eu abro o site sem evento
     Quando eu crio o evento "Bailedamada"
-    Então o endereço é "?evento=bailedamada-" com um final sorteado
+    Então o endereço tem um código sorteado
     E o nome do evento no cabeçalho é "bailedamada"
     Quando eu recarrego a página
     Então o site não pergunta nada
@@ -65,17 +70,17 @@ Funcionalidade: Entrar no evento
     Então o site pergunta se é um evento novo
 
   Cenário: nome digitado que já é de outra turma pergunta, e o padrão é criar o meu
-    Nome curto sem final sorteado é de qualquer um: cair direto no "churras" de estranho mostra
+    Nome curto sem código sorteado é de qualquer um: cair direto no "churras" de estranho mostra
     a conta e o pix de gente que a pessoa nem conhece.
     Dado o evento "churras" com Fernando, Júlia e Lia
     E que eu abro o site sem evento
     Quando eu digito o código "churras"
     Então o cartão pergunta 'Já existe um "churras"'
     Quando eu confirmo
-    Então o endereço é "?evento=churras-" com um final sorteado
+    Então o endereço tem um código sorteado
     E o nome do evento no cabeçalho é "churras"
 
-  Cenário: o evento antigo da turma, de antes do final sorteado, ainda abre pelo nome
+  Cenário: o evento antigo da turma, de antes do código sorteado, ainda abre pelo nome
     Dado o evento "churras" com Fernando, Júlia e Lia
     E que eu abro o site sem evento
     Quando eu digito o código "churras"
@@ -106,7 +111,7 @@ Funcionalidade: Entrar no evento
     E o endereço termina em "?evento=churras"
 
   Cenário: o nome de um evento da lista abre ele, sem criar outro igual
-    O link do evento ganha um final sorteado, mas o que a pessoa lembra é o nome.
+    O link do evento é um código sorteado, mas o que a pessoa lembra é o nome.
     Dado que este aparelho já abriu o evento "praia" pelo link "praia-k7f3q9"
     E que eu abro o site sem evento
     Quando eu digito o código "praia"
@@ -133,6 +138,14 @@ Funcionalidade: Entrar no evento
     Quando eu abro o evento como Fernando
     E eu peço o QR do evento
     Então o QR na tela abre o evento direto
+
+  Cenário: embaixo do QR, o link do evento se copia num toque
+    Pra mandar o link sem passar pelo zap: ele fica escrito embaixo do QR, e tocar copia.
+    Dado o evento de exemplo "bailedamada"
+    Quando eu abro o evento como Fernando
+    E eu peço o QR do evento
+    E eu toco no link embaixo do QR
+    Então fica copiado o link curto do evento
 
   Cenário: a plaquinha de mesa impressa leva pro evento
     Na república ou na festa, o evento fica na mesa: quem chega aponta a câmera pra plaquinha e já cai nele.

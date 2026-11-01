@@ -14,8 +14,7 @@
     "preview": "node specs/preview.cjs",
     "contraste": "node specs/contraste.cjs",
     "video": "node specs/video.cjs",
-    "readme": "node specs/readme.cjs",
-    "ocr": "node specs/ocr.cjs"
+    "readme": "node specs/readme.cjs"
   },
   "devDependencies": {
     "@cucumber/pretty-formatter": "^4.0.2",

@@ -25,12 +25,6 @@ const joga = async p => {
   await passa(p, { x: o.x + 30, y: o.y + 8 }, 120); await passa(p, { x: o.x + 260, y: o.y - 160 }, 90); await p.mouse.up();
   await p.waitForTimeout(1800);
 };
-const senha = async (p, sel) => {
-  const b = await p.locator(sel).boundingBox(); await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 });
-  for (const ms of [650, 90, 650]) { await p.mouse.down(); await p.waitForTimeout(ms); await p.mouse.up(); await p.waitForTimeout(250); }
-};
-const estado = p => p.evaluate(() => ({ chato: document.body.classList.contains('chato'), frase: document.querySelector('#signoff').textContent,
-  subtitulo: getComputedStyle(document.querySelector('#tagline')).display, ficha: getComputedStyle(document.querySelector('.stain')).display }));
 const desce = (p, suave = false) => p.evaluate(s => scrollTo({ top: document.documentElement.scrollHeight, behavior: s ? 'smooth' : 'instant' }), suave);
 
-module.exports = { centro, tem, pousa, passa, agarra, arrasta, solta, rolaPraCima, joga, senha, estado, desce };
+module.exports = { centro, tem, pousa, passa, agarra, arrasta, solta, rolaPraCima, joga, desce };

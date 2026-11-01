@@ -70,7 +70,7 @@ const CENAS = {
     acao: async p => { await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1500);
       await p.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }));
       await p.waitForTimeout(5000); } },
-  pega: { nome: 'no primeiro toque a ficha descola; pega pela borda, gira até vir a reboque; largada de lado, desliza girando; jogada com força, sai da tela', quem: 'Lia', atrasoPix: 0,
+  pega: { nome: 'no primeiro toque a ficha descola e vai presa no dedo, rolando; largada devagar fica onde parou; jogada com força, sai voando', quem: 'Lia', atrasoPix: 0,
     acao: async p => { await ficha.desce(p);
       await p.evaluate(() => { const d = document.createElement('div');
         d.style.cssText = 'position:fixed;z-index:99;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(255,255,255,.55);border:2px solid rgba(0,0,0,.5);pointer-events:none;left:-50px;top:-50px;transition:transform .1s';

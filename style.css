@@ -62,8 +62,8 @@ body{margin:0;min-height:100vh;overflow-x:hidden;overflow-x:clip;max-width:100vw
   100%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 /* sem movimento ela não voa: fica invisível até ser jogada e aparece já pousada no lugar sorteado */
 @media (prefers-reduced-motion:reduce){.stain.voou{animation:none}}
-/* a ficha pousada é pegável já no primeiro toque: descola do papel e vai presa no dedo pelo
-   ponto em que foi pega; largada, desliza no embalo e, jogada com força, sai da tela */
+/* a ficha pousada é pegável já no primeiro toque: descola do papel, vai presa no dedo pelo
+   ponto em que foi pega e rola com ele; largada devagar fica onde parou e, jogada com força, sai voando */
 .stain.pousou{animation:none;opacity:1;pointer-events:auto;cursor:default;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-drag:none}
 body.pegavel .stain.pousou{cursor:grab}
 /* depois de girar na mão, a sombra gira ao contrário pra ficar sempre embaixo e à direita.

@@ -43,9 +43,6 @@
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
-  // "apagar meus dados deste aparelho" no fim do cartão do evento: desligado pra todo mundo. Liga no aparelho
-  // abrindo o site com ?apagar (fica lembrado; ?apagar=0 desliga)
-  const APAGAR_DADOS = false;
   // a galera de sempre: no Quem vai?, quem já rachou comigo em outros eventos vem num toque, a mesma pessoa
   // (o mesmo id). Desligada pra todo mundo. Liga no aparelho com ?galera (fica lembrado; ?galera=0 desliga)
   const GALERA = false;
@@ -111,10 +108,9 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, apagarOn, avisoSim, galeraOn, mesaOn, testesOn, tema, naoConta }
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, testesOn, tema, naoConta }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
-  //                  apagarOn: o apagar meus dados ligado neste aparelho pelo ?apagar;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
   //                  galeraOn: a galera de sempre no Quem vai?, pelo ?galera; mesaOn: o modo mesa (a foto da conta), pelo ?mesa;
   //                  testesOn: tudo que está em teste de uma vez, pelo ?testes;
@@ -136,11 +132,8 @@
       return {};
     }
   };
-  /** "apagar meus dados" começou: nada mais grava, senão um sync no meio devolvia a gaveta que acabou de sair */
-  let apagando = false;
   /** abre a gaveta, deixa `f` mexer nela e grava de volta @param {string} k @param {(o: Record<string, any>) => void} f */
   const mexe = (k, f) => {
-    if (apagando) return false;
     const o = gaveta(k);
     f(o);
     return ls.set(k, JSON.stringify(o));
@@ -216,8 +209,8 @@
     const q = new URLSearchParams(location.search);
     if (q.has('naoconta')) setDevice('naoConta', q.get('naoconta') === '0' ? undefined : true);
   }
-  // ?testes liga de uma vez tudo que está em teste (o modo mesa, a galera de sempre, a conta fixa, o número do zap,
-  // a digital e o apagar meus dados) e fica lembrado; ?testes=0 desliga. O link de cada um continua valendo sozinho
+  // ?testes liga de uma vez tudo que está em teste (o modo mesa, a galera de sempre e a digital) e fica lembrado;
+  // ?testes=0 desliga. O link de cada um continua valendo sozinho
   {
     const q = new URLSearchParams(location.search);
     if (q.has('testes')) setDevice('testesOn', q.get('testes') === '0' ? undefined : true);
@@ -431,12 +424,12 @@
     };
   }
 
-  // o gasto fixo (?fixo) e o número do zap (?numerozap) saíram: o que eles deixaram no aparelho vai embora junto
-  if (['fixoOn', 'numeroZapOn', 'phones'].some((k) => k in device()))
+  // o gasto fixo (?fixo), o número do zap (?numerozap) e o apagar meus dados (?apagar) saíram: o que eles
+  // deixaram no aparelho vai embora junto
+  const SAIRAM = ['fixoOn', 'numeroZapOn', 'phones', 'apagarOn'];
+  if (SAIRAM.some((k) => k in device()))
     mexe(DEVICE, (o) => {
-      delete o.fixoOn;
-      delete o.numeroZapOn;
-      delete o.phones;
+      for (const k of SAIRAM) delete o[k];
     });
   (() => {
     const q = new URLSearchParams(location.search);
@@ -2648,7 +2641,7 @@
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: praia, churras" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
       <p id="gateErr" class="status err" style="margin:0"></p><div class="c"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${linhaDigital(evs.length > 0)}${
         aberto ? `<div class="c voltar"><button id="evBack" class="ghost">voltar</button></div>` : ''
-      }${ofereceApagar() ? '<div class="c apaga"><button id="apagaTudo" class="ghost">apagar meus dados deste aparelho</button></div>' : ''}`,
+      }`,
       !aberto,
     );
     mostraInstalar();
@@ -3677,104 +3670,6 @@
     mexe(roomKey(id), (o) => {
       o.hidden = true;
     });
-  /** as gavetas dos eventos, inclusive as esquecidas (o ✕ só esconde) */
-  const gavetasDeEvento = () => {
-    try {
-      return Object.keys(localStorage).filter((k) => k.startsWith(DEVICE + ':'));
-    } catch {
-      return [];
-    }
-  };
-  /** tem o que apagar: algum evento, ou o nome e a chave pix lembrados pro próximo */
-  const temDados = () => gavetasDeEvento().length > 0 || !!device().myName || !!device().pixKey;
-  (() => {
-    const q = new URLSearchParams(location.search);
-    if (q.has('apagar')) setDevice('apagarOn', q.get('apagar') === '0' ? undefined : true);
-  })();
-  const ofereceApagar = () => (APAGAR_DADOS || emTeste() || device().apagarOn === true) && temDados();
-  /** celular emprestado, vendido ou de casal: tira a minha chave pix de cada evento (com o tok, que só este
-   * aparelho tem, e por isso antes de tudo), desliga os avisos e apaga as gavetas. Sem rede, as chaves ficam */
-  async function apagaTudo() {
-    const semRede = navigator.onLine === false;
-    const ok = await ask(
-      'Apagar meus dados deste aparelho?',
-      `tira a sua chave pix de cada evento e apaga daqui os eventos, o seu nome e os avisos. os eventos continuam pra turma, pelo link.${
-        semRede
-          ? '<br><br>sem internet: as chaves pix ficam nos eventos, e o segredo delas fica aqui até você apagar de novo com internet.'
-          : ''
-      }`,
-      'apagar tudo',
-      true,
-    );
-    if (!ok) return showGate();
-    overlay('<h2>Apagando…</h2>', true);
-    apagando = true;
-    clearInterval(pollTimer);
-    const gavetas = gavetasDeEvento();
-    /** @type {Promise<unknown>[]} */ const feito = [];
-    /** o tok que o banco não confirmou fica: a chave pode estar lá ainda, e sem ele ninguém tira mais
-     *  @type {Record<string, Record<string, string>>} */ const ficam = {};
-    let sub = null;
-    try {
-      const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
-      sub = reg ? await reg.pushManager.getSubscription() : null;
-    } catch {}
-    for (const k of gavetas) {
-      const sala = k.slice(DEVICE.length + 1),
-        o = gaveta(k);
-      if (!/^[0-9a-f]{64}$/.test(sala)) continue;
-      // a chave vazia com o tok solta o nó: qualquer aparelho cadastra de novo
-      if (o.pixTokens && typeof o.pixTokens === 'object')
-        for (const [pid, tok] of Object.entries(o.pixTokens))
-          if (okId(pid) && typeof tok === 'string' && tok)
-            feito.push(
-              gravaPix(sala, pid, '', tok)
-                // 401/403: a chave já não é deste aparelho, o tok não serve mais pra nada
-                .then((r) => r.ok || r.status === 401 || r.status === 403)
-                .catch(() => false)
-                .then((saiu) => {
-                  if (!saiu) (ficam[k] ||= {})[pid] = tok;
-                }),
-            );
-      if (sub && okId(o.pushOn) && typeof o.pushTok === 'string')
-        feito.push(
-          postaApi('/desinscreve', { sala, pessoa: o.pushOn, endpoint: sub.endpoint, tok: o.pushTok }).catch(() => {}),
-        );
-    }
-    await Promise.all(feito);
-    if (sub) await sub.unsubscribe().catch(() => {});
-    await new Promise((fim) => {
-      try {
-        const r = indexedDB.deleteDatabase('tolisa');
-        r.onsuccess = r.onerror = r.onblocked = fim;
-      } catch {
-        fim(null);
-      }
-    });
-    if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
-    /** @type {string[]} */ const falhou = [];
-    for (const k of gavetas) {
-      if (!ficam[k]) {
-        ls.del(k);
-        continue;
-      }
-      // fica só o tok (e o código, pro aviso), esquecida: o "apagar meus dados" segue na tela pra tentar de novo
-      const code = gaveta(k).code,
-        nome = typeof code === 'string' && code && code.length <= 100 ? code : 'um evento';
-      falhou.push(nome);
-      ls.set(k, JSON.stringify({ code, hidden: true, pixTokens: ficam[k] }));
-    }
-    // quem ligou o apagar pelo ?apagar (ou o ?testes) e ficou com chave pra tirar continua vendo o botão pra tentar de novo
-    if (falhou.length && (device().apagarOn === true || emTeste())) ls.set(DEVICE, JSON.stringify({ apagarOn: true }));
-    else ls.del(DEVICE);
-    if (falhou.length)
-      await ask(
-        'Faltou a chave pix',
-        `não deu pra tirar a chave de ${falhou.map((n) => `<b>${esc(n)}</b>`).join(', ')}, tenta de novo com internet. o resto já saiu daqui.`,
-        'ok',
-      );
-    location.replace(location.pathname);
-  }
   /** dias de calendário de `at` até hoje (ontem é 1, mesmo que tenha sido há 2 horas) */
   function diasDesde(at) {
     const dia = (t) => new Date(new Date(t).toDateString()).getTime();
@@ -4655,7 +4550,6 @@
     ['[data-undo]', tocaCarimbo],
     ['[data-settle], [data-recebi], [data-perdoa]', quita],
     ['[data-aviso]', () => tocaAviso()],
-    ['#apagaTudo', apagaTudo],
     ['#proxRole', proximoRole],
     ['[data-cobra]', cobra],
     ['[data-copy-value]', (el) => copia(el.dataset.copyValue, 'Valor copiado. Cola no app do banco.', 'Valor')],

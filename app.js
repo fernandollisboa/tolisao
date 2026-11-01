@@ -34,7 +34,7 @@
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
   const QUITADO_DIAS = 7; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
-  const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
+  const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
@@ -107,7 +107,7 @@
     },
   };
   // o que fica no aparelho, em duas gavetas de JSON:
-  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, boringMode, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, contaColou, testesOn, tema, naoConta }
+  //   tolisa         { visits, countedDay, installPrompted, itemsOpened, myName, pixKey, pixName, passkeyOn, passkeyId, pixDigital, avisoSim, galeraOn, mesaOn, contaColou, testesOn, tema, naoConta }
   //                  (myName: o último nome que escolhi; pixKey: a minha última chave pix, nunca o tok; pixName: de quem é ela;
   //                  passkeyOn: a digital ligada neste aparelho pelo ?digital; passkeyId: a passkey que guardou a lista; pixDigital: o id da passkey do pix, ou false se a digital daqui não tem PRF;
   //                  avisoSim: já disse sim ao 🔔 uma vez, os outros eventos ligam sozinhos;
@@ -169,7 +169,6 @@
       if (a === 'visitas') dev.visits = Math.max(+v || 0, dev.visits || 0);
       else if (a === 'convidou') dev.installPrompted = true;
       else if (a === 'abriuItens') dev.itemsOpened = true;
-      else if (a === 'chato') dev.boringMode = true;
       else if (a === 'room') dev.lastRoom ??= json();
       else if (/^[0-9a-f]{64}$/.test(a)) {
         if (!b) sala(a).snapshot ??= json();
@@ -230,7 +229,8 @@
   // ---------- o estado da página ----------
   // tudo que muda enquanto a página está aberta. O resto do arquivo lê e escreve aqui
   /** o id do evento no banco: sha-256 do código @type {string|null} */ let groupId = null;
-  /** o código inteiro, com o final sorteado ("churras-k7f3q9") */ let roomName = '';
+  /** o código do evento: sorteado ("k7f3q9x2ab"), ou o nome com final sorteado dos eventos de antes ("churras-k7f3q9") */ let roomName =
+    '';
   /** o evento: gente, gastos e pagamentos @type {Room|null} */ let state = null;
   /** o id da pessoa que está vendo ("Sou Fulano") @type {string|null} */ let me = null;
   /** o &quem= do link compartilhado: quem abre já entra como essa pessoa @type {string|null} */ let quemDoLink = null;
@@ -246,7 +246,6 @@
   /** os itens com os detalhes abertos @type {Set<string>} */ const openItems = new Set();
   /** o anotar: 'equal' (igual) ou 'custom' (partes diferentes) */ let splitMode = 'equal';
   /** o gasto que o anotar está editando @type {string|null} */ let editando = null;
-  /** modo chato (easter egg da ficha): sem diva, e o rodapé vira "Deus é fiel." */ let chato = !!device().boringMode;
   let pollTimer = null,
     saving = false, // um sync de cada vez
     deNovo = false; // pediram sync no meio de outro: roda de novo no fim, senão o gasto anotado ali espera o próximo poll
@@ -425,9 +424,9 @@
     };
   }
 
-  // o gasto fixo (?fixo), o número do zap (?numerozap) e o apagar meus dados (?apagar) saíram: o que eles
-  // deixaram no aparelho vai embora junto
-  const SAIRAM = ['fixoOn', 'numeroZapOn', 'phones', 'apagarOn'];
+  // o gasto fixo (?fixo), o número do zap (?numerozap), o apagar meus dados (?apagar) e o modo chato saíram: o
+  // que eles deixaram no aparelho vai embora junto
+  const SAIRAM = ['fixoOn', 'numeroZapOn', 'phones', 'apagarOn', 'boringMode'];
   if (SAIRAM.some((k) => k in device()))
     mexe(DEVICE, (o) => {
       for (const k of SAIRAM) delete o[k];
@@ -1423,52 +1422,6 @@
   // ---------- a nota (render) ----------
   const luck = Math.random();
   const pick = (list) => list[Math.floor(luck * list.length)];
-  // easter egg: segurar, tocar, segurar na ficha desliga a diva (modo chato). Some a
-  // ficha, some o subtítulo e o rodapé vira "Deus é fiel.". O mesmo toque no rodapé
-  // liga de novo. Fica guardado no aparelho.
-  document.body.classList.toggle('chato', chato);
-  /** forte (segurou) e fraco (tocou) em sequência; três seguidos formam a senha */
-  function senha(alvo, ok) {
-    let ritmo = [],
-      ini = 0,
-      x0 = 0,
-      y0 = 0,
-      longe = false,
-      zera = 0;
-    // segurar é o gesto de selecionar texto no iPhone: enquanto o dedo está na ficha (ou
-    // no rodapé), a página inteira fica sem seleção, senão o toque longo pintava o papel
-    const solta = () => document.body.classList.remove('segurando');
-    alvo.addEventListener('pointerdown', (e) => {
-      ini = e.timeStamp;
-      x0 = e.clientX;
-      y0 = e.clientY;
-      longe = false;
-      clearTimeout(zera);
-      document.body.classList.add('segurando');
-    });
-    alvo.addEventListener('pointercancel', solta);
-    addEventListener('pointerup', solta);
-    alvo.addEventListener('pointermove', (e) => {
-      if (ini && Math.hypot(e.clientX - x0, e.clientY - y0) > 14) longe = true;
-    });
-    alvo.addEventListener('pointerup', (e) => {
-      if (!ini) return;
-      const dur = e.timeStamp - ini;
-      ini = 0;
-      if (longe) {
-        ritmo = [];
-        return;
-      }
-      ritmo = [...ritmo, dur >= 450 ? 'F' : 'f'].slice(-3);
-      if (ritmo.join('') === 'FfF') {
-        ritmo = [];
-        ok();
-      }
-      zera = setTimeout(() => {
-        ritmo = [];
-      }, 1600);
-    });
-  }
   /** o subtítulo do cabeçalho muda com o saldo de quem está vendo */
   function subtitulo(hasMe, bal) {
     if (!hasMe || bal > 0) return 'quem me deve?';
@@ -1612,10 +1565,10 @@
     if ($('#tagline')) $('#tagline').textContent = subtitulo(hasMe, bal);
     const frase = $('#signoff');
     // todo mundo quite: a frase do rodapé é o convite pro próximo rolê
-    if (frase && !chato && allEven && hasMe)
+    if (frase && allEven && hasMe)
       frase.innerHTML =
         '<a class="link" id="proxRole" role="button" tabindex="0">Zerou. Bora abrir outra, meu bem?</a>';
-    else if (frase) frase.textContent = chato ? 'Deus é fiel.' : pick(frasesDoRodape(hasMe, bal, allEven));
+    else if (frase) frase.textContent = pick(frasesDoRodape(hasMe, bal, allEven));
   }
   /** um botão por pessoa, numa cápsula com contorno e pontinho na cor dela, com o id em data-<attr>
    *  @param {Person[]} gente @param {string} attr */
@@ -3265,18 +3218,27 @@
       meu = evs.find((e) => e.code === code) || evs.find((e) => e.nome.trim().toLowerCase() === code);
     return { code: meu ? meu.code : code, quem: null, link: false, meu: !!meu };
   }
-  /** código com cara de final sorteado (6 letras e números, com algum número): veio de um link */
+  /** código com cara de sorteado (os 10 de agora, ou o final de 6 dos eventos de antes, com algum número e alguma
+   *  letra): veio de um link, não é nome de evento novo */
   function pareceLink(code) {
-    return /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+    return /^(?=[a-z]*\d)(?=\d*[a-z])[a-z0-9]{10}$/.test(code) || /-(?=[a-z]*\d)[a-z0-9]{6}$/.test(code);
+  }
+  /** o código de um evento novo: 10 letras e números sorteados (36¹⁰), sem o nome, com pelo menos um de cada. O nome
+   *  fica só no evento, e o link fica curto */
+  function codigoNovo() {
+    for (;;) {
+      const c = sorteia(10);
+      if (/\d/.test(c) && /[a-z]/.test(c)) return c;
+    }
   }
   const ENGASGOU = 'a internet engasgou. tenta de novo?';
-  /** o nome digitado já é de um evento fora da lista: o padrão é criar o meu (com final sorteado);
-   *  "abrir esse mesmo" fica pro evento antigo da própria turma, de antes do final
+  /** o nome digitado já é de um evento fora da lista: o padrão é criar o meu (com código sorteado);
+   *  "abrir esse mesmo" fica pro evento antigo da própria turma, de antes do código sorteado
    *  @returns {Promise<'meu'|'esse'|null>} */
   function escolheNomeOcupado(code) {
     return new Promise((res) => {
       overlay(
-        `<h2>Já existe um "${esc(code)}"</h2><p class="muted recado">é de outra turma. o seu ganha um final sorteado, à prova de enxerido.</p><button id="okBtn" class="big">criar o meu</button><div class="c voltar"><button id="abreEsse" class="ghost">abrir esse mesmo</button><button id="cancelBtn" class="ghost">voltar</button></div>`,
+        `<h2>Já existe um "${esc(code)}"</h2><p class="muted recado">é de outra turma. o seu ganha um código sorteado, à prova de enxerido.</p><button id="okBtn" class="big">criar o meu</button><div class="c voltar"><button id="abreEsse" class="ghost">abrir esse mesmo</button><button id="cancelBtn" class="ghost">voltar</button></div>`,
       );
       overlayCancel = () => res(null);
       const fecha = (/** @type {'meu'|'esse'|null} */ r) => () => {
@@ -3302,7 +3264,7 @@
       if (!e.notFound) throw new Error(ENGASGOU);
     }
     let criou = false;
-    // nome digitado sem final sorteado que já existe é de outra turma (evento de antes do final, ou gravado
+    // nome digitado sem código sorteado que já existe é de outra turma (evento de antes do sorteio, ou gravado
     // direto no banco): abrir sem perguntar punha a pessoa no "churras" de estranho, pix dele e tudo
     if (existing && digitou && !pareceLink(code)) {
       const r = await escolheNomeOcupado(code);
@@ -3311,7 +3273,7 @@
     }
     // nome digitado no campo é pedido de evento: cria direto. Só pergunta o que chegou por link
     if (!existing && (pareceLink(code) || !digitou)) {
-      // código com cara de final sorteado é link velho ou cortado, não nome novo:
+      // código com cara de sorteado é link velho ou cortado, não nome novo:
       // "esse nome tá livre" ali faria a pessoa criar um evento fantasma
       const [titulo, desc, ok] = pareceLink(code)
         ? [
@@ -3321,17 +3283,17 @@
           ]
         : [
             `Criar "${esc(code)}"?`,
-            'esse nome tá livre. o link ganha um final sorteado, à prova de enxerido.',
+            'esse nome tá livre. o link ganha um código sorteado, à prova de enxerido.',
             'criar',
           ];
       if (!(await ask(titulo, desc, ok))) throw new Error('nada foi criado.');
     }
     if (!existing) {
-      // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo
-      // vira "churras-k7f3q9", e o nome da tela continua "churras". 36⁶ finais possíveis
+      // código curto ("churras") se adivinha testando o hash direto no banco: o evento novo ganha um código
+      // sorteado ("k7f3q9x2ab"), e o nome da tela continua "churras"
       const nome = code;
       criou = true;
-      code = `${code}-${sorteia(6)}`;
+      code = codigoNovo();
       id = await sha(code);
       await apiPut(id, fresh(nome)).catch(() => {
         throw new Error(ENGASGOU);
@@ -4466,11 +4428,10 @@
   }
   /** o aniversário da dívida, contado do último gasto em que a pessoa entrou (antes dele a conta dela não tinha
    *  fechado): "🎂 hoje a dívida completa 12 dias", e ela cresce como bebê (mêsversário, aninho, escolinha).
-   *  Do mesmo dia não diz nada; o modo chato só diz há quanto tempo @param {string} quem */
+   *  Do mesmo dia não diz nada @param {string} quem */
   function aniversario(quem) {
     const { at, dias } = idadeDaDivida(quem);
     if (dias <= 0) return '';
-    if (chato) return dias === 1 ? ', desde ontem' : `, há ${dias} dias`;
     const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
     if (dias === 7) return '\n🎂 hoje a dívida completa 1 semana. já saiu da maternidade 🏥';
     // meses de calendário: de 3/9 a 3/10 é um mês certinho
@@ -4612,10 +4573,13 @@
       `<h2 class="pergunta">Aponta a câmera</h2>
       <div class="qr">${svg}</div>
       <p class="muted recado c">quem escanear cai no ${esc(evento())}</p>
-      <p class="c"><a id="mesaLink" class="link" target="_blank" href="${esc(`${SITE}mesa/?evento=${encodeURIComponent(roomName)}`)}">imprimir plaquinha de mesa</a></p>
+      <p class="c linkQr"><a id="qrLink" class="link" role="button" tabindex="0" title="copiar o link">${esc(url.replace(/^https?:\/\//, ''))}</a></p>
+      <p class="c"><a id="mesaLink" class="link" target="_blank" href="${esc(`${SITE}mesa/?evento=${encodeURIComponent(roomName)}&nome=${encodeURIComponent(evento())}`)}">imprimir plaquinha de mesa</a></p>
       <div class="c voltar"><button id="cancelBtn" class="ghost">fechar</button></div>`,
     );
     $('#cancelBtn').onclick = closeOverlay;
+    // o link embaixo do QR se copia num toque: é dele que sai o convite sem passar pelo zap
+    $('#qrLink').onclick = () => copia(url, 'Link copiado', 'Link do evento');
     $('#cancelBtn').focus(); // o botão que tinha o foco sumiu com o cartão anterior
     acendeTela();
   }
@@ -4623,11 +4587,11 @@
     const st = settlements(balances());
     const ev = evento() || 'acerto';
     if (!st.length) return `🎉 tá tudo quitado no *${ev}*!\n${shareUrl(quem, 'quitado')}`;
-    // evento parado muda o tom: lembra, e depois de um mês a diva cobra (o modo chato só lembra)
+    // evento parado muda o tom: lembra, e depois de um mês a diva cobra
     const dias = state.updatedAt ? diasDesde(state.updatedAt) : 0,
       pendurado = comSifrao(st.reduce((a, t) => a + t.cents, 0));
     const abre =
-      dias >= ESQUECIDO_DIAS && !chato
+      dias >= ESQUECIDO_DIAS
         ? `💅 meu bem, o *${ev}* faz ${dias} dias e tem ${pendurado} pendurado. fiado tem limite, viu?`
         : dias >= PARADO_DIAS
           ? `👀 lembra do *${ev}*? faz ${dias} dias e ainda tem ${pendurado} pendurado…`
@@ -5185,12 +5149,12 @@
       aviso = 0;
     ficha.vem = () => {
       if (!jogada) confere();
-      return !chato && jogada && !marcada;
+      return jogada && !marcada;
     };
     const confere = () => {
       // ainda carregando, a nota é só o spinner: numa tela alta isso já é o "fim da
       // página" e a ficha caía antes do evento existir
-      if (chato || jogada || $('#app').classList.contains('loading')) return;
+      if (jogada || $('#app').classList.contains('loading')) return;
       if (el.classList.contains('hidden') || !noFim()) return; // nota sem gasto: a ficha espera
       // com cartão ou o anotar abertos ela cairia por trás, sem ninguém ver: espera fechar
       if (!semCartao() || !$('#sheet').classList.contains('hidden')) return;
@@ -5460,34 +5424,9 @@
       pega = null;
       aponta(null);
       if (el.parentElement !== casa) casa.insertBefore(el, depois);
-      el.classList.remove('voou', 'pousou', 'solta', 'largada', 'segura', 'fora', 'apaga', 'engole');
+      el.classList.remove('voou', 'pousou', 'solta', 'largada', 'segura', 'fora', 'engole');
       confere();
     };
-    // a senha na ficha desliga a diva: ela apaga onde estiver e para de falar
-    senha(el, () => {
-      chato = true;
-      setDevice('boringMode', true);
-      pega = null;
-      cancelAnimationFrame(voo);
-      aponta(null);
-      el.classList.remove('segura');
-      el.classList.add('apaga');
-      setTimeout(() => {
-        document.body.classList.add('chato');
-        render();
-      }, 700);
-    });
-    // e no "Deus é fiel." do rodapé, liga de novo: ela volta falando e é jogada outra vez
-    const frase = $('#signoff');
-    if (frase)
-      senha(frase, () => {
-        if (!chato) return;
-        chato = false;
-        setDevice('boringMode', undefined);
-        document.body.classList.remove('chato');
-        render();
-        ficha.rejoga();
-      });
   })();
   // uma seção só anima quando chega na tela; a fila cuida da ordem de cima pra baixo
   let olhoSec = null;

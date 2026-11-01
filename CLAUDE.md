@@ -53,7 +53,7 @@ o passo a passo de acompanhar o PR até o ar tá na skill `babysit`.
 - **regras do banco:** o `.read` nunca sobe pro nó `rooms` (senão `GET /rooms.json` baixa tudo). o `.validate` de `rooms/$room` é o formato do `clean()`: mexeu num, mexa no outro. validação de banco não vira cenário. `visitas/<dia>` só se soma (+1 por aparelho por dia): sem `.read`, sem apagar, o dono lê no console. o aparelho do dono sai da conta com `?naoconta`.
 - **CSP** no `<meta>` do `index.html`: só o próprio site, `*.firebaseio.com`, a API do aviso (`tolisa-api.fernando-costa-fd0.workers.dev`, o `const API`) e o Cloudflare Web Analytics (`static.cloudflareinsights.com` no script, `cloudflareinsights.com` no envio; ele leva o `?evento=`, o dono aceitou). o `_serve.cjs` tira o script nos testes. o `<script>` do fim entra pelo sha256: mexeu nele, recalcule.
 - **service worker:** mudou a estratégia, troque o nome `CACHE`.
-- **código do evento** ganha final sorteado (`sorteia(6)`): código curto se adivinha testando o hash no banco.
+- **código do evento** novo é sorteado (`codigoNovo()`, 10 letras e números, sem o nome): código curto se adivinha testando o hash no banco. os de antes (`churras-k7f3q9`) continuam abrindo.
 - **aparelho:** duas gavetas de JSON no localStorage, chaves em inglês e camelCase: `tolisa` (`device()`) e `tolisa:<sala>` (`room()`). migração só apaga o velho depois de gravar o novo: perder o `tok` do pix trava a chave.
 - **dinheiro** é centavo inteiro até virar texto. o banco guarda `amount` em reais: leia com `centavos(e)`; `reais()`, `comSifrao()` e `valorHtml()` recebem centavos.
 - **imagens do link** (`og/`) abaixo de ~300 KB, senão o WhatsApp ignora; trocar o nome fura o cache dele.

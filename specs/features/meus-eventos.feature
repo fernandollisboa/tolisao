@@ -176,13 +176,6 @@ Funcionalidade: Meus eventos
     E eu toco em enviar
     Então a mensagem do zap começa com "💅 meu bem, o *churras* faz 40 dias e tem R$ 60,00 pendurado. fiado tem limite, viu?"
 
-  Cenário: no modo chato a diva não cobra, só lembra
-    Dado que o "churras" mudou pela última vez há 40 dias
-    E que este aparelho está no modo chato
-    Quando eu abro o evento "churras" como Lia
-    E eu toco em enviar
-    Então a mensagem do zap começa com "👀 lembra do *churras*? faz 40 dias e ainda tem R$ 60,00 pendurado…"
-
   Cenário: o nome de um evento da lista que sumiu do banco não cria outro sem perguntar
     Quem digita o nome de um evento que já teve quer aquele evento: um novo em silêncio esconderia que ele sumiu.
     Dado que neste aparelho eu sou Lia no "praia"

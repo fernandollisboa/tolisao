@@ -35,7 +35,7 @@ os testes são cucumber em português: a especificação fica em `specs/features
 
 ## estilo
 
-- flag em maiúscula no topo do `app.js` liga e desliga coisa (`INSTALAR`, `PEGA_FICHA`, `DESFAZER`). coisa meio pronta entra atrás de flag, desligada pra todo mundo e ligada num aparelho pelo link dela (`?mesa`, `?galera`…) ou pelo `?testes`, que liga todas.
+- flag em maiúscula no topo do `app.js` liga e desliga coisa (`MESA`, `GALERA`, `DIGITAL`). coisa meio pronta entra atrás de flag, desligada pra todo mundo e ligada num aparelho pelo link dela (`?mesa`, `?galera`…) ou pelo `?testes`, que liga todas.
 - o banco é hostil: id só passa se casar `/^[a-z0-9]{1,32}$/`, texto passa por `esc()` antes de `innerHTML`.
 - dinheiro é centavo inteiro até virar texto em `reais()`/`comSifrao()`/`valorHtml()`. o `amount` do banco é em reais: leia com `centavos(e)`.
 - cor de gente sai de `PALETTE`/`MARKR` pelo índice. vermelho e verde são de deve/recebe.
@@ -74,4 +74,4 @@ firebase no plano gratuito, por REST direto do navegador. as regras tão no `dat
 
 mudou o `database.rules.json` na `main`, o `.github/workflows/regras.yml` publica sozinho com a conta de serviço do secret `FIREBASE_SA` (nunca no repositório). regra nova tem que aceitar o app que já está no ar: as duas sobem juntas.
 
-o `visitas/<dia>` conta aparelhos por dia (`CONTA_VISITAS`): só aceita um `.sv increment` de +1, não tem `.read` e não deixa apagar. o número se lê no console do firebase. o `npm run regras` confere ("visitas só se soma"). quem abre o site com `?naoconta` sai da conta naquele aparelho (`?naoconta=0` volta).
+o `visitas/<dia>` conta aparelhos por dia: só aceita um `.sv increment` de +1, não tem `.read` e não deixa apagar. o número se lê no console do firebase. o `npm run regras` confere ("visitas só se soma"). quem abre o site com `?naoconta` sai da conta naquele aparelho (`?naoconta=0` volta).

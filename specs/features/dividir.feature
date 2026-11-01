@@ -5,23 +5,8 @@ Funcionalidade: Quanto fica pra cada um
   Contexto:
     Dado o evento "racha" com Ana, Beto e Caio
 
-  Regra: a frase do anotar diz quanto fica pra cada um
-    O valor entra pelos centavos, como no app do banco: quem digita 90 pra uma pizza de R$ 90
-    tem que ver o R$ 0,30 antes de anotar, e não depois.
-
-    # a parte de cada um na frase está desligada (QUANTO_CADA): o cenário volta junto com a flag
-    # Esquema do Cenário: a frase mostra a parte de cada um enquanto eu digito
-    #   Quando eu abro o evento como Ana
-    #   E eu toco no ✎
-    #   E eu digito "<teclas>" no valor
-    #   Então a frase de como está dividido diz "<frase>"
-    #   E o cursor continua no valor
-
-    #   Exemplos:
-    #     | teclas | frase                                                     |
-    #     | 9000   | Dividido igualmente entre 3 pessoas, R$ 30,00 cada.       |
-    #     | 90     | Dividido igualmente entre 3 pessoas, R$ 0,30 cada.        |
-    #     | 10000  | Dividido igualmente entre 3 pessoas, R$ 33,34 e R$ 33,33. |
+  Regra: no empréstimo, a frase do anotar diz quanto o outro passa a dever
+    O valor entra pelos centavos, como no app do banco: quem empresta R$ 90 vê o valor certo antes de anotar.
 
     Exemplo: no empréstimo, a frase diz quanto o outro passa a dever
       Quando eu abro o evento como Ana

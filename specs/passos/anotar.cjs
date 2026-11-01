@@ -70,7 +70,6 @@ Then('a frase de como está dividido vem antes das abas', async ({ mundo }) => {
 Then('a frase de como está dividido diz {string}', async ({ mundo }, txt) => {
   await expect.poll(() => mundo.p.$eval('#splitHint', h => h.innerText.replace(/\u00a0/g, ' ').trim())).toBe(txt);
 });
-Then('o cursor continua no valor', async ({ mundo }) => { await expect(mundo.p.locator('#amount')).toBeFocused(); });
 When('eu divido só com {gente}', async ({ mundo }, gente) => {
   await marcaSo(mundo, gente);
 });

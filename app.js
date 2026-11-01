@@ -23,23 +23,14 @@
   const POLL_MS = 6000;
   const REDE_MS = 8000; // prazo de cada ida ao banco: rede engasgada no bar vira "Offline" em vez de prender o sync
   const SEM_REDE = 'a rede não respondeu'; // o rodapé diz isso e não o erro cru (HTTP 401, "Failed to fetch"…)
-  const DESFAZER = true; // três toques no carimbo PAGO desfazem o pagamento, útil pra testar
-  // O Chrome não mostra mais banner de instalar sozinho: ele só avisa a página pelo
-  // beforeinstallprompt e espera o site pedir. Pede o #instalar do topo, e o toque do ✎.
-  const INSTALAR = true;
-  const PEGA_FICHA = false; // pegar a ficha com o mouse: no desktop o gesto não fecha, então só no toque
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
-  const CONTA_VISITAS = true; // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
-  const QUANTO_CADA = false; // a frase do anotar diz quanto fica pra cada um ("R$ 30,00 cada"): quebrava em duas linhas
-  const RECEBI = false; // "recebi" na linha de quem me deve (pagaram por fora): desligado por enquanto
   const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
   const PERDOA_ATE = 1000; // em centavos: dívida abaixo disso ganha o "perdoar" na linha de quem recebe
   const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
   const QUITADO_DIAS = 7; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva (no modo chato, fica no tom de parado)
-  const AVISO_PUSH = true; // o aviso no celular: todo pagamento marcado e todo gasto anotado cutuca a API
   // guardar e entrar com a digital (passkey, #168), protótipo: desligado pra todo mundo. O dono liga só no
   // aparelho dele abrindo o site com ?digital (fica lembrado; ?digital=0 desliga)
   const DIGITAL = false;
@@ -60,7 +51,6 @@
     ['grafite', 'grafite'],
     ['auto', 'celular'],
   ];
-  const QUEM_NO_TOPO = false; // o "Quem é você?" do cabeçalho; desligado, quem chega escolhe só nos nomes do topo da nota
   const CURRENCY = 'R$';
 
   /** @returns {any} */
@@ -216,7 +206,8 @@
     if (q.has('testes')) setDevice('testesOn', q.get('testes') === '0' ? undefined : true);
   }
   const emTeste = () => device().testesOn === true;
-  if (CONTA_VISITAS && !LOCAL && DB && device().naoConta !== true && device().countedDay !== hojeBR)
+  // soma 1 em visitas/<dia> no banco, uma vez por aparelho por dia; o dono lê no console
+  if (!LOCAL && DB && device().naoConta !== true && device().countedDay !== hojeBR)
     fetch(`${DB}/visitas/${hojeBR}.json?print=silent`, {
       method: 'PUT',
       body: '{".sv":{"increment":1}}',
@@ -990,7 +981,7 @@
   // #endregion
   // #region pix
   // ---------- pix ----------
-  // o cobrar mexe mais ligeiro que o ✔ paguei, e o recebi/perdoar abre mais ligeiro que o copiar pix
+  // o cobrar mexe mais ligeiro que o ✔ paguei, e o perdoar abre mais ligeiro que o copiar pix
   const COBRA_MS = 550,
     BROTA_MS = 220;
   const PIX_MS = 420,
@@ -1269,7 +1260,7 @@
     }
   }
   /** no iPhone o push só existe com o app na tela de início: no Safari o 🔔 ensina a instalar */
-  const iPhoneSemApp = () => INSTALAR && ehIOS() && !jaInstalado() && !iOSSemPush();
+  const iPhoneSemApp = () => ehIOS() && !jaInstalado() && !iOSSemPush();
   /** antes do 16.4 o iPhone não tem push nem instalado: o 🔔 não teria o que ensinar */
   const iOSSemPush = () => {
     const v = navigator.userAgent.match(/OS (\d+)_(\d+)/);
@@ -1277,12 +1268,11 @@
   };
   /** o navegador sabe receber push, ou é um iPhone que vai saber depois de instalar */
   const temAviso = () =>
-    AVISO_PUSH &&
-    (iPhoneSemApp() ||
-      ('Notification' in window &&
-        'PushManager' in window &&
-        'serviceWorker' in navigator &&
-        (!ehIOS() || jaInstalado())));
+    iPhoneSemApp() ||
+    ('Notification' in window &&
+      'PushManager' in window &&
+      'serviceWorker' in navigator &&
+      (!ehIOS() || jaInstalado()));
   const avisoLigado = () =>
     !!me && room().pushOn === me && 'Notification' in window && Notification.permission === 'granted';
   /** a gaveta do sw.js: (sala, quem, código) de cada evento com aviso ligado, que o push lê sem a página aberta,
@@ -1558,7 +1548,8 @@
     const wl = $('#whoLine');
     const html = hasMe
       ? `Sou <a class="link" id="whoBtn" style="color:${colorOf(me)}" role="button" tabindex="0">${esc(nameOf(me))}</a>`
-      : QUEM_NO_TOPO || !state.people.length
+      : // com gente, quem chega escolhe nos nomes do topo da nota; sem ninguém, o cabeçalho chama pra lista
+        !state.people.length
         ? `<a class="link amb" id="whoBtn" role="button" tabindex="0">Quem é você?</a>`
         : '';
     if (wl.dataset.k !== html) {
@@ -1787,10 +1778,9 @@
     };
     const valor = (t) =>
       `<span class="cur">${CURRENCY}</span><a class="link num" style="color:inherit" title="copiar valor" data-copy-value="${reais(t.cents)}" role="button" tabindex="0">${reais(t.cents)}</a>`;
-    // quem recebe também age, um botão por linha: dívida pequena se perdoa, o resto "recebi" (se RECEBI)
-    // (pagaram por fora e ninguém tocou no ✔). Os dois viram pagamento
-    // o cobrar pisca como o ✔ paguei, linha atrás da linha; depois da piscada o recebi (ou o
-    // perdoar) brota de trás dele sem piscar, como o copiar pix sai de trás do ✔
+    // quem recebe também age: dívida pequena se perdoa (vira pagamento com o carimbo PERDOADO)
+    // o cobrar pisca como o ✔ paguei, linha atrás da linha; depois da piscada o perdoar brota de
+    // trás dele sem piscar, como o copiar pix sai de trás do ✔
     const piscaCobra = (i) => {
       const esp = i * PISCA_GAP,
         dt = anim.mine ? Date.now() - anim.mine : Infinity;
@@ -1804,10 +1794,8 @@
     const botoesRecebe = (t, i) => {
       const d = `${t.from}|${t.to}|${t.cents}`,
         pi = brotaRecebe(i);
-      if (t.cents < PERDOA_ATE)
-        return `<button class="ico${pi}" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`;
-      return RECEBI
-        ? `<button class="ico${pi}" data-recebi="${d}" title="marcar como recebido">🫱🏿‍🫲🏻 recebi</button>`
+      return t.cents < PERDOA_ATE
+        ? `<button class="ico${pi}" data-perdoa="${d}" title="perdoar a dívida">🙏🏽 perdoar</button>`
         : '';
     };
     // os botões dizem o que fazem ("paguei", "copiar pix"): balão explicando ícone é recado solto, e a pessoa pula
@@ -2033,7 +2021,8 @@
         const st = stampStyle(e.id),
           cor = colorOf(e.payer);
         const quem = `<span class="n">${tagNovo(e)}${nomeHtml(e.payer)} → ${nomeHtml(e.among[0])}</span>`;
-        const desfaz = DESFAZER ? ` data-undo="${e.id}"` : '';
+        // três toques no carimbo desfazem o pagamento
+        const desfaz = ` data-undo="${e.id}"`;
         // perdão é pagamento com outro carimbo; o "por" aparece quando quem perdoou não é quem recebe
         const [selo, quando] = e.forgiven ? ['PERDOADO', 'perdoado'] : ['PAGO', 'pago'];
         const carimbo = `<span class="stampbox"><span class="stamp"${desfaz} style="color:${cor};${st.css}" title="${quando} em ${new Date(e.at).toLocaleDateString('pt-BR')}">${selo}</span></span>`;
@@ -2210,8 +2199,7 @@
     // a frase fica em cima das abas e só conta como está dividido: quem troca são as abas
     else
       h.innerHTML =
-        `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length === 1 ? '' : 's'}</u>` +
-        (QUANTO_CADA && total > 0 ? `, ${quinhao(total, among)}.` : '.');
+        `Dividido <u>igualmente</u> entre <u>${among.length} pessoa${among.length === 1 ? '' : 's'}</u>` + '.';
   }
   /** quanto fica pra cada um: "R$ 30,00 cada", ou "R$ 33,34 e R$ 33,33" quando sobra centavo
    *  @param {number} total em centavos @param {string[]} ids */
@@ -4297,7 +4285,7 @@
     if (velho) {
       exp.at = velho.at;
       apagaItem(velho, exp.id);
-    } else if (AVISO_PUSH) aAvisar.add(exp.id); // gasto novo: quem divide fica sabendo no celular (editar não avisa)
+    } else aAvisar.add(exp.id); // gasto novo: quem divide fica sabendo no celular (editar não avisa)
     state.expenses.push(exp);
     state.expenses.sort((x, y) => x.at - y.at);
     limpaForm();
@@ -4396,8 +4384,8 @@
   /** o ✔ paguei de quem deve, e o ✔ recebi e o perdoar de quem recebe: todos viram um
    *  gasto do tipo 'payment' de quem deve pra quem recebe; o perdão leva `forgiven` */
   async function quita(el) {
-    const modo = el.dataset.perdoa ? 'perdoa' : el.dataset.recebi ? 'recebi' : 'paguei';
-    const [from, to, cs] = (el.dataset.perdoa || el.dataset.recebi || el.dataset.settle).split('|');
+    const modo = el.dataset.perdoa ? 'perdoa' : 'paguei';
+    const [from, to, cs] = (el.dataset.perdoa || el.dataset.settle).split('|');
     let cents = +cs;
     // o confete sai do botão: mede antes do cartão abrir por cima
     const r = el.getBoundingClientRect();
@@ -4446,9 +4434,7 @@
     };
     const certeza = await (modo === 'perdoa'
       ? ask('Perdoar?', `${nomeHtml(from)} não te deve mais ${valor}`, 'perdoar')
-      : modo === 'recebi'
-        ? ask('Recebeu?', `${nomeHtml(from)} te pagou ${valor}`, 'recebi')
-        : pergunta());
+      : pergunta());
     if (!certeza) return;
     // a nota pode estar velha: o outro lado pode já ter marcado do aparelho dele. Baixa o banco
     // e grava só o que ainda falta, senão o pagamento entra duas vezes e a dívida vira ao contrário
@@ -4460,7 +4446,7 @@
     if (!falta) return toast('Já tá quitado');
     cents = falta;
     const id = uid();
-    if (AVISO_PUSH) aAvisar.add(id);
+    aAvisar.add(id);
     state.expenses.push({
       id,
       kind: 'payment',
@@ -4473,13 +4459,6 @@
       byId: me || undefined,
       forgiven: modo === 'perdoa' || undefined,
     });
-    if (modo === 'recebi') {
-      // quem recebe não tem quem avisar no zap: quem devia fica sabendo pelo aviso
-      commit();
-      festa(r.left + r.width / 2, r.top + r.height / 2);
-      toast('Recebido! 🎉');
-      return;
-    }
     if (modo === 'perdoa') {
       // o perdão a gente conta: o cartão oferece o zap, com uma das frases do perdão
       seguraRisco = true;
@@ -4548,7 +4527,7 @@
     ['#settle [data-chama]', () => $('#waBtn').click()],
     ['[data-pix]', copiaPix],
     ['[data-undo]', tocaCarimbo],
-    ['[data-settle], [data-recebi], [data-perdoa]', quita],
+    ['[data-settle], [data-perdoa]', quita],
     ['[data-aviso]', () => tocaAviso()],
     ['#proxRole', proximoRole],
     ['[data-cobra]', cobra],
@@ -5120,7 +5099,7 @@
     /iphone|ipad|ipod/i.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad se passa por Mac
   const mostraInstalar = () => {
-    const nao = !INSTALAR || jaInstalado() || !(convite || ehIOS());
+    const nao = jaInstalado() || !(convite || ehIOS());
     for (const b of document.querySelectorAll('#instalar, #instalarGate')) b.classList.toggle('hidden', nao);
   };
   window.addEventListener('beforeinstallprompt', (ev) => {
@@ -5210,7 +5189,7 @@
   }
   mostraInstalar();
   function convidaInstalar() {
-    if (!INSTALAR || !convite || device().installPrompted || jaInstalado()) return;
+    if (!convite || device().installPrompted || jaInstalado()) return;
     if (visitas < 2 || !state || !state.expenses.length) return;
     pedeInstalar().catch(() => {});
   }
@@ -5392,9 +5371,7 @@
     // voa pra fora da tela e some.
     const casa = el.parentElement,
       depois = el.nextSibling;
-    // no aparelho de toque o dedo vai junto com a ficha; com mouse o gesto não fecha
-    const pegavel = PEGA_FICHA || navigator.maxTouchPoints > 0;
-    if (pegavel) document.body.classList.add('pegavel');
+    // pega com o dedo e com o mouse
     // presa no dedo pelo ponto em que foi pega, rola que nem moeda na mesa: cada px pro lado gira o que a
     // borda andou (uma volta a cada perímetro da ficha, 70px de diâmetro). Largada devagar, fica onde
     // parou; jogada com força, sai voando e some
@@ -5498,12 +5475,12 @@
     el.addEventListener(
       'touchstart',
       (e) => {
-        if (pegavel && el.classList.contains('pousou')) e.preventDefault();
+        if (el.classList.contains('pousou')) e.preventDefault();
       },
       { passive: false },
     );
     el.addEventListener('pointerdown', (e) => {
-      if (!pegavel || !el.classList.contains('pousou')) return;
+      if (!el.classList.contains('pousou')) return;
       e.preventDefault();
       // pega até voando: a mão para ela
       cancelAnimationFrame(voo);

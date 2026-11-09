@@ -15,16 +15,16 @@ Funcionalidade: Acertar as contas
     Então falta pagar:
       | quem      | paga pra | valor  |
       | Mengla    | Fernando | 174,43 |
-      | Lia       | Fernando | 117,84 |
-      | Klinsmann | Fernando | 73,61  |
-      | Klinsmann | Júlia    | 34,72  |
+      | Lia       | Fernando | 117,82 |
+      | Klinsmann | Fernando | 73,62  |
+      | Klinsmann | Júlia    | 34,71  |
     E a minha linha no acerto é "Lia → Fernando"
     E o Falta pagar não tem botão nenhum
 
   Cenário: a nota de quem deve
     Quando eu abro o evento como Lia
-    Então Minha conta diz "eu devo" R$ 117,84
-    E eu devo R$ 117,84 pro Fernando
+    Então Minha conta diz "eu devo" R$ 117,82
+    E eu devo R$ 117,82 pro Fernando
     E eu vejo 1 botão de quitar em Minha conta
     E o subtítulo diz "pra quem eu devo?"
     E o sincronizado fica no rodapé, depois do código de barras
@@ -32,8 +32,8 @@ Funcionalidade: Acertar as contas
 
   Cenário: a nota de quem tem a receber
     Quando eu abro o evento como Júlia
-    Então Minha conta diz "me devem" R$ 34,72
-    E o Klinsmann me deve R$ 34,72
+    Então Minha conta diz "me devem" R$ 34,71
+    E o Klinsmann me deve R$ 34,71
     E eu vejo 0 botões de quitar em Minha conta
 
   Cenário: quitar pelo ✔
@@ -42,8 +42,8 @@ Funcionalidade: Acertar as contas
     Então falta pagar:
       | quem      | paga pra | valor  |
       | Mengla    | Fernando | 174,43 |
-      | Klinsmann | Fernando | 73,61  |
-      | Klinsmann | Júlia    | 34,72  |
+      | Klinsmann | Fernando | 73,62  |
+      | Klinsmann | Júlia    | 34,71  |
 
   Cenário: pagar só uma parte
     "Te mando 50 agora e o resto sexta": o que eu pago sai da dívida e o resto segue na nota.
@@ -54,7 +54,7 @@ Funcionalidade: Acertar as contas
       ✅ Fernando, te paguei R$ 50,00 do *bailedamada* 👍
       {site}/pago/?evento=bailedamada&quem=fernando
       """
-    E Minha conta diz "eu devo" R$ 67,84
+    E Minha conta diz "eu devo" R$ 67,82
     E o pagamento "Lia → Fernando" está carimbado "PAGO"
 
   Cenário: quitar é pagar tudo; com menos, o cartão vira pagar
@@ -77,25 +77,25 @@ Funcionalidade: Acertar as contas
     E falta pagar:
       | quem      | paga pra | valor  |
       | Mengla    | Fernando | 174,43 |
-      | Lia       | Fernando | 117,84 |
-      | Klinsmann | Fernando | 73,61  |
-      | Klinsmann | Júlia    | 34,72  |
-    E eu devo R$ 117,84 pro Fernando
+      | Lia       | Fernando | 117,82 |
+      | Klinsmann | Fernando | 73,62  |
+      | Klinsmann | Júlia    | 34,71  |
+    E eu devo R$ 117,82 pro Fernando
     Quando eu abro o evento como Fernando em outro aparelho
     Então nenhum pagamento está carimbado
     E falta pagar:
       | quem      | paga pra | valor  |
       | Mengla    | Fernando | 174,43 |
-      | Lia       | Fernando | 117,84 |
-      | Klinsmann | Fernando | 73,61  |
-      | Klinsmann | Júlia    | 34,72  |
+      | Lia       | Fernando | 117,82 |
+      | Klinsmann | Fernando | 73,62  |
+      | Klinsmann | Júlia    | 34,71  |
 
   Cenário: quitar e avisar no zap
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta e aviso no zap
     Então o zap abre com a mensagem:
       """
-      ✅ Fernando, te paguei R$ 117,84 do *bailedamada* 👍
+      ✅ Fernando, te paguei R$ 117,82 do *bailedamada* 👍
       {site}/pago/?evento=bailedamada&quem=fernando
       """
 
@@ -152,7 +152,7 @@ Funcionalidade: Acertar as contas
     E eu toco em copiar pix
     Então fica copiado o pix copia e cola:
       """
-      00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d5204000053039865406117.845802BR5908FERNANDO6006BRASIL62070503***630476B9
+      00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d5204000053039865406117.825802BR5908FERNANDO6006BRASIL62070503***6304F6F0
       """
     E o cartão pergunta "Quitar?"
 
@@ -178,7 +178,7 @@ Funcionalidade: Acertar as contas
     E eu toco em copiar pix no cartão
     Então fica copiado o pix copia e cola:
       """
-      00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d5204000053039865406117.845802BR5908FERNANDO6006BRASIL62070503***630476B9
+      00020126580014br.gov.bcb.pix01367d9f2a1c-3b4e-4f5a-8c6d-0e1f2a3b4c5d5204000053039865406117.825802BR5908FERNANDO6006BRASIL62070503***6304F6F0
       """
 
   Cenário: sem chave pix, o cartão de pagar não oferece pix
@@ -205,10 +205,10 @@ Funcionalidade: Acertar as contas
 
       👉 pra *Fernando* · pix fernando@exemplo.com
       • Mengla: R$ 174,43
-      • Klinsmann: R$ 73,61
+      • Klinsmann: R$ 73,62
 
       👉 pra *Júlia*
-      • Klinsmann: R$ 34,72
+      • Klinsmann: R$ 34,71
 
       tudo aqui 👉 {site}/fiado/?evento=bailedamada
       """
@@ -267,7 +267,7 @@ Funcionalidade: Acertar as contas
   Cenário: dois pagamentos juntos viram um aviso só
     Quando eu abro o evento como Fernando
     E a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho
-    Então aparece o aviso "💸 Mengla e Klinsmann te pagaram R$ 248,04"
+    Então aparece o aviso "💸 Mengla e Klinsmann te pagaram R$ 248,05"
 
   Cenário: o aviso também chega pra quem usa leitor de tela
     Quando eu abro o evento como Fernando
@@ -284,7 +284,7 @@ Funcionalidade: Acertar as contas
     A minha nota ainda não sabia do paguei: o perdão não quita de novo, senão quem pagou passa a ter a receber.
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
     Quando eu abro o evento como Fernando
-    E o Klinsmann paga R$ 3,61 pro Fernando em outro aparelho, antes da minha nota atualizar
+    E o Klinsmann paga R$ 3,62 pro Fernando em outro aparelho, antes da minha nota atualizar
     E eu perdoo o Klinsmann
     Então aparece o aviso "Já tá quitado"
     E o banco tem 2 pagamentos do Klinsmann pro Fernando
@@ -295,12 +295,12 @@ Funcionalidade: Acertar as contas
     E eu marco que recebi da Mengla
     Então falta pagar:
       | quem      | paga pra | valor |
-      | Lia       | Fernando | 117,84 |
-      | Klinsmann | Fernando | 73,61 |
-      | Klinsmann | Júlia    | 34,72 |
+      | Lia       | Fernando | 117,82 |
+      | Klinsmann | Fernando | 73,62 |
+      | Klinsmann | Júlia    | 34,71 |
     E o pagamento "Mengla → Fernando" está carimbado "PAGO"
 
-  # os R$ 3,61 que sobraram do Klinsmann: pouco demais pra cobrar; dívida grande não se perdoa, só se dá baixa
+  # os R$ 3,62 que sobraram do Klinsmann: pouco demais pra cobrar; dívida grande não se perdoa, só se dá baixa
   Cenário: só dívida pequena se perdoa
     Abaixo de R$ 50,00 e com pelo menos um dia sem pagar, o cartão do recebi oferece perdoar.
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
@@ -310,8 +310,8 @@ Funcionalidade: Acertar as contas
     Então falta pagar:
       | quem      | paga pra | valor  |
       | Mengla    | Fernando | 174,43 |
-      | Lia       | Fernando | 117,84 |
-      | Klinsmann | Júlia    | 34,72  |
+      | Lia       | Fernando | 117,82 |
+      | Klinsmann | Júlia    | 34,71  |
     E o pagamento "Klinsmann → Fernando" está carimbado "PERDOADO"
 
   Cenário: dívida de hoje ainda não se perdoa
@@ -326,7 +326,7 @@ Funcionalidade: Acertar as contas
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
     Quando eu abro o evento como Fernando
     E eu perdoo o Klinsmann e aviso no zap
-    Então o zap abre com o perdão dos R$ 3,61 do Klinsmann
+    Então o zap abre com o perdão dos R$ 3,62 do Klinsmann
 
   Cenário: desfazer um perdão
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
@@ -335,10 +335,10 @@ Funcionalidade: Acertar as contas
     E eu começo a desfazer o perdão "Klinsmann → Fernando"
     Então o cartão pergunta "Desfazer o perdão?"
     Quando eu confirmo
-    Então o Klinsmann me deve R$ 3,61
+    Então o Klinsmann me deve R$ 3,62
 
   Cenário: quem devia fica sabendo do perdão
     Dado que o Klinsmann já pagou R$ 70,00 pro Fernando
     Quando eu abro o evento como Klinsmann
-    E o Fernando perdoa os R$ 3,61 do Klinsmann em outro aparelho
-    Então aparece o aviso "🙏 Fernando perdoou teus R$ 3,61"
+    E o Fernando perdoa os R$ 3,62 do Klinsmann em outro aparelho
+    Então aparece o aviso "🙏 Fernando perdoou teus R$ 3,62"

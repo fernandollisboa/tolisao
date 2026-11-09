@@ -45,7 +45,7 @@ Funcionalidade: A diva cobra sozinha
 
   Regra: o saldo é a mesma conta do app
 
-    Cenário: partes que fecham, centavo que sobra, item apagado e gente que sumiu
+    Cenário: partes que fecham, centavo que fica com quem pagou, item apagado e gente que sumiu
       Dado o evento com Ana, Bia e Caio
       E que os lançamentos do evento são:
         | id | tipo  | valor | pagou | para           | partes              | quando       |
@@ -58,9 +58,21 @@ Funcionalidade: A diva cobra sozinha
       E que o Firebase devolve quem divide cada gasto como objeto de índices
       Então os saldos são:
         | pessoa | saldo |
-        | Ana    | -5,34 |
-        | Bia    | 8,67  |
-        | Caio   | -3,33 |
+        | Ana    | -5,32 |
+        | Bia    | 8,66  |
+        | Caio   | -3,34 |
+
+    Cenário: até 5 centavos ninguém deve nada
+      Dado o evento com Ana, Bia e Caio
+      E que os lançamentos do evento são:
+        | id | tipo      | valor | pagou | para     | quando       |
+        | a  | gasto     | 10    | Ana   | Ana, Bia | há 1 segundo |
+        | b  | pagamento | 4.96  | Bia   | Ana      | há 1 segundo |
+      Então os saldos são:
+        | pessoa | saldo |
+        | Ana    | 0,00  |
+        | Bia    | 0,00  |
+        | Caio   | 0,00  |
 
   Regra: a dívida faz mêsversário
 

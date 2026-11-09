@@ -27,6 +27,16 @@ Funcionalidade: Quanto fica pra cada um
         | Beto | Ana      | 33,34 |
         | Caio | Ana      | 33,34 |
 
+    Exemplo: o gasto anotado antes dessa regra também fica igual pra quem deve
+      Dado os gastos:
+        | o quê   | valor  | pagou | divide entre    |
+        | Mercado | 100,00 | Ana   | Beto, Ana, Caio |
+      Quando eu abro o evento como Ana
+      Então falta pagar:
+        | quem | paga pra | valor |
+        | Beto | Ana      | 33,34 |
+        | Caio | Ana      | 33,34 |
+
     Exemplo: o gasto com centavo sobrando continua dividido igualmente
       Quando eu abro o evento como Ana
       E eu anoto "Mercado" de R$ 100,00 dividido igualmente
@@ -40,3 +50,16 @@ Funcionalidade: Quanto fica pra cada um
       E eu edito o "Mercado"
       E eu troco a descrição do "Mercado" pra "Feira" e salvo
       Então no banco, o centavo a mais do "Feira" continua com a mesma pessoa
+
+  Regra: até 5 centavos ninguém cobra
+    Quem pagou uns centavos a menos, ou ficou devendo um centavo do arredondamento, está quite.
+
+    Exemplo: quem pagou 4 centavos a menos sai do falta pagar
+      Dado os gastos:
+        | o quê   | valor  | pagou | divide entre    |
+        | Mercado | 100,00 | Ana   | Ana, Beto, Caio |
+      E que o Beto já pagou R$ 33,30 pra Ana
+      Quando eu abro o evento como Ana
+      Então falta pagar:
+        | quem | paga pra | valor |
+        | Caio | Ana      | 33,34 |

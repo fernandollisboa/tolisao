@@ -169,7 +169,7 @@ Then('o banco tem {int} pagamento(s) da/do {word} pro/pra {word}', async ({ mund
 });
 When('o/a {word} paga R$ {num} pro/pra {word} em outro aparelho', async ({ mundo }, quem, valor, pra) => { await pagaNoBanco(mundo, [[quem, pra, valor]]); });
 When('a Mengla e o Klinsmann pagam o que devem pro Fernando em outro aparelho', async ({ mundo }) => {
-  await pagaNoBanco(mundo, [['Mengla', 'Fernando', 174.43], ['Klinsmann', 'Fernando', 73.61]]);
+  await pagaNoBanco(mundo, [['Mengla', 'Fernando', 174.43], ['Klinsmann', 'Fernando', 73.62]]);
 });
 // o rodapé ganha a hora só no fim do sync, depois do aviso
 When('o app sincroniza', async ({ mundo }) => {

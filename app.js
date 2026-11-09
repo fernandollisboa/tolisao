@@ -26,6 +26,7 @@
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
+  const MIGALHA = 5; // em centavos: saldo até aqui ninguém cobra, vira quite (o balances() e o sw.js e o servidor)
   const PERDOA_ATE = 5000; // em centavos: dívida abaixo disso, com 1 dia ou mais, se perdoa no cartão do recebi
   // o dono do aparelho é o nome que mais fui nos eventos daqui. Com 1 evento o aparelho pergunta se sou ele; a partir
   // de DONO_CERTO já entra como ele, e a partir de PIX_DIRETO a chave pix dele entra sozinha (antes, num toque)
@@ -709,6 +710,12 @@
     return v.every((x) => x === base || x === base + 1) && v.reduce((a, b) => a + b, 0) === c;
   };
   const shareOf = (e, ids) => {
+    // dividido igual com quem pagou dentro: quem deve paga o mesmo e o centavo fica com quem pagou, até nos gastos
+    // anotados antes dessa regra (o que eles gravaram girando o centavo vale como igual)
+    if (ehIgual(e) && ids.length === e.among.length) {
+      const doPagante = sharesDoPagante(centavos(e), ids, e.payer);
+      if (doPagante) return doPagante;
+    }
     if (e.shares) {
       const o = {};
       for (const id of ids) o[id] = e.shares[id] || 0;
@@ -729,6 +736,18 @@
     /** @type {Record<string, number>} */ const b = {};
     s.people.forEach((p) => (b[p.id] = 0));
     for (const e of s.expenses) soma(b, e);
+    return semMigalha(b);
+  }
+  /** até 5 centavos ninguém cobra: o saldo miúdo vira zero. O que isso desequilibra (a soma tem que dar zero) vai
+   *  pro maior saldo do lado que sobrou, quem mais tem a receber ou a pagar
+   *  @param {Record<string, number>} b @returns {Record<string, number>} */
+  function semMigalha(b) {
+    for (const k in b) if (Math.abs(b[k]) <= MIGALHA) b[k] = 0;
+    const sobra = Object.values(b).reduce((a, v) => a + v, 0);
+    const maior = Object.keys(b)
+      .filter((k) => Math.sign(b[k]) === Math.sign(sobra))
+      .sort((x, y) => Math.abs(b[y]) - Math.abs(b[x]))[0];
+    if (sobra && maior) b[maior] -= sobra;
     return b;
   }
   /** põe um gasto (ou pagamento) nos saldos @param {Record<string, number>} b @param {Expense} e */
@@ -747,7 +766,7 @@
     let n = 0;
     s.expenses.forEach((e, i) => {
       soma(b, e);
-      if (Object.values(b).every((v) => v === 0)) n = i + 1;
+      if (Object.values(semMigalha({ ...b })).every((v) => v === 0)) n = i + 1;
     });
     return n;
   }

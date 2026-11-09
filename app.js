@@ -2972,16 +2972,23 @@
     const titulo = temDigital()
       ? `<h2><button type="button" id="evMenu" class="evMenu" aria-haspopup="true" aria-expanded="false" aria-controls="evMenuBox">*** <span class="nome">Meus eventos</span> ***</button></h2>${menuDigital(evs.length > 0)}`
       : '<h2>*** Meus eventos ***</h2>';
-    const lista =
-      evs.length || temDigital() ? `<div class="hr"></div>${titulo}${evs.length ? listaEventos(evs, true) : ''}` : '';
+    // sem evento, a tela é só o convite e o campo: nem Meus eventos nem Criar evento
+    const lista = evs.length
+      ? `<div class="hr"></div>${titulo}${listaEventos(evs, true)}<div class="hr"></div><h2>*** Outro evento ***</h2>`
+      : '';
+    // aparelho vazio com a digital: o entrar com ela vira um link solto, embaixo do campo
+    const entraSolto =
+      !evs.length && temDigital()
+        ? '<div class="c"><a class="link" id="digEntra" role="button" tabindex="0">entrar com a digital</a></div>'
+        : '';
     overlay(
-      `<div class="cordao" aria-hidden="true"></div><h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}<div class="hr"></div><h2>*** ${evs.length ? 'Outro evento' : 'Criar evento'} ***</h2>${
+      `<div class="cordao" aria-hidden="true"></div><h1><span id="tituloGate">tô lisa</span></h1>${intro}${lista}${
         msg || !evs.length
           ? `<p class="muted recado"${msg ? '' : ' style="color:var(--ink2);text-wrap:balance"'}>${msg || (natal() ? 'qualquer nome serve, até de rena!' : 'qualquer nome serve!')}</p>`
           : ''
       }
       <form id="gateForm" class="lado" autocomplete="off" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center"><span class="campoEx"><input id="gateCode" placeholder="ex: ${natal() ? 'amigo secreto, ceia' : 'praia, churras'}" required autocapitalize="none"><span class="exemplo" aria-hidden="true"></span></span><button class="small">${botao}</button></form>
-      <p id="gateErr" class="status err" style="margin:0"></p><div class="c" style="display:flex;justify-content:center;gap:8px"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${
+      <p id="gateErr" class="status err" style="margin:0"></p>${entraSolto}<div class="c" style="display:flex;justify-content:center;gap:8px"><button id="instalarGate" class="ico amb hidden">${BAIXAR_SVG} instalar</button></div>${
         // o Fernando (o dono) chega no admin pela tela inicial e pela de outro evento, num botão maior e mais abaixo
         souFernando()
           ? `<div class="c adminLinha"><button id="adminBtn" class="ico amb">${CHAVE_SVG} admin</button></div>`

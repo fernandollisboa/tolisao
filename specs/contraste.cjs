@@ -23,7 +23,7 @@ async function souLia(p) {
   await p.waitForTimeout(600);
 }
 const abreEvento = async (p, porta) => { await p.goto(`http://localhost:${porta}/?evento=${DADOS.name}`); };
-const cartao = p => p.waitForSelector('#overlay:not(.hidden) #overlayBox h2');
+const cartao = p => p.waitForSelector('#overlay:not(.hidden) #overlayBox :is(h1, h2)');
 
 // cada tela: como chegar nela e o que medir (a página inteira ou só o cartão por cima)
 const TELAS = {

@@ -33,7 +33,8 @@ When('eu abro o tô lisa pelo endereço de testar a digital', async ({ mundo }) 
 });
 
 // a digital mora no menuzinho do título "Meus eventos"
-const abreMenu = (p) => p.getByRole('button', { name: /Meus eventos/ }).click();
+// com evento, a digital fica no menuzinho do título; sem evento, o entrar com ela é um link solto
+const abreMenu = async (p) => { const m = p.getByRole('button', { name: /Meus eventos/ }); if (await m.count()) await m.click(); };
 When('eu guardo meus eventos na digital', async ({ mundo }) => { await abreMenu(mundo.p); await mundo.p.getByRole('button', { name: 'guardar com a digital' }).click(); });
 // sem tabindex o link nem pega o foco, e o Enter cai no vazio
 When('eu guardo meus eventos na digital pelo teclado', async ({ mundo }) => {
@@ -63,8 +64,8 @@ Then('o {string} volta pra lista, comigo como {word}', async ({ mundo }, nome, q
 });
 
 Then('o cartão não oferece a digital', async ({ mundo }) => {
-  await expect(mundo.p.locator('#overlayBox h2').first()).toBeVisible();
-  await expect(mundo.p.getByRole('button', { name: /Meus eventos/ })).toHaveCount(0);
+  await expect(mundo.p.locator('#gateCode')).toBeVisible();
+  await expect(mundo.p.getByRole('button', { name: /Meus eventos|digital/ })).toHaveCount(0);
 });
 Then('o cartão oferece {string}', async ({ mundo }, txt) => {
   await abreMenu(mundo.p);

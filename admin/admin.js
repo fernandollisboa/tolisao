@@ -18,7 +18,7 @@
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
 
-  /** @type {{ banco: string, token: string, codigos: string[] } | null} */
+  /** @type {{ chave: string, banco: string, token: string, codigos: string[] } | null} */
   let sessao = null;
 
   // ---------- entrar ----------
@@ -29,14 +29,15 @@
     btn.disabled = true;
     erro.textContent = '';
     try {
+      const chave = /** @type {HTMLInputElement} */ ($('#chave')).value;
       const r = await fetch(`${API}/admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chave: /** @type {HTMLInputElement} */ ($('#chave')).value }),
+        body: JSON.stringify({ chave }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.erro || `a API respondeu ${r.status}`);
-      sessao = { banco: d.banco, token: d.token, codigos: Array.isArray(d.codigos) ? d.codigos : [] };
+      sessao = { chave, banco: d.banco, token: d.token, codigos: Array.isArray(d.codigos) ? d.codigos : [] };
       visitas(d.resumo);
       $('#entra').classList.add('hidden');
       $('#painel').classList.remove('hidden');
@@ -240,5 +241,112 @@
       out.append(card);
     }
     if (achou.length > 50) out.append(el('p', 'c muted', 'mostrando os 50 mais recentes'));
+  };
+
+  // ---------- testar o aviso ----------
+  // o push vai de verdade (API → serviço de push → sw.js), pra este aparelho: a inscrição é a que o app fez quando o 🔔
+  // foi ligado (o sw.js é do site inteiro, o admin também enxerga). Antes do pedido, a hora do toque vai pro banco do
+  // sw.js ({ sala: 'teste', em }): quando o push chega, ele diz no aviso quanto demorou e conta pra esta página
+  /** o mesmo banco do avisos() do sw.js e do avisosDb() do app.js
+   * @param {IDBTransactionMode} modo @param {(s: IDBObjectStore) => any} f */
+  const avisos = (modo, f) =>
+    new Promise((ok, erro) => {
+      const pedido = indexedDB.open('tolisa', 1);
+      pedido.onupgradeneeded = () => pedido.result.createObjectStore('avisos', { keyPath: 'sala' });
+      pedido.onerror = () => erro(pedido.error);
+      pedido.onsuccess = () => {
+        const db = pedido.result,
+          t = db.transaction('avisos', modo);
+        f(t.objectStore('avisos'));
+        t.oncomplete = () => (db.close(), ok(undefined));
+        t.onerror = () => (db.close(), erro(t.error));
+      };
+    });
+  let esperando = 0;
+  /** @type {ReturnType<typeof setTimeout> | undefined} */ let desiste;
+  if ('serviceWorker' in navigator)
+    navigator.serviceWorker.onmessage = (ev) => {
+      if (!esperando || !ev.data || typeof ev.data.teste !== 'number') return;
+      esperando = 0;
+      clearTimeout(desiste);
+      const st = $('#testaSt');
+      st.textContent = '';
+      st.append(el('b', '', `chegou em ${(ev.data.teste / 1000).toFixed(1).replace('.', ',')} s`));
+      if (typeof ev.data.texto === 'string') st.append(el('div', 'nota', ev.data.texto.split('\n')[0]));
+    };
+  $('#testaBtn').onclick = async () => {
+    if (!sessao) return;
+    const btn = /** @type {HTMLButtonElement} */ ($('#testaBtn')),
+      st = $('#testaSt'),
+      res = $('#testaRes');
+    res.textContent = '';
+    esperando = 0;
+    clearTimeout(desiste);
+    btn.disabled = true;
+    st.textContent = 'mandando…';
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window))
+        throw new Error('este navegador não tem aviso no celular');
+      const reg = await navigator.serviceWorker.getRegistration('/'),
+        sub = reg && (await reg.pushManager.getSubscription());
+      if (!sub)
+        throw new Error(
+          'este aparelho não tem o aviso ligado: abra um evento no tô lisa, ligue o 🔔 e volte aqui (no iPhone, pelo app instalado)',
+        );
+      await avisos('readwrite', (s) => s.put({ sala: 'teste', em: Date.now() }));
+      const r = await fetch(`${API}/admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chave: sessao.chave, teste: { endpoint: sub.endpoint } }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erro || `a API respondeu ${r.status}`);
+      // o Worker velho não conhece o teste e devolve o painel de novo
+      if (typeof d.push !== 'number') throw new Error('a API ainda não sabe testar: espere o deploy do servidor');
+      if (d.push >= 200 && d.push < 300) {
+        st.textContent = `o serviço de push aceitou (${d.push}). esperando chegar…`;
+        esperando = Date.now();
+        desiste = setTimeout(() => {
+          if (!esperando) return;
+          esperando = 0;
+          st.textContent =
+            'não chegou em 1 minuto. o celular pode estar segurando (economia de bateria, não perturbe), ou as notificações do site estão bloqueadas.';
+        }, 60_000);
+      } else
+        st.textContent =
+          d.push === 404 || d.push === 410
+            ? 'o serviço de push disse que a inscrição deste aparelho morreu: desligue e ligue o 🔔 de novo'
+            : `o serviço de push respondeu ${d.push || 'nada'}: o aviso não saiu`;
+      const eventos = Array.isArray(d.eventos) ? d.eventos : [];
+      if (!d.inscricoes)
+        res.append(
+          el(
+            'p',
+            'c muted nota',
+            'a API não tem este aparelho em evento nenhum: o cron das 19h não tem pra onde mandar. ligue o 🔔 de novo num evento.',
+          ),
+        );
+      for (const e of eventos) {
+        const card = el('div', 'ev');
+        card.append(linha(String(e.evento), String(e.pessoa)), el('div', 'muted', `às 19h: ${e.cron}`));
+        res.append(card);
+      }
+      if (d.inscricoes > eventos.length)
+        res.append(el('p', 'c muted nota', `mostrando ${eventos.length} de ${d.inscricoes} eventos`));
+      if (d.salas)
+        res.append(
+          el(
+            'p',
+            'c muted nota',
+            `o cron lê até ${d.porDia} eventos por dia, sorteados, e hoje ${d.salas === 1 ? 'há 1' : `há ${d.salas}`} com aviso ligado${
+              d.salas > d.porDia ? `: cada um é lido em uns ${Math.round((d.porDia / d.salas) * 100)}% dos dias` : ''
+            }.`,
+          ),
+        );
+    } catch (e) {
+      st.textContent = /** @type {Error} */ (e).message || 'não consegui falar com a API';
+    } finally {
+      btn.disabled = false;
+    }
   };
 })();

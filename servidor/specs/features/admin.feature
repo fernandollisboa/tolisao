@@ -86,3 +86,40 @@ Funcionalidade: Painel do dono
     Então o resumo diz:
       | campo | valor |
       | hoje  | 1     |
+
+  Regra: o botão de testar o aviso
+    O dono testa o push no próprio aparelho: chega de verdade, e o painel diz, de cada evento em que o aparelho
+    está inscrito, o que o cron das 19h faria hoje. Sem gravar nada: o teste não gasta a marca do lembrete.
+
+    Esquema do Cenário: o teste chega no aparelho e diz o que o cron faria hoje
+      Dado um evento parado em que a Ana pagou R$ 30 dividido com a Bia e ninguém mexe há <dias> dias
+      E que a <quem> se inscreveu com o aparelho 1
+      Quando eu testo o aviso no aparelho 1
+      Então a API responde 200
+      E o aviso vai só para o aparelho 1
+      E o teste diz que no "churras" a <quem>: "<diz>"
+      E nada foi gravado desde então
+
+      Exemplos:
+        | dias | quem | diz                                                |
+        | 8    | Ana  | hoje ia o lembrete do evento parado                |
+        | 3    | Ana  | mexido há 3 dias: o lembrete espera 7 dias parado  |
+        | 8    | Bia  | nada a receber aqui                                |
+
+    Cenário: depois do lembrete da semana, o teste diz que o cron não manda de novo
+      Dado um evento parado em que a Ana pagou R$ 30 dividido com a Bia e ninguém mexe há 8 dias
+      E que a Ana se inscreveu com o aparelho 1
+      E que o cron das 19h rodou
+      Quando eu testo o aviso no aparelho 1
+      Então o teste diz que no "churras" a Ana: "já lembrou nesta semana"
+
+    Cenário: aparelho que não está em evento nenhum ainda recebe o teste
+      Quando eu testo o aviso no aparelho 7
+      Então o aviso vai só para o aparelho 7
+      E o teste diz que o aparelho não está inscrito em evento nenhum
+
+    Cenário: o teste com a chave errada não manda nada
+      Dado que a Ana se inscreveu com o aparelho 1
+      Quando eu testo o aviso no aparelho 1 com a chave "quase-a-chave-mas-nao"
+      Então a API recusa com 403 "chave errada"
+      E nenhum aviso foi mandado

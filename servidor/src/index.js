@@ -8,6 +8,7 @@
 //                                                ou, no gasto novo, quem divide e quem pagou
 //   POST /digital/…                             → entrar com a digital (passkey, #168): ver digital.js
 //   POST /admin {chave}                        → o painel do dono (tolisa.com.br/admin): visitas e busca, ver visitas.js
+//   POST /admin {chave, teste: {endpoint}}     → o botão de testar o aviso: um push pro aparelho do dono (testa())
 //   cron todo dia, 19h de Brasília             → a diva cobra sozinha: lembra quem tem a receber em evento parado,
 //                                                e no mêsversário da dívida (15 dias, depois todo mês) avisa quem recebe
 //
@@ -322,6 +323,28 @@ export function mesversarios(sala, pessoa, agora) {
     });
 }
 
+/** o que o cron faria hoje com `pessoa` nesta sala, sem gravar nada: o mêsversário (as marcas que faltam), o lembrete
+ * do evento parado (a marca dele) ou nada, com o motivo. O cron grava as marcas; o teste do painel só conta
+ * @param {Env} env @param {string} id @param {any} sala @param {string} pessoa @param {number} agora
+ * @returns {Promise<{ tipo: 'mesversario' | 'lembrete', marcas: string[] } | { tipo: 'nada', motivo: string }>} */
+async function decide(env, id, sala, pessoa, agora) {
+  const marcas = [];
+  for (const n of mesversarios(sala, pessoa, agora)) {
+    const marca = `niver:${id}:${pessoa}:${n.devedor}:${n.dia}`;
+    if (!(await env.KV.get(marca))) marcas.push(marca);
+  }
+  if (marcas.length) return { tipo: 'mesversario', marcas };
+  const em = +sala.updatedAt || 0;
+  if (!em || agora - em < PARADO_MS) {
+    const dias = em ? Math.floor((agora - em) / DIA) : 0;
+    return { tipo: 'nada', motivo: `mexido há ${dias} dia${dias === 1 ? '' : 's'}: o lembrete espera 7 dias parado` };
+  }
+  if (saldo(sala, pessoa) <= 0) return { tipo: 'nada', motivo: 'nada a receber aqui' };
+  const marca = `lembrou:${id}:${pessoa}`;
+  if (await env.KV.get(marca)) return { tipo: 'nada', motivo: 'já lembrou nesta semana' };
+  return { tipo: 'lembrete', marcas: [marca] };
+}
+
 /** a diva cobra sozinha: quem tem a receber ganha um push no mêsversário de cada dívida (15 dias, depois todo
  * mês), e, sem aniversário, num evento parado, no máximo um por semana.
  * o texto quem escreve é o sw.js, que relê o evento. Devolve quantos pushes chegaram
@@ -350,24 +373,15 @@ export async function lembra(env, agora = Date.now()) {
       const r = await fetch(`${env.FIREBASE_DB}/rooms/${id}.json`, { cache: 'no-store' });
       const sala = r.ok ? await r.json() : null;
       if (!sala) continue;
-      const em = +sala.updatedAt || 0,
-        parado = !!em && agora - em >= PARADO_MS;
       for (const [pessoa, subs] of gente) {
         if (subs.length > resta) continue;
+        const d = await decide(env, id, sala, pessoa, agora);
+        if (d.tipo === 'nada') continue;
         // o mêsversário vale um push por dívida e aniversário; dois no mesmo dia vão num push só
-        const marcas = [];
-        for (const n of mesversarios(sala, pessoa, agora)) {
-          const marca = `niver:${id}:${pessoa}:${n.devedor}:${n.dia}`;
-          if (!(await env.KV.get(marca))) marcas.push(marca);
-        }
-        if (marcas.length)
-          for (const marca of marcas) await env.KV.put(marca, '1', { expirationTtl: (NIVER_PRAZO + 1) * 86400 });
-        else {
-          if (!parado || saldo(sala, pessoa) <= 0) continue;
-          const marca = `lembrou:${id}:${pessoa}`;
-          if (await env.KV.get(marca)) continue;
-          await env.KV.put(marca, '1', { expirationTtl: PARADO_MS / 1000 });
-        }
+        for (const marca of d.marcas)
+          await env.KV.put(marca, '1', {
+            expirationTtl: d.tipo === 'mesversario' ? (NIVER_PRAZO + 1) * 86400 : PARADO_MS / 1000,
+          });
         resta -= subs.length;
         for (const k of subs) if (await manda(k, env)) lembrados++;
       }
@@ -376,6 +390,60 @@ export async function lembra(env, agora = Date.now()) {
     }
   }
   return lembrados;
+}
+
+/** quantas inscrições de um aparelho o teste do painel olha: cada uma é uma leitura do banco */
+const TESTE_MAX = 10;
+
+/** o teste do painel do dono (POST /admin {chave, teste: {endpoint}}, a chave já conferida): manda um push de verdade pro
+ * aparelho do dono e diz, de cada evento em que ele está inscrito, o que o cron faria hoje. Não grava nada (só apaga a
+ * inscrição que o serviço de push disser que morreu). Gasta 1 listagem do KV, até TESTE_MAX leituras do banco e 1 push
+ * @param {any} t @param {Env} env @returns {Promise<[number, any]>} */
+export async function testa(t, env, agora = Date.now()) {
+  const endpoint = t && typeof t.endpoint === 'string' && t.endpoint.length <= 800 ? t.endpoint : '';
+  let https = false;
+  try {
+    https = new URL(endpoint).protocol === 'https:';
+  } catch {}
+  if (!https) return [400, { erro: 'pedido torto' }];
+  const todas = await lista(env.KV, 'sub:');
+  const minhas = todas.filter((k) => k.metadata?.endpoint === endpoint);
+  const eventos = [];
+  for (const k of minhas.slice(0, TESTE_MAX)) {
+    const [, id, pessoa] = k.name.split(':');
+    if (!SALA.test(id) || !ID.test(pessoa)) continue;
+    const ev = { evento: '?', pessoa, cron: 'não consegui ler o evento' };
+    try {
+      const r = await fetch(`${env.FIREBASE_DB}/rooms/${id}.json`, { cache: 'no-store' });
+      const sala = r.ok ? await r.json() : null;
+      if (sala) {
+        ev.evento = typeof sala.name === 'string' ? sala.name.slice(0, 60) : '?';
+        const p = valores(sala.people).find((x) => x.id === pessoa);
+        if (p && typeof p.name === 'string') ev.pessoa = p.name.slice(0, 30);
+        const d = await decide(env, id, sala, pessoa, agora);
+        ev.cron =
+          d.tipo === 'mesversario'
+            ? 'hoje ia o aviso do mêsversário da dívida'
+            : d.tipo === 'lembrete'
+              ? 'hoje ia o lembrete do evento parado'
+              : d.motivo;
+      } else ev.cron = 'o evento não existe mais no banco';
+    } catch {}
+    eventos.push(ev);
+  }
+  const push = await empurra(endpoint, env).catch(() => 0);
+  if (push === 404 || push === 410) for (const k of minhas) await env.KV.delete(k.name);
+  return [
+    200,
+    {
+      push,
+      eventos,
+      inscricoes: minhas.length,
+      // o cron lê no máximo isso de eventos por dia, sorteados: com mais inscritos, cada um fica dias sem ser lido
+      salas: new Set(todas.map((k) => k.name.split(':')[1])).size,
+      porDia: FETCH_POR_VEZ - 1,
+    },
+  ];
 }
 
 export default {
@@ -404,7 +472,13 @@ export default {
       '/digital/desafio': (b, env, o) => digital.desafio(b, env, (s, c) => json(s, c, o)),
       '/digital/guarda': (b, env, o) => digital.guarda(b, env, (s, c) => json(s, c, o)),
       '/digital/entra': (b, env, o) => digital.entra(b, env, (s, c) => json(s, c, o)),
-      '/admin': (b, env, o) => admin(b, env, (s, c) => json(s, c, o)),
+      '/admin': (b, env, o) =>
+        admin(
+          b,
+          env,
+          (s, c) => json(s, c, o),
+          (t) => testa(t, env),
+        ),
     }[pathname];
     if (!rota) return json(404, { erro: 'não tem' }, o);
     if (req.method !== 'POST') return json(405, { erro: 'só POST' }, o);

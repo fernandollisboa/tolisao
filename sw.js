@@ -140,10 +140,26 @@ async function novidade(a, contas) {
 function parte(e, id, ids) {
   const among = membros(e), quem = among.filter(x => ids.has(x)), c = Math.round(+e.amount * 100), i = quem.indexOf(id);
   if (i < 0 || !Number.isFinite(c)) return 0;
+  return partesDe(e, among, quem, c)[i];
+}
+/** quanto cada um de `ids` paga num gasto, a mesma conta do shareOf() do app.js: as partes gravadas valem se fecham o
+ *  valor (o gasto novo dividido igual grava as partes com o centavo em quem pagou); senão divide igual, e o centavo que
+ *  sobra vai pros primeiros */
+function partesDe(e, among, ids, c) {
   const partes = e.shares && typeof e.shares === 'object' ? among.map(x => Math.max(0, Math.round(+e.shares[x] || 0))) : null;
-  if (partes && partes.reduce((s, x) => s + x, 0) === c) return partes[among.indexOf(id)];
-  const base = Math.floor(c / quem.length);
-  return base + (i < c - base * quem.length ? 1 : 0);
+  const certas = partes && partes.reduce((s, x) => s + x, 0) === c;
+  const n = ids.length, base = Math.floor(c / n);
+  if (certas) return ids.map(id => partes[among.indexOf(id)]);
+  return ids.map((_, i) => base + (i < c - base * n ? 1 : 0));
+}
+/** até 2 centavos ninguém cobra: a mesma conta do semMigalha() do app.js */
+function semMigalha(b) {
+  for (const [k, v] of b) if (Math.abs(v) <= 2) b.set(k, 0);
+  let sobra = 0;
+  for (const v of b.values()) sobra += v;
+  const maior = [...b.keys()].filter(k => Math.sign(b.get(k)) === Math.sign(sobra)).sort((x, y) => Math.abs(b.get(y)) - Math.abs(b.get(x)))[0];
+  if (sobra && maior) b.set(maior, b.get(maior) - sobra);
+  return b;
 }
 // a bolinha no ícone: a página guarda quantas linhas do acerto são minhas em cada evento ({ sala: 'bolinha', n });
 // o push refaz a conta do evento que ele releu e soma tudo de novo. Só o número, nunca valor
@@ -157,12 +173,11 @@ function acerto(sala) {
   for (const e of lista(sala && sala.expenses)) {
     const among = membros(e), ids = among.filter(id => b.has(id)), c = Math.round(+e.amount * 100);
     if (fora.has(e.id) || !Number.isFinite(c) || !ids.length || !b.has(e.payer)) continue;
-    const partes = e.shares && typeof e.shares === 'object' ? among.map(id => Math.max(0, Math.round(+e.shares[id] || 0))) : null;
-    const certas = partes && partes.reduce((s, x) => s + x, 0) === c;
     b.set(e.payer, b.get(e.payer) + c);
-    const base = Math.floor(c / ids.length), resto = c - base * ids.length;
-    ids.forEach((id, i) => b.set(id, b.get(id) - (certas ? partes[among.indexOf(id)] : base + (i < resto ? 1 : 0))));
+    const p = partesDe(e, among, ids, c);
+    ids.forEach((id, i) => b.set(id, b.get(id) - p[i]));
   }
+  semMigalha(b);
   const d = [], cr = [];
   for (const [id, v] of b) if (v < 0) d.push({ id, c: -v }); else if (v > 0) cr.push({ id, c: v });
   d.sort((x, y) => y.c - x.c); cr.sort((x, y) => y.c - x.c);

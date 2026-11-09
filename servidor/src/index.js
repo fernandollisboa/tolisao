@@ -221,17 +221,39 @@ function saldos(sala) {
       c = Math.round(+e.amount * 100);
     if (fora.has(e.id) || !Number.isFinite(c) || !ids.length || !b.has(e.payer)) continue;
     b.set(e.payer, b.get(e.payer) + c);
-    // as partes valem se fecham o valor; senão divide igual, o centavo que sobra vai pros primeiros
-    const partes =
-      e.shares && typeof e.shares === 'object' ? among.map((id) => Math.max(0, Math.round(+e.shares[id] || 0))) : null;
-    const certas = partes && partes.reduce((a, x) => a + x, 0) === c;
-    const base = Math.floor(c / ids.length);
-    ids.forEach((id, i) =>
-      b.set(id, b.get(id) - (certas ? partes[among.indexOf(id)] : base + (i < c - base * ids.length ? 1 : 0))),
-    );
+    const p = partesDe(e, among, ids, c);
+    ids.forEach((id, i) => b.set(id, b.get(id) - p[i]));
   }
+  return semMigalha(b);
+}
+
+/** quanto cada um de `ids` paga num gasto, a mesma conta do shareOf() do app.js. As partes gravadas valem se fecham o
+ * valor (o gasto novo dividido igual grava as partes com o centavo em quem pagou); senão divide igual, e o centavo que
+ * sobra vai pros primeiros
+ * @param {any} e @param {string[]} among @param {string[]} ids @param {number} c @returns {number[]} */
+function partesDe(e, among, ids, c) {
+  const partes =
+    e.shares && typeof e.shares === 'object' ? among.map((id) => Math.max(0, Math.round(+e.shares[id] || 0))) : null;
+  const certas = partes && partes.reduce((a, x) => a + x, 0) === c;
+  const n = ids.length,
+    base = Math.floor(c / n);
+  if (certas) return ids.map((id) => partes[among.indexOf(id)]);
+  return ids.map((_, i) => base + (i < c - base * n ? 1 : 0));
+}
+
+/** até 2 centavos ninguém cobra: a mesma conta do semMigalha() do app.js @param {Map<string, number>} b */
+function semMigalha(b) {
+  for (const [k, v] of b) if (Math.abs(v) <= MIGALHA) b.set(k, 0);
+  let sobra = 0;
+  for (const v of b.values()) sobra += v;
+  const maior = [...b.keys()]
+    .filter((k) => Math.sign(b.get(k)) === Math.sign(sobra))
+    .sort((x, y) => Math.abs(b.get(y)) - Math.abs(b.get(x)))[0];
+  if (sobra && maior) b.set(maior, b.get(maior) - sobra);
   return b;
 }
+/** espelha o MIGALHA do app.js */
+const MIGALHA = 2;
 
 /** o saldo de `pessoa` em centavos (positivo = tem a receber) @param {any} sala @param {string} pessoa */
 export const saldo = (sala, pessoa) => saldos(sala).get(pessoa) || 0;
@@ -241,8 +263,9 @@ export const saldo = (sala, pessoa) => saldos(sala).get(pessoa) || 0;
 export function acerto(sala) {
   const d = [],
     cr = [];
-  for (const [id, v] of saldos(sala)) if (v < 0) d.push({ id, c: -v });
-  else if (v > 0) cr.push({ id, c: v });
+  for (const [id, v] of saldos(sala))
+    if (v < 0) d.push({ id, c: -v });
+    else if (v > 0) cr.push({ id, c: v });
   d.sort((x, y) => y.c - x.c);
   cr.sort((x, y) => y.c - x.c);
   const st = [];

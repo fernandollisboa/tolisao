@@ -65,6 +65,18 @@ Funcionalidade: Acertar as contas
     Então o cartão pergunta "Pagar?" com o botão "paguei"
     E o cartão diz "Lia pagou R$ 50,00 pra Fernando"
 
+  Cenário: todos os pagamentos ficam à vista
+    Um pagamento que some da lista parece que nunca foi feito.
+    Dado que a Mengla já pagou R$ 100,00 pro Fernando
+    E que a Lia já pagou R$ 50,00 pro Fernando
+    E que o Klinsmann já pagou R$ 70,00 pro Fernando
+    E que o Klinsmann já pagou R$ 30,00 pra Júlia
+    Quando eu abro o evento como Fernando
+    Então o pagamento "Mengla → Fernando" está carimbado "PAGO"
+    E o pagamento "Lia → Fernando" está carimbado "PAGO"
+    E o pagamento "Klinsmann → Fernando" está carimbado "PAGO"
+    E o pagamento "Klinsmann → Júlia" está carimbado "PAGO"
+
   Cenário: desfazer um pagamento
     Quando eu abro o evento como Lia
     E eu quito a primeira linha de Minha conta

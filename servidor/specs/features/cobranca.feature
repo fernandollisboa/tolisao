@@ -62,6 +62,18 @@ Funcionalidade: A diva cobra sozinha
         | Bia    | 8,67  |
         | Caio   | -3,33 |
 
+    Cenário: até 2 centavos ninguém deve nada
+      Dado o evento com Ana, Bia e Caio
+      E que os lançamentos do evento são:
+        | id | tipo      | valor | pagou | para     | quando       |
+        | a  | gasto     | 10    | Ana   | Ana, Bia | há 1 segundo |
+        | b  | pagamento | 4.98  | Bia   | Ana      | há 1 segundo |
+      Então os saldos são:
+        | pessoa | saldo |
+        | Ana    | 0,00  |
+        | Bia    | 0,00  |
+        | Caio   | 0,00  |
+
   Regra: a dívida faz mêsversário
 
     Esquema do Cenário: aos 15 dias e depois todo mês, no dia de Brasília

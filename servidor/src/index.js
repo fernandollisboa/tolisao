@@ -241,7 +241,7 @@ function partesDe(e, among, ids, c) {
   return ids.map((_, i) => base + (i < c - base * n ? 1 : 0));
 }
 
-/** até 5 centavos ninguém cobra: a mesma conta do semMigalha() do app.js @param {Map<string, number>} b */
+/** até 2 centavos ninguém cobra: a mesma conta do semMigalha() do app.js @param {Map<string, number>} b */
 function semMigalha(b) {
   for (const [k, v] of b) if (Math.abs(v) <= MIGALHA) b.set(k, 0);
   let sobra = 0;
@@ -253,7 +253,7 @@ function semMigalha(b) {
   return b;
 }
 /** espelha o MIGALHA do app.js */
-const MIGALHA = 5;
+const MIGALHA = 2;
 
 /** o saldo de `pessoa` em centavos (positivo = tem a receber) @param {any} sala @param {string} pessoa */
 export const saldo = (sala, pessoa) => saldos(sala).get(pessoa) || 0;

@@ -26,13 +26,12 @@
   const APERTO_VISITAS = 3; // o aperto dos itens só nas primeiras visitas, e nunca depois de abrir a lista
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // rodando na máquina: não conta visita
   const JA_ANOTADO_H = 12; // gasto com o mesmo valor e o mesmo pagante, anotado há menos que isso: o anotar pergunta se não é o mesmo
-  const MIGALHA = 5; // em centavos: saldo até aqui ninguém cobra, vira quite (o balances() e o sw.js e o servidor)
+  const MIGALHA = 2; // em centavos: saldo até aqui ninguém cobra, vira quite (o balances() e o sw.js e o servidor)
   const PERDOA_ATE = 5000; // em centavos: dívida abaixo disso, com 1 dia ou mais, se perdoa no cartão do recebi
   // o dono do aparelho é o nome que mais fui nos eventos daqui. Com 1 evento o aparelho pergunta se sou ele; a partir
   // de DONO_CERTO já entra como ele, e a partir de PIX_DIRETO a chave pix dele entra sozinha (antes, num toque)
   const DONO_CERTO = 2;
   const PIX_DIRETO = 3;
-  const PAGOS_NA_LISTA = 3; // quitações que ficam à vista no Falta pagar; o resto, e o que já zerou, some pra não poluir
   const PARADO_DIAS = 7; // evento sem mudança há tantos dias, e me devem: ganha selo na lista e o zap cobra com outro tom
   const QUITADO_DIAS = 7; // evento quite e sem mudança há tantos dias desce pros "quitados antigos", recolhidos no fim da lista
   const ESQUECIDO_DIAS = 30; // daí em diante a cobrança é da diva
@@ -732,7 +731,7 @@
     for (const e of s.expenses) soma(b, e);
     return semMigalha(b);
   }
-  /** até 5 centavos ninguém cobra: o saldo miúdo vira zero. O que isso desequilibra (a soma tem que dar zero) vai
+  /** até 2 centavos ninguém cobra: o saldo miúdo vira zero. O que isso desequilibra (a soma tem que dar zero) vai
    *  pro maior saldo do lado que sobrou, quem mais tem a receber ou a pagar
    *  @param {Record<string, number>} b @returns {Record<string, number>} */
   function semMigalha(b) {
@@ -1653,7 +1652,6 @@
     const pays = state.expenses
       .slice(allEven ? 0 : zerouEm())
       .filter((e) => e.kind === 'payment')
-      .slice(-PAGOS_NA_LISTA)
       .reverse();
     const nMeus = acerto.filter((t) => t.from === me).length;
 

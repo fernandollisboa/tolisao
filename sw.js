@@ -152,9 +152,9 @@ function partesDe(e, among, ids, c) {
   if (certas) return ids.map(id => partes[among.indexOf(id)]);
   return ids.map((_, i) => base + (i < c - base * n ? 1 : 0));
 }
-/** até 5 centavos ninguém cobra: a mesma conta do semMigalha() do app.js */
+/** até 2 centavos ninguém cobra: a mesma conta do semMigalha() do app.js */
 function semMigalha(b) {
-  for (const [k, v] of b) if (Math.abs(v) <= 5) b.set(k, 0);
+  for (const [k, v] of b) if (Math.abs(v) <= 2) b.set(k, 0);
   let sobra = 0;
   for (const v of b.values()) sobra += v;
   const maior = [...b.keys()].filter(k => Math.sign(b.get(k)) === Math.sign(sobra)).sort((x, y) => Math.abs(b.get(y)) - Math.abs(b.get(x)))[0];

@@ -164,8 +164,8 @@ Funcionalidade: Meus eventos
       """
       👀 lembra do *churras*? faz 10 dias e ainda tem R$ 60,00 pendurado…
 
-      💸 Fernando paga R$ 30,00 pra Júlia
-      💸 Lia paga R$ 30,00 pra Júlia
+      👉 pra *Júlia*
+      • Fernando e Lia: R$ 30,00 cada
 
       tudo aqui 👉 {site}/sextou/?evento=churras
       """

@@ -203,13 +203,36 @@ Funcionalidade: Acertar as contas
       """
       🧾 acerto do *bailedamada*
 
-      💸 Mengla paga R$ 174,43 pra Fernando (pix: fernando@exemplo.com)
-      💸 Klinsmann paga R$ 73,61 pra Fernando (pix: fernando@exemplo.com)
-      💸 Klinsmann paga R$ 34,72 pra Júlia
+      👉 pra *Fernando* · pix fernando@exemplo.com
+      • Mengla: R$ 174,43
+      • Klinsmann: R$ 73,61
+
+      👉 pra *Júlia*
+      • Klinsmann: R$ 34,72
 
       tudo aqui 👉 {site}/fiado/?evento=bailedamada
       """
     E o QR da comanda abre o evento direto
+
+  Cenário: quem deve o mesmo pra mesma pessoa vira uma linha só
+    Com todo mundo devendo pra quem pagou, o zap não repete o nome dela nem o pix em cada linha.
+    O centavo que o rateio deixa a mais em alguém aparece no fim da linha.
+    Dado o evento "churras" com Ana, Bia, Caio e Duda
+    E a Ana tem a chave pix "ana@exemplo.com"
+    E os gastos:
+      | o quê     | valor | pagou | divide entre    |
+      | Churrasco | 75,01 | Ana   | Bia, Caio, Duda |
+    Quando eu abro o evento "churras" como Bia
+    E eu toco em enviar
+    Então o zap abre com a mensagem:
+      """
+      🧾 acerto do *churras*
+
+      👉 pra *Ana* · pix ana@exemplo.com
+      • Bia, Caio e Duda: R$ 25,00 cada (Bia: R$ 25,01)
+
+      tudo aqui 👉 {site}/sextou/?evento=churras
+      """
 
   Cenário: a comanda de uma viagem longa sai inteira
     Uma semana de viagem tem gasto demais pra uma imagem só: a comanda traz os mais novos,

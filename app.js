@@ -4831,16 +4831,53 @@
         : dias >= PARADO_DIAS
           ? `👀 lembra do *${ev}*? faz ${dias} dias e ainda tem ${pendurado} pendurado…`
           : `🧾 acerto do *${ev}*`;
+    // um bloco por quem recebe, com o pix uma vez só no título: muita gente devendo pra uma pessoa virava uma
+    // parede de texto com o mesmo pix em cada linha
+    const quemRecebe = [...new Set(st.map((t) => t.to))];
     return [
       abre,
       '',
-      ...st.map(
-        (t) =>
-          `💸 ${nameOf(t.from)} paga ${comSifrao(t.cents)} pra ${nameOf(t.to)}${pixKeys[t.to] ? ` (pix: ${pixKeys[t.to]})` : ''}`,
-      ),
-      '',
+      ...quemRecebe.flatMap((to) => [
+        `👉 pra *${nameOf(to)}*${pixKeys[to] ? ` · pix ${pixKeys[to]}` : ''}`,
+        ...gruposDoValor(st.filter((t) => t.to === to)),
+        '',
+      ]),
       `tudo aqui 👉 ${shareUrl(quem)}`,
     ].join('\n');
+  }
+  /** "Ana, Bia e Caio" @param {string[]} nomes */
+  const juntaNomes = (nomes) => (nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)}` : nomes[0]);
+  /** quem deve o mesmo valor pra mesma pessoa vira uma linha só ("Ana e Bia: R$ 45,00 cada"). O rateio deixa um
+   *  centavo a mais em alguém: ele entra no grupo e o centavo aparece no fim, "(Caio: R$ 45,01)"
+   *  @param {Transfer[]} dividas de uma pessoa só @returns {string[]} */
+  function gruposDoValor(dividas) {
+    /** @type {{ cents: number, nomes: string[], fora: Transfer[] }[]} */
+    const grupos = [];
+    const porValor = new Map();
+    for (const t of dividas) porValor.set(t.cents, [...(porValor.get(t.cents) || []), t]);
+    // o valor de mais gente fica com o grupo; o vizinho de um centavo entra nele, com o valor dele à parte
+    const valores = [...porValor.keys()].sort((a, b) => porValor.get(b).length - porValor.get(a).length);
+    const usado = new Set();
+    for (const v of valores) {
+      if (usado.has(v)) continue;
+      usado.add(v);
+      const fora = [v - 1, v + 1].filter((w) => porValor.has(w) && !usado.has(w) && porValor.get(v).length > 1);
+      for (const w of fora) usado.add(w);
+      grupos.push({ cents: v, nomes: porValor.get(v).map((t) => t.from), fora: fora.flatMap((w) => porValor.get(w)) });
+    }
+    // na ordem do acerto: quem deve mais primeiro
+    const ordem = (g) => dividas.findIndex((t) => t.cents === g.cents);
+    return grupos
+      .sort((a, b) => ordem(a) - ordem(b))
+      .map((g) => {
+        const dele = new Set([...g.nomes, ...g.fora.map((t) => t.from)]);
+        const nomes = dividas.filter((t) => dele.has(t.from)).map((t) => nameOf(t.from));
+        const cada = nomes.length > 1 ? ' cada' : '';
+        const centavo = g.fora.length
+          ? ` (${g.fora.map((t) => `${nameOf(t.from)}: ${comSifrao(t.cents)}`).join(', ')})`
+          : '';
+        return `• ${juntaNomes(nomes)}: ${comSifrao(g.cents)}${cada}${centavo}`;
+      });
   }
   // #endregion
   // #region imagem da comanda

@@ -213,6 +213,24 @@ Funcionalidade: Anotar um gasto
     E a nota sincroniza
     Então o cursor continua na parte do Fernando
 
+  Cenário: faltou alguém no gasto: põe ali mesmo, e já divide
+    Quem esqueceu alguém procura no anotar, não no Quem vai?, que fica atrás do próprio nome.
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu preencho R$ 50,00 de "Cerveja"
+    E eu ponho a Bia no gasto
+    E eu salvo
+    E eu toco no nome do "Cerveja"
+    Então o "Cerveja" mostra quem divide: "÷6 (Fernando, Júlia, Lia, Mengla, Klinsmann, Bia)"
+    E o evento no banco tem Fernando, Júlia, Lia, Mengla, Klinsmann e Bia
+
+  Cenário: a nota sincronizando não tira o nome de quem está entrando
+    Quando eu abro o evento como Lia
+    E eu toco no ✎
+    E eu começo a pôr a Bia no gasto
+    E a nota sincroniza
+    Então o cursor continua no nome da Bia
+
   Cenário: as ajudas de conta das partes diferentes
     Quando eu abro o evento como Lia
     E eu toco no ✎

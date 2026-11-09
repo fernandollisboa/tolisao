@@ -710,12 +710,6 @@
     return v.every((x) => x === base || x === base + 1) && v.reduce((a, b) => a + b, 0) === c;
   };
   const shareOf = (e, ids) => {
-    // dividido igual com quem pagou dentro: quem deve paga o mesmo e o centavo fica com quem pagou, até nos gastos
-    // anotados antes dessa regra (o que eles gravaram girando o centavo vale como igual)
-    if (ehIgual(e) && ids.length === e.among.length) {
-      const doPagante = sharesDoPagante(centavos(e), ids, e.payer);
-      if (doPagante) return doPagante;
-    }
     if (e.shares) {
       const o = {};
       for (const id of ids) o[id] = e.shares[id] || 0;

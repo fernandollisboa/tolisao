@@ -143,15 +143,12 @@ function parte(e, id, ids) {
   return partesDe(e, among, quem, c)[i];
 }
 /** quanto cada um de `ids` paga num gasto, a mesma conta do shareOf() do app.js: as partes gravadas valem se fecham o
- *  valor; dividido igual com quem pagou dentro, quem deve paga arredondado pra cima e o centavo fica com quem pagou */
+ *  valor (o gasto novo dividido igual grava as partes com o centavo em quem pagou); senão divide igual, e o centavo que
+ *  sobra vai pros primeiros */
 function partesDe(e, among, ids, c) {
   const partes = e.shares && typeof e.shares === 'object' ? among.map(x => Math.max(0, Math.round(+e.shares[x] || 0))) : null;
   const certas = partes && partes.reduce((s, x) => s + x, 0) === c;
-  const n = ids.length, base = Math.floor(c / n), cima = Math.ceil(c / n), resto = c - cima * (n - 1);
-  const igual = !partes || (certas && partes.every(x => x === base || x === base + 1));
-  const doPagante = n === among.length && n > 1 && ids.includes(e.payer) && resto >= 0;
-  if (doPagante && (igual || (certas && partes.every((x, i) => x === (among[i] === e.payer ? resto : cima)))))
-    return ids.map(id => (id === e.payer ? resto : cima));
+  const n = ids.length, base = Math.floor(c / n);
   if (certas) return ids.map(id => partes[among.indexOf(id)]);
   return ids.map((_, i) => base + (i < c - base * n ? 1 : 0));
 }

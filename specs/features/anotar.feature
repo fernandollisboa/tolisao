@@ -85,11 +85,11 @@ Funcionalidade: Anotar um gasto
     E falta pagar:
       | quem      | paga pra | valor  |
       | Mengla    | Fernando | 198,40 |
-      | Lia       | Fernando | 136,69 |
-      | Klinsmann | Fernando | 30,78  |
-      | Klinsmann | Júlia    | 77,55  |
+      | Lia       | Fernando | 136,71 |
+      | Klinsmann | Fernando | 30,77  |
+      | Klinsmann | Júlia    | 77,56  |
     Quando eu abro o evento como Lia em outro aparelho
-    Então eu devo R$ 136,69 pro Fernando
+    Então eu devo R$ 136,71 pro Fernando
     E a minha linha no acerto é "Lia → Fernando"
 
   Cenário: o valor entra pelos centavos, como no app do banco

@@ -187,7 +187,7 @@ Funcionalidade: Entrar no evento
     Mas a conta ainda não aparece
     Quando eu toco no meu nome, Lia, no topo da nota
     Então o cabeçalho diz "sou Lia"
-    E Minha conta diz "eu devo" R$ 117,82
+    E Minha conta diz "eu devo" R$ 117,84
     E a conta aparece
     E a nota não pergunta quem eu sou
 

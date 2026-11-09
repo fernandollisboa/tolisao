@@ -27,16 +27,6 @@ Funcionalidade: Quanto fica pra cada um
         | Beto | Ana      | 33,34 |
         | Caio | Ana      | 33,34 |
 
-    Exemplo: o gasto anotado antes dessa regra também fica igual pra quem deve
-      Dado os gastos:
-        | o quê   | valor  | pagou | divide entre    |
-        | Mercado | 100,00 | Ana   | Beto, Ana, Caio |
-      Quando eu abro o evento como Ana
-      Então falta pagar:
-        | quem | paga pra | valor |
-        | Beto | Ana      | 33,34 |
-        | Caio | Ana      | 33,34 |
-
     Exemplo: o gasto com centavo sobrando continua dividido igualmente
       Quando eu abro o evento como Ana
       E eu anoto "Mercado" de R$ 100,00 dividido igualmente
@@ -62,4 +52,4 @@ Funcionalidade: Quanto fica pra cada um
       Quando eu abro o evento como Ana
       Então falta pagar:
         | quem | paga pra | valor |
-        | Caio | Ana      | 33,34 |
+        | Caio | Ana      | 33,33 |

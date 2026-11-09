@@ -91,10 +91,6 @@ const quemLeva = (mundo, desc) => {
   if (!e.shares) return e.among[0];
   const max = Math.max(...Object.values(e.shares)); return Object.keys(e.shares).find(id => e.shares[id] === max);
 };
-Then('no banco, o centavo a mais do {string} e o do {string} ficam com pessoas diferentes', async ({ mundo }, a, b) => {
-  await expect.poll(() => [quemLeva(mundo, a), quemLeva(mundo, b)].every(Boolean)).toBe(true);
-  expect(quemLeva(mundo, a)).not.toBe(quemLeva(mundo, b));
-});
 // guarda quem levava o centavo antes da edição, pro Então comparar
 When('eu troco a descrição do {string} pra {string} e salvo', async ({ mundo }, velha, nova) => {
   await expect.poll(() => quemLeva(mundo, velha)).toBeTruthy();

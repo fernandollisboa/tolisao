@@ -1,6 +1,6 @@
 const { Given, When, Then } = require('@cucumber/cucumber');
 const assert = require('node:assert/strict');
-const { ORIGEM, contaDeServicoJson } = require('./_mundo.cjs');
+const { ORIGEM, PUSH, contaDeServicoJson } = require('./_mundo.cjs');
 
 const CHAVE = 'uma-chave-comprida-de-verdade-123';
 
@@ -113,3 +113,22 @@ Then(
     assert.deepEqual(u[total - 1], { dia: d2, n: n2 });
   },
 );
+
+// ---------- o botão de testar o aviso ----------
+const testa = (mundo, n, chave) => {
+  mundo.gravacoesAntes = mundo.env.KV.gravacoes;
+  return mundo.pede('/admin', { corpo: { chave, teste: { endpoint: `${PUSH}${n}` } } });
+};
+When('eu testo o aviso no aparelho {int}', async function (n) {
+  await testa(this, n, CHAVE);
+});
+When('eu testo o aviso no aparelho {int} com a chave {string}', async function (n, chave) {
+  await testa(this, n, chave);
+});
+Then(/^o teste diz que no "(.+)" (?:a|o) (\w+): "(.+)"$/, function (evento, pessoa, diz) {
+  assert.deepEqual(this.resposta.corpo.eventos, [{ evento, pessoa, cron: diz }]);
+});
+Then('o teste diz que o aparelho não está inscrito em evento nenhum', function () {
+  assert.equal(this.resposta.corpo.inscricoes, 0);
+  assert.deepEqual(this.resposta.corpo.eventos, []);
+});

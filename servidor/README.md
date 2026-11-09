@@ -17,6 +17,7 @@ Endereço: `https://tolisa-api.fernando-costa-fd0.workers.dev` (é o `const API`
 | `POST /avisa` | o app, logo depois de anotar | relê o lançamento no Firebase e manda push pra quem deve ser avisado |
 | `POST /digital/desafio`, `/digital/guarda`, `/digital/entra` | o app (protótipo, atrás do `?digital`) | guarda a lista de eventos do aparelho atrás de uma passkey e devolve noutro celular |
 | `POST /admin` | `tolisa.com.br/admin` | resumo das visitas, token de leitura do Firebase e códigos recuperáveis, só com a chave do dono |
+| `POST /admin` com `teste` | o botão "enviar notificação" do admin | manda um push de verdade pro aparelho do dono e diz o que o cron faria hoje em cada evento dele (não grava nada) |
 | `GET /visitas` | links antigos | redireciona pro `tolisa.com.br/admin/` |
 | **cron** todo dia 19h de Brasília (`0 22 * * *` UTC) | a Cloudflare | a "diva cobra sozinha": lembra quem tem a receber em evento parado e avisa quem recebe no mêsversário da dívida |
 

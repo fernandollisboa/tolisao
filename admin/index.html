@@ -41,6 +41,8 @@ button:disabled{opacity:.5;cursor:wait}
 .ev a{color:var(--amber)}
 .ev .id{font-size:15px;word-break:break-all;user-select:all}
 .nota{font-size:16px}
+button.cheio{display:block;width:100%;margin-top:10px}
+#testaSt b{color:var(--green);font-weight:normal}
 button.mais{display:block;margin:10px auto 0;background:transparent;color:var(--ink2);border:0;font-size:20px;text-decoration:underline;text-underline-offset:3px}
 </style>
 </head>
@@ -60,6 +62,12 @@ button.mais{display:block;margin:10px auto 0;background:transparent;color:var(--
     <form id="busca"><input id="buscaQ" placeholder="nome do evento ou de alguém" autocomplete="off" required><button>achar</button></form>
     <p class="c muted" id="buscaSt" role="status"></p>
     <div id="buscaRes"></div>
+    <div class="hr"></div>
+    <h2>*** aviso no celular ***</h2>
+    <div class="c muted nota">manda um push de verdade pra este aparelho e diz o que o cron das 19h faria hoje</div>
+    <button id="testaBtn" class="cheio">enviar notificação</button>
+    <p class="c muted" id="testaSt" role="status"></p>
+    <div id="testaRes"></div>
   </section>
 </main>
 <script src="admin.js"></script>

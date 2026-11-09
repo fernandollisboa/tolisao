@@ -217,7 +217,16 @@ self.addEventListener('push', e => e.waitUntil((async () => {
     }
   } catch {}
   // o navegador exige uma notificação por push: sem achar o pagamento nem a cobrança, vai a genérica
-  const { texto = 'alguém marcou que te pagou no tô lisa', code = '', tag = 'pago:' + code, cobra = '' } = aviso || {};
+  let { texto = 'alguém marcou que te pagou no tô lisa', code = '', tag = 'pago:' + code, cobra = '' } = aviso || {};
+  // o botão de testar do admin guardou a hora do toque ({ sala: 'teste', em }): o aviso diz quanto demorou e conta pra página
+  const teste = await avisos('readonly', s => s.get('teste')).catch(() => null);
+  if (teste && typeof teste.em === 'number' && Date.now() - teste.em < 10 * 60 * 1000) {
+    const ms = Date.now() - teste.em;
+    await avisos('readwrite', s => s.delete('teste')).catch(() => {});
+    texto += `\n(teste: chegou em ${(ms / 1000).toFixed(1).replace('.', ',')} s)`;
+    tag = 'teste';
+    for (const c of await self.clients.matchAll({ type: 'window', includeUncontrolled: true })) c.postMessage({ teste: ms, texto });
+  }
   await self.registration.showNotification('tô lisa', { body: texto, icon: 'ficha-192.png', tag, data: { code, cobra } });
 })()));
 self.addEventListener('notificationclick', e => {

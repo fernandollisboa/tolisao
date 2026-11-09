@@ -3,6 +3,7 @@
 // (VISITAS_SA, papel "Firebase Realtime Database Viewer"; nunca a de admin que publica as regras).
 //
 //   POST /admin {chave}  → { resumo, banco, token, codigos }; 403 com a chave errada; 503 dizendo o que falta
+//   POST /admin {chave, teste: {endpoint}} → o push de teste pro aparelho do dono (o testa() do index.js)
 //   GET  /visitas        → o endereço velho: manda pro tolisa.com.br/admin/
 //
 // A busca roda no navegador do dono: o token é de uma hora, da conta só de leitura, e o admin.js baixa o rooms.json
@@ -156,10 +157,11 @@ function faltando(env) {
   return { falta, chave, sa };
 }
 
-/** POST /admin {chave}
+/** POST /admin {chave}; com `teste`, depois da chave, é o botão de testar o aviso (o testa() do index.js)
  * @param {any} b @param {{ FIREBASE_DB: string, VISITAS_SA?: string, VISITAS_CHAVE?: string, KV?: any }} env
- * @param {(status: number, corpo: any) => Response} resp */
-export async function admin(b, env, resp) {
+ * @param {(status: number, corpo: any) => Response} resp
+ * @param {(t: any) => Promise<[number, any]>} [teste] */
+export async function admin(b, env, resp, teste) {
   const { falta, chave, sa } = faltando(env);
   if (falta.length) return resp(503, { erro: `o painel ainda não foi ligado: ${falta.join('; ')}.` });
   const tentou = typeof b.chave === 'string' && b.chave.length <= 512 ? b.chave : '';
@@ -167,6 +169,7 @@ export async function admin(b, env, resp) {
     await new Promise((ok) => setTimeout(ok, 800)); // errou: devagar, pra testar chave no braço não render
     return resp(403, { erro: 'chave errada' });
   }
+  if (b.teste !== undefined && teste) return resp(...(await teste(b.teste)));
   try {
     const token = await tokenGoogle(sa);
     const agora = Date.now();

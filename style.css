@@ -159,7 +159,7 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
    a setinha cresce, a linha afunda uma vez (a sombra da moldura some e volta) e a
    setinha se enche de preto no afundar, voltando vazada. A moldura é um :before com folga, pra não mexer no layout nem encostar
    no texto */
-#itemsHead{isolation:isolate}
+#itemsHead{isolation:isolate;z-index:1}
 #itemsHead:before{content:"";position:absolute;inset:-6px -10px;border:2px solid var(--ink);border-radius:5px;box-shadow:3px 3px 0 var(--sombra);z-index:-1;pointer-events:none;background:var(--card)}
 /* fechada a linha é botão, com moldura o tempo todo (no celular não há hover pra
    acender); aberta ela fica apertada, que nem tecla que travou embaixo: afundada no lugar
@@ -196,6 +196,9 @@ h2.longo{font-size:20px;letter-spacing:1px;white-space:nowrap}
    um, medido no toque; as linhas têm alturas diferentes) e o de cima por cima. O .leque é do toque, não de cada render:
    um sync com a lista aberta não abre o leque de novo. As outras opções ficaram em docs/animacoes.md */
 #itemsBody{overflow:clip;margin-top:8px}
+/* o z-index do leque fica preso dentro da lista: o item sai de trás da linha (z-index 1 ali em cima), e o fundo
+   dele não cobre a borda de baixo dela no abre e no fecha (#388) */
+#expenses{isolation:isolate}
 #itemsBody.hidden.fechando{display:block !important;pointer-events:none}
 @keyframes lequeItens{from{transform:translateY(calc(-1 * var(--topo,0px))) scale(.96)}to{transform:none}}
 #itemsBody.leque #expenses>.vem{position:relative;background:var(--paper);animation:lequeItens .45s cubic-bezier(.2,.8,.3,1) both}

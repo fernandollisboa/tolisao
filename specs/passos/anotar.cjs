@@ -114,6 +114,16 @@ When('a nota sincroniza', async ({ mundo }) => {
 Then('o cursor continua na parte do {word}', async ({ mundo }, n) => {
   await expect(mundo.p.locator(`#sharesBox input[data-share="${mundo.pessoa(n).id}"]`)).toBeFocused();
 });
+// o "+ pessoa" do fim dos chips de quem divide vira uma casinha de nome
+const comecaAPor = async (p, nome) => { await p.click('#splitChips [data-mais-pessoa]'); await p.locator('#novaPessoa').pressSequentially(nome); };
+When('eu começo a pôr a/o {word} no gasto', async ({ mundo }, nome) => { await comecaAPor(mundo.p, nome); });
+When('eu ponho a/o {word} no gasto', async ({ mundo }, nome) => {
+  await comecaAPor(mundo.p, nome); await mundo.p.press('#novaPessoa', 'Enter');
+  await expect(mundo.p.locator('#splitChips .chip.on', { hasText: nome })).toBeVisible();
+});
+Then('o cursor continua no nome da/do {word}', async ({ mundo }, nome) => {
+  await expect(mundo.p.locator('#novaPessoa')).toBeFocused(); await expect(mundo.p.locator('#novaPessoa')).toHaveValue(nome);
+});
 When('eu toco na aba igual', async ({ mundo }) => { await mundo.p.click('#splitSeg [data-modo="equal"]'); });
 Then('todo mundo divide, com as partes vazias', async ({ mundo }) => {
   const campos = mundo.p.locator('#sharesBox input[data-share]');

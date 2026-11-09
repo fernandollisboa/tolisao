@@ -2133,16 +2133,71 @@
     payerSel.innerHTML = state.people.map((p) => `<option value="${p.id}">${esc(p.name)} pagou</option>`).join('');
     if (state.people.some((p) => p.id === prevPayer)) payerSel.value = prevPayer;
     carregaFoto();
-    const prev = inputs('#splitChips input');
+    const prev = inputs('#splitChips input[type=checkbox]');
     const known = new Set(prev.map((i) => i.value)),
       checked = new Set(prev.filter((i) => i.checked).map((i) => i.value));
-    $('#splitChips').innerHTML = state.people
+    const chips = state.people
       .map((p) => {
         const on = !known.has(p.id) || checked.has(p.id);
         return `<label class="chip ${on ? 'on' : ''}"><input type="checkbox" value="${p.id}" ${on ? 'checked' : ''}>${esc(p.name)}</label>`;
       })
       .join('');
+    // a casinha do "+ pessoa" aberta fica onde está (com o que foi digitado e o teclado): o sync redesenha
+    // a nota toda hora, e só os chips de antes dela se refazem
+    const box = $('#splitChips'),
+      casa = document.getElementById('novaPessoa');
+    if (casa && casa.parentElement === box) {
+      for (const el of [...box.children]) if (el !== casa) el.remove();
+      casa.insertAdjacentHTML('beforebegin', chips);
+    } else box.innerHTML = chips + '<button type="button" class="chip mais" data-mais-pessoa>+ pessoa</button>';
     updateHint();
+  }
+  /** faltou alguém no gasto: o "+ pessoa" do fim dos chips vira uma casinha ali mesmo, e quem entra
+   *  nasce no evento já marcada no gasto (é gente que o renderForm ainda não conhecia). Era no anotar
+   *  que se procurava; o Quem vai? ficava escondido atrás do próprio nome (#389)
+   *  @param {HTMLElement} b */
+  function abreNovaPessoa(b) {
+    const casa = document.createElement('input');
+    casa.id = 'novaPessoa';
+    casa.className = 'chip nova';
+    casa.placeholder = 'nome';
+    casa.maxLength = 30;
+    casa.autocomplete = 'off';
+    casa.enterKeyHint = 'done';
+    casa.setAttribute('aria-label', 'nome de quem entra no evento');
+    b.replaceWith(casa);
+    casa.focus();
+    let feito = false;
+    // fecha a casinha: o renderForm põe o "+ pessoa" de volta
+    const fecha = () => {
+      feito = true;
+      casa.remove();
+      renderForm();
+    };
+    /** @param {boolean} saiu saiu da casinha: nome repetido não segura ninguém nela */
+    const poe = (saiu) => {
+      if (feito) return;
+      const name = casa.value.replace(/\s+/g, ' ').trim();
+      if (name && nomeExiste(name)) {
+        toast('Já existe alguém com esse nome');
+        return saiu ? fecha() : casa.select();
+      }
+      if (!name) return fecha();
+      feito = true;
+      casa.remove();
+      state.people.push({ id: uid(), name, at: Date.now() });
+      commit();
+    };
+    casa.onkeydown = (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault(); // senão o enter anotava o gasto
+        poe(false);
+      } else if (ev.key === 'Escape') {
+        ev.preventDefault(); // desiste do nome, sem fechar o anotar
+        fecha();
+      }
+    };
+    casa.onblur = () => poe(true);
   }
   /** Falta pagar: quem paga quem (as suas linhas circuladas) e as últimas quitações, carimbadas */
   function renderAcerto(hasMe, acerto, pays, nMeus) {
@@ -4162,7 +4217,7 @@
     $('#amount').value = reais(centavos(e));
     $('#desc').value = e.desc;
     $('#payer').value = e.payer;
-    for (const c of inputs('#splitChips input')) {
+    for (const c of inputs('#splitChips input[type=checkbox]')) {
       c.checked = e.among.includes(c.value);
       c.closest('.chip').classList.toggle('on', c.checked);
     }
@@ -4580,6 +4635,7 @@
     ['#fotoVer', verFoto],
     ['#fotoGrandeVoltar', closeOverlay],
     ['#splitSeg button', escolheAba],
+    ['[data-mais-pessoa]', abreNovaPessoa],
     ['[data-resto]', poeResto],
     ['#restoIgual', divideResto],
     // no caderno em branco a pessoa toca na caixa que fala do ✎, não no ✎: ela abre o anotar também
@@ -4617,7 +4673,7 @@
   // os chips de quem divide e o ✔ das linhas das partes marcam a mesma lista
   document.addEventListener('change', (ev) => {
     const tgt = /** @type {HTMLInputElement} */ (ev.target);
-    if (tgt.matches('#splitChips input')) {
+    if (tgt.matches('#splitChips input[type=checkbox]')) {
       tgt.closest('.chip').classList.toggle('on', tgt.checked);
       updateHint();
     } else if (tgt.matches('#sharesBox [data-quem]')) {

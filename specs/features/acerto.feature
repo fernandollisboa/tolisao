@@ -216,7 +216,7 @@ Funcionalidade: Acertar as contas
 
   Cenário: quem deve o mesmo pra mesma pessoa vira uma linha só
     Com todo mundo devendo pra quem pagou, o zap não repete o nome dela nem o pix em cada linha.
-    O centavo que o rateio deixa a mais em alguém aparece no fim da linha.
+    O centavo que o rateio deixa a mais em alguém não separa ninguém: a linha vai com o valor de cima.
     Dado o evento "churras" com Ana, Bia, Caio e Duda
     E a Ana tem a chave pix "ana@exemplo.com"
     E os gastos:
@@ -229,7 +229,7 @@ Funcionalidade: Acertar as contas
       🧾 acerto do *churras*
 
       👉 pra *Ana* · pix ana@exemplo.com
-      • Bia, Caio e Duda: R$ 25,00 cada (Bia: R$ 25,01)
+      • Bia, Caio e Duda: R$ 25,01 cada
 
       tudo aqui 👉 {site}/sextou/?evento=churras
       """

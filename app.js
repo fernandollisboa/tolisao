@@ -666,11 +666,26 @@
     ids.forEach((id, i) => (o[id] = base + (i < rem ? 1 : 0)));
     return o;
   }
-  /** a divisão igual de um gasto novo: o centavo que sobra começa numa pessoa que anda com a posição
-   *  do gasto na lista, e não sempre na primeira da turma. Fica gravado no `shares`: o `shares()` lido
-   *  na hora continua igual, senão os saldos dos eventos antigos mudavam
-   *  @param {number} cents @param {string[]} ids @param {number} pos */
-  function sharesGirando(cents, ids, pos) {
+  /** quem pagou e entrou na divisão fica com o centavo que sobra: quem deve paga arredondado pra cima, todo mundo o
+   *  mesmo valor (R$ 100,00 entre três: 33,34 pra cada um que deve, 33,32 pra quem pagou). Duas pessoas devendo
+   *  diferente o que se dividiu igual fica esquisito @param {number} cents @param {string[]} ids @param {string} payer
+   *  @returns {Record<string, number> | null} null quando não dá (quem pagou fora, ou valor miúdo demais) */
+  function sharesDoPagante(cents, ids, payer) {
+    const n = ids.length,
+      cima = Math.ceil(cents / n),
+      resto = cents - cima * (n - 1);
+    if (!ids.includes(payer) || n < 2 || resto < 0) return null;
+    /** @type {Record<string, number>} */ const o = {};
+    for (const id of ids) o[id] = id === payer ? resto : cima;
+    return o;
+  }
+  /** a divisão igual de um gasto novo: quem pagou fica com o centavo que sobra (`sharesDoPagante()`); quando ele
+   *  não entrou, o centavo começa numa pessoa que anda com a posição do gasto na lista, e não sempre na primeira
+   *  da turma. Fica gravado no `shares`: o `shares()` lido na hora continua igual, senão os saldos dos eventos
+   *  antigos mudavam @param {number} cents @param {string[]} ids @param {number} pos @param {string} payer */
+  function sharesGirando(cents, ids, pos, payer) {
+    const doPagante = sharesDoPagante(cents, ids, payer);
+    if (doPagante) return doPagante;
     const ini = pos % ids.length;
     const s = shares(
       cents,
@@ -688,6 +703,8 @@
       n = e.among.length,
       base = Math.floor(c / n);
     if (!n || c % n === 0 || Object.keys(e.shares).length !== n) return false;
+    const doPagante = sharesDoPagante(c, e.among, e.payer);
+    if (doPagante && e.among.every((id) => e.shares[id] === doPagante[id])) return true;
     const v = e.among.map((id) => e.shares[id]);
     return v.every((x) => x === base || x === base + 1) && v.reduce((a, b) => a + b, 0) === c;
   };
@@ -4262,11 +4279,22 @@
     }
     const velho = editando && state.expenses.find((x) => x.id === editando);
     if (splitMode !== 'custom' && total % among.length) {
-      // editou só a descrição (ou o pagante): o centavo fica com quem já estava
-      const igual = velho && ehIgual(velho) && centavos(velho) === total && velho.among.join() === among.join();
+      // editou só a descrição: o centavo fica com quem já estava
+      const igual =
+        velho &&
+        ehIgual(velho) &&
+        centavos(velho) === total &&
+        velho.among.join() === among.join() &&
+        velho.payer === exp.payer;
       if (igual) {
         if (velho.shares) exp.shares = { ...velho.shares };
-      } else exp.shares = sharesGirando(total, among, velho ? state.expenses.indexOf(velho) : state.expenses.length);
+      } else
+        exp.shares = sharesGirando(
+          total,
+          among,
+          velho ? state.expenses.indexOf(velho) : state.expenses.length,
+          exp.payer,
+        );
     }
     // edição não pergunta. Antes de perguntar, o banco: o outro aparelho pode ter acabado de anotar
     if (!editando) {
@@ -4848,36 +4876,21 @@
   /** "Ana, Bia e Caio" @param {string[]} nomes */
   const juntaNomes = (nomes) => (nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)}` : nomes[0]);
   /** quem deve o mesmo valor pra mesma pessoa vira uma linha só ("Ana e Bia: R$ 45,00 cada"). O rateio deixa um
-   *  centavo a mais em alguém: ele entra no grupo e o centavo aparece no fim, "(Caio: R$ 45,01)"
+   *  centavo a mais em alguém, e duas pessoas pagando diferente o que se dividiu igual fica esquisito: quem fica a
+   *  um centavo entra no grupo, e a linha leva o valor de cima
    *  @param {Transfer[]} dividas de uma pessoa só @returns {string[]} */
   function gruposDoValor(dividas) {
-    /** @type {{ cents: number, nomes: string[], fora: Transfer[] }[]} */
+    /** @type {Transfer[][]} */
     const grupos = [];
-    const porValor = new Map();
-    for (const t of dividas) porValor.set(t.cents, [...(porValor.get(t.cents) || []), t]);
-    // o valor de mais gente fica com o grupo; o vizinho de um centavo entra nele, com o valor dele à parte
-    const valores = [...porValor.keys()].sort((a, b) => porValor.get(b).length - porValor.get(a).length);
-    const usado = new Set();
-    for (const v of valores) {
-      if (usado.has(v)) continue;
-      usado.add(v);
-      const fora = [v - 1, v + 1].filter((w) => porValor.has(w) && !usado.has(w) && porValor.get(v).length > 1);
-      for (const w of fora) usado.add(w);
-      grupos.push({ cents: v, nomes: porValor.get(v).map((t) => t.from), fora: fora.flatMap((w) => porValor.get(w)) });
+    for (const t of dividas) {
+      const g = grupos.find((g) => g.every((x) => Math.abs(x.cents - t.cents) <= 1));
+      if (g) g.push(t);
+      else grupos.push([t]);
     }
-    // na ordem do acerto: quem deve mais primeiro
-    const ordem = (g) => dividas.findIndex((t) => t.cents === g.cents);
-    return grupos
-      .sort((a, b) => ordem(a) - ordem(b))
-      .map((g) => {
-        const dele = new Set([...g.nomes, ...g.fora.map((t) => t.from)]);
-        const nomes = dividas.filter((t) => dele.has(t.from)).map((t) => nameOf(t.from));
-        const cada = nomes.length > 1 ? ' cada' : '';
-        const centavo = g.fora.length
-          ? ` (${g.fora.map((t) => `${nameOf(t.from)}: ${comSifrao(t.cents)}`).join(', ')})`
-          : '';
-        return `• ${juntaNomes(nomes)}: ${comSifrao(g.cents)}${cada}${centavo}`;
-      });
+    return grupos.map((g) => {
+      const cada = g.length > 1 ? ' cada' : '';
+      return `• ${juntaNomes(g.map((t) => nameOf(t.from)))}: ${comSifrao(Math.max(...g.map((t) => t.cents)))}${cada}`;
+    });
   }
   // #endregion
   // #region imagem da comanda

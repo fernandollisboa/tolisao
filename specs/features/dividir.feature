@@ -15,14 +15,17 @@ Funcionalidade: Quanto fica pra cada um
       E eu divido só com Beto
       Então a frase de como está dividido diz "Empréstimo: Beto deve R$ 90,00 a Ana."
 
-  Regra: o centavo que sobra não cai sempre na mesma pessoa
-    R$ 100,00 entre três não fecha: alguém paga R$ 33,34. Se é sempre o primeiro da turma,
-    em quarenta gastos vira assunto no grupo.
+  Regra: quem pagou fica com o centavo que sobra
+    R$ 100,00 entre três não fecha. Quem deve paga o mesmo valor, arredondado pra cima, e quem pagou
+    fica com a diferença: duas pessoas devendo diferente o que se dividiu igual fica esquisito.
 
-    Exemplo: dois gastos de R$ 100,00 entre três, cada centavo a mais com uma pessoa
+    Exemplo: R$ 100,00 entre três, quem deve paga o mesmo
       Quando eu abro o evento como Ana
-      E eu anoto "Mercado" e depois "Gás", os dois de R$ 100,00 divididos igualmente
-      Então no banco, o centavo a mais do "Mercado" e o do "Gás" ficam com pessoas diferentes
+      E eu anoto "Mercado" de R$ 100,00 dividido igualmente
+      Então falta pagar:
+        | quem | paga pra | valor |
+        | Beto | Ana      | 33,34 |
+        | Caio | Ana      | 33,34 |
 
     Exemplo: o gasto com centavo sobrando continua dividido igualmente
       Quando eu abro o evento como Ana

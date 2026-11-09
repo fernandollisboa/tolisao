@@ -2970,7 +2970,7 @@
       : '';
     // com a digital à mão, o título vira botão: abre o menuzinho de guardar e entrar com a digital
     const titulo = temDigital()
-      ? `<h2><button type="button" id="evMenu" class="evMenu" aria-haspopup="true" aria-expanded="false" aria-controls="evMenuBox">*** Meus eventos <span class="seta" aria-hidden="true">▾</span> ***</button></h2>${menuDigital(evs.length > 0)}`
+      ? `<h2><button type="button" id="evMenu" class="evMenu" aria-haspopup="true" aria-expanded="false" aria-controls="evMenuBox">*** <span class="nome">Meus eventos</span> ***</button></h2>${menuDigital(evs.length > 0)}`
       : '<h2>*** Meus eventos ***</h2>';
     const lista =
       evs.length || temDigital() ? `<div class="hr"></div>${titulo}${evs.length ? listaEventos(evs, true) : ''}` : '';

@@ -3,7 +3,7 @@ const { Given, When, Then, expect, AGORA } = require('./_mundo.cjs');
 // o banco pode ter vários eventos; o mundo passa a falar do que foi nomeado
 const usa = (mundo, nome) => { const rooms = mundo.banco.arvore.rooms;
   mundo.sala = Object.keys(rooms).find(id => rooms[id].name === nome); mundo.evento = rooms[mundo.sala]; };
-const recarrega = async (mundo, acao) => { await Promise.all([mundo.p.waitForEvent('load'), acao()]); await mundo.p.waitForSelector('#overlayBox h2, #app:not(.loading)'); };
+const recarrega = async (mundo, acao) => { await Promise.all([mundo.p.waitForEvent('load'), acao()]); await mundo.p.waitForSelector('#overlayBox h2, #overlayBox h1, #app:not(.loading)'); };
 const ev = (mundo, nome) => mundo.p.locator('#overlayBox .ev', { hasText: nome });
 
 When('eu abro o evento {string} como {word}', async ({ mundo }, nome, quem) => { usa(mundo, nome); await mundo.abre({ quem }); });
